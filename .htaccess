@@ -1,0 +1,12 @@
+# Sécurité si le projet entier est déposé dans le dossier web du sous-domaine
+# (au lieu de faire pointer le sous-domaine sur public/) : tout est renvoyé vers public/,
+# de sorte que .env, var/ (photos, bulletins, sessions), config/ et src/ restent inaccessibles.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>

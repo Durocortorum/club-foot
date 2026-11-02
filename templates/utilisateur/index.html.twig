@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Utilisateurs{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Utilisateurs <span class="compteur">{{ utilisateurs|length }}</span></h1>
+        <a class="bouton principal" href="{{ path('app_utilisateur_nouveau') }}">+ Nouveau compte</a>
+    </div>
+
+    {% set sans = utilisateurs|filter(u => not u.password)|length %}
+    {% if sans %}
+        <p class="flash flash-info">
+            {{ sans }} compte{{ sans > 1 ? 's n\'ont' : ' n\'a' }} pas encore de mot de passe et ne peu{{ sans > 1 ? 'vent' : 't' }} donc pas se connecter.
+            Cliquez sur « Modifier » pour en définir un, puis communiquez-le à la personne : elle pourra le changer dans « Mon compte ».
+        </p>
+    {% endif %}
+
+    <div class="table-defile">
+        <table class="liste">
+            <thead><tr><th>Nom</th><th>E-mail</th><th>Droits</th><th>Connexion</th><th></th></tr></thead>
+            <tbody>
+                {% for u in utilisateurs %}
+                    <tr>
+                        <td class="nowrap"><strong>{{ u.nom }}</strong> {{ u.prenom }}{% if u == app.user %} <span class="pastille">vous</span>{% endif %}</td>
+                        <td class="nowrap">{{ u.email }}</td>
+                        <td class="petit">{{ u.admin ? 'Administration (tous les droits)' : (u.libellesRoles|join(', ') ?: '—') }}</td>
+                        <td class="nowrap">
+                            {% if u.password %}
+                                <span class="pastille succes">mot de passe défini</span>
+                            {% else %}
+                                <span class="pastille alerte">pas de mot de passe</span>
+                            {% endif %}
+                        </td>
+                        <td><a href="{{ path('app_utilisateur_modifier', {id: u.id}) }}">Modifier</a></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

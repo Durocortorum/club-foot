@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Mon compte{% endblock %}
+
+{% block body %}
+    <h1>Mon compte</h1>
+
+    <div class="grille-fiches">
+        <section class="carte">
+            <h2>Mes informations</h2>
+            <dl>
+                <dt>Nom</dt><dd>{{ moi.prenom }} {{ moi.nom }}</dd>
+                <dt>Adresse e-mail</dt><dd>{{ moi.email }}</dd>
+                <dt>Droits</dt><dd>{{ moi.admin ? 'Administration (tous les droits)' : (moi.libellesRoles|join(', ') ?: 'aucun') }}</dd>
+            </dl>
+            <p class="discret petit">Pour changer vos droits, adressez-vous à un administrateur.</p>
+        </section>
+
+        <section class="carte">
+            <h2>Changer mon mot de passe</h2>
+            {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+                {{ form_errors(form) }}
+                <div class="champ">{{ form_label(form.actuel) }}{{ form_widget(form.actuel) }}{{ form_errors(form.actuel) }}</div>
+                <div class="champ">{{ form_label(form.nouveau.first) }}{{ form_widget(form.nouveau.first) }}{{ form_help(form.nouveau.first) }}{{ form_errors(form.nouveau.first) }}</div>
+                <div class="champ">{{ form_label(form.nouveau.second) }}{{ form_widget(form.nouveau.second) }}{{ form_errors(form.nouveau.second) }}</div>
+                {{ form_errors(form.nouveau) }}
+                {{ form_rest(form) }}
+                <button type="submit" class="bouton principal">Changer le mot de passe</button>
+            {{ form_end(form) }}
+        </section>
+    </div>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Joueurs{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Joueurs <span class="compteur">{{ total }}</span></h1>
+        {% if peut_creer %}
+            <a class="bouton principal" href="{{ path('app_joueur_nouveau') }}">+ Nouveau joueur</a>
+        {% endif %}
+    </div>
+
+    <form class="filtres" method="get">
+        <input type="search" name="q" value="{{ filtres.q }}" placeholder="Nom, prénom ou n° de licence">
+        <select name="categorie" onchange="this.form.requestSubmit()">
+            <option value="">Toutes les catégories</option>
+            {% for c in categories %}
+                <option value="{{ c.id }}" {{ filtres.categorie == c.id ? 'selected' }}>{{ c.nom }}</option>
+            {% endfor %}
+        </select>
+        <select name="saison" onchange="this.form.requestSubmit()">
+            <option value="">Toutes les saisons</option>
+            {% for s in saisons %}
+                <option value="{{ s }}" {{ filtres.saison == s ? 'selected' }}>Saison {{ s }}</option>
+            {% endfor %}
+        </select>
+        <select name="statut" onchange="this.form.requestSubmit()">
+            <option value="actifs" {{ filtres.statut == 'actifs' ? 'selected' }}>Joueurs actifs</option>
+            <option value="anciens" {{ filtres.statut == 'anciens' ? 'selected' }}>Anciens joueurs</option>
+            <option value="tous" {{ filtres.statut == 'tous' ? 'selected' }}>Tous</option>
+        </select>
+        <button type="submit" class="bouton">Filtrer</button>
+    </form>
+    {% if filtres.saison %}
+        <p class="discret petit">
+            Joueurs inscrits sur au moins une feuille de match ou de présence
+            {{ filtres.categorie ? 'de l\'équipe choisie ' }}pendant la saison {{ filtres.saison }}.
+            {% if filtres.statut == 'actifs' %}Les anciens joueurs sont masqués : choisissez « Tous » pour les voir.{% endif %}
+            La colonne « Catégorie » indique leur catégorie actuelle.
+            {% if filtres.categorie %}
+                <a href="{{ path('app_archives_saison', {id: filtres.categorie, saison: filtres.saison|replace({'/': '-'})}) }}">Voir l'effectif avec les statistiques →</a>
+            {% endif %}
+        </p>
+    {% endif %}
+
+    {% if educateurs %}
+        <div class="coachs">
+            {% for l in educateurs %}
+                <a class="carte personne" href="{{ path('app_intervenant_voir', {type: 'educateurs', id: l.educateur.id}) }}">
+                    {{ m.avatar(l.educateur) }}
+                    <span>
+                        <span class="discret petit">{{ loop.first or l.joueurs is null ? 'Coach' : 'Éducateur' }}{{ filtres.saison ? ' ' ~ filtres.saison }}</span><br>
+                        <strong>{{ l.educateur.nomComplet }}</strong>
+                        {% if l.joueurs is not null %}<br><span class="discret petit">{{ l.joueurs }} joueur{{ l.joueurs > 1 ? 's' }} de la liste</span>{% endif %}
+                    </span>
+                </a>
+            {% endfor %}
+        </div>
+    {% elseif filtres.saison and filtres.categorie %}
+        <p class="discret petit">
+            Coach de la saison {{ filtres.saison }} non renseigné.
+            <a href="{{ path('app_archives_saison', {id: filtres.categorie, saison: filtres.saison|replace({'/': '-'})}) }}">L'indiquer dans les archives →</a>
+        </p>
+    {% endif %}
+
+    <div class="table-defile">
+        <table class="liste">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Catégorie</th>
+                    <th>Né le</th>
+                    <th>Poste</th>
+                    <th>Pied</th>
+                    <th>Éducateur</th>
+                    <th>Licence</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for j in joueurs %}
+                    <tr>
+                        <td class="avec-vignette">
+                            {{ m.avatar(j, 'mini') }}
+                            <a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a>
+                            {% if j.ancien %}<span class="pastille">ancien</span>{% endif %}
+                        </td>
+                        <td>{{ j.categorie }}</td>
+                        <td>{{ j.dateNaissance ? j.dateNaissance|date('d/m/Y') }}</td>
+                        <td>{{ j.poste }}</td>
+                        <td>{{ j.pied }}</td>
+                        <td>{{ j.educateur }}</td>
+                        <td>{{ j.licence }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="vide">Aucun joueur ne correspond à ces critères.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {{ m.pagination('app_joueur_index', filtres, page, pages) }}
+{% endblock %}

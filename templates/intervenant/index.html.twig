@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ libelles.pluriel }}{% endblock %}
+
+{% block body %}
+    <nav class="onglets">
+        <a href="{{ path('app_intervenant_index', {type: 'educateurs'}) }}" class="{{ type == 'educateurs' ? 'actif' }}">Éducateurs</a>
+        <a href="{{ path('app_intervenant_index', {type: 'dirigeants'}) }}" class="{{ type == 'dirigeants' ? 'actif' }}">Dirigeants</a>
+    </nav>
+
+    <div class="titre-page">
+        <h1>{{ libelles.pluriel }} <span class="compteur">{{ intervenants|length }}</span></h1>
+        {% if is_granted('ROLE_ADMIN') %}
+            <a class="bouton principal" href="{{ path('app_intervenant_nouveau', {type: type}) }}">+ Nouvel {{ libelles.singulier }}</a>
+        {% endif %}
+    </div>
+
+    <form class="filtres" method="get">
+        <input type="search" name="q" value="{{ filtres.q }}" placeholder="Nom, prénom ou équipe">
+        <select name="statut">
+            <option value="actifs" {{ filtres.statut == 'actifs' ? 'selected' }}>En activité</option>
+            <option value="anciens" {{ filtres.statut == 'anciens' ? 'selected' }}>Anciens</option>
+            <option value="tous" {{ filtres.statut == 'tous' ? 'selected' }}>Tous</option>
+        </select>
+        <button type="submit" class="bouton">Filtrer</button>
+    </form>
+
+    <div class="grille-personnes">
+        {% for i in intervenants %}
+            <a class="carte personne" href="{{ path('app_intervenant_voir', {type: type, id: i.id}) }}">
+                {{ m.avatar(i) }}
+                <div>
+                    <strong>{{ i.prenom }} {{ i.nom }}</strong>
+                    {% if i.ancien %}<span class="pastille">ancien</span>{% endif %}
+                    <div class="discret">{{ [i.fonction, i.fonction2]|filter(v => v)|join(' · ') ?: '—' }}</div>
+                    <div class="discret petit">{{ i.telPortable1 ?? i.telFixe }}</div>
+                </div>
+            </a>
+        {% else %}
+            <p class="vide">Aucune fiche ne correspond à ces critères.</p>
+        {% endfor %}
+    </div>
+{% endblock %}

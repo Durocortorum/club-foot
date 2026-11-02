@@ -1,0 +1,104 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Présences {{ semaine.equipeAffichee }}{% endblock %}
+
+{% block body %}
+    {% set equipe = semaine.equipeAffichee %}
+    <p><a href="{{ path('app_presence_index') }}">← Présences</a></p>
+
+    <div class="titre-page">
+        <div>
+            <h1>{{ equipe }}</h1>
+            <p class="discret">Semaine du {{ semaine.lundi|date('d/m/Y') }} au {{ semaine.samedi|date('d/m/Y') }}</p>
+        </div>
+        <div class="actions">
+            {{ m.supprimer(path('app_presence_supprimer', {id: semaine.id}), 'supprimer-semaine' ~ semaine.id, 'Supprimer cette semaine et toutes ses présences ?', 'Supprimer la semaine') }}
+        </div>
+    </div>
+
+    <p class="discret petit">
+        Pour chaque demi-journée : l'équipe avec laquelle le joueur s'est entraîné, ou le motif d'absence.
+        Laissez vide s'il n'y avait pas de séance. Le bouton ✓ sous un créneau marque présents tous les joueurs encore vides.
+    </p>
+
+    <form method="post" data-controller="presence" data-presence-equipe-value="{{ equipe }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('presences' ~ semaine.id) }}">
+        <div class="table-defile">
+            <table class="liste grille-presence">
+                <thead>
+                    <tr>
+                        <th>Joueur</th>
+                        {% for cle, libelle in creneaux %}
+                            <th title="{{ libelle }}">{{ libelle|split(' ')|first|slice(0, 3) }}<br><span class="discret">{{ 'matin' in libelle ? 'mat.' : 'a-m' }}</span></th>
+                        {% endfor %}
+                        <th>Présent</th>
+                        <th></th>
+                    </tr>
+                    <tr class="remplir">
+                        <th></th>
+                        {% for cle, libelle in creneaux %}
+                            <th><button type="button" class="bouton petit" data-action="presence#remplir" data-presence-creneau-param="{{ cle }}" title="Tous présents – {{ libelle }}">✓</button></th>
+                        {% endfor %}
+                        <th></th><th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in presences %}
+                        {% set j = p.joueur %}
+                        {% set present = p.creneaux|filter(v => v not in motifs|keys)|length %}
+                        <tr>
+                            <td class="avec-vignette nowrap">{{ m.avatar(j, 'mini') }} <a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a></td>
+                            {% for cle, libelle in creneaux %}
+                                {% set valeur = p.creneau(cle) %}
+                                <td>
+                                    <select name="creneaux[{{ j.id }}][{{ cle }}]" data-creneau="{{ cle }}" title="{{ libelle }}"
+                                            class="creneau {{ valeur is null ? 'vide' : (valeur in motifs|keys ? 'absence' : 'present') }}">
+                                        <option value=""></option>
+                                        <option value="{{ equipe }}" {{ valeur == equipe ? 'selected' }}>✓ {{ equipe }}</option>
+                                        <optgroup label="Absence">
+                                            {% for code, motif in motifs %}
+                                                <option value="{{ code }}" {{ valeur == code ? 'selected' }}>{{ motif }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                        <optgroup label="Avec une autre équipe">
+                                            {% for e in equipes|filter(e => e != equipe) %}
+                                                <option value="{{ e }}" {{ valeur == e ? 'selected' }}>{{ e }}</option>
+                                            {% endfor %}
+                                            {% if valeur and valeur != equipe and valeur not in motifs|keys and valeur not in equipes %}
+                                                <option value="{{ valeur }}" selected>{{ valeur }}</option>
+                                            {% endif %}
+                                        </optgroup>
+                                    </select>
+                                </td>
+                            {% endfor %}
+                            <td class="nowrap">{{ present }} / {{ p.creneaux|length }}</td>
+                            <td>
+                                <button type="submit" form="retirer-{{ p.id }}" class="bouton danger petit" title="Retirer {{ j.prenom }} {{ j.nom }} de cette semaine">×</button>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="14" class="vide">Aucun joueur dans cette semaine.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer les présences</button>
+            {% if a_ajouter %}
+                <select name="ajouter" class="ajout">
+                    <option value="">Ajouter un joueur de la catégorie…</option>
+                    {% for j in a_ajouter %}<option value="{{ j.id }}">{{ j.nom }} {{ j.prenom }}</option>{% endfor %}
+                </select>
+            {% endif %}
+        </div>
+    </form>
+
+    {% for p in presences %}
+        <form id="retirer-{{ p.id }}" method="post" action="{{ path('app_presence_retirer', {id: semaine.id, presence: p.id}) }}"
+              data-confirmation="Retirer {{ p.joueur.nomComplet }} de cette semaine ? Les présences non enregistrées seront perdues." data-confirmation-bouton="Retirer">
+            <input type="hidden" name="_token" value="{{ csrf_token('retirer' ~ p.id) }}">
+        </form>
+    {% endfor %}
+{% endblock %}

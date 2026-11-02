@@ -1,0 +1,78 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Séance {{ seance.categorie }} du {{ seance.date|date('d/m/Y') }}{% endblock %}
+
+{% block body %}
+    <p class="sans-impression"><a href="{{ path('app_seance_index') }}">← Entraînements</a></p>
+
+    <div class="titre-page">
+        <div>
+            <h1>{{ seance.theme }}</h1>
+            <p class="discret">
+                {{ seance.categorie }} · {{ ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][seance.date|date('w')] }} {{ seance.date|date('d/m/Y') }}
+                {% if seance.duree %} · {{ seance.duree }} min{% endif %}
+                · {{ seance.exercices|length }} exercice{{ seance.exercices|length > 1 ? 's' }}
+            </p>
+        </div>
+        <div class="actions sans-impression">
+            <button type="button" class="bouton" onclick="window.print()">Imprimer</button>
+            <form method="post" action="{{ path('app_seance_dupliquer', {id: seance.id}) }}" class="en-ligne">
+                <input type="hidden" name="_token" value="{{ csrf_token('dupliquer-seance' ~ seance.id) }}">
+                <button class="bouton" title="Créer une nouvelle séance avec les mêmes exercices">Dupliquer</button>
+            </form>
+            <a class="bouton" href="{{ path('app_seance_modifier', {id: seance.id}) }}">Modifier</a>
+        </div>
+    </div>
+
+    {% if seance.objectifs %}
+        <div class="carte objectifs"><strong>Objectifs</strong><p class="memo">{{ seance.objectifs }}</p></div>
+    {% endif %}
+
+    {% for e in seance.exercices %}
+        <section class="carte exercice" id="exercice-{{ e.id }}">
+            <div class="exercice-entete">
+                <h2><span class="exercice-rang">{{ loop.index }}</span> {{ e.titre }}{% if e.duree %} <span class="pastille">{{ e.duree }} min</span>{% endif %}</h2>
+                <div class="actions sans-impression">
+                    {% set bornes = {monter: loop.first, descendre: loop.last} %}
+                    {% for sens, symbole in {monter: '↑', descendre: '↓'} %}
+                        {% if not bornes[sens] %}
+                            <form method="post" action="{{ path('app_exercice_deplacer', {id: e.id, sens: sens}) }}" class="en-ligne">
+                                <input type="hidden" name="_token" value="{{ csrf_token('deplacer-exercice' ~ e.id) }}">
+                                <button class="bouton petit" title="{{ sens|capitalize }}">{{ symbole }}</button>
+                            </form>
+                        {% endif %}
+                    {% endfor %}
+                    <a class="bouton petit" href="{{ path('app_exercice_modifier', {id: e.id}) }}">Modifier</a>
+                    {% if destinations|length > 1 %}
+                        <details class="copier">
+                            <summary class="bouton petit">Copier vers…</summary>
+                            <form method="post" action="{{ path('app_exercice_copier', {id: e.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('copier-exercice' ~ e.id) }}">
+                                <select name="seance" required>
+                                    <option value="">Choisir la séance</option>
+                                    {% for d in destinations %}
+                                        <option value="{{ d.id }}">{{ d }}{{ d.id == seance.id ? ' (celle-ci)' }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button class="bouton petit">Copier</button>
+                            </form>
+                        </details>
+                    {% endif %}
+                    {{ m.supprimer(path('app_exercice_supprimer', {id: e.id}), 'supprimer-exercice' ~ e.id, 'Supprimer cet exercice ?', '×') }}
+                </div>
+            </div>
+            <div class="exercice-corps">
+                <svg class="schema-terrain" data-controller="schema" data-schema-lecture-value="true" data-schema-schema-value="{{ e.schema|json_encode }}" data-schema-target="svg" role="img" aria-label="Schéma : {{ e.titre }}"></svg>
+                {% if e.consignes %}<p class="memo">{{ e.consignes }}</p>{% endif %}
+            </div>
+        </section>
+    {% else %}
+        <p class="vide carte">Aucun exercice pour l'instant.</p>
+    {% endfor %}
+
+    <p class="sans-impression actions">
+        <a class="bouton principal" href="{{ path('app_exercice_nouveau', {id: seance.id}) }}">+ Ajouter un exercice</a>
+        <a class="bouton" href="{{ path('app_seance_bibliotheque', {id: seance.id}) }}">Choisir dans la bibliothèque</a>
+    </p>
+{% endblock %}

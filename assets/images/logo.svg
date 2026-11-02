@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Logo neutre (écusson et ballon), affiché tant qu'un club n'a pas envoyé le sien. -->
+  <path d="M32 3 L57 11 V30 C57 45 46 56 32 61 C18 56 7 45 7 30 V11 Z" fill="#1d6fd8" stroke="#ffffff" stroke-width="3"/>
+  <circle cx="32" cy="31" r="13" fill="#ffffff" stroke="#14273f" stroke-width="2"/>
+  <path d="M32 24.5 L38.2 29 L35.8 36.3 H28.2 L25.8 29 Z" fill="#14273f"/>
+  <path d="M32 18 V24.5 M38.2 29 L44.5 27 M35.8 36.3 L39.5 42 M28.2 36.3 L24.5 42 M25.8 29 L19.5 27" stroke="#14273f" stroke-width="1.8" fill="none"/>
+</svg>

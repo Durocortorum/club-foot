@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Matchs{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Matchs <span class="compteur">{{ total }}</span></h1>
+        {% if peut_creer %}
+            <a class="bouton principal" href="{{ path('app_rencontre_nouveau') }}">+ Nouveau match</a>
+        {% endif %}
+    </div>
+
+    <form class="filtres" method="get">
+        <input type="search" name="q" value="{{ filtres.q }}" placeholder="Adversaire ou stade">
+        {% include 'rencontre/_filtres.html.twig' %}
+        <button type="submit" class="bouton">Filtrer</button>
+    </form>
+
+    {% include 'rencontre/_bilan.html.twig' %}
+
+    <div class="table-defile">
+        <table class="liste">
+            <thead>
+                <tr><th>Date</th><th>Équipe</th><th>Match</th><th>Score</th><th>Compétition</th><th>Note</th></tr>
+            </thead>
+            <tbody>
+                {% for r in rencontres %}
+                    <tr>
+                        <td class="nowrap">{{ r.date ? r.date|date('d/m/Y') : '?' }}</td>
+                        <td>{{ r.equipeAffichee }}</td>
+                        <td><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a></td>
+                        <td>{{ m.score(r) }}</td>
+                        <td>{{ r.competition }}</td>
+                        <td>{{ r.note ? r.note|number_format(1, ',') }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="vide">Aucun match pour ces critères.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {{ m.pagination('app_rencontre_index', filtres|merge({saison: filtres.saison ?? ''}), page, pages) }}
+{% endblock %}

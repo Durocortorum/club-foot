@@ -1,0 +1,120 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ rencontre }}{% endblock %}
+
+{% macro joueur(j) %}
+    {% if j %}<a href="{{ path('app_joueur_voir', {id: j.id}) }}">{{ j.prenom }} {{ j.nom }}</a>{% else %}<span class="discret">?</span>{% endif %}
+{% endmacro %}
+{% import _self as v %}
+
+{% block body %}
+    <p><a href="{{ path('app_rencontre_index') }}">← Matchs</a></p>
+
+    <div class="titre-page">
+        <div>
+            <p class="discret">
+                {{ rencontre.equipeAffichee }} · {{ rencontre.competition ?? 'Match' }}
+                · {{ rencontre.date ? rencontre.date|date('d/m/Y') : 'date inconnue' }}{% if rencontre.heure %} à {{ rencontre.heure }}{% endif %}
+            </p>
+            <h1 class="affiche">
+                <span>{{ rencontre.domicile }}</span>
+                {{ m.score(rencontre) }}
+                <span>{{ rencontre.exterieur }}</span>
+            </h1>
+            {% if rencontre.butsDomicileMiTemps is not null %}
+                <p class="discret">Mi-temps : {{ rencontre.butsDomicileMiTemps }} – {{ rencontre.butsExterieurMiTemps }}</p>
+            {% endif %}
+        </div>
+        <div class="actions">
+            <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Modifier</a>
+            {{ m.supprimer(path('app_rencontre_supprimer', {id: rencontre.id}), 'supprimer-match' ~ rencontre.id, 'Supprimer ce match et sa feuille de match ?') }}
+        </div>
+    </div>
+
+    <div class="grille-fiches">
+        <section class="carte">
+            <h2>Conditions</h2>
+            <dl>
+                {{ m.ligne('Stade', rencontre.lieu) }}
+                {{ m.ligne('Terrain', rencontre.terrain) }}
+                {{ m.ligne('Météo', rencontre.meteo) }}
+                {{ m.ligne('Vent', rencontre.vent) }}
+                {{ m.ligne('Température', rencontre.temperature ? rencontre.temperature ~ ' °C') }}
+                {{ m.ligne('Organisation', rencontre.systeme) }}
+                {{ m.ligne('Note du match', rencontre.note ? rencontre.note|number_format(1, ',') ~ ' / 10') }}
+            </dl>
+        </section>
+
+        <section class="carte">
+            <h2>Buts</h2>
+            {% if rencontre.buts|length %}
+                <ul class="liste-simple">
+                    {% for b in rencontre.buts %}
+                        <li class="{{ b.adverse ? 'adverse' }}">
+                            <span class="minute">{{ b.minute is not null ? b.minute ~ "'" }}</span>
+                            {% if b.adverse %}
+                                <strong>{{ rencontre.adversaire }}</strong>
+                            {% else %}
+                                ⚽ {{ v.joueur(b.buteur) }}
+                                {% if b.passeur %}<span class="discret">(passe de {{ v.joueur(b.passeur) }})</span>{% endif %}
+                            {% endif %}
+                            <div class="discret petit">{{ [b.geste, b.conditions, b.phaseLibelle]|filter(x => x)|join(' · ') }}</div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="discret">Aucun but détaillé.</p>
+            {% endif %}
+        </section>
+
+        {% if rencontre.remplacements|length %}
+            <section class="carte">
+                <h2>Remplacements</h2>
+                <ul class="liste-simple">
+                    {% for r in rencontre.remplacements %}
+                        <li>
+                            <span class="minute">{{ r.minute is not null ? r.minute ~ "'" }}</span>
+                            <span class="entre">▲</span> {{ v.joueur(r.entrant) }}
+                            <span class="sort">▼</span> {{ v.joueur(r.sortant) }}
+                            {% if r.motif == 'Blessure' %}<span class="pastille alerte">blessure</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+    </div>
+
+    {% if rencontre.rapport %}
+        <section class="carte bloc">
+            <h2>Rapport de l'éducateur</h2>
+            <p class="memo">{{ rencontre.rapport }}</p>
+        </section>
+    {% endif %}
+
+    <section class="bloc">
+        <h2 class="titre-bloc">Feuille de match</h2>
+        {% if rencontre.participations|length %}
+            <div class="table-defile">
+                <table class="liste">
+                    <thead><tr><th>N°</th><th>Joueur</th><th>Poste</th><th>Min.</th><th>Note</th><th>Carton</th><th>Appréciation</th></tr></thead>
+                    <tbody>
+                        {% for p in rencontre.participations %}
+                            <tr class="{{ not p.titulaire ? 'remplacant' }}">
+                                <td>{{ p.numero }}</td>
+                                <td class="avec-vignette">{{ m.avatar(p.joueur, 'mini') }} {{ v.joueur(p.joueur) }}</td>
+                                <td>{{ p.poste }}</td>
+                                <td>{{ p.tempsJeu }}</td>
+                                <td>{% if p.note %}<span class="note note-{{ p.note >= 6 ? 'haute' : (p.note < 4 ? 'basse' : 'moyenne') }}">{{ p.note|number_format(1, ',') }}</span>{% endif %}</td>
+                                <td>{% if p.carton %}<span class="carton {{ p.couleurCarton }}" title="{{ p.cartonLibelle }}"></span> <span class="petit discret">{{ p.cartonLibelle }}</span>{% endif %}</td>
+                                <td class="petit">{{ p.appreciation }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="discret">Feuille de match non remplie.</p>
+        {% endif %}
+    </section>
+{% endblock %}

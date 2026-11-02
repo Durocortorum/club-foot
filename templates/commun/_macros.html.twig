@@ -1,0 +1,65 @@
+{# Photo de la fiche, ou initiales à défaut. #}
+{% macro avatar(personne, classe = '') %}
+    {% if personne.photo %}
+        <img class="avatar {{ classe }}" src="{{ path('app_photo', {nom: personne.photo|replace({'.jpg': ''})}) }}" alt="Photo de {{ personne.prenom }} {{ personne.nom }}" loading="lazy">
+    {% else %}
+        <div class="avatar {{ classe }}">{{ personne.prenom|first|upper }}{{ personne.nom|first|upper }}</div>
+    {% endif %}
+{% endmacro %}
+
+{# Groupe de champs d'un formulaire, dans l'ordre donné. #}
+{% macro groupe(form, champs) %}
+    <div class="champs">
+        {% for nom in champs %}
+            {% if form[nom] is defined %}
+                <div class="champ {{ form[nom].vars.block_prefixes[1] == 'checkbox' ? 'case' }} {{ 'textarea' in form[nom].vars.block_prefixes ? 'large' }}">
+                    {{ form_label(form[nom]) }}
+                    {{ form_widget(form[nom]) }}
+                    {{ form_help(form[nom]) }}
+                    {{ form_errors(form[nom]) }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+{# Ligne de liste de définitions, masquée si la valeur est vide. #}
+{% macro ligne(libelle, valeur) %}
+    {% if valeur is not same as(null) and valeur != '' %}
+        <dt>{{ libelle }}</dt><dd>{{ valeur }}</dd>
+    {% endif %}
+{% endmacro %}
+
+{# Score « 3 – 1 » d'un match, coloré selon le résultat du club. #}
+{% macro score(r) %}
+    {% if r.butsDomicile is not null and r.butsExterieur is not null %}
+        <span class="score resultat-{{ r.resultat }}">{{ r.butsDomicile }} – {{ r.butsExterieur }}</span>
+    {% else %}
+        <span class="score">–</span>
+    {% endif %}
+{% endmacro %}
+
+{# Pagination conservant les filtres. #}
+{% macro pagination(route, filtres, page, pages, params = {}) %}
+    {% if pages > 1 %}
+        <nav class="pagination">
+            {% for p in 1..pages %}
+                {% if p == page %}
+                    <span class="actif">{{ p }}</span>
+                {% elseif p <= 2 or p > pages - 2 or (p - page)|abs <= 2 %}
+                    <a href="{{ path(route, params|merge(filtres)|merge({page: p})) }}">{{ p }}</a>
+                {% elseif p == 3 or p == pages - 2 %}
+                    <span class="ellipse">…</span>
+                {% endif %}
+            {% endfor %}
+        </nav>
+    {% endif %}
+{% endmacro %}
+
+{# Bouton de suppression avec confirmation. #}
+{% macro supprimer(action, jeton, question, libelle = 'Supprimer') %}
+    <form method="post" action="{{ action }}" data-confirmation="{{ question }}" data-confirmation-bouton="{{ libelle in ['×', 'Supprimer'] ? 'Supprimer' : libelle }}" class="en-ligne">
+        <input type="hidden" name="_token" value="{{ csrf_token(jeton) }}">
+        <button class="bouton danger">{{ libelle }}</button>
+    </form>
+{% endmacro %}

@@ -1,0 +1,13 @@
+{# Filtres saison / catégorie partagés par la liste des matchs et les statistiques. #}
+<select name="saison" onchange="this.form.requestSubmit()">
+    <option value="">Toutes les saisons</option>
+    {% for s in saisons %}
+        <option value="{{ s }}" {{ filtres.saison == s ? 'selected' }}>Saison {{ s }}</option>
+    {% endfor %}
+</select>
+<select name="categorie" onchange="this.form.requestSubmit()">
+    <option value="">Toutes les catégories</option>
+    {% for c in categories %}
+        <option value="{{ c.id }}" {{ filtres.categorie == c.id ? 'selected' }}>{{ c.nom }}</option>
+    {% endfor %}
+</select>

@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Entraînements{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Entraînements <span class="compteur">{{ total }} séance{{ total > 1 ? 's' }}</span></h1>
+        {% if peut_creer %}
+            <a class="bouton principal" href="{{ path('app_seance_nouvelle') }}">+ Nouvelle séance</a>
+        {% endif %}
+    </div>
+
+    <form class="filtres" method="get">
+        <input type="search" name="q" value="{{ filtres.q }}" placeholder="Thème ou exercice">
+        <select name="saison" onchange="this.form.requestSubmit()">
+            <option value="">Toutes les saisons</option>
+            {% for s in saisons %}
+                <option value="{{ s }}" {{ filtres.saison == s ? 'selected' }}>Saison {{ s }}</option>
+            {% endfor %}
+        </select>
+        <select name="categorie" onchange="this.form.requestSubmit()">
+            <option value="">Toutes les catégories</option>
+            {% for c in categories %}
+                <option value="{{ c.id }}" {{ filtres.categorie == c.id ? 'selected' }}>{{ c.nom }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="bouton">Filtrer</button>
+    </form>
+
+    <div class="table-defile">
+        <table class="liste">
+            <thead><tr><th>Date</th><th>Équipe</th><th>Thème</th><th>Exercices</th><th>Durée</th></tr></thead>
+            <tbody>
+                {% for s in seances %}
+                    <tr>
+                        <td class="nowrap"><a href="{{ path('app_seance_voir', {id: s.id}) }}">{{ s.date|date('d/m/Y') }}</a></td>
+                        <td>{{ s.categorie }}</td>
+                        <td><a href="{{ path('app_seance_voir', {id: s.id}) }}">{{ s.theme }}</a></td>
+                        <td>{{ s.exercices|length }}</td>
+                        <td>{{ s.duree ? s.duree ~ ' min' }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="vide">Aucune séance{{ filtres.saison or filtres.categorie or filtres.q ? ' pour ces critères' }}.{% if peut_creer %} Créez la première avec « Nouvelle séance ».{% endif %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {{ m.pagination('app_seance_index', filtres, page, pages) }}
+{% endblock %}

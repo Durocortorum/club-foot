@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Joueurs observés{% endblock %}
+
+{% block body %}
+    {% include 'recrutement/_onglets.html.twig' with {onglet: 'observes'} %}
+
+    <div class="titre-page">
+        <h1>Joueurs observés <span class="compteur">{{ observes|length }}</span></h1>
+        <a class="bouton principal" href="{{ path('app_observe_nouveau') }}">+ Nouveau joueur observé</a>
+    </div>
+
+    <form class="filtres" method="get">
+        <input type="search" name="q" value="{{ filtres.q }}" placeholder="Nom, club ou poste">
+        <button type="submit" class="bouton">Rechercher</button>
+    </form>
+
+    <div class="table-defile">
+        <table class="liste">
+            <thead><tr><th>Joueur</th><th>Âge</th><th>Poste</th><th>Club</th><th>Niveau</th><th>Évaluation</th></tr></thead>
+            <tbody>
+                {% for o in observes %}
+                    <tr>
+                        <td><a href="{{ path('app_observe_voir', {id: o.id}) }}"><strong>{{ o.nom }}</strong> {{ o.prenom }}</a></td>
+                        <td>{{ o.age }}</td>
+                        <td>{{ o.poste }}</td>
+                        <td>{{ o.clubActuel }}</td>
+                        <td>{{ o.niveau }}</td>
+                        <td>{% if o.evaluation or o.commentaire %}<span class="pastille succes">fiche remplie</span>{% endif %}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="vide">Aucun joueur observé.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

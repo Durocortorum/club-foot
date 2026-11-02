@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Statistiques{% endblock %}
+
+{% block body %}
+    {% set lien = {saison: filtres.saison ?? '', categorie: filtres.categorie} %}
+    <div class="titre-page">
+        <h1>Statistiques</h1>
+    </div>
+
+    <form class="filtres" method="get">
+        <input type="hidden" name="vue" value="{{ filtres.vue }}">
+        {% include 'rencontre/_filtres.html.twig' %}
+        {% if filtres.vue == 'joueurs' %}
+            <select name="tri" onchange="this.form.requestSubmit()">
+                {% for cle, libelle in tris %}
+                    <option value="{{ cle }}" {{ filtres.tri == cle ? 'selected' }}>Trier par : {{ libelle }}</option>
+                {% endfor %}
+            </select>
+        {% endif %}
+        <noscript><button type="submit" class="bouton">Filtrer</button></noscript>
+    </form>
+
+    <nav class="onglets">
+        <a href="{{ path('app_statistiques', lien|merge({vue: 'equipe'})) }}" class="{{ filtres.vue == 'equipe' ? 'actif' }}">Équipe</a>
+        <a href="{{ path('app_statistiques', lien|merge({vue: 'joueurs'})) }}" class="{{ filtres.vue == 'joueurs' ? 'actif' }}">Joueurs</a>
+        <a href="{{ path('app_statistiques', lien|merge({vue: 'discipline'})) }}" class="{{ filtres.vue == 'discipline' ? 'actif' }}">Discipline</a>
+    </nav>
+
+    {% if filtres.vue == 'equipe' %}
+        {% include 'rencontre/_bilan.html.twig' %}
+        {% include 'rencontre/_buts_quart_heure.html.twig' %}
+        {% include 'rencontre/_buts_situations.html.twig' %}
+    {% elseif filtres.vue == 'joueurs' %}
+        {% include 'rencontre/_stats_joueurs.html.twig' %}
+    {% else %}
+        {% include 'rencontre/_stats_discipline.html.twig' %}
+    {% endif %}
+{% endblock %}

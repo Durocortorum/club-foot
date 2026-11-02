@@ -1,0 +1,88 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{# Ligne d'une collection (feuille de match, buts, remplacements) sous forme de ligne de tableau. #}
+{% macro ligne(entree, champs) %}
+    <tr data-collection-target="ligne">
+        {% for nom in champs %}
+            <td>{{ form_widget(entree[nom]) }}{{ form_errors(entree[nom]) }}</td>
+        {% endfor %}
+        <td><button type="button" class="bouton danger petit" data-action="collection#retirer" title="Retirer la ligne">×</button></td>
+    </tr>
+{% endmacro %}
+
+{% macro collection(champ, colonnes, champs, ajout) %}
+    {% import _self as s %}
+    <div data-controller="collection" data-collection-prototype-value="{{ s.ligne(champ.vars.prototype, champs)|e('html_attr') }}" data-collection-index-value="{{ champ|length > 0 ? champ|keys|last + 1 : 0 }}">
+        <div class="table-defile">
+            <table class="liste saisie">
+                <thead><tr>{% for c in colonnes %}<th>{{ c }}</th>{% endfor %}<th></th></tr></thead>
+                <tbody data-collection-target="corps">
+                    {% for entree in champ %}{{ s.ligne(entree, champs) }}{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <button type="button" class="bouton" data-action="collection#ajouter">{{ ajout }}</button>
+    </div>
+    {% do champ.setRendered %}
+{% endmacro %}
+{% import _self as s %}
+
+{% block body %}
+    <p>
+        {% if rencontre.id %}
+            <a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← Retour au match</a>
+        {% else %}
+            <a href="{{ path('app_rencontre_index') }}">← Matchs</a>
+        {% endif %}
+    </p>
+    <h1>{{ titre }}</h1>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire', 'data-controller': 'feuille'}}) }}
+        {{ form_errors(form) }}
+
+        <fieldset class="carte">
+            <legend>Match</legend>
+            {{ m.groupe(form, ['date', 'heure', 'categorie', 'equipe', 'competition', 'domicile', 'exterieur', 'butsDomicile', 'butsExterieur', 'butsDomicileMiTemps', 'butsExterieurMiTemps']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Conditions</legend>
+            {{ m.groupe(form, ['lieu', 'terrain', 'meteo', 'vent', 'temperature', 'systeme', 'note']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Rapport</legend>
+            {{ m.groupe(form, ['rapport']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Feuille de match</legend>
+            <p class="discret petit">Numéros 1 à 11 : titulaires. Poste « Non utilisé » pour un remplaçant resté sur le banc.</p>
+            <label class="case-filtre petit">
+                <input type="checkbox" data-feuille-target="autres" data-action="feuille#filtrer">
+                Afficher aussi les joueurs des autres catégories (surclassement)
+            </label>
+            {{ s.collection(form.participations, ['N°', 'Joueur', 'Poste', 'Min.', 'Note', 'Carton', 'Appréciation'], ['numero', 'joueur', 'poste', 'tempsJeu', 'note', 'carton', 'appreciation'], '+ Ajouter un joueur') }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Buts</legend>
+            <p class="discret petit">Seuls les joueurs de la feuille de match sont proposés comme buteur ou passeur.</p>
+            {{ s.collection(form.buts, ['Min.', 'Pour', 'Buteur', 'Passeur', 'Geste', 'Situation', 'Phase'], ['minute', 'adverse', 'buteur', 'passeur', 'geste', 'conditions', 'phase'], '+ Ajouter un but') }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Remplacements</legend>
+            <p class="discret petit">Seuls les joueurs de la feuille de match sont proposés.</p>
+            {{ s.collection(form.remplacements, ['Min.', 'Sort', 'Entre', 'Motif'], ['minute', 'sortant', 'entrant', 'motif'], '+ Ajouter un remplacement') }}
+        </fieldset>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer le match</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

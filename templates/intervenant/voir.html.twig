@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ intervenant.nomComplet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_intervenant_index', {type: type}) }}">← {{ libelles.pluriel }}</a></p>
+
+    <div class="titre-page">
+        <div class="identite">
+            {{ m.avatar(intervenant, 'grand') }}
+            <div>
+                <h1>{{ intervenant.prenom }} <strong>{{ intervenant.nom }}</strong></h1>
+                <p class="discret">
+                    {{ libelles.singulier|capitalize }}
+                    {% if intervenant.fonction %} · {{ intervenant.fonction }}{% endif %}
+                    {% if intervenant.ancien %} <span class="pastille">a quitté le club</span>{% endif %}
+                </p>
+            </div>
+        </div>
+        {% if is_granted('ROLE_ADMIN') %}
+            <div class="actions">
+                <a class="bouton principal" href="{{ path('app_intervenant_modifier', {type: type, id: intervenant.id}) }}">Modifier</a>
+                {{ m.supprimer(path('app_intervenant_supprimer', {type: type, id: intervenant.id}), 'supprimer' ~ type ~ intervenant.id, 'Supprimer définitivement la fiche de ' ~ intervenant.nomComplet ~ ' ?') }}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="grille-fiches">
+        <section class="carte">
+            <h2>Club</h2>
+            <dl>
+                {{ m.ligne('Équipe / fonction', intervenant.fonction) }}
+                {{ m.ligne('Seconde équipe', intervenant.fonction2) }}
+                {{ m.ligne('Diplôme', intervenant.diplome) }}
+                {{ m.ligne('N° de licence', intervenant.licence) }}
+                {{ m.ligne('Date de naissance', intervenant.dateNaissance ? intervenant.dateNaissance|date('d/m/Y')) }}
+            </dl>
+        </section>
+
+        <section class="carte">
+            <h2>Coordonnées</h2>
+            <dl>
+                {{ m.ligne('Adresse', intervenant.adresse) }}
+                {{ m.ligne('Ville', [intervenant.codePostal, intervenant.ville]|filter(v => v)|join(' ')) }}
+                {{ m.ligne('Tél. fixe', intervenant.telFixe) }}
+                {{ m.ligne('Portable', intervenant.telPortable1) }}
+                {{ m.ligne('Portable 2', intervenant.telPortable2) }}
+                {{ m.ligne('Tél. professionnel', intervenant.telProfessionnel) }}
+                {% if intervenant.email %}<dt>E-mail</dt><dd><a href="mailto:{{ intervenant.email }}">{{ intervenant.email }}</a></dd>{% endif %}
+            </dl>
+        </section>
+
+        {% if joueurs %}
+            <section class="carte">
+                <h2>Joueurs suivis <span class="compteur">{{ joueurs|length }}</span></h2>
+                <ul class="liste-simple">
+                    {% for j in joueurs %}
+                        <li><a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a> <span class="discret">{{ j.categorie }}</span></li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {% if intervenant.memo %}
+            <section class="carte">
+                <h2>Mémo</h2>
+                <p class="memo">{{ intervenant.memo }}</p>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

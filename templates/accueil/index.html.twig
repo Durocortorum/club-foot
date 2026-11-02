@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>Bonjour {{ app.user.prenom }}</h1>
+    <p class="discret">Joueurs actifs par catégorie, pour les secteurs auxquels vous avez accès.</p>
+
+    {% for secteur, categories in secteurs %}
+        <section class="secteur">
+            <h2>{{ libelles[secteur].libelle }}</h2>
+            <div class="tuiles">
+                {% for c in categories %}
+                    <a class="tuile equipe" href="{{ path('app_joueur_index', {categorie: c.id}) }}">
+                        <span class="equipe-niveau">{{ c.nom }}</span>
+                        <span class="equipe-effectif">{{ c.total }} joueur{{ c.total > 1 ? 's' }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    {% else %}
+        <p>Votre compte n'a accès à aucun secteur. Demandez à un administrateur de vous attribuer des droits.</p>
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ o.nomComplet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_observe_index') }}">← Joueurs observés</a></p>
+
+    <div class="titre-page">
+        <div>
+            <h1>{{ o.prenom }} <strong>{{ o.nom }}</strong></h1>
+            <p class="discret">
+                {{ [o.poste, o.clubActuel, o.niveau, o.age ? o.age ~ ' ans']|filter(v => v)|join(' · ') }}
+                {% if o.dateObservation %} · observé le {{ o.dateObservation|date('d/m/Y') }}{% endif %}
+            </p>
+        </div>
+        <div class="actions">
+            <a class="bouton principal" href="{{ path('app_observe_modifier', {id: o.id}) }}">Modifier</a>
+            {{ m.supprimer(path('app_observe_supprimer', {id: o.id}), 'supprimer-observe' ~ o.id, 'Supprimer la fiche de ' ~ o.nomComplet ~ ' ?') }}
+        </div>
+    </div>
+
+    <div class="grille-fiches">
+        <section class="carte">
+            <h2>Évaluation – {{ grilles[o.grille].libelle }}</h2>
+            {% set criteres = grilles[o.grille].criteres %}
+            {% set autres = o.evaluation|filter((v, cle) => cle not in criteres|keys) %}
+            {% if o.evaluation %}
+                <dl>
+                    {% for cle, libelle in criteres %}{{ m.ligne(libelle, o.evaluation[cle] ?? null) }}{% endfor %}
+                    {% for grille in grilles %}
+                        {% for cle, libelle in grille.criteres %}
+                            {% if cle in autres|keys %}{{ m.ligne(libelle, autres[cle]) }}{% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </dl>
+            {% else %}
+                <p class="discret">Fiche d'évaluation non remplie.</p>
+            {% endif %}
+        </section>
+
+        {% if o.commentaire %}
+            <section class="carte">
+                <h2>Commentaire</h2>
+                <p class="memo">{{ o.commentaire }}</p>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

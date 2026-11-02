@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% block body %}
+    <p>
+        {% if o.id %}
+            <a href="{{ path('app_observe_voir', {id: o.id}) }}">← Retour à la fiche</a>
+        {% else %}
+            <a href="{{ path('app_observe_index') }}">← Joueurs observés</a>
+        {% endif %}
+    </p>
+    <h1>{{ titre }}</h1>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+
+        <fieldset class="carte">
+            <legend>Joueur</legend>
+            {{ m.groupe(form, ['nom', 'prenom', 'age', 'poste', 'clubActuel', 'niveau', 'dateObservation']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Fiche d'évaluation</legend>
+            <p class="discret petit">Remplissez la grille du poste du joueur. Les critères vides ne sont pas affichés sur la fiche.</p>
+            {% for cle, grille in grilles %}
+                <details class="grille" {{ cle == o.grille ? 'open' }}>
+                    <summary>{{ grille.libelle }}</summary>
+                    <div class="champs">
+                        {% for critere, libelle in grille.criteres %}
+                            {% set champ = form.evaluation[critere] %}
+                            {% if not champ.rendered %}
+                                <div class="champ">{{ form_label(champ) }}{{ form_widget(champ) }}</div>
+                            {% else %}
+                                <div class="champ discret petit">{{ libelle }} : voir la grille où ce critère apparaît en premier.</div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </details>
+            {% endfor %}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Commentaire</legend>
+            {{ m.groupe(form, ['commentaire']) }}
+        </fieldset>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

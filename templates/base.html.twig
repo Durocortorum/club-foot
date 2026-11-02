@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        {# Application interne (données de mineurs) : jamais dans les moteurs de recherche. #}
+        <meta name="robots" content="noindex, nofollow">
+        <title>{% block title %}Accueil{% endblock %} · {{ apparence.club.nom }}</title>
+        {% set club = apparence.club %}
+        {% set logo_club = club.logo ? path('app_club_logo', {version: club.version}) : asset('images/logo.svg') %}
+        {% if club.logo %}<link rel="icon" type="image/png" href="{{ path('app_club_icone', {version: club.version}) }}">{% else %}<link rel="icon" type="image/svg+xml" href="{{ asset('images/logo.svg') }}">{% endif %}
+        {% block stylesheets %}{% endblock %}
+        {# Couleurs du club (page « Apparence du club ») : surchargent celles de app.css. #}
+        <style>:root { --rouge: {{ club.couleur }}; --rouge-fonce: {{ club.couleurFoncee }}; --sur-rouge: {{ club.couleurTexte }}; }</style>
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
+    </head>
+    <body>
+        {% if app.user %}
+            <header class="entete">
+                <a class="marque" href="{{ path('app_accueil') }}">
+                    <img class="blason" src="{{ logo_club }}" alt="">
+                    {{ club.nom }}
+                </a>
+                {% set route = app.request.attributes.get('_route') %}
+                <nav class="menu">
+                    <a href="{{ path('app_accueil') }}" class="{{ route == 'app_accueil' ? 'actif' }}">Accueil</a>
+                    <a href="{{ path('app_joueur_index') }}" class="{{ route starts with 'app_joueur' or route starts with 'app_mesure' or route starts with 'app_test' ? 'actif' }}">Joueurs</a>
+                    <a href="{{ path('app_intervenant_index', {type: 'educateurs'}) }}" class="{{ route starts with 'app_intervenant' ? 'actif' }}">Encadrement</a>
+                    <a href="{{ path('app_rencontre_index') }}" class="{{ route starts with 'app_rencontre' ? 'actif' }}">Matchs</a>
+                    <a href="{{ path('app_statistiques') }}" class="{{ route == 'app_statistiques' ? 'actif' }}">Statistiques</a>
+                    <a href="{{ path('app_presence_index') }}" class="{{ route starts with 'app_presence' ? 'actif' }}">Présences</a>
+                    <a href="{{ path('app_seance_index') }}" class="{{ route starts with 'app_seance' or route starts with 'app_exercice' ? 'actif' }}">Entraînements</a>
+                    <a href="{{ path('app_archives') }}" class="{{ route starts with 'app_archives' ? 'actif' }}">Archives</a>
+                    {% if is_granted('ROLE_ECOLE_FOOT') or is_granted('ROLE_PREFORMATION') or is_granted('ROLE_FORMATION') or is_granted('ROLE_ELITE') or is_granted('ROLE_PRO') %}
+                        <a href="{{ path('app_detection_index') }}" class="{{ route starts with 'app_detection' or route starts with 'app_observe' ? 'actif' }}">Recrutement</a>
+                    {% endif %}
+                    {% if is_granted('ROLE_SCOLAIRE') %}
+                        <a href="{{ path('app_scolarite_index') }}" class="{{ route starts with 'app_scolarite' or route starts with 'app_bulletin' or route starts with 'app_discipline' or route starts with 'app_sanction' ? 'actif' }}">Scolarité</a>
+                    {% endif %}
+                    {% if is_granted('ROLE_INFIRMERIE') %}
+                        <a href="{{ path('app_infirmerie_index') }}" class="{{ route starts with 'app_infirmerie' or route starts with 'app_blessure' or route starts with 'app_contact' ? 'actif' }}">Infirmerie</a>
+                    {% endif %}
+                </nav>
+                <div class="compte">
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <a href="{{ path('app_utilisateur_index') }}" class="{{ route starts with 'app_utilisateur' ? 'actif' }}">Utilisateurs</a>
+                        <a href="{{ path('app_club') }}" class="{{ route == 'app_club' ? 'actif' }}" title="Logo et couleurs du club">Apparence</a>
+                    {% endif %}
+                    <a href="{{ path('app_mon_compte') }}" title="Mon compte : changer mon mot de passe">{{ app.user }}</a>
+                    <a href="{{ path('app_deconnexion') }}">Déconnexion</a>
+                </div>
+            </header>
+        {% endif %}
+
+        <main class="contenu">
+            {% for type, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="flash flash-{{ type }}">{{ message }}</div>
+                {% endfor %}
+            {% endfor %}
+
+            {% block body %}{% endblock %}
+        </main>
+    </body>
+</html>

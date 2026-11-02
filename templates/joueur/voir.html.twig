@@ -1,0 +1,371 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ joueur.nomComplet }}{% endblock %}
+
+{% macro oui_non(libelle, valeur) %}
+    <dt>{{ libelle }}</dt><dd>{{ valeur ? 'Oui' : 'Non' }}</dd>
+{% endmacro %}
+{% import _self as f %}
+
+{% block body %}
+    {% set peut_modifier = is_granted('JOUEUR_MODIFIER', joueur) %}
+    {% set peut_suivre = peut_modifier or is_granted('ROLE_INFIRMERIE') %}
+
+    <p><a href="{{ path('app_joueur_index') }}">← Retour à la liste</a></p>
+
+    <div class="titre-page">
+        <div class="identite">
+            {{ m.avatar(joueur, 'grand') }}
+            <div>
+                <h1>{{ joueur.prenom }} <strong>{{ joueur.nom }}</strong></h1>
+                <p class="discret">
+                    {{ joueur.categorie ?? 'Sans catégorie' }}
+                    {% if joueur.poste %} · {{ joueur.poste }}{% endif %}
+                    {% if joueur.age %} · {{ joueur.age }} ans{% endif %}
+                    {% if joueur.ancien %} <span class="pastille">ancien joueur</span>{% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="actions">
+            {% if peut_modifier %}
+                <a class="bouton principal" href="{{ path('app_joueur_modifier', {id: joueur.id}) }}">Modifier</a>
+            {% endif %}
+            {% if is_granted('ROLE_ADMIN') %}
+                {{ m.supprimer(path('app_joueur_supprimer', {id: joueur.id}), 'supprimer' ~ joueur.id, 'Supprimer définitivement la fiche de ' ~ joueur.nomComplet ~ ' ?') }}
+            {% endif %}
+        </div>
+    </div>
+
+    <nav class="sommaire">
+        <a href="#fiche">Fiche</a>
+        <a href="#matchs">Matchs</a>
+        <a href="#presences">Présences</a>
+        {% if is_granted('ROLE_SCOLAIRE') or sanctions %}<a href="#scolarite">Scolarité et discipline</a>{% endif %}
+        {% if is_granted('ROLE_INFIRMERIE') %}<a href="#infirmerie">Infirmerie</a>{% endif %}
+        <a href="#physique">Mesures et tests</a>
+    </nav>
+
+    <div class="grille-fiches" id="fiche">
+        <section class="carte">
+            <h2>Identité</h2>
+            <dl>
+                {{ m.ligne('Surnom', joueur.surnom) }}
+                {{ m.ligne('Date de naissance', joueur.dateNaissance ? joueur.dateNaissance|date('d/m/Y')) }}
+                {{ m.ligne('Lieu de naissance', joueur.lieuNaissance) }}
+                {{ m.ligne('Nationalité', joueur.nationalite) }}
+            </dl>
+        </section>
+
+        <section class="carte">
+            <h2>Club</h2>
+            <dl>
+                {{ m.ligne('Catégorie', joueur.categorie) }}
+                {% if joueur.educateur %}
+                    <dt>Éducateur</dt><dd><a href="{{ path('app_intervenant_voir', {type: 'educateurs', id: joueur.educateur.id}) }}">{{ joueur.educateur }}</a></dd>
+                {% endif %}
+                {{ m.ligne('N° de licence', joueur.licence) }}
+                {{ m.ligne('Poste', joueur.poste) }}
+                {{ m.ligne('Pied fort', joueur.pied) }}
+                {{ m.ligne("Arrivé le", joueur.dateArrivee ? joueur.dateArrivee|date('d/m/Y')) }}
+                {{ f.oui_non('Sélectionné', joueur.selectionne) }}
+            </dl>
+        </section>
+
+        <section class="carte">
+            <h2>Coordonnées</h2>
+            <dl>
+                {{ m.ligne('Adresse', joueur.adresse) }}
+                {{ m.ligne('Ville', [joueur.codePostal, joueur.ville]|filter(v => v)|join(' ')) }}
+                {{ m.ligne('Portable joueur', joueur.telJoueur) }}
+                {{ m.ligne('Tél. maison (mère)', joueur.telMaisonMere) }}
+                {{ m.ligne('Tél. maison (père)', joueur.telMaisonPere) }}
+                {{ m.ligne('Portable parent 1', joueur.telPortable1) }}
+                {{ m.ligne('Portable parent 2', joueur.telPortable2) }}
+                {{ m.ligne('E-mail joueur', joueur.emailJoueur) }}
+                {{ m.ligne('E-mail parents', joueur.emailParents) }}
+            </dl>
+        </section>
+
+        <section class="carte">
+            <h2>Famille</h2>
+            <dl>
+                {{ m.ligne('Père', joueur.nomPere) }}
+                {{ m.ligne('Profession du père', joueur.professionPere) }}
+                {{ m.ligne('Mère', joueur.nomMere) }}
+                {{ m.ligne('Profession de la mère', joueur.professionMere) }}
+                {{ f.oui_non("Droit à l'image", joueur.droitImage) }}
+                {{ f.oui_non('Transport éducateur', joueur.transportEducateur) }}
+                {{ f.oui_non('Transport parent', joueur.transportParent) }}
+            </dl>
+        </section>
+
+        <section class="carte">
+            <h2>Scolarité</h2>
+            <dl>
+                {{ m.ligne('Classe', joueur.niveauScolaire) }}
+                {{ m.ligne('École', joueur.ecole) }}
+                {{ m.ligne('Établissement', joueur.etablissement) }}
+                {{ m.ligne('Régime', joueur.situationScolaire) }}
+            </dl>
+        </section>
+
+        {% if detection %}
+            <section class="carte">
+                <h2>Détection</h2>
+                <p>Détecté le {{ detection.dateDetection ? detection.dateDetection|date('d/m/Y') : '?' }}{% if detection.clubActuel %} (venait de {{ detection.clubActuel }}){% endif %}.</p>
+                <a href="{{ path('app_detection_voir', {id: detection.id}) }}">Voir la fiche de détection</a>
+            </section>
+        {% endif %}
+
+        {% if is_granted('ROLE_INFIRMERIE') %}
+            <section class="carte medical">
+                <h2>Médical <span class="pastille">confidentiel</span></h2>
+                <dl>
+                    {{ m.ligne("Nom de l'assuré", joueur.nomAssure) }}
+                    {{ m.ligne('N° de sécurité sociale', joueur.numeroSecu) }}
+                    {{ m.ligne('Médecin traitant', joueur.medecin) }}
+                    {{ m.ligne('Tél. médecin', joueur.telMedecin) }}
+                    {{ m.ligne('Renseignements', joueur.renseignementsMedicaux) }}
+                </dl>
+            </section>
+        {% endif %}
+
+        {% if joueur.memo %}
+            <section class="carte">
+                <h2>Mémo</h2>
+                <p class="memo">{{ joueur.memo }}</p>
+            </section>
+        {% endif %}
+    </div>
+
+    {# ---------- Matchs ---------- #}
+    <section class="bloc" id="matchs">
+        <h2 class="titre-bloc">Matchs</h2>
+        {% if bilan %}
+            <div class="table-defile">
+                <table class="liste chiffres">
+                    <thead>
+                        <tr><th>Saison</th><th>Matchs</th><th>Titulaire</th><th>Minutes</th><th>Buts</th><th>Passes D.</th><th>Note moy.</th><th>Cartons J / R</th><th title="Exclusions temporaires de 10 minutes">Excl. 10'</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for saison, b in bilan %}
+                            <tr>
+                                <td>{{ saison }}</td>
+                                <td>{{ b.matchs }}</td>
+                                <td>{{ b.titularisations }}</td>
+                                <td>{{ b.minutes }}</td>
+                                <td>{{ b.buts ?: '' }}</td>
+                                <td>{{ b.passes ?: '' }}</td>
+                                <td>{{ b.note ? b.note|number_format(1, ',') }}</td>
+                                <td>{{ b.jaunes or b.rouges ? b.jaunes ~ ' / ' ~ b.rouges }}</td>
+                                <td>{{ b.exclusions ?: '' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if matchs %}
+                <h3>Derniers matchs</h3>
+                <div class="table-defile">
+                    <table class="liste">
+                        <thead><tr><th>Date</th><th>Match</th><th>Score</th><th>Poste</th><th>Min.</th><th>Note</th><th>Appréciation</th></tr></thead>
+                        <tbody>
+                            {% for p in matchs %}
+                                {% set r = p.rencontre %}
+                                <tr>
+                                    <td class="nowrap">{{ r.date ? r.date|date('d/m/Y') }}</td>
+                                    <td><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a> <span class="discret">{{ r.equipeAffichee }}</span></td>
+                                    <td>{{ m.score(r) }}</td>
+                                    <td>{{ p.poste }}</td>
+                                    <td>{{ p.tempsJeu }}</td>
+                                    <td>{{ p.note ? p.note|number_format(1, ',') }}</td>
+                                    <td class="petit">{{ p.appreciation }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        {% else %}
+            <p class="discret">Aucun match enregistré.</p>
+        {% endif %}
+    </section>
+
+    {# ---------- Présences ---------- #}
+    <section class="bloc" id="presences">
+        <h2 class="titre-bloc">Présences à l'entraînement</h2>
+        {% if presences %}
+            <div class="table-defile">
+                <table class="liste chiffres">
+                    <thead><tr><th>Saison</th><th>Séances</th><th>Présent</th><th>Taux</th><th>Absences</th></tr></thead>
+                    <tbody>
+                        {% for saison, b in presences %}
+                            <tr>
+                                <td>{{ saison }}</td>
+                                <td>{{ b.seances }}</td>
+                                <td>{{ b.presences }}</td>
+                                <td><span class="jauge"><span style="width: {{ b.taux ?? 0 }}%"></span></span> {{ b.taux }} %</td>
+                                <td class="texte petit">{% for motif, n in b.absences %}{{ motif }} : {{ n }}{{ not loop.last ? ' · ' }}{% endfor %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="discret">Aucune présence enregistrée.</p>
+        {% endif %}
+    </section>
+
+    {# ---------- Scolarité et discipline ---------- #}
+    {% if is_granted('ROLE_SCOLAIRE') or sanctions %}
+        <section class="bloc" id="scolarite">
+            {% if is_granted('ROLE_SCOLAIRE') %}
+                <div class="titre-page">
+                    <h2 class="titre-bloc">Bulletins scolaires</h2>
+                    <a class="bouton" href="{{ path('app_bulletin_nouveau', {joueur: joueur.id}) }}">+ Bulletin</a>
+                </div>
+                {% if bulletins %}
+                    <ul class="liste-simple carte">
+                        {% for b in bulletins %}
+                            <li class="avec-actions">
+                                <span>
+                                    <span class="discret">{{ b.saison }}</span> {{ b.libelle }}
+                                    {% if not b.fichier and b.origine %}<span class="pastille" title="{{ b.origine }}">PDF à joindre</span>{% endif %}
+                                </span>
+                                <span class="nowrap">
+                                    {% if b.fichier %}<a href="{{ path('app_bulletin_pdf', {id: b.id}) }}" target="_blank">Ouvrir le PDF</a> · {% endif %}
+                                    <a href="{{ path('app_bulletin_modifier', {id: b.id}) }}">{{ b.fichier ? 'Modifier' : 'Joindre le PDF' }}</a>
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="discret">Aucun bulletin.</p>
+                {% endif %}
+            {% endif %}
+
+            <div class="titre-page">
+                <h2 class="titre-bloc">Discipline</h2>
+                {% if is_granted('ROLE_SCOLAIRE') %}<a class="bouton" href="{{ path('app_sanction_nouvelle', {joueur: joueur.id}) }}">+ Incident</a>{% endif %}
+            </div>
+            {% if sanctions %}
+                <div class="table-defile">
+                    <table class="liste">
+                        <thead><tr><th>Date</th><th>Lieu</th><th>Motif</th><th>Sanction sportive</th><th>Sanction scolaire</th><th>Gravité</th>{% if is_granted('ROLE_SCOLAIRE') %}<th></th>{% endif %}</tr></thead>
+                        <tbody>
+                            {% for s in sanctions %}
+                                <tr>
+                                    <td class="nowrap">{{ s.date|date('d/m/Y') }}</td>
+                                    <td>{{ s.lieu }}</td>
+                                    <td>{{ s.motif }}</td>
+                                    <td>{{ s.sanctionSportive }}</td>
+                                    <td>{{ s.sanctionScolaire }}</td>
+                                    <td>{{ s.graviteLibelle }}</td>
+                                    {% if is_granted('ROLE_SCOLAIRE') %}<td><a href="{{ path('app_sanction_modifier', {id: s.id}) }}">Modifier</a></td>{% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="discret">Aucun incident.</p>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {# ---------- Infirmerie ---------- #}
+    {% if is_granted('ROLE_INFIRMERIE') %}
+        <section class="bloc" id="infirmerie">
+            <div class="titre-page">
+                <h2 class="titre-bloc">Blessures <span class="pastille">confidentiel</span></h2>
+                <a class="bouton" href="{{ path('app_blessure_nouvelle', {joueur: joueur.id}) }}">+ Blessure</a>
+            </div>
+            {% if blessures %}
+                <div class="table-defile">
+                    <table class="liste">
+                        <thead><tr><th>Date</th><th>Blessure</th><th>Circonstances</th><th>Reprise</th><th>Durée</th><th></th></tr></thead>
+                        <tbody>
+                            {% for b in blessures %}
+                                <tr>
+                                    <td class="nowrap">{{ b.date ? b.date|date('d/m/Y') : '?' }}</td>
+                                    <td>{{ b.libelle }}{% if b.enCours %} <span class="pastille alerte">en cours</span>{% endif %}</td>
+                                    <td>{{ b.lieu }}{% if b.avecArret is not null %} · {{ b.avecArret ? 'avec arrêt' : 'sans arrêt' }}{% endif %}</td>
+                                    <td class="nowrap">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') }}</td>
+                                    <td>{{ b.duree is not null ? b.duree ~ ' j' }}</td>
+                                    <td><a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="discret">Aucune blessure enregistrée.</p>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {# ---------- Mesures et tests ---------- #}
+    <section class="bloc" id="physique">
+        <div class="titre-page">
+            <h2 class="titre-bloc">Mesures</h2>
+            {% if peut_suivre %}<a class="bouton" href="{{ path('app_mesure_nouvelle', {id: joueur.id}) }}">+ Mesure</a>{% endif %}
+        </div>
+        {% if mesures %}
+            <div class="table-defile">
+                <table class="liste chiffres">
+                    <thead><tr><th>Date</th><th>Poids</th><th>Taille</th><th>IMC</th><th>Taille assis</th><th>Pointure</th>{% if peut_suivre %}<th></th>{% endif %}</tr></thead>
+                    <tbody>
+                        {% for x in mesures %}
+                            <tr>
+                                <td>{{ x.date|date('d/m/Y') }}</td>
+                                <td>{{ x.poids ? x.poids|number_format(1, ',') ~ ' kg' }}</td>
+                                <td>{{ x.taille ? x.taille|number_format(2, ',') ~ ' m' }}</td>
+                                <td>{{ x.imc ? x.imc|number_format(1, ',') }}</td>
+                                <td>{{ x.tailleAssis ? x.tailleAssis|number_format(2, ',') ~ ' m' }}</td>
+                                <td>{{ x.pointure }}</td>
+                                {% if peut_suivre %}<td>{{ m.supprimer(path('app_mesure_supprimer', {id: x.id}), 'supprimer-mesure' ~ x.id, 'Supprimer cette mesure ?', '×') }}</td>{% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="discret">Aucune mesure enregistrée.</p>
+        {% endif %}
+
+        <div class="titre-page">
+            <h2 class="titre-bloc">Tests physiques</h2>
+            {% if peut_suivre %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Test</a>{% endif %}
+        </div>
+        {% if tests %}
+            {% set epreuves = constant('App\\Entity\\TestPhysique::EPREUVES') %}
+            <div class="table-defile">
+                <table class="liste chiffres">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            {% for champ, e in epreuves %}<th>{{ e[0] }} <span class="discret">({{ e[1] }})</span></th>{% endfor %}
+                            {% if peut_suivre %}<th></th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in tests %}
+                            <tr>
+                                <td>{{ t.date|date('d/m/Y') }}</td>
+                                {% for champ, e in epreuves %}
+                                    {% set v = attribute(t, champ) %}
+                                    <td>{{ v is not null ? v|number_format(2, ',')|trim('0', 'right')|trim(',', 'right') }}</td>
+                                {% endfor %}
+                                {% if peut_suivre %}<td>{{ m.supprimer(path('app_test_supprimer', {id: t.id}), 'supprimer-test' ~ t.id, 'Supprimer ce test ?', '×') }}</td>{% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="discret">Aucun test enregistré.</p>
+        {% endif %}
+    </section>
+{% endblock %}

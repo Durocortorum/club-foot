@@ -1,0 +1,10 @@
+{# Bilan collectif V / N / D pour les filtres en cours. #}
+{% if bilan.matchs %}
+    <div class="tuiles bilan">
+        <div class="tuile"><span class="tuile-valeur">{{ bilan.matchs }}</span><span class="tuile-libelle">matchs</span></div>
+        <div class="tuile"><span class="tuile-valeur resultat-V">{{ bilan.V }}</span><span class="tuile-libelle">victoires</span></div>
+        <div class="tuile"><span class="tuile-valeur resultat-N">{{ bilan.N }}</span><span class="tuile-libelle">nuls</span></div>
+        <div class="tuile"><span class="tuile-valeur resultat-D">{{ bilan.D }}</span><span class="tuile-libelle">défaites</span></div>
+        <div class="tuile"><span class="tuile-valeur">{{ bilan.pour }} – {{ bilan.contre }}</span><span class="tuile-libelle">buts pour – contre</span></div>
+    </div>
+{% endif %}

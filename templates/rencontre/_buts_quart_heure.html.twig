@@ -1,0 +1,73 @@
+{# Buts pour / contre additionnés par quart d'heure (histogramme en miroir) et par phase de jeu. #}
+{% set p = analyse.pour %}
+{% set c = analyse.contre %}
+{% set lignes = tranches|filter((libelle, cle) => cle not in ['arret', 'inconnue'] or p.tranches[cle] or c.tranches[cle]) %}
+
+<section class="carte bloc analyse-buts">
+    <div class="titre-page">
+        <h2>Buts par quart d'heure</h2>
+        <div class="legende" aria-hidden="true">
+            <span><i class="pastille-serie pour"></i>Buts marqués ({{ apparence.club.nom }})</span>
+            <span><i class="pastille-serie contre"></i>Buts contre</span>
+        </div>
+    </div>
+
+    {% if p.total or c.total %}
+        <div class="miroir-entete">
+            <div><strong>{{ p.total }}</strong> buts pour{% if p.moyenne is not null %} · {{ p.moyenne|number_format(2, ',') }} par match{% endif %}</div>
+            <div></div>
+            <div><strong>{{ c.total }}</strong> buts contre{% if c.moyenne is not null %} · {{ c.moyenne|number_format(2, ',') }} par match{% endif %}</div>
+        </div>
+
+        <div class="miroir" role="img" aria-label="Buts pour et contre par quart d'heure : voir le tableau des chiffres ci-dessous">
+            {% for cle, libelle in lignes %}
+                {% set np = p.tranches[cle] %}
+                {% set nc = c.tranches[cle] %}
+                <div class="miroir-cote pour" title="{{ libelle }} : {{ np }} but{{ np > 1 ? 's' }} pour">
+                    <span class="miroir-valeur">{{ np }}</span>
+                    <span class="miroir-barre" style="width: {{ (85 * np / analyse.max)|round(1) }}%"></span>
+                </div>
+                <div class="miroir-libelle">{{ libelle }}</div>
+                <div class="miroir-cote contre" title="{{ libelle }} : {{ nc }} but{{ nc > 1 ? 's' }} contre">
+                    <span class="miroir-barre" style="width: {{ (85 * nc / analyse.max)|round(1) }}%"></span>
+                    <span class="miroir-valeur">{{ nc }}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="phases">
+            {% for cote, d in {pour: p, contre: c} %}
+                <div>
+                    <h3>Buts {{ cote }} par phase de jeu</h3>
+                    <dl>
+                        {% for code, libelle in phases %}
+                            {% if code != 'inconnue' or d.phases[code] %}
+                                <dt>{{ libelle }}</dt>
+                                <dd><strong>{{ d.phases[code] }}</strong>{% if d.total %} <span class="discret">({{ (100 * d.phases[code] / d.total)|round }} %)</span>{% endif %}</dd>
+                            {% endif %}
+                        {% endfor %}
+                    </dl>
+                </div>
+            {% endfor %}
+        </div>
+
+        <details class="petit">
+            <summary>Voir le tableau des chiffres</summary>
+            <table class="liste chiffres">
+                <thead><tr><th>Période</th><th>Buts pour</th><th>Buts contre</th></tr></thead>
+                <tbody>
+                    {% for cle, libelle in lignes %}
+                        <tr><td>{{ libelle }}</td><td>{{ p.tranches[cle] }}</td><td>{{ c.tranches[cle] }}</td></tr>
+                    {% endfor %}
+                    <tr><td><strong>Total</strong></td><td><strong>{{ p.total }}</strong></td><td><strong>{{ c.total }}</strong></td></tr>
+                </tbody>
+            </table>
+        </details>
+        <p class="discret petit">
+            D'après les buts détaillés sur les feuilles de match ({{ analyse.matchs }} match{{ analyse.matchs > 1 ? 's' }} pour ces filtres).
+            Un but noté après la 90e minute compte dans « Arrêt de jeu ».
+        </p>
+    {% else %}
+        <p class="discret">Aucun but détaillé pour ces critères.</p>
+    {% endif %}
+</section>

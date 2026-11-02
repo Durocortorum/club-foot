@@ -1,0 +1,2271 @@
+{
+    "slalom": {
+        "secteur": "ecole_foot",
+        "titre": "Slalom en conduite de balle",
+        "duree": 10,
+        "consignes": "Organisation : 3 colonnes de 5 cônes espacés de 6 m, un ballon par joueur.\nDéroulement : conduite en slalom entre les cônes, contourner le plot puis revenir en ligne droite et passer le relais.\nVariantes : pied faible seulement ; intérieur puis extérieur du pied ; course de relais par équipe.\nPoints clés : ballon près du pied, petites touches, regarder devant soi.",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "joueur",
+                    "x": 5,
+                    "y": 10,
+                    "c": "rouge",
+                    "n": "1"
+                },
+                {
+                    "t": "ballon",
+                    "x": 7.5,
+                    "y": 10.8
+                },
+                {
+                    "t": "cone",
+                    "x": 15,
+                    "y": 8.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 21,
+                    "y": 11.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 27,
+                    "y": 8.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 33,
+                    "y": 11.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 39,
+                    "y": 8.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 9,
+                    "y1": 10,
+                    "x2": 45,
+                    "y2": 10,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "plot",
+                    "x": 50,
+                    "y": 10,
+                    "c": "bleu"
+                },
+                {
+                    "t": "joueur",
+                    "x": 5,
+                    "y": 20,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "ballon",
+                    "x": 7.5,
+                    "y": 20.8
+                },
+                {
+                    "t": "cone",
+                    "x": 15,
+                    "y": 18.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 21,
+                    "y": 21.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 27,
+                    "y": 18.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 33,
+                    "y": 21.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 39,
+                    "y": 18.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 9,
+                    "y1": 20,
+                    "x2": 45,
+                    "y2": 20,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "plot",
+                    "x": 50,
+                    "y": 20,
+                    "c": "bleu"
+                },
+                {
+                    "t": "joueur",
+                    "x": 5,
+                    "y": 30,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "ballon",
+                    "x": 7.5,
+                    "y": 30.8
+                },
+                {
+                    "t": "cone",
+                    "x": 15,
+                    "y": 28.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 21,
+                    "y": 31.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 27,
+                    "y": 28.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 33,
+                    "y": 31.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 39,
+                    "y": 28.5,
+                    "c": "orange"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 9,
+                    "y1": 30,
+                    "x2": 45,
+                    "y2": 30,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "plot",
+                    "x": 50,
+                    "y": 30,
+                    "c": "bleu"
+                },
+                {
+                    "t": "texte",
+                    "x": 30,
+                    "y": 37,
+                    "v": "Slalom puis retour en conduite",
+                    "c": "blanc"
+                }
+            ]
+        }
+    },
+    "demenageurs": {
+        "secteur": "ecole_foot",
+        "titre": "Les déménageurs",
+        "duree": 12,
+        "consignes": "Organisation : 2 « maisons » de 12 × 28 m, une réserve de ballons au centre, 2 équipes de 4.\nDéroulement : au signal, chaque joueur va chercher un ballon au centre et le ramène en conduite dans sa maison. Quand la réserve est vide, on peut prendre les ballons de la maison adverse. Arrêt après 90 s : l'équipe qui a le plus de ballons gagne.\nPoints clés : lever la tête, protéger son ballon, changer de rythme.",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "zone",
+                    "x": 2,
+                    "y": 6,
+                    "w": 12,
+                    "h": 28,
+                    "c": "rouge"
+                },
+                {
+                    "t": "zone",
+                    "x": 46,
+                    "y": 6,
+                    "w": 12,
+                    "h": 28,
+                    "c": "bleu"
+                },
+                {
+                    "t": "zone",
+                    "x": 23,
+                    "y": 12,
+                    "w": 14,
+                    "h": 16,
+                    "c": "jaune"
+                },
+                {
+                    "t": "ballon",
+                    "x": 26,
+                    "y": 15
+                },
+                {
+                    "t": "ballon",
+                    "x": 30,
+                    "y": 14.5
+                },
+                {
+                    "t": "ballon",
+                    "x": 34,
+                    "y": 16
+                },
+                {
+                    "t": "ballon",
+                    "x": 27,
+                    "y": 21
+                },
+                {
+                    "t": "ballon",
+                    "x": 33,
+                    "y": 22
+                },
+                {
+                    "t": "ballon",
+                    "x": 29,
+                    "y": 25.5
+                },
+                {
+                    "t": "ballon",
+                    "x": 34,
+                    "y": 26
+                },
+                {
+                    "t": "joueur",
+                    "x": 8,
+                    "y": 10,
+                    "c": "rouge",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 52,
+                    "y": 10,
+                    "c": "bleu",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 8,
+                    "y": 16,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 52,
+                    "y": 16,
+                    "c": "bleu",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 8,
+                    "y": 24,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 52,
+                    "y": 24,
+                    "c": "bleu",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 8,
+                    "y": 30,
+                    "c": "rouge",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 52,
+                    "y": 30,
+                    "c": "bleu",
+                    "n": "4"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 9.5,
+                    "y1": 16,
+                    "x2": 24,
+                    "y2": 18,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 26,
+                    "y1": 21,
+                    "x2": 13,
+                    "y2": 23,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 50.5,
+                    "y1": 24,
+                    "x2": 36,
+                    "y2": 22,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "texte",
+                    "x": 30,
+                    "y": 37,
+                    "v": "Ramener les ballons dans sa maison",
+                    "c": "blanc"
+                }
+            ]
+        }
+    },
+    "portes": {
+        "secteur": "ecole_foot",
+        "titre": "Passes à deux entre les portes",
+        "duree": 10,
+        "consignes": "Organisation : joueurs par deux face à face à 30 m (à réduire selon l'âge), une porte de 2 plots au milieu.\nDéroulement : passe à travers la porte, le partenaire contrôle puis redonne. Compter les passes réussies en 1 minute.\nVariantes : contrôle orienté ; passe en une touche ; réduire la largeur de la porte.\nPoints clés : pied d'appui à côté du ballon, frapper avec l'intérieur du pied, se placer face au ballon.",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "joueur",
+                    "x": 15,
+                    "y": 10,
+                    "c": "rouge",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 45,
+                    "y": 10,
+                    "c": "bleu",
+                    "n": "2"
+                },
+                {
+                    "t": "ballon",
+                    "x": 16.8,
+                    "y": 10.6
+                },
+                {
+                    "t": "plot",
+                    "x": 30,
+                    "y": 8.8,
+                    "c": "jaune"
+                },
+                {
+                    "t": "plot",
+                    "x": 30,
+                    "y": 11.2,
+                    "c": "jaune"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 17,
+                    "y1": 9.1,
+                    "x2": 43,
+                    "y2": 9.1,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 43,
+                    "y1": 10.9,
+                    "x2": 17,
+                    "y2": 10.9,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "joueur",
+                    "x": 15,
+                    "y": 20,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 45,
+                    "y": 20,
+                    "c": "bleu",
+                    "n": "4"
+                },
+                {
+                    "t": "ballon",
+                    "x": 16.8,
+                    "y": 20.6
+                },
+                {
+                    "t": "plot",
+                    "x": 30,
+                    "y": 18.8,
+                    "c": "jaune"
+                },
+                {
+                    "t": "plot",
+                    "x": 30,
+                    "y": 21.2,
+                    "c": "jaune"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 17,
+                    "y1": 19.1,
+                    "x2": 43,
+                    "y2": 19.1,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 43,
+                    "y1": 20.9,
+                    "x2": 17,
+                    "y2": 20.9,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "joueur",
+                    "x": 15,
+                    "y": 30,
+                    "c": "rouge",
+                    "n": "5"
+                },
+                {
+                    "t": "joueur",
+                    "x": 45,
+                    "y": 30,
+                    "c": "bleu",
+                    "n": "6"
+                },
+                {
+                    "t": "ballon",
+                    "x": 16.8,
+                    "y": 30.6
+                },
+                {
+                    "t": "plot",
+                    "x": 30,
+                    "y": 28.8,
+                    "c": "jaune"
+                },
+                {
+                    "t": "plot",
+                    "x": 30,
+                    "y": 31.2,
+                    "c": "jaune"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 17,
+                    "y1": 29.1,
+                    "x2": 43,
+                    "y2": 29.1,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 43,
+                    "y1": 30.9,
+                    "x2": 17,
+                    "y2": 30.9,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "texte",
+                    "x": 30,
+                    "y": 36,
+                    "v": "Passe à travers la porte, contrôle, redonne",
+                    "c": "blanc"
+                }
+            ]
+        }
+    },
+    "match3c3": {
+        "secteur": "ecole_foot",
+        "titre": "Match à 3 contre 3 sur mini-buts",
+        "duree": 15,
+        "consignes": "Organisation : terrain de 30 × 24 m, un mini-but de chaque côté, pas de gardien.\nDéroulement : matchs de 3 minutes, rotation des équipes. Remise en jeu par une conduite depuis la ligne de fond.\nVariantes : but valable seulement après 3 passes ; tir uniquement du pied faible.\nPoints clés : s'écarter pour offrir une solution, attaquer l'espace libre, tout le monde défend à la perte.",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "cone",
+                    "x": 15,
+                    "y": 8,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 45,
+                    "y": 8,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 15,
+                    "y": 32,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 45,
+                    "y": 32,
+                    "c": "orange"
+                },
+                {
+                    "t": "minibut",
+                    "x": 15,
+                    "y": 20,
+                    "r": 270
+                },
+                {
+                    "t": "minibut",
+                    "x": 45,
+                    "y": 20,
+                    "r": 90
+                },
+                {
+                    "t": "joueur",
+                    "x": 22,
+                    "y": 14,
+                    "c": "rouge",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 26,
+                    "y": 25,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 33,
+                    "y": 18,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 38,
+                    "y": 13,
+                    "c": "bleu",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 35,
+                    "y": 26,
+                    "c": "bleu",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 28,
+                    "y": 19,
+                    "c": "bleu",
+                    "n": "3"
+                },
+                {
+                    "t": "ballon",
+                    "x": 34.6,
+                    "y": 18.4
+                },
+                {
+                    "t": "fleche",
+                    "x1": 33,
+                    "y1": 18,
+                    "x2": 25.5,
+                    "y2": 24,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 22,
+                    "y1": 14,
+                    "x2": 18,
+                    "y2": 18,
+                    "s": "course",
+                    "c": "noir"
+                }
+            ]
+        }
+    },
+    "rondo4c1": {
+        "secteur": "preformation",
+        "titre": "Rondo 4 contre 1",
+        "duree": 10,
+        "consignes": "Organisation : carré de 12 × 12 m, 4 joueurs sur les côtés, 1 défenseur au centre.\nDéroulement : conserver le ballon en 2 touches maximum. Le joueur qui perd le ballon ou provoque l'erreur prend la place du défenseur.\nVariantes : 1 touche ; interdire la passe au voisin direct ; 2 défenseurs (4 contre 2) dans un carré plus grand.\nPoints clés : orientation du corps ouverte, contrôle orienté, passe dans le bon pied.",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "cone",
+                    "x": 24,
+                    "y": 14,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 36,
+                    "y": 14,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 24,
+                    "y": 26,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 36,
+                    "y": 26,
+                    "c": "orange"
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 14,
+                    "c": "rouge",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 36,
+                    "y": 20,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 26,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 24,
+                    "y": 20,
+                    "c": "rouge",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 31,
+                    "y": 19.5,
+                    "c": "bleu",
+                    "n": "D"
+                },
+                {
+                    "t": "ballon",
+                    "x": 31.5,
+                    "y": 15.4
+                },
+                {
+                    "t": "fleche",
+                    "x1": 31,
+                    "y1": 14.6,
+                    "x2": 35.5,
+                    "y2": 18.5,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 35.3,
+                    "y1": 21.5,
+                    "x2": 31.5,
+                    "y2": 25.5,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 31.5,
+                    "y1": 19,
+                    "x2": 33.5,
+                    "y2": 17,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "texte",
+                    "x": 30,
+                    "y": 34,
+                    "v": "2 touches max — changement à la récupération",
+                    "c": "blanc"
+                }
+            ]
+        }
+    },
+    "losange": {
+        "secteur": "preformation",
+        "titre": "Passe et suis en losange",
+        "duree": 12,
+        "consignes": "Organisation : losange de cônes de 15 m de côté, un joueur par cône, 2 au départ.\nDéroulement : passe au cône suivant puis course pour prendre sa place. Changer de sens toutes les 2 minutes.\nVariantes : remise et passe en profondeur (une-deux) ; contrôle orienté du pied opposé ; 2 ballons en même temps.\nPoints clés : qualité et vitesse de la passe, prise d'information avant de recevoir, appel au bon moment.",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "cone",
+                    "x": 15,
+                    "y": 20,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 30,
+                    "y": 9,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 45,
+                    "y": 20,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 30,
+                    "y": 31,
+                    "c": "orange"
+                },
+                {
+                    "t": "joueur",
+                    "x": 13,
+                    "y": 21.5,
+                    "c": "rouge",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 7,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 47,
+                    "y": 21.5,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 33,
+                    "c": "rouge",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 11,
+                    "y": 23.5,
+                    "c": "rouge",
+                    "n": "5"
+                },
+                {
+                    "t": "ballon",
+                    "x": 15.5,
+                    "y": 21.8
+                },
+                {
+                    "t": "fleche",
+                    "x1": 16,
+                    "y1": 19,
+                    "x2": 28.5,
+                    "y2": 10,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 31.5,
+                    "y1": 10,
+                    "x2": 43.5,
+                    "y2": 19,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 44,
+                    "y1": 21.5,
+                    "x2": 31.5,
+                    "y2": 30.5,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 17,
+                    "y1": 21.5,
+                    "x2": 28.5,
+                    "y2": 12,
+                    "s": "course",
+                    "c": "blanc"
+                },
+                {
+                    "t": "texte",
+                    "x": 30,
+                    "y": 38,
+                    "v": "Je passe et je suis mon ballon",
+                    "c": "blanc"
+                }
+            ]
+        }
+    },
+    "conservation": {
+        "secteur": "preformation",
+        "titre": "Conservation 4 contre 4 + 2 jokers",
+        "duree": 15,
+        "consignes": "Organisation : zone de 32 × 24 m, 2 équipes de 4, 2 jokers sur les côtés qui jouent avec l'équipe en possession.\nDéroulement : 10 passes consécutives = 1 point. Séquences de 3 minutes, changer les jokers.\nVariantes : jokers en 1 touche ; point bonus si le ballon passe d'un joker à l'autre.\nPoints clés : largeur et profondeur, jouer vers le côté libre, pressing immédiat à la perte.",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "zone",
+                    "x": 14,
+                    "y": 8,
+                    "w": 32,
+                    "h": 24,
+                    "c": "jaune"
+                },
+                {
+                    "t": "cone",
+                    "x": 14,
+                    "y": 8,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 46,
+                    "y": 8,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 14,
+                    "y": 32,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 46,
+                    "y": 32,
+                    "c": "orange"
+                },
+                {
+                    "t": "joueur",
+                    "x": 20,
+                    "y": 13,
+                    "c": "rouge",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 36,
+                    "y": 12,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 24,
+                    "y": 26,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 40,
+                    "y": 25,
+                    "c": "rouge",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 27,
+                    "y": 15,
+                    "c": "bleu",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 33,
+                    "y": 21,
+                    "c": "bleu",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 22,
+                    "y": 20,
+                    "c": "bleu",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 38,
+                    "y": 18,
+                    "c": "bleu",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 14,
+                    "y": 20,
+                    "c": "jaune",
+                    "n": "J"
+                },
+                {
+                    "t": "joueur",
+                    "x": 46,
+                    "y": 20,
+                    "c": "jaune",
+                    "n": "J"
+                },
+                {
+                    "t": "ballon",
+                    "x": 21.5,
+                    "y": 13.6
+                },
+                {
+                    "t": "fleche",
+                    "x1": 21.5,
+                    "y1": 14,
+                    "x2": 23.5,
+                    "y2": 24.5,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 25.5,
+                    "y1": 25.5,
+                    "x2": 44.5,
+                    "y2": 20.5,
+                    "s": "passe",
+                    "c": "noir"
+                }
+            ]
+        }
+    },
+    "centre": {
+        "secteur": "preformation",
+        "titre": "Centre et finition",
+        "duree": 15,
+        "consignes": "Organisation : un ailier avec ballons sur le côté, 2 attaquants à 25 m du but, 2 défenseurs passifs puis actifs, 1 gardien.\nDéroulement : conduite le long de la ligne, centre en retrait ou au premier poteau ; les attaquants croisent leurs courses (premier poteau / point de penalty).\nVariantes : centre en une touche après une passe ; défenseurs actifs ; même travail côté gauche.\nPoints clés : timing des appels, attaquer le ballon, centre tendu entre le gardien et les défenseurs.",
+        "schema": {
+            "terrain": "demi",
+            "objets": [
+                {
+                    "t": "joueur",
+                    "x": 37,
+                    "y": 4.8,
+                    "c": "jaune",
+                    "n": "G"
+                },
+                {
+                    "t": "joueur",
+                    "x": 66,
+                    "y": 32,
+                    "c": "rouge",
+                    "n": "7"
+                },
+                {
+                    "t": "ballon",
+                    "x": 66.5,
+                    "y": 33.8
+                },
+                {
+                    "t": "cone",
+                    "x": 64,
+                    "y": 26,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 64,
+                    "y": 20,
+                    "c": "orange"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 66,
+                    "y1": 30,
+                    "x2": 66,
+                    "y2": 14,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 65,
+                    "y1": 12.5,
+                    "x2": 40,
+                    "y2": 12,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "joueur",
+                    "x": 37,
+                    "y": 30,
+                    "c": "rouge",
+                    "n": "9"
+                },
+                {
+                    "t": "joueur",
+                    "x": 48,
+                    "y": 31,
+                    "c": "rouge",
+                    "n": "10"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 37,
+                    "y1": 28,
+                    "x2": 39,
+                    "y2": 13.5,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 47,
+                    "y1": 29,
+                    "x2": 31,
+                    "y2": 9,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "joueur",
+                    "x": 33,
+                    "y": 15,
+                    "c": "bleu",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 43,
+                    "y": 14,
+                    "c": "bleu",
+                    "n": "5"
+                }
+            ]
+        }
+    },
+    "rondo5c2": {
+        "secteur": "formation",
+        "titre": "Rondo 5 contre 2",
+        "duree": 12,
+        "consignes": "Organisation : zone de 16 × 16 m, 5 joueurs à l'extérieur, 2 défenseurs à l'intérieur.\nDéroulement : conserver en 2 touches ; une passe qui « fend » les deux défenseurs compte double. Les défenseurs changent après une récupération ou 45 s.\nVariantes : 1 touche ; obligation de jouer la passe entre les 2 défenseurs une fois sur trois.\nPoints clés : corps orienté pour jouer de l'autre côté, couverture du porteur, intensité des défenseurs (pressing à deux).",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 12,
+                    "c": "rouge",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 37.6,
+                    "y": 17.5,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 34.7,
+                    "y": 26.5,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 25.3,
+                    "y": 26.5,
+                    "c": "rouge",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 22.4,
+                    "y": 17.5,
+                    "c": "rouge",
+                    "n": "5"
+                },
+                {
+                    "t": "cone",
+                    "x": 37.8,
+                    "y": 27.8,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 22.2,
+                    "y": 27.8,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 22.2,
+                    "y": 12.2,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 37.8,
+                    "y": 12.2,
+                    "c": "orange"
+                },
+                {
+                    "t": "joueur",
+                    "x": 28,
+                    "y": 19,
+                    "c": "bleu",
+                    "n": "D"
+                },
+                {
+                    "t": "joueur",
+                    "x": 32.5,
+                    "y": 22,
+                    "c": "bleu",
+                    "n": "D"
+                },
+                {
+                    "t": "ballon",
+                    "x": 31.2,
+                    "y": 13.2
+                },
+                {
+                    "t": "fleche",
+                    "x1": 31.5,
+                    "y1": 12.6,
+                    "x2": 36.7,
+                    "y2": 16.2,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 37,
+                    "y1": 18,
+                    "x2": 26,
+                    "y2": 27,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 28.5,
+                    "y1": 18,
+                    "x2": 33.5,
+                    "y2": 13.5,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "texte",
+                    "x": 30,
+                    "y": 36,
+                    "v": "1 ou 2 touches — 15 passes = 1 point",
+                    "c": "blanc"
+                }
+            ]
+        }
+    },
+    "transition": {
+        "secteur": "formation",
+        "titre": "Transition attaque-défense 4 contre 4",
+        "duree": 18,
+        "consignes": "Organisation : demi-terrain réduit (jusqu'à 40 m du but), 4 attaquants contre 4 défenseurs et un gardien, 2 mini-buts sur la ligne médiane.\nDéroulement : les rouges attaquent le grand but ; à la récupération, les bleus ont 8 secondes pour marquer dans un mini-but. Les rouges doivent récupérer immédiatement (contre-pressing).\nVariantes : récupération en moins de 5 s = 1 point pour les rouges ; 5 contre 4.\nPoints clés : équilibre à la perte, premier défenseur qui ferme l'axe, vitesse de la première passe à la récupération.",
+        "schema": {
+            "terrain": "demi",
+            "objets": [
+                {
+                    "t": "joueur",
+                    "x": 37,
+                    "y": 4.8,
+                    "c": "jaune",
+                    "n": "G"
+                },
+                {
+                    "t": "zone",
+                    "x": 3,
+                    "y": 3,
+                    "w": 68,
+                    "h": 39,
+                    "c": "blanc"
+                },
+                {
+                    "t": "minibut",
+                    "x": 22,
+                    "y": 44,
+                    "r": 180
+                },
+                {
+                    "t": "minibut",
+                    "x": 52,
+                    "y": 44,
+                    "r": 180
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 22,
+                    "c": "rouge",
+                    "n": "6"
+                },
+                {
+                    "t": "joueur",
+                    "x": 44,
+                    "y": 20,
+                    "c": "rouge",
+                    "n": "7"
+                },
+                {
+                    "t": "joueur",
+                    "x": 24,
+                    "y": 30,
+                    "c": "rouge",
+                    "n": "8"
+                },
+                {
+                    "t": "joueur",
+                    "x": 50,
+                    "y": 30,
+                    "c": "rouge",
+                    "n": "9"
+                },
+                {
+                    "t": "joueur",
+                    "x": 33,
+                    "y": 14,
+                    "c": "bleu",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 41,
+                    "y": 13,
+                    "c": "bleu",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 28,
+                    "y": 24,
+                    "c": "bleu",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 47,
+                    "y": 25,
+                    "c": "bleu",
+                    "n": "5"
+                },
+                {
+                    "t": "ballon",
+                    "x": 44.5,
+                    "y": 21.6
+                },
+                {
+                    "t": "fleche",
+                    "x1": 44,
+                    "y1": 22,
+                    "x2": 26,
+                    "y2": 29,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 41,
+                    "y1": 13,
+                    "x2": 50,
+                    "y2": 41,
+                    "s": "course",
+                    "c": "bleu"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 28,
+                    "y1": 24,
+                    "x2": 22,
+                    "y2": 41,
+                    "s": "conduite",
+                    "c": "bleu"
+                },
+                {
+                    "t": "texte",
+                    "x": 37,
+                    "y": 50,
+                    "v": "À la récupération : contre-attaque sur les mini-buts",
+                    "c": "blanc"
+                }
+            ]
+        }
+    },
+    "possession": {
+        "secteur": "formation",
+        "titre": "Possession 6 contre 6 + 3 jokers",
+        "duree": 20,
+        "consignes": "Organisation : zone de 44 × 32 m, 2 équipes de 6, 3 jokers (un dans chaque largeur, un au centre).\nDéroulement : conserver le ballon ; une passe du joker d'un côté au joker de l'autre côté (par le joker central) = 1 point. Séquences de 4 minutes.\nVariantes : jokers en 1 touche ; but valable seulement si le joker central est trouvé de face.\nPoints clés : trouver l'homme libre entre les lignes, triangles autour du porteur, conservation pour attirer puis renverser.",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "zone",
+                    "x": 8,
+                    "y": 4,
+                    "w": 44,
+                    "h": 32,
+                    "c": "jaune"
+                },
+                {
+                    "t": "cone",
+                    "x": 8,
+                    "y": 4,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 52,
+                    "y": 4,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 8,
+                    "y": 36,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 52,
+                    "y": 36,
+                    "c": "orange"
+                },
+                {
+                    "t": "joueur",
+                    "x": 14,
+                    "y": 10,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 26,
+                    "y": 8,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 40,
+                    "y": 11,
+                    "c": "rouge",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 16,
+                    "y": 28,
+                    "c": "rouge",
+                    "n": "5"
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 22,
+                    "c": "rouge",
+                    "n": "6"
+                },
+                {
+                    "t": "joueur",
+                    "x": 44,
+                    "y": 28,
+                    "c": "rouge",
+                    "n": "7"
+                },
+                {
+                    "t": "joueur",
+                    "x": 20,
+                    "y": 14,
+                    "c": "bleu",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 33,
+                    "y": 13,
+                    "c": "bleu",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 46,
+                    "y": 18,
+                    "c": "bleu",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 21,
+                    "y": 24,
+                    "c": "bleu",
+                    "n": "5"
+                },
+                {
+                    "t": "joueur",
+                    "x": 36,
+                    "y": 28,
+                    "c": "bleu",
+                    "n": "6"
+                },
+                {
+                    "t": "joueur",
+                    "x": 12,
+                    "y": 19,
+                    "c": "bleu",
+                    "n": "7"
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 4,
+                    "c": "jaune",
+                    "n": "J"
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 36,
+                    "c": "jaune",
+                    "n": "J"
+                },
+                {
+                    "t": "joueur",
+                    "x": 29,
+                    "y": 17.5,
+                    "c": "jaune",
+                    "n": "J"
+                },
+                {
+                    "t": "ballon",
+                    "x": 31,
+                    "y": 23
+                },
+                {
+                    "t": "fleche",
+                    "x1": 30.5,
+                    "y1": 22.5,
+                    "x2": 29.5,
+                    "y2": 19.5,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 29.5,
+                    "y1": 16,
+                    "x2": 29.8,
+                    "y2": 6,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 14,
+                    "y1": 10,
+                    "x2": 17,
+                    "y2": 18,
+                    "s": "course",
+                    "c": "noir"
+                }
+            ]
+        }
+    },
+    "finition2c1": {
+        "secteur": "formation",
+        "titre": "Finition à 2 contre 1",
+        "duree": 15,
+        "consignes": "Organisation : 2 attaquants au départ à 40 m du but, 1 défenseur à 25 m, 1 gardien.\nDéroulement : le porteur attaque le défenseur pour le fixer, puis passe ou garde selon sa réaction. Finir en moins de 8 secondes.\nVariantes : défenseur qui part en retard (course de retour) ; 3 contre 2.\nPoints clés : conduite rapide vers le défenseur, appel du partenaire dans son dos, finition à ras de terre.",
+        "schema": {
+            "terrain": "demi",
+            "objets": [
+                {
+                    "t": "joueur",
+                    "x": 37,
+                    "y": 4.8,
+                    "c": "jaune",
+                    "n": "G"
+                },
+                {
+                    "t": "cone",
+                    "x": 30,
+                    "y": 42,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 44,
+                    "y": 42,
+                    "c": "orange"
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 44.5,
+                    "c": "rouge",
+                    "n": "9"
+                },
+                {
+                    "t": "joueur",
+                    "x": 44,
+                    "y": 44.5,
+                    "c": "rouge",
+                    "n": "11"
+                },
+                {
+                    "t": "ballon",
+                    "x": 31.5,
+                    "y": 43.2
+                },
+                {
+                    "t": "joueur",
+                    "x": 37,
+                    "y": 27,
+                    "c": "bleu",
+                    "n": "4"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 31,
+                    "y1": 42,
+                    "x2": 34,
+                    "y2": 30,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 34.5,
+                    "y1": 29,
+                    "x2": 43,
+                    "y2": 25,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 44,
+                    "y1": 42,
+                    "x2": 45,
+                    "y2": 26.5,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 45,
+                    "y1": 24.5,
+                    "x2": 39,
+                    "y2": 9.5,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "texte",
+                    "x": 37,
+                    "y": 52,
+                    "v": "Fixer le défenseur, donner au bon moment",
+                    "c": "blanc"
+                }
+            ]
+        }
+    },
+    "passes_y": {
+        "secteur": "seniors",
+        "titre": "Activation : passes en Y",
+        "duree": 15,
+        "consignes": "Organisation : Y de cônes (base, pivot à 16 m, deux branches à 16 m du pivot), 2 joueurs au départ.\nDéroulement : passe au pivot, remise, passe dans la course vers une branche ; chacun suit sa passe. Alterner gauche et droite.\nVariantes : le pivot se retourne (contrôle orienté) ; enchaîner sur une frappe dans un mini-but.\nPoints clés : rythme élevé dès les premières minutes, communication, appuis dynamiques avant la passe.",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "cone",
+                    "x": 8,
+                    "y": 20,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 24,
+                    "y": 20,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 40,
+                    "y": 10,
+                    "c": "orange"
+                },
+                {
+                    "t": "cone",
+                    "x": 40,
+                    "y": 30,
+                    "c": "orange"
+                },
+                {
+                    "t": "joueur",
+                    "x": 6,
+                    "y": 21.5,
+                    "c": "rouge",
+                    "n": "1"
+                },
+                {
+                    "t": "joueur",
+                    "x": 4,
+                    "y": 23.5,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 24,
+                    "y": 22.5,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 42,
+                    "y": 9,
+                    "c": "rouge",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 42,
+                    "y": 31,
+                    "c": "rouge",
+                    "n": "5"
+                },
+                {
+                    "t": "ballon",
+                    "x": 8.5,
+                    "y": 22
+                },
+                {
+                    "t": "fleche",
+                    "x1": 9,
+                    "y1": 20.5,
+                    "x2": 22,
+                    "y2": 21,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 23,
+                    "y1": 21.5,
+                    "x2": 11,
+                    "y2": 21.5,
+                    "s": "passe",
+                    "c": "blanc"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 10.5,
+                    "y1": 21,
+                    "x2": 38,
+                    "y2": 11.5,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 8,
+                    "y1": 18.5,
+                    "x2": 22,
+                    "y2": 18.5,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 25.5,
+                    "y1": 19,
+                    "x2": 38.5,
+                    "y2": 10.5,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "texte",
+                    "x": 30,
+                    "y": 37,
+                    "v": "Remise, passe longue, on suit sa passe",
+                    "c": "blanc"
+                }
+            ]
+        }
+    },
+    "positionnel": {
+        "secteur": "seniors",
+        "titre": "Jeu de position 7 contre 7 + 3",
+        "duree": 20,
+        "consignes": "Organisation : zone de 71 × 58 m entre les deux surfaces, 2 équipes de 7, un joker à chaque extrémité et un joker central.\nDéroulement : aller d'un joker d'extrémité à l'autre en passant par le joker central = 1 point. Séquences de 4 min, 2 min de récupération.\nVariantes : 2 touches maximum ; point double si le jeu est renversé en moins de 3 passes.\nPoints clés : occupation rationnelle (largeur, intervalles), circulation rapide pour déplacer le bloc, réaction à la perte en moins de 5 s.",
+        "schema": {
+            "terrain": "entier",
+            "objets": [
+                {
+                    "t": "zone",
+                    "x": 20,
+                    "y": 8,
+                    "w": 71,
+                    "h": 58,
+                    "c": "jaune"
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 18,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 44,
+                    "y": 12,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 62,
+                    "y": 14,
+                    "c": "rouge",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 76,
+                    "y": 20,
+                    "c": "rouge",
+                    "n": "5"
+                },
+                {
+                    "t": "joueur",
+                    "x": 36,
+                    "y": 44,
+                    "c": "rouge",
+                    "n": "6"
+                },
+                {
+                    "t": "joueur",
+                    "x": 56,
+                    "y": 52,
+                    "c": "rouge",
+                    "n": "7"
+                },
+                {
+                    "t": "joueur",
+                    "x": 78,
+                    "y": 46,
+                    "c": "rouge",
+                    "n": "8"
+                },
+                {
+                    "t": "joueur",
+                    "x": 38,
+                    "y": 24,
+                    "c": "bleu",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 52,
+                    "y": 20,
+                    "c": "bleu",
+                    "n": "3"
+                },
+                {
+                    "t": "joueur",
+                    "x": 68,
+                    "y": 26,
+                    "c": "bleu",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 44,
+                    "y": 36,
+                    "c": "bleu",
+                    "n": "5"
+                },
+                {
+                    "t": "joueur",
+                    "x": 64,
+                    "y": 40,
+                    "c": "bleu",
+                    "n": "6"
+                },
+                {
+                    "t": "joueur",
+                    "x": 30,
+                    "y": 54,
+                    "c": "bleu",
+                    "n": "7"
+                },
+                {
+                    "t": "joueur",
+                    "x": 84,
+                    "y": 32,
+                    "c": "bleu",
+                    "n": "8"
+                },
+                {
+                    "t": "joueur",
+                    "x": 20,
+                    "y": 37,
+                    "c": "jaune",
+                    "n": "J"
+                },
+                {
+                    "t": "joueur",
+                    "x": 91,
+                    "y": 37,
+                    "c": "jaune",
+                    "n": "J"
+                },
+                {
+                    "t": "joueur",
+                    "x": 55.5,
+                    "y": 30,
+                    "c": "jaune",
+                    "n": "J"
+                },
+                {
+                    "t": "ballon",
+                    "x": 46,
+                    "y": 44.5
+                },
+                {
+                    "t": "fleche",
+                    "x1": 37,
+                    "y1": 44,
+                    "x2": 54,
+                    "y2": 31.5,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 57,
+                    "y1": 29.5,
+                    "x2": 75.5,
+                    "y2": 21.5,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 76,
+                    "y1": 21,
+                    "x2": 89.5,
+                    "y2": 35.5,
+                    "s": "passe",
+                    "c": "noir"
+                }
+            ]
+        }
+    },
+    "fractionne": {
+        "secteur": "seniors",
+        "titre": "Fractionné 15-15 avec ballon",
+        "duree": 12,
+        "consignes": "Organisation : lignes de plots espacées de 38 m (distance à ajuster à la VMA de chaque groupe), un ballon par joueur.\nDéroulement : 15 s de conduite rapide jusqu'à la ligne opposée, 15 s de récupération active (marche, jonglerie). 2 séries de 8 à 10 minutes, 3 min de récupération entre les séries.\nVariantes : sans ballon à 100-110 % de VMA ; finir chaque course par une passe dans un mini-but.\nPoints clés : allure régulière, ballon maîtrisé malgré la vitesse, s'hydrater entre les séries.",
+        "schema": {
+            "terrain": "libre",
+            "objets": [
+                {
+                    "t": "plot",
+                    "x": 10,
+                    "y": 8,
+                    "c": "bleu"
+                },
+                {
+                    "t": "plot",
+                    "x": 48,
+                    "y": 8,
+                    "c": "jaune"
+                },
+                {
+                    "t": "joueur",
+                    "x": 7.5,
+                    "y": 8,
+                    "c": "rouge",
+                    "n": "1"
+                },
+                {
+                    "t": "ballon",
+                    "x": 11.5,
+                    "y": 8.8
+                },
+                {
+                    "t": "fleche",
+                    "x1": 13,
+                    "y1": 8,
+                    "x2": 46,
+                    "y2": 8,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "plot",
+                    "x": 10,
+                    "y": 14,
+                    "c": "bleu"
+                },
+                {
+                    "t": "plot",
+                    "x": 48,
+                    "y": 14,
+                    "c": "jaune"
+                },
+                {
+                    "t": "joueur",
+                    "x": 7.5,
+                    "y": 14,
+                    "c": "rouge",
+                    "n": "2"
+                },
+                {
+                    "t": "ballon",
+                    "x": 11.5,
+                    "y": 14.8
+                },
+                {
+                    "t": "fleche",
+                    "x1": 13,
+                    "y1": 14,
+                    "x2": 46,
+                    "y2": 14,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "plot",
+                    "x": 10,
+                    "y": 20,
+                    "c": "bleu"
+                },
+                {
+                    "t": "plot",
+                    "x": 48,
+                    "y": 20,
+                    "c": "jaune"
+                },
+                {
+                    "t": "joueur",
+                    "x": 7.5,
+                    "y": 20,
+                    "c": "rouge",
+                    "n": "3"
+                },
+                {
+                    "t": "ballon",
+                    "x": 11.5,
+                    "y": 20.8
+                },
+                {
+                    "t": "fleche",
+                    "x1": 13,
+                    "y1": 20,
+                    "x2": 46,
+                    "y2": 20,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "plot",
+                    "x": 10,
+                    "y": 26,
+                    "c": "bleu"
+                },
+                {
+                    "t": "plot",
+                    "x": 48,
+                    "y": 26,
+                    "c": "jaune"
+                },
+                {
+                    "t": "joueur",
+                    "x": 7.5,
+                    "y": 26,
+                    "c": "rouge",
+                    "n": "4"
+                },
+                {
+                    "t": "ballon",
+                    "x": 11.5,
+                    "y": 26.8
+                },
+                {
+                    "t": "fleche",
+                    "x1": 13,
+                    "y1": 26,
+                    "x2": 46,
+                    "y2": 26,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "plot",
+                    "x": 10,
+                    "y": 32,
+                    "c": "bleu"
+                },
+                {
+                    "t": "plot",
+                    "x": 48,
+                    "y": 32,
+                    "c": "jaune"
+                },
+                {
+                    "t": "joueur",
+                    "x": 7.5,
+                    "y": 32,
+                    "c": "rouge",
+                    "n": "5"
+                },
+                {
+                    "t": "ballon",
+                    "x": 11.5,
+                    "y": 32.8
+                },
+                {
+                    "t": "fleche",
+                    "x1": 13,
+                    "y1": 32,
+                    "x2": 46,
+                    "y2": 32,
+                    "s": "conduite",
+                    "c": "noir"
+                },
+                {
+                    "t": "texte",
+                    "x": 30,
+                    "y": 3,
+                    "v": "15 s effort / 15 s récupération",
+                    "c": "blanc"
+                },
+                {
+                    "t": "texte",
+                    "x": 30,
+                    "y": 37.5,
+                    "v": "2 séries de 8 à 10 min",
+                    "c": "blanc"
+                }
+            ]
+        }
+    },
+    "corner": {
+        "secteur": "seniors",
+        "titre": "Corner offensif : appels et blocs",
+        "duree": 15,
+        "consignes": "Organisation : un tireur de corner, 4 attaquants partant du point de penalty élargi, 6 défenseurs (marquage mixte) et un gardien.\nDéroulement : chaque attaquant a une zone d'attaque (premier poteau, point de penalty, second poteau, retrait). Répéter 6 corners de chaque côté.\nVariantes : corner rentrant puis sortant ; combinaison à deux au poteau de corner ; défense en zone pure.\nPoints clés : synchronisation des départs avec la course d'élan du tireur, attaquer le ballon au point le plus haut, couper la trajectoire au premier poteau.",
+        "schema": {
+            "terrain": "demi",
+            "objets": [
+                {
+                    "t": "joueur",
+                    "x": 37,
+                    "y": 4.8,
+                    "c": "jaune",
+                    "n": "G"
+                },
+                {
+                    "t": "joueur",
+                    "x": 70,
+                    "y": 4,
+                    "c": "rouge",
+                    "n": "10"
+                },
+                {
+                    "t": "ballon",
+                    "x": 70.6,
+                    "y": 3.4
+                },
+                {
+                    "t": "fleche",
+                    "x1": 69,
+                    "y1": 4.5,
+                    "x2": 42,
+                    "y2": 9.5,
+                    "s": "passe",
+                    "c": "noir"
+                },
+                {
+                    "t": "joueur",
+                    "x": 48,
+                    "y": 22,
+                    "c": "rouge",
+                    "n": "5"
+                },
+                {
+                    "t": "joueur",
+                    "x": 40,
+                    "y": 24,
+                    "c": "rouge",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 33,
+                    "y": 21,
+                    "c": "rouge",
+                    "n": "9"
+                },
+                {
+                    "t": "joueur",
+                    "x": 54,
+                    "y": 16,
+                    "c": "rouge",
+                    "n": "7"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 48,
+                    "y1": 20,
+                    "x2": 43,
+                    "y2": 7,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 40,
+                    "y1": 22,
+                    "x2": 37.5,
+                    "y2": 12,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 33,
+                    "y1": 19,
+                    "x2": 30,
+                    "y2": 7,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "fleche",
+                    "x1": 54,
+                    "y1": 14,
+                    "x2": 51,
+                    "y2": 9,
+                    "s": "course",
+                    "c": "noir"
+                },
+                {
+                    "t": "joueur",
+                    "x": 42,
+                    "y": 8.5,
+                    "c": "bleu",
+                    "n": "2"
+                },
+                {
+                    "t": "joueur",
+                    "x": 37,
+                    "y": 10,
+                    "c": "bleu",
+                    "n": "4"
+                },
+                {
+                    "t": "joueur",
+                    "x": 32,
+                    "y": 8,
+                    "c": "bleu",
+                    "n": "5"
+                },
+                {
+                    "t": "joueur",
+                    "x": 46,
+                    "y": 12,
+                    "c": "bleu",
+                    "n": "6"
+                },
+                {
+                    "t": "joueur",
+                    "x": 38,
+                    "y": 15,
+                    "c": "bleu",
+                    "n": "8"
+                },
+                {
+                    "t": "joueur",
+                    "x": 31,
+                    "y": 6,
+                    "c": "bleu",
+                    "n": "3"
+                },
+                {
+                    "t": "texte",
+                    "x": 37,
+                    "y": 30,
+                    "v": "Premier poteau, point de penalty, second poteau",
+                    "c": "blanc"
+                }
+            ]
+        }
+    }
+}

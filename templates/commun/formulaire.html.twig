@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{# Formulaire simple : tous les champs dans une seule carte.
+   Variable optionnelle « suppression » : {action, jeton, question} pour afficher un bouton Supprimer. #}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ retour }}">← Retour</a></p>
+    <div class="titre-page">
+        <h1>{{ titre }}</h1>
+        {% if suppression is defined %}
+            {{ m.supprimer(suppression.action, suppression.jeton, suppression.question) }}
+        {% endif %}
+    </div>
+
+    {% if aide is defined %}<p class="flash flash-info">{{ aide }}</p>{% endif %}
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+        <div class="carte">
+            <div class="champs">
+                {% for champ in form %}
+                    {% if champ.vars.name != '_token' %}
+                        <div class="champ {{ 'textarea' in champ.vars.block_prefixes ? 'large' }}">
+                            {{ form_label(champ) }}
+                            {{ form_widget(champ) }}
+                            {{ form_help(champ) }}
+                            {{ form_errors(champ) }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% block complement %}{% endblock %}
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

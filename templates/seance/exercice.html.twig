@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{# Bouton d'ajout d'un objet, avec son pictogramme. #}
+{% macro outil(type, libelle, icone, couleur = null) %}
+    <button type="button" class="outil" data-action="schema#ajouter" data-schema-type-param="{{ type }}" {% if couleur %}data-schema-couleur-param="{{ couleur }}"{% endif %} title="Ajouter : {{ libelle }}">
+        <svg viewBox="-2 -2 4 4" aria-hidden="true">{{ icone|raw }}</svg>
+        <span>{{ libelle }}</span>
+    </button>
+{% endmacro %}
+{% import _self as s %}
+
+{% block body %}
+    <p><a href="{{ path('app_seance_voir', {id: seance.id}) }}">← {{ seance }}</a></p>
+    <h1>{{ titre }}</h1>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+        <div class="carte">
+            <div class="champs">
+                <div class="champ">{{ form_label(form.titre) }}{{ form_widget(form.titre) }}{{ form_errors(form.titre) }}</div>
+                <div class="champ">{{ form_label(form.duree) }}{{ form_widget(form.duree) }}{{ form_errors(form.duree) }}</div>
+                <div class="champ large">{{ form_label(form.consignes) }}{{ form_widget(form.consignes) }}{{ form_errors(form.consignes) }}</div>
+            </div>
+        </div>
+
+        <div class="carte schema-editeur" data-controller="schema">
+            {{ form_widget(form.schema) }}
+            <div class="schema-barre">
+                <label class="schema-terrain-choix">Terrain
+                    <select data-schema-target="terrain" data-action="schema#changerTerrain">
+                        {% for cle, libelle in terrains %}<option value="{{ cle }}">{{ libelle }}</option>{% endfor %}
+                    </select>
+                </label>
+                {{ s.outil('joueur', 'Joueur', '<circle r="1.5" fill="#d62839" stroke="#fff" stroke-width=".25"/>', 'rouge') }}
+                {{ s.outil('joueur', 'Adversaire', '<circle r="1.5" fill="#1f5fd1" stroke="#fff" stroke-width=".25"/>', 'bleu') }}
+                {{ s.outil('joueur', 'Neutre', '<circle r="1.5" fill="#f5c518" stroke="#1d1d1f" stroke-width=".2"/>', 'jaune') }}
+                {{ s.outil('ballon', 'Ballon', '<circle r="1.1" fill="#fff" stroke="#1d1d1f" stroke-width=".2"/><path d="M0,-.45 L.43,-.14 L.27,.37 L-.27,.37 L-.43,-.14 z" fill="#1d1d1f"/>') }}
+                {{ s.outil('cone', 'Cône', '<path d="M0,-1.5 L1.3,1.1 L-1.3,1.1 z" fill="#ff7a1a" stroke="#1d1d1f" stroke-width=".15"/>') }}
+                {{ s.outil('plot', 'Plot', '<ellipse rx="1.4" ry=".9" fill="#f5c518" stroke="#1d1d1f" stroke-width=".15"/>') }}
+                {{ s.outil('but', 'But', '<rect x="-1.8" y="-1" width="3.6" height="1.6" fill="#ddd" stroke="#555" stroke-width=".2"/>') }}
+                {{ s.outil('minibut', 'Mini-but', '<rect x="-1.1" y="-.6" width="2.2" height="1" fill="#ddd" stroke="#555" stroke-width=".2"/>') }}
+                {{ s.outil('mannequin', 'Mannequin', '<rect x="-1.5" y="-.55" width="3" height="1.1" rx=".55" fill="#e9e3d5" stroke="#1d1d1f" stroke-width=".15"/><circle r=".5" fill="#c9bfa8" stroke="#1d1d1f" stroke-width=".12"/>') }}
+                {{ s.outil('fleche', 'Flèche', '<path d="M-1.6,1 L1.2,-.8" stroke="#1d1d1f" stroke-width=".3"/><path d="M1.6,-1 L.5,-.9 L1.1,-.1 z" fill="#1d1d1f"/>') }}
+                {{ s.outil('zone', 'Zone', '<rect x="-1.6" y="-1.1" width="3.2" height="2.2" fill="#f5c518" fill-opacity=".35" stroke="#b8920c" stroke-width=".15" stroke-dasharray=".4 .25"/>') }}
+                {{ s.outil('texte', 'Texte', '<text text-anchor="middle" dominant-baseline="central" font-size="2.6" font-weight="700" fill="#1d1d1f">T</text>') }}
+            </div>
+
+            <svg class="schema-terrain modifiable" data-schema-target="svg" role="img" aria-label="Schéma de l'exercice"></svg>
+
+            <div class="schema-selection" data-schema-target="selection" hidden>
+                <strong data-schema-target="nom"></strong>
+                <span class="schema-couleurs" data-schema-target="couleurs"></span>
+                <label data-schema-target="libelleTexte">N° <input type="text" data-schema-target="texte" data-action="input->schema#texte blur->schema#finTexte"></label>
+                <select data-schema-target="style" data-action="schema#style">
+                    <option value="passe">Passe (trait plein)</option>
+                    <option value="course">Course (pointillés)</option>
+                    <option value="conduite">Conduite de balle (ondulé)</option>
+                </select>
+                <button type="button" class="bouton petit" data-schema-target="tourner" data-action="schema#tourner">↻ Tourner</button>
+                <button type="button" class="bouton petit" data-action="schema#dupliquer">Dupliquer</button>
+                <button type="button" class="bouton petit danger" data-action="schema#supprimer">Supprimer</button>
+            </div>
+
+            <div class="schema-pied">
+                <span class="discret petit">Cliquez un objet pour le déplacer ou le modifier. Flèches : tirez leurs extrémités. Zones : tirez le coin. Touche Suppr pour effacer, Ctrl+Z pour annuler.</span>
+                <span class="actions">
+                    <button type="button" class="bouton petit" data-schema-target="annuler" data-action="schema#annuler" disabled>↶ Annuler</button>
+                    <button type="button" class="bouton petit" data-action="schema#toutEffacer">Tout effacer</button>
+                </span>
+            </div>
+        </div>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer l'exercice</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

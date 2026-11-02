@@ -1,0 +1,66 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Apparence du club{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <div>
+            <h1>Apparence du club</h1>
+            <p class="discret">Nom, logo et couleurs de l'application, pour tous les utilisateurs. L'aperçu change en direct : rien n'est appliqué avant « Enregistrer ».</p>
+        </div>
+    </div>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire', 'data-controller': 'apparence'}}) }}
+        {{ form_errors(form) }}
+        <div class="apparence">
+            <div class="carte">
+                <h2>Nom</h2>
+                <div class="champ">{{ form_label(form.nom) }}{{ form_widget(form.nom) }}{{ form_help(form.nom) }}{{ form_errors(form.nom) }}</div>
+
+                <h2 class="bloc">Couleurs</h2>
+                <div class="champ">{{ form_label(form.couleur) }}{{ form_widget(form.couleur) }}{{ form_help(form.couleur) }}{{ form_errors(form.couleur) }}</div>
+                <div class="champ">
+                    {{ form_label(form.couleurTexte) }}
+                    <div class="en-ligne-flex">
+                        {{ form_widget(form.couleurTexte) }}
+                        <button type="button" class="bouton petit" data-action="apparence#texteAuto">Choisir automatiquement</button>
+                    </div>
+                    {{ form_help(form.couleurTexte) }}{{ form_errors(form.couleurTexte) }}
+                </div>
+                <p class="flash flash-erreur petit" data-apparence-target="alerte" hidden>
+                    Texte peu lisible sur cette couleur (contraste <span data-apparence-target="ratio"></span>, 3 au minimum, 4,5 conseillé). Essayez « Choisir automatiquement ».
+                </p>
+
+                <h2 class="bloc">Logo</h2>
+                <div class="logo-actuel">
+                    <img class="blason grand" src="{{ logo_club }}" alt="Logo actuel">
+                    <span class="discret petit">{{ club.logo ? 'Logo personnalisé' : 'Logo d\'origine' }}</span>
+                </div>
+                <div class="champ">{{ form_label(form.fichierLogo) }}{{ form_widget(form.fichierLogo) }}{{ form_help(form.fichierLogo) }}{{ form_errors(form.fichierLogo) }}</div>
+                {% if club.logo %}
+                    <div class="champ case-filtre">{{ form_widget(form.logoOrigine) }}{{ form_label(form.logoOrigine) }}</div>
+                {% else %}
+                    {% do form.logoOrigine.setRendered %}
+                {% endif %}
+            </div>
+
+            <div class="carte apercu-club" aria-label="Aperçu">
+                <h2>Aperçu</h2>
+                <div class="apercu-entete">
+                    <img class="blason" src="{{ logo_club }}" alt=""> <strong data-apparence-target="apercuNom">{{ club.nom }}</strong>
+                    <span class="apercu-menu"><span class="actif">Joueurs</span><span>Matchs</span><span>Entraînements</span></span>
+                </div>
+                <p>Un <a href="#" onclick="return false">lien</a> dans le texte, et les boutons :</p>
+                <p class="actions"><span class="bouton principal">+ Nouvelle séance</span><span class="bouton">Filtrer</span></p>
+                <nav class="onglets"><a class="actif">Équipe</a><a>Joueurs</a><a>Discipline</a></nav>
+                <div class="tuiles"><span class="tuile equipe"><span class="equipe-niveau">U15</span><span class="equipe-effectif">18 joueurs</span></span></div>
+                <p class="discret petit">Les alertes (erreurs, suppressions, défaites) restent toujours en rouge.</p>
+            </div>
+        </div>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

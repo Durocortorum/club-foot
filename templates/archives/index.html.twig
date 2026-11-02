@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Archives{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Archives</h1>
+    </div>
+
+    <section>
+        <h2 class="titre-bloc">Ont quitté le club</h2>
+        <div class="tuiles archives-personnes">
+            <a class="tuile equipe" href="{{ path('app_joueur_index', {statut: 'anciens'}) }}">
+                <span class="equipe-niveau">Joueurs</span>
+                <span class="equipe-effectif">anciens joueurs</span>
+            </a>
+            <a class="tuile equipe" href="{{ path('app_intervenant_index', {type: 'educateurs', statut: 'anciens'}) }}">
+                <span class="equipe-niveau">Éducateurs</span>
+                <span class="equipe-effectif">anciens éducateurs</span>
+            </a>
+            <a class="tuile equipe" href="{{ path('app_intervenant_index', {type: 'dirigeants', statut: 'anciens'}) }}">
+                <span class="equipe-niveau">Dirigeants</span>
+                <span class="equipe-effectif">anciens dirigeants</span>
+            </a>
+        </div>
+    </section>
+
+    <h2 class="titre-bloc bloc">Effectifs par saison</h2>
+    <p class="discret">Reconstitués à partir des feuilles de match et de présence de chaque équipe.</p>
+
+    {% for secteur, libelle in secteurs %}
+        <section class="secteur">
+            <h3>{{ libelle.libelle }}</h3>
+            <ul class="liste-simple archives">
+                {% for ligne in categories[secteur] %}
+                    <li>
+                        <span class="archives-categorie">{{ ligne.categorie.nom }}</span>
+                        <span class="sommaire">
+                            {% for s in ligne.saisons %}
+                                <a href="{{ path('app_archives_saison', {id: ligne.categorie.id, saison: s|replace({'/': '-'})}) }}">Saison {{ s }}</a>
+                            {% endfor %}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% else %}
+        <p class="vide">Aucun match ni feuille de présence enregistré pour vos secteurs.</p>
+    {% endfor %}
+{% endblock %}

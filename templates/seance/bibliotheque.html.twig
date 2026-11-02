@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bibliothèque d'exercices{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_seance_voir', {id: seance.id}) }}">← {{ seance }}</a></p>
+    <div class="titre-page">
+        <div>
+            <h1>Bibliothèque d'exercices</h1>
+            <p class="discret">Choisissez un exercice type : il est copié dans la séance, où vous pourrez modifier le schéma, la durée et les consignes.</p>
+        </div>
+    </div>
+
+    <nav class="sommaire">
+        {% for cle, g in groupes %}
+            <a href="#groupe-{{ cle }}" class="{{ g.conseille ? 'actif' }}">{{ g.libelle }}</a>
+        {% endfor %}
+    </nav>
+
+    {% for cle, g in groupes %}
+        <section class="bloc" id="groupe-{{ cle }}">
+            <h2 class="titre-bloc">{{ g.libelle }}{% if g.conseille %} <span class="pastille">conseillé pour {{ seance.categorie }}</span>{% endif %}</h2>
+            <div class="grille-exercices">
+                {% for cleExercice, e in g.exercices %}
+                    <article class="carte exercice-type">
+                        <svg class="schema-terrain" data-controller="schema" data-schema-lecture-value="true" data-schema-schema-value="{{ e.schema|json_encode }}" data-schema-target="svg" role="img" aria-label="Schéma : {{ e.titre }}"></svg>
+                        <h3>{{ e.titre }} <span class="pastille">{{ e.duree }} min</span></h3>
+                        <details>
+                            <summary>Consignes</summary>
+                            <p class="memo petit">{{ e.consignes }}</p>
+                        </details>
+                        <form method="post" action="{{ path('app_seance_bibliotheque_ajouter', {id: seance.id, cle: cleExercice}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('bibliotheque' ~ seance.id) }}">
+                            <button class="bouton principal">+ Ajouter à la séance</button>
+                        </form>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block body %}
+    <p>
+        {% if joueur.id %}
+            <a href="{{ path('app_joueur_voir', {id: joueur.id}) }}">← Retour à la fiche</a>
+        {% else %}
+            <a href="{{ path('app_joueur_index') }}">← Retour à la liste</a>
+        {% endif %}
+    </p>
+    <h1>{{ titre }}</h1>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+
+        <fieldset class="carte">
+            <legend>Identité</legend>
+            <div class="avec-photo">
+                {{ m.avatar(joueur, 'grand') }}
+                {{ m.groupe(form, ['nom', 'prenom', 'surnom', 'dateNaissance', 'lieuNaissance', 'nationalite', 'photo']) }}
+            </div>
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Club</legend>
+            {{ m.groupe(form, ['categorie', 'educateur', 'licence', 'poste', 'pied', 'dateArrivee', 'selectionne', 'ancien']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Coordonnées</legend>
+            {{ m.groupe(form, ['adresse', 'codePostal', 'ville', 'telJoueur', 'telMaisonMere', 'telMaisonPere', 'telPortable1', 'telPortable2', 'emailJoueur', 'emailParents']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Famille</legend>
+            {{ m.groupe(form, ['nomPere', 'professionPere', 'nomMere', 'professionMere', 'droitImage', 'transportEducateur', 'transportParent']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Scolarité</legend>
+            {{ m.groupe(form, ['niveauScolaire', 'ecole', 'etablissement', 'situationScolaire']) }}
+        </fieldset>
+
+        {% if form.numeroSecu is defined %}
+            <fieldset class="carte medical">
+                <legend>Médical</legend>
+                {{ m.groupe(form, ['nomAssure', 'numeroSecu', 'medecin', 'telMedecin', 'renseignementsMedicaux']) }}
+            </fieldset>
+        {% endif %}
+
+        <fieldset class="carte">
+            <legend>Mémo</legend>
+            {{ m.groupe(form, ['memo']) }}
+        </fieldset>
+
+        {{ form_rest(form) }}
+
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

@@ -1,0 +1,9 @@
+{% use 'form_div_layout.html.twig' %}
+
+{# Champ texte + suggestions (voir App\Form\ListeOuverteType) #}
+{% block liste_ouverte_widget %}
+    {{ block('form_widget_simple') }}
+    <datalist id="{{ attr.list }}">
+        {% for s in suggestions %}<option value="{{ s }}"></option>{% endfor %}
+    </datalist>
+{% endblock %}

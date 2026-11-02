@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% block body %}
+    <p>
+        {% if intervenant.id %}
+            <a href="{{ path('app_intervenant_voir', {type: type, id: intervenant.id}) }}">← Retour à la fiche</a>
+        {% else %}
+            <a href="{{ path('app_intervenant_index', {type: type}) }}">← Retour à la liste</a>
+        {% endif %}
+    </p>
+    <h1>{{ titre }}</h1>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+
+        <fieldset class="carte">
+            <legend>Identité</legend>
+            <div class="avec-photo">
+                {{ m.avatar(intervenant, 'grand') }}
+                {{ m.groupe(form, ['nom', 'prenom', 'dateNaissance', 'photo']) }}
+            </div>
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Club</legend>
+            {{ m.groupe(form, ['fonction', 'fonction2', 'diplome', 'licence', 'ancien']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Coordonnées</legend>
+            {{ m.groupe(form, ['adresse', 'codePostal', 'ville', 'telFixe', 'telPortable1', 'telPortable2', 'telProfessionnel', 'email']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Mémo</legend>
+            {{ m.groupe(form, ['memo']) }}
+        </fieldset>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

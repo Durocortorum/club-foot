@@ -1,0 +1,39 @@
+{# Situation des buts (champ « Conditions » d'Access) : pour à gauche, contre à droite,
+   de la plus fréquente à la plus rare. Remplace les camemberts d'Access, illisibles à 15 parts. #}
+{% if analyse.situations %}
+    <section class="carte bloc analyse-buts">
+        <div class="titre-page">
+            <h2>Situation des buts</h2>
+            <div class="legende" aria-hidden="true">
+                <span><i class="pastille-serie pour"></i>Buts marqués ({{ apparence.club.nom }})</span>
+                <span><i class="pastille-serie contre"></i>Buts contre</span>
+            </div>
+        </div>
+
+        <div class="miroir situations" role="img" aria-label="Situation des buts pour et contre : voir le tableau des chiffres ci-dessous">
+            {% for situation, n in analyse.situations %}
+                <div class="miroir-cote pour" title="{{ situation }} : {{ n.pour }} but{{ n.pour > 1 ? 's' }} pour">
+                    <span class="miroir-valeur">{{ n.pour }}</span>
+                    <span class="miroir-barre" style="width: {{ (85 * n.pour / analyse.maxSituations)|round(1) }}%"></span>
+                </div>
+                <div class="miroir-libelle">{{ situation }}</div>
+                <div class="miroir-cote contre" title="{{ situation }} : {{ n.contre }} but{{ n.contre > 1 ? 's' }} contre">
+                    <span class="miroir-barre" style="width: {{ (85 * n.contre / analyse.maxSituations)|round(1) }}%"></span>
+                    <span class="miroir-valeur">{{ n.contre }}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <details class="petit">
+            <summary>Voir le tableau des chiffres</summary>
+            <table class="liste chiffres">
+                <thead><tr><th>Situation</th><th>Buts pour</th><th>Buts contre</th></tr></thead>
+                <tbody>
+                    {% for situation, n in analyse.situations %}
+                        <tr><td>{{ situation }}</td><td>{{ n.pour }}</td><td>{{ n.contre }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </details>
+    </section>
+{% endif %}

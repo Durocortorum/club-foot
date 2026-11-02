@@ -1,0 +1,121 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ categorie.nom }} {{ saison }}{% endblock %}
+
+{% block body %}
+    {% set filtres = {saison: saison, categorie: categorie.id} %}
+    <p class="discret"><a href="{{ path('app_archives') }}">← Archives</a></p>
+    <div class="titre-page">
+        <h1>{{ categorie.nom }} · Saison {{ saison }} <span class="compteur">{{ effectif|length }} joueurs</span></h1>
+        <div class="actions">
+            <a class="bouton" href="{{ path('app_rencontre_index', filtres) }}">Matchs</a>
+            <a class="bouton" href="{{ path('app_statistiques', filtres|merge({vue: 'joueurs'})) }}">Statistiques</a>
+            {% if voit_presences %}
+                <a class="bouton" href="{{ path('app_presence_index', filtres) }}">Présences</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <nav class="sommaire">
+        {% for s in saisons %}
+            <a href="{{ path('app_archives_saison', {id: categorie.id, saison: s|replace({'/': '-'})}) }}" class="{{ s == saison ? 'actif' }}">Saison {{ s }}</a>
+        {% endfor %}
+    </nav>
+
+    {% set cle = saison|replace({'/': '-'}) %}
+    <div class="coachs">
+        {% for c in coachs %}
+            <div class="carte personne">
+                {{ m.avatar(c.educateur) }}
+                <span>
+                    <span class="discret petit">Coach</span><br>
+                    <a href="{{ path('app_intervenant_voir', {type: 'educateurs', id: c.educateur.id}) }}"><strong>{{ c.educateur.nomComplet }}</strong></a>
+                </span>
+                {% if peut_modifier %}
+                    <form method="post" action="{{ path('app_archives_coach_retirer', {id: c.id}) }}" class="en-ligne" data-confirmation="Retirer {{ c.educateur.nomComplet }} des coachs de la saison {{ saison }} ?" data-confirmation-bouton="Retirer">
+                        <input type="hidden" name="_token" value="{{ csrf_token('retirer-coach' ~ c.id) }}">
+                        <button type="submit" class="bouton petit" title="Retirer">×</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% else %}
+            <p class="discret">Coach de la saison non renseigné.</p>
+        {% endfor %}
+    </div>
+    {% if suggestions %}
+        <div class="suggestions-coach">
+            <span class="discret petit">D'après les fiches des joueurs :</span>
+            {% for s in suggestions|slice(0, 4) %}
+                <form method="post" action="{{ path('app_archives_coach_ajouter', {id: categorie.id, saison: cle}) }}" class="en-ligne">
+                    <input type="hidden" name="_token" value="{{ csrf_token('coach-' ~ categorie.id ~ cle) }}">
+                    <input type="hidden" name="educateur" value="{{ s.educateur.id }}">
+                    <button type="submit" class="bouton petit" title="Indiquer comme coach de la saison {{ saison }}">+ {{ s.educateur.nomComplet }} <span class="discret">({{ s.joueurs }} joueur{{ s.joueurs > 1 ? 's' }})</span></button>
+                </form>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% if peut_modifier and educateurs %}
+        <form method="post" action="{{ path('app_archives_coach_ajouter', {id: categorie.id, saison: cle}) }}" class="ajout-coach">
+            <input type="hidden" name="_token" value="{{ csrf_token('coach-' ~ categorie.id ~ cle) }}">
+            <select name="educateur" required>
+                <option value="">{{ coachs ? 'Ajouter un autre coach…' : 'Ou choisir un autre éducateur…' }}</option>
+                {% for e in educateurs %}
+                    <option value="{{ e.id }}">{{ e.nom }} {{ e.prenom }}{{ e.ancien ? ' (ancien)' }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="bouton">Ajouter</button>
+        </form>
+    {% endif %}
+
+    {% include 'rencontre/_bilan.html.twig' %}
+
+    <div class="table-defile bloc">
+        <table class="liste chiffres">
+            <thead>
+                <tr>
+                    <th class="texte">Joueur</th>
+                    <th class="texte">Poste</th>
+                    <th title="Feuilles de match où le joueur figure">Convoc.</th>
+                    <th>Joués</th>
+                    <th>Titulaire</th>
+                    <th>Minutes</th>
+                    <th>Buts</th>
+                    <th>Passes D.</th>
+                    <th>Cartons J / R</th>
+                    {% if voit_presences %}
+                        <th title="Demi-journées d'entraînement notées sur les feuilles de présence">Séances</th>
+                        <th>Présence</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for j in effectif %}
+                    {% set mt = j.match %}
+                    {% set pr = j.presence %}
+                    <tr>
+                        <td class="texte nowrap"><a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a></td>
+                        <td class="texte">{{ j.poste }}</td>
+                        <td>{{ mt ? mt.convocations }}</td>
+                        <td>{{ mt ? mt.matchs }}</td>
+                        <td>{{ mt ? mt.titularisations }}</td>
+                        <td>{{ mt ? mt.minutes }}</td>
+                        <td>{{ mt and mt.buts ? mt.buts }}</td>
+                        <td>{{ mt and mt.passes ? mt.passes }}</td>
+                        <td>{{ mt and (mt.jaunes or mt.rouges) ? mt.jaunes ~ ' / ' ~ mt.rouges }}</td>
+                        {% if voit_presences %}
+                            <td>{{ pr ? pr.seances }}</td>
+                            <td>{{ pr and pr.taux is not null ? pr.taux ~ ' %' }}</td>
+                        {% endif %}
+                    </tr>
+                {% else %}
+                    <tr><td colspan="11" class="vide">Aucun joueur sur les feuilles de match ou de présence de cette saison.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="discret petit">
+        L'effectif réunit les joueurs inscrits sur au moins une feuille de match{{ voit_presences ? ' ou de présence' }} de l'équipe pendant la saison.
+        Le poste est celui de la fiche du joueur.
+    </p>
+{% endblock %}

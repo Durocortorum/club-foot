@@ -1,0 +1,72 @@
+{# Tableau des joueurs : regroupe les listes « statistiques » d'Access dans un seul tableau triable. #}
+{% set avec_parts = filtres.categorie is not null %}
+
+<div class="tuiles bilan">
+    <div class="tuile"><span class="tuile-valeur">{{ stats.convoques }}</span><span class="tuile-libelle">joueurs convoqués</span></div>
+    <div class="tuile"><span class="tuile-valeur">{{ stats.utilises }}</span><span class="tuile-libelle">joueurs ayant joué</span></div>
+    <div class="tuile"><span class="tuile-valeur">{{ stats.matchs }}</span><span class="tuile-libelle">matchs joués</span></div>
+</div>
+
+<div class="table-defile">
+    <table class="liste chiffres stats-joueurs">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th class="texte">Joueur</th>
+                {% if not avec_parts %}<th class="texte">Catégorie</th>{% endif %}
+                <th title="Feuilles de match où le joueur figure">Convoc.</th>
+                {% if avec_parts %}<th title="Convocations / matchs de l'équipe">% conv.</th>{% endif %}
+                <th>Joués</th>
+                <th>Titulaire</th>
+                <th title="Matchs joués du début à la fin">Complets</th>
+                <th title="Remplaçant au coup d'envoi">Remp. départ</th>
+                <th title="Remplaçant resté sur le banc">Non utilisé</th>
+                <th title="Entrées en cours de match">Entrées</th>
+                <th title="Sorties en cours de match">Sorties</th>
+                <th>Minutes</th>
+                {% if avec_parts %}<th title="Minutes jouées / minutes de tous les matchs de l'équipe">% temps</th>{% endif %}
+                <th>Buts</th>
+                <th>Passes D.</th>
+                <th>Note moy.</th>
+                <th>Cartons J / R</th>
+                <th title="Exclusions temporaires de 10 minutes">Excl. 10'</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in stats.joueurs %}
+                <tr>
+                    <td class="discret">{{ loop.index }}</td>
+                    <td class="texte nowrap"><a href="{{ path('app_joueur_voir', {id: l.id}) }}"><strong>{{ l.nom }}</strong> {{ l.prenom }}</a></td>
+                    {% if not avec_parts %}<td class="texte">{{ l.categorie }}</td>{% endif %}
+                    <td class="{{ filtres.tri == 'convocations' ? 'fort' }}">{{ l.convocations }}</td>
+                    {% if avec_parts %}<td>{{ l.partConvocations }} %</td>{% endif %}
+                    <td class="{{ filtres.tri == 'matchs' ? 'fort' }}">{{ l.matchs }}</td>
+                    <td class="{{ filtres.tri == 'titularisations' ? 'fort' }}">{{ l.titularisations }}</td>
+                    <td class="{{ filtres.tri == 'complets' ? 'fort' }}">{{ l.complets ?: '' }}</td>
+                    <td class="{{ filtres.tri == 'remplacantDepart' ? 'fort' }}">{{ l.remplacantDepart ?: '' }}</td>
+                    <td class="{{ filtres.tri == 'nonUtilise' ? 'fort' }}">{{ l.nonUtilise ?: '' }}</td>
+                    <td class="{{ filtres.tri == 'entrees' ? 'fort' }}">{{ l.entrees ?: '' }}</td>
+                    <td class="{{ filtres.tri == 'sorties' ? 'fort' }}">{{ l.sorties ?: '' }}</td>
+                    <td class="{{ filtres.tri == 'minutes' ? 'fort' }}">{{ l.minutes }}</td>
+                    {% if avec_parts %}<td>{{ l.partTemps|number_format(1, ',') }} %</td>{% endif %}
+                    <td class="{{ filtres.tri == 'buts' ? 'fort' }}">{{ l.buts ?: '' }}</td>
+                    <td class="{{ filtres.tri == 'passes' ? 'fort' }}">{{ l.passes ?: '' }}</td>
+                    <td class="{{ filtres.tri == 'note' ? 'fort' }}">{{ l.note ? l.note|number_format(1, ',') }}</td>
+                    <td>{{ l.jaunes or l.rouges ? l.jaunes ~ ' / ' ~ l.rouges }}</td>
+                    <td>{{ l.exclusions ?: '' }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="20" class="vide">Aucune feuille de match pour ces critères.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="discret petit">
+    « Joués » : au moins une minute de jeu. « Complets » : temps de jeu égal à la durée du match (le plus grand temps noté sur la feuille).
+    {% if avec_parts %}
+        Les pourcentages comparent le joueur aux {{ stats.matchs }} matchs de l'équipe, de {{ stats.dureeReference }} minutes ({{ stats.minutesPossibles }} minutes en tout).
+        Seuls les matchs de l'équipe choisie sont comptés.
+    {% else %}
+        Choisissez une catégorie pour voir les pourcentages de convocations et de temps de jeu.
+    {% endif %}
+</p>

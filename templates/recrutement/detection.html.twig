@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ d.nomComplet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_detection_index') }}">← Détections</a></p>
+
+    <div class="titre-page">
+        <div class="identite">
+            {{ m.avatar(d, 'grand') }}
+            <div>
+                <h1>{{ d.prenom }} <strong>{{ d.nom }}</strong></h1>
+                <p class="discret">
+                    Détecté le {{ d.dateDetection ? d.dateDetection|date('d/m/Y') : '?' }}
+                    {% if d.generation %} · né en {{ d.generation }}{% endif %}
+                    {% if d.retenu %} <span class="pastille">retenu</span>{% endif %}
+                </p>
+                {% if d.joueur %}
+                    <p>A rejoint le club : <a href="{{ path('app_joueur_voir', {id: d.joueur.id}) }}">fiche joueur de {{ d.joueur.nomComplet }}</a></p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="actions">
+            <a class="bouton principal" href="{{ path('app_detection_modifier', {id: d.id}) }}">Modifier</a>
+            {{ m.supprimer(path('app_detection_supprimer', {id: d.id}), 'supprimer-detection' ~ d.id, 'Supprimer la fiche de détection de ' ~ d.nomComplet ~ ' ?') }}
+        </div>
+    </div>
+
+    <div class="grille-fiches">
+        <section class="carte">
+            <h2>Football</h2>
+            <dl>
+                {{ m.ligne('Poste', d.poste) }}
+                {{ m.ligne('Poste secondaire', d.posteSecondaire) }}
+                {{ m.ligne('Pied fort', d.pied) }}
+                {{ m.ligne('Club actuel', d.clubActuel) }}
+                {{ m.ligne('Niveau', d.niveau) }}
+                {{ m.ligne('1re licence', d.anneePremiereLicence) }}
+                {{ m.ligne('Éducateur du club', d.educateurClub) }}
+                {{ m.ligne('Tél. éducateur', d.telEducateur) }}
+            </dl>
+        </section>
+
+        <section class="carte">
+            <h2>Détection</h2>
+            <dl>
+                {{ m.ligne('Séances suivies', d.nombreSeances) }}
+                {{ m.ligne('Maillot', [d.numeroMaillot ? 'n° ' ~ d.numeroMaillot, d.couleurMaillot]|filter(v => v)|join(', ')) }}
+                {{ m.ligne('Poids', d.poids ? d.poids|number_format(1, ',') ~ ' kg') }}
+                {{ m.ligne('Taille', d.taille ? d.taille|number_format(0) ~ ' cm') }}
+            </dl>
+        </section>
+
+        <section class="carte">
+            <h2>Identité et coordonnées</h2>
+            <dl>
+                {{ m.ligne('Date de naissance', d.dateNaissance ? d.dateNaissance|date('d/m/Y')) }}
+                {{ m.ligne('Lieu de naissance', d.lieuNaissance) }}
+                {{ m.ligne('Adresse', d.adresse) }}
+                {{ m.ligne('Ville', [d.codePostal, d.ville]|filter(v => v)|join(' ')) }}
+                {{ m.ligne('Tél. fixe', d.telFixe) }}
+                {{ m.ligne('Portable', d.telMobile) }}
+                {{ m.ligne('E-mail', d.email) }}
+            </dl>
+        </section>
+
+        <section class="carte">
+            <h2>Scolarité</h2>
+            <dl>
+                {{ m.ligne('Établissement', d.etablissementScolaire) }}
+                {{ m.ligne('Ville', d.villeScolaire) }}
+                {{ m.ligne('Classe', d.classe) }}
+                <dt>Section sportive</dt><dd>{{ d.sectionSportive ? 'Oui' : 'Non' }}</dd>
+            </dl>
+        </section>
+
+        {% if d.memo %}
+            <section class="carte">
+                <h2>Observations</h2>
+                <p class="memo">{{ d.memo }}</p>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Discipline{% endblock %}
+
+{% block body %}
+    <nav class="onglets">
+        <a href="{{ path('app_scolarite_index') }}">Bulletins</a>
+        <a href="{{ path('app_discipline_index') }}" class="actif">Discipline</a>
+    </nav>
+
+    <div class="titre-page">
+        <h1>Discipline <span class="compteur">{{ sanctions|length }}</span></h1>
+        <a class="bouton principal" href="{{ path('app_sanction_nouvelle') }}">+ Nouvel incident</a>
+    </div>
+
+    <div class="table-defile">
+        <table class="liste">
+            <thead><tr><th>Date</th><th>Joueur</th><th>Lieu</th><th>Motif</th><th>Sanction sportive</th><th>Sanction scolaire</th><th>Gravité</th><th></th></tr></thead>
+            <tbody>
+                {% for s in sanctions %}
+                    <tr>
+                        <td class="nowrap">{{ s.date|date('d/m/Y') }}</td>
+                        <td class="nowrap"><a href="{{ path('app_joueur_voir', {id: s.joueur.id, _fragment: 'scolarite'}) }}"><strong>{{ s.joueur.nom }}</strong> {{ s.joueur.prenom }}</a> <span class="discret">{{ s.joueur.categorie }}</span></td>
+                        <td>{{ s.lieu }}</td>
+                        <td>{{ s.motif }}</td>
+                        <td>{{ s.sanctionSportive }}</td>
+                        <td>{{ s.sanctionScolaire }}</td>
+                        <td>{{ s.graviteLibelle }}</td>
+                        <td><a href="{{ path('app_sanction_modifier', {id: s.id}) }}">Modifier</a></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" class="vide">Aucun incident enregistré.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

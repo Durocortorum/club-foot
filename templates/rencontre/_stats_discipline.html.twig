@@ -1,0 +1,76 @@
+{# Écran « Cartons » d'Access : décompte par type, cartons de la période, alertes de suspension. #}
+{% set libelles = constant('App\\Entity\\Participation::CARTONS') %}
+{% set couleurs = {JJ: 'jaune', JC: 'jaune', RJ: 'rouge', RC: 'rouge', 'J+R': 'rouge', BL: 'blanc'} %}
+
+<div class="tuiles bilan cartons-type">
+    {% for code, n in suivi.parType %}
+        <div class="tuile" title="{{ libelles[code] }}">
+            <span class="tuile-valeur"><span class="carton {{ couleurs[code] }}"></span> {{ n }}</span>
+            <span class="tuile-libelle">{{ code }} · {{ libelles[code] }}</span>
+        </div>
+    {% endfor %}
+</div>
+
+<div class="grille-fiches discipline">
+    <section class="carte">
+        <h2>Suivi des suspensions</h2>
+        {% if suivi.reference %}
+            <p class="discret petit">
+                Cartons des 3 mois précédant le {{ suivi.reference|date('d/m/Y') }} (dernier match de la sélection).
+                Règle indicative : 3 avertissements en moins de 3 mois ou un carton rouge = un match de suspension,
+                purgé dès que l'équipe a joué un match après le carton. Vérifiez les décisions officielles (nombre de matchs, date d'effet).
+            </p>
+            {% set titres = {
+                suspendu: '⛔ Suspendu pour le prochain match (sous réserve de la date d\'effet)',
+                attention: '⚠ Attention : au prochain avertissement, le joueur sera suspendu',
+                surveille: '• Un avertissement en cours (moins de 3 mois)',
+                purge: '✓ Sanctions purgées',
+            } %}
+            {% for statut, titre in titres %}
+                {% set joueurs = suivi.recents|filter(r => r.statut == statut) %}
+                {% if joueurs %}
+                    <h3>{{ titre }}</h3>
+                    <ul class="liste-simple">
+                        {% for r in joueurs %}
+                            <li class="avec-actions">
+                                <a href="{{ path('app_joueur_voir', {id: r.id}) }}"><strong>{{ r.nom }}</strong> {{ r.prenom }}</a>
+                                <span class="discret petit">
+                                    {{ [
+                                        r.suspension,
+                                        r.enCours ? (r.enCours|length) ~ ' avert. en cours (' ~ r.enCours|map(d => d|date('d/m'))|join(', ') ~ ')',
+                                        r.purges ? 'purgé : ' ~ r.purges|join(', '),
+                                    ]|filter(v => v)|join(' · ') }}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endfor %}
+            {% if not suivi.recents %}<p class="discret">Aucun carton dans les 3 derniers mois.</p>{% endif %}
+        {% else %}
+            <p class="discret">Aucun carton pour ces critères.</p>
+        {% endif %}
+    </section>
+
+    <section class="carte">
+        <h2>Cartons de la période <span class="compteur">{{ cartons|length }}</span></h2>
+        {% if cartons %}
+            <div class="table-defile defile-vertical">
+                <table class="liste">
+                    <thead><tr><th>Date</th><th>Joueur</th><th>Carton</th></tr></thead>
+                    <tbody>
+                        {% for c in cartons %}
+                            <tr>
+                                <td class="nowrap"><a href="{{ path('app_rencontre_voir', {id: c.rencontre}) }}">{{ c.date ? c.date|date('d/m/Y') : '?' }}</a></td>
+                                <td class="nowrap"><a href="{{ path('app_joueur_voir', {id: c.id}) }}"><strong>{{ c.nom }}</strong> {{ c.prenom }}</a></td>
+                                <td class="nowrap"><span class="carton {{ couleurs[c.carton] }}"></span> {{ c.carton }} <span class="discret petit">{{ libelles[c.carton] }}</span></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="discret">Aucun carton pour ces critères.</p>
+        {% endif %}
+    </section>
+</div>

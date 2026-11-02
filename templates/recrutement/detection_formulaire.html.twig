@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% block body %}
+    <p>
+        {% if d.id %}
+            <a href="{{ path('app_detection_voir', {id: d.id}) }}">← Retour à la fiche</a>
+        {% else %}
+            <a href="{{ path('app_detection_index') }}">← Détections</a>
+        {% endif %}
+    </p>
+    <h1>{{ titre }}</h1>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+
+        <fieldset class="carte">
+            <legend>Identité</legend>
+            <div class="avec-photo">
+                {{ m.avatar(d, 'grand') }}
+                {{ m.groupe(form, ['nom', 'prenom', 'dateNaissance', 'lieuNaissance', 'photo']) }}
+            </div>
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Détection</legend>
+            {{ m.groupe(form, ['dateDetection', 'nombreSeances', 'numeroMaillot', 'couleurMaillot', 'poids', 'taille', 'retenu', 'joueur']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Football</legend>
+            {{ m.groupe(form, ['poste', 'posteSecondaire', 'pied', 'clubActuel', 'niveau', 'anneePremiereLicence', 'educateurClub', 'telEducateur']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Coordonnées</legend>
+            {{ m.groupe(form, ['adresse', 'codePostal', 'ville', 'telFixe', 'telMobile', 'email']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Scolarité</legend>
+            {{ m.groupe(form, ['etablissementScolaire', 'villeScolaire', 'classe', 'sectionSportive']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Observations</legend>
+            {{ m.groupe(form, ['memo']) }}
+        </fieldset>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

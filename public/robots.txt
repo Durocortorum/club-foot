@@ -1,0 +1,3 @@
+# Application interne du centre de formation : ne pas indexer.
+User-agent: *
+Disallow: /

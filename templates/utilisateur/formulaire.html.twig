@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_utilisateur_index') }}">← Utilisateurs</a></p>
+    <div class="titre-page">
+        <h1>{{ titre }}</h1>
+        {% if suppression is defined %}
+            {{ m.supprimer(suppression.action, suppression.jeton, suppression.question) }}
+        {% endif %}
+    </div>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+
+        <fieldset class="carte">
+            <legend>Identité</legend>
+            {{ m.groupe(form, ['prenom', 'nom', 'email']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Droits</legend>
+            <div class="cases-droits">
+                {% for case in form.rolesAttribues %}
+                    <label class="case-droit">{{ form_widget(case) }} {{ case.vars.label }}</label>
+                {% endfor %}
+            </div>
+            {{ form_help(form.rolesAttribues) }}
+            {{ form_errors(form.rolesAttribues) }}
+            {% if utilisateur == app.user %}
+                <p class="discret petit">Vous ne pouvez pas retirer vos propres droits d'administration.</p>
+            {% endif %}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Mot de passe</legend>
+            {% if utilisateur.id and not utilisateur.password %}
+                <p class="flash flash-info">Ce compte n'a pas encore de mot de passe : définissez-en un pour que la personne puisse se connecter.</p>
+            {% endif %}
+            <div class="champs">
+                <div class="champ">{{ form_label(form.motDePasse.first) }}{{ form_widget(form.motDePasse.first) }}{{ form_help(form.motDePasse.first) }}{{ form_errors(form.motDePasse.first) }}</div>
+                <div class="champ">{{ form_label(form.motDePasse.second) }}{{ form_widget(form.motDePasse.second) }}{{ form_errors(form.motDePasse.second) }}</div>
+            </div>
+            {{ form_errors(form.motDePasse) }}
+        </fieldset>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}
