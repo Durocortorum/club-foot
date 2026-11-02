@@ -470,3 +470,32 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .apercu-menu span { padding: .25rem .6rem; border-radius: 6px; opacity: .85; }
 .apercu-menu .actif { background: color-mix(in srgb, var(--sur-rouge) 18%, transparent); opacity: 1; }
 @media (max-width: 800px) { .apparence { grid-template-columns: 1fr; } .apercu-club { position: static; } }
+
+/* Inscription d'un club */
+.connexion .carte.inscription { max-width: 560px; }
+.inscription h2 { font-size: 1rem; margin: 0 0 .6rem; }
+.inscription .champ { margin-bottom: .8rem; }
+.inscription .champs { grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+.connexion-lien { text-align: center; margin: 1.2rem 0 0; font-size: .92rem; }
+.piege { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+@media (max-width: 600px) { .inscription .champs { grid-template-columns: 1fr; } }
+
+/* Accueil : premiers pas d'un nouveau club */
+.premiers-pas { margin: 1rem 0 1.5rem; border-left: 4px solid var(--rouge); }
+.premiers-pas-entete { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin-bottom: .6rem; }
+.premiers-pas-entete h2 { margin: 0; }
+.jauge.large { width: 160px; height: 8px; }
+.etapes { list-style: none; margin: 0; padding: 0; }
+.etapes li { display: flex; align-items: center; gap: .9rem; padding: .65rem 0; border-top: 1px solid var(--bordure); }
+.etape-coche {
+    flex-shrink: 0; display: inline-grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%;
+    border: 2px solid var(--rouge); color: var(--rouge); font-weight: 700; font-size: .9rem;
+}
+.etape-texte { flex: 1; }
+.etapes li.faite .etape-coche { background: var(--succes); border-color: var(--succes); color: #fff; }
+.etapes li.faite .etape-texte strong { color: var(--gris); text-decoration: line-through; }
+
+/* Import de joueurs */
+.import { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.import .champ { margin-bottom: .9rem; }
+@media (max-width: 800px) { .import { grid-template-columns: 1fr; } }

@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Catégories{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <div>
+            <h1>Catégories <span class="compteur">{{ categories|length }}</span></h1>
+            <p class="discret">Les équipes du club, dans l'ordre où elles apparaissent partout (accueil, filtres, statistiques).</p>
+        </div>
+        <a class="bouton principal" href="{{ path('app_categorie_nouvelle') }}">+ Nouvelle catégorie</a>
+    </div>
+
+    <div class="table-defile">
+        <table class="liste">
+            <thead><tr><th>Ordre</th><th>Catégorie</th><th>Secteur</th><th>Utilisée par</th><th></th></tr></thead>
+            <tbody>
+                {% for c in categories %}
+                    <tr>
+                        <td class="nowrap">
+                            {% set bornes = {monter: loop.first, descendre: loop.last} %}
+                            {% for sens, symbole in {monter: '↑', descendre: '↓'} %}
+                                {% if not bornes[sens] %}
+                                    <form method="post" action="{{ path('app_categorie_deplacer', {id: c.id, sens: sens}) }}" class="en-ligne">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('deplacer-categorie' ~ c.id) }}">
+                                        <button class="bouton petit" title="{{ sens|capitalize }}">{{ symbole }}</button>
+                                    </form>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td><strong>{{ c.nom }}</strong></td>
+                        <td>{{ c.secteurLibelle }}</td>
+                        <td class="discret">{{ utilisations[c.id]|join(', ') ?: '—' }}</td>
+                        <td class="nowrap actions">
+                            <a class="bouton petit" href="{{ path('app_categorie_modifier', {id: c.id}) }}">Modifier</a>
+                            {% if not utilisations[c.id] %}
+                                {{ m.supprimer(path('app_categorie_supprimer', {id: c.id}), 'supprimer-categorie' ~ c.id, 'Supprimer la catégorie « ' ~ c.nom ~ ' » ?', '×') }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="vide">Aucune catégorie. Ajoutez vos équipes avec « Nouvelle catégorie ».</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

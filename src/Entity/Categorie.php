@@ -31,6 +31,14 @@ class Categorie implements AppartientAuClub
         self::SECTEUR_PRO => ['libelle' => 'Pro', 'role' => 'ROLE_PRO'],
     ];
 
+    /** Catégories proposées à la création d'un club (modifiables ensuite), par secteur. */
+    public const MODELES = [
+        self::SECTEUR_ECOLE_FOOT => ['U7', 'U9', 'U11'],
+        self::SECTEUR_PREFORMATION => ['U13', 'U15'],
+        self::SECTEUR_FORMATION => ['U17', 'U19'],
+        self::SECTEUR_ELITE => ['Seniors', 'Vétérans'],
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

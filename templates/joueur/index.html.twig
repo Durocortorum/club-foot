@@ -7,7 +7,7 @@
     <div class="titre-page">
         <h1>Joueurs <span class="compteur">{{ total }}</span></h1>
         {% if peut_creer %}
-            <a class="bouton principal" href="{{ path('app_joueur_nouveau') }}">+ Nouveau joueur</a>
+            <span class="actions"><a class="bouton" href="{{ path('app_joueur_import') }}">Importer (Excel)</a><a class="bouton principal" href="{{ path('app_joueur_nouveau') }}">+ Nouveau joueur</a></span>
         {% endif %}
     </div>
 

@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Créer mon club{% endblock %}
+
+{% block body %}
+    <div class="connexion">
+        <div class="carte inscription">
+            <div class="connexion-titre">
+                <img class="blason grand" src="{{ logo_club }}" alt="">
+                <h1>Créer mon club</h1>
+                <p>Gratuit, en une minute. Vous pourrez ensuite ajouter votre logo, vos couleurs, vos éducateurs et vos joueurs.</p>
+            </div>
+
+            {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+                {{ form_errors(form) }}
+                <h2>Le club</h2>
+                <div class="champ">{{ form_label(form.club) }}{{ form_widget(form.club) }}{{ form_errors(form.club) }}</div>
+
+                <h2 class="bloc">Votre compte</h2>
+                <p class="discret petit">Vous serez l'administrateur du club : vous pourrez ensuite créer les comptes de vos éducateurs.</p>
+                <div class="champs">
+                    <div class="champ">{{ form_label(form.prenom) }}{{ form_widget(form.prenom) }}{{ form_errors(form.prenom) }}</div>
+                    <div class="champ">{{ form_label(form.nom) }}{{ form_widget(form.nom) }}{{ form_errors(form.nom) }}</div>
+                </div>
+                <div class="champ">{{ form_label(form.email) }}{{ form_widget(form.email) }}{{ form_help(form.email) }}{{ form_errors(form.email) }}</div>
+                <div class="champs">
+                    <div class="champ">{{ form_label(form.motDePasse.first) }}{{ form_widget(form.motDePasse.first) }}{{ form_help(form.motDePasse.first) }}{{ form_errors(form.motDePasse.first) }}</div>
+                    <div class="champ">{{ form_label(form.motDePasse.second) }}{{ form_widget(form.motDePasse.second) }}{{ form_errors(form.motDePasse.second) }}</div>
+                </div>
+                <div class="champ case-filtre">{{ form_widget(form.conditions) }}{{ form_label(form.conditions) }}</div>
+                {{ form_errors(form.conditions) }}
+                <div class="piege" aria-hidden="true">{{ form_widget(form.site) }}</div>
+
+                {{ form_rest(form) }}
+                <button type="submit" class="bouton principal plein">Créer mon club</button>
+            {{ form_end(form) }}
+
+            <p class="connexion-lien">Déjà inscrit ? <a href="{{ path('app_connexion') }}">Se connecter</a></p>
+        </div>
+    </div>
+{% endblock %}

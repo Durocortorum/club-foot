@@ -1,0 +1,87 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Importer des joueurs{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_joueur_index') }}">← Joueurs</a></p>
+    <h1>Importer des joueurs</h1>
+
+    {% if analyse is not defined %}
+        <div class="import">
+            <div class="carte">
+                <h2>1. Préparez votre fichier</h2>
+                <p>Dans Excel, une ligne par joueur, avec une <strong>première ligne de titres</strong>. Seuls <strong>Nom</strong> et <strong>Prénom</strong> sont obligatoires ; les autres colonnes reconnues :</p>
+                <p class="discret petit">{{ modele|join(' · ') }}, Lieu de naissance, Nationalité, Date d'arrivée.</p>
+                <p><a class="bouton" href="{{ path('app_joueur_import_modele') }}">Télécharger le fichier modèle</a></p>
+                <p class="discret petit">
+                    Puis dans Excel : <em>Fichier → Enregistrer sous → CSV (séparateur : point-virgule)</em>.
+                    Dates au format JJ/MM/AAAA. {{ max }} joueurs au plus par fichier.
+                </p>
+            </div>
+
+            <form class="carte" method="post" enctype="multipart/form-data">
+                <h2>2. Envoyez-le</h2>
+                <input type="hidden" name="_token" value="{{ csrf_token('import-joueurs') }}">
+                <div class="champ">
+                    <label for="fichier">Fichier CSV</label>
+                    <input type="file" id="fichier" name="fichier" accept=".csv,text/csv" required>
+                </div>
+                <div class="champ">
+                    <label for="categorie">Catégorie par défaut</label>
+                    <select id="categorie" name="categorie">
+                        <option value="">— Aucune (colonne « Catégorie » obligatoire) —</option>
+                        {% for c in categories %}<option value="{{ c.id }}">{{ c.nom }}</option>{% endfor %}
+                    </select>
+                    <p class="discret petit">Utilisée pour les lignes sans catégorie.</p>
+                </div>
+                <button class="bouton principal">Vérifier le fichier</button>
+                <p class="discret petit">Rien n'est enregistré à cette étape : vous verrez d'abord le détail ligne par ligne.</p>
+            </form>
+        </div>
+    {% else %}
+        {% set erreurs = analyse.lignes|filter(l => l.erreurs)|length %}
+        {% set doublons = analyse.lignes|filter(l => not l.erreurs and l.doublon)|length %}
+        <div class="tuiles bilan">
+            <div class="tuile"><span class="tuile-valeur">{{ a_importer }}</span><span class="tuile-libelle">à importer</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ doublons }}</span><span class="tuile-libelle">déjà présents (ignorés)</span></div>
+            <div class="tuile"><span class="tuile-valeur {{ erreurs ? 'resultat-D' }}">{{ erreurs }}</span><span class="tuile-libelle">en erreur (ignorés)</span></div>
+        </div>
+        <p class="discret petit">
+            Colonnes reconnues : {{ analyse.colonnes|join(', ') }}.
+            {% if analyse.ignorees %}Colonnes ignorées : {{ analyse.ignorees|join(', ') }}.{% endif %}
+        </p>
+
+        <div class="table-defile bloc">
+            <table class="liste">
+                <thead><tr><th>Ligne</th><th>Nom</th><th>Prénom</th><th>Né le</th><th>Catégorie</th><th>Statut</th></tr></thead>
+                <tbody>
+                    {% for l in analyse.lignes %}
+                        <tr>
+                            <td class="discret">{{ l.numero }}</td>
+                            <td><strong>{{ l.valeurs.nom }}</strong></td>
+                            <td>{{ l.valeurs.prenom }}</td>
+                            <td>{{ l.valeurs.dateNaissance is defined ? l.valeurs.dateNaissance|date('d/m/Y') }}</td>
+                            <td>{{ l.valeurs.categorieNom }}</td>
+                            <td>
+                                {% if l.erreurs %}<span class="pastille alerte">Erreur</span> {{ l.erreurs|join(' ') }}
+                                {% elseif l.doublon %}<span class="pastille">Déjà présent</span>
+                                {% else %}<span class="pastille succes">OK</span>{% endif %}
+                                {% if l.avertissements %}<br><span class="discret petit">{{ l.avertissements|join(' ') }}</span>{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="barre-actions actions">
+            {% if a_importer %}
+                <form method="post" action="{{ path('app_joueur_import_confirmer') }}" class="en-ligne">
+                    <input type="hidden" name="_token" value="{{ csrf_token('import-joueurs-confirmer') }}">
+                    <button class="bouton principal">Importer {{ a_importer }} joueur{{ a_importer > 1 ? 's' }}</button>
+                </form>
+            {% endif %}
+            <a class="bouton" href="{{ path('app_joueur_import') }}">Envoyer un autre fichier</a>
+        </div>
+    {% endif %}
+{% endblock %}

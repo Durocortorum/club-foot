@@ -2,8 +2,27 @@
 
 {% block body %}
     <h1>Bonjour {{ app.user.prenom }}</h1>
-    <p class="discret">Joueurs actifs par catégorie, pour les secteurs auxquels vous avez accès.</p>
 
+    {% if etapes_faites < etapes|length %}
+        <section class="carte premiers-pas">
+            <div class="premiers-pas-entete">
+                <h2>Premiers pas</h2>
+                <span class="discret petit">{{ etapes_faites }} sur {{ etapes|length }}</span>
+                <span class="jauge large"><span style="width: {{ (100 * etapes_faites / etapes|length)|round }}%"></span></span>
+            </div>
+            <ol class="etapes">
+                {% for e in etapes %}
+                    <li class="{{ e.fait ? 'faite' }}">
+                        <span class="etape-coche" aria-hidden="true">{{ e.fait ? '✓' : loop.index }}</span>
+                        <span class="etape-texte"><strong>{{ e.titre }}</strong><br><span class="discret petit">{{ e.texte }}</span></span>
+                        <a class="bouton petit {{ e.fait ? '' : 'principal' }}" href="{{ e.lien }}">{{ e.fait ? 'Voir' : e.action }}</a>
+                    </li>
+                {% endfor %}
+            </ol>
+        </section>
+    {% endif %}
+
+    <p class="discret">Joueurs actifs par catégorie, pour les secteurs auxquels vous avez accès.</p>
     {% for secteur, categories in secteurs %}
         <section class="secteur">
             <h2>{{ libelles[secteur].libelle }}</h2>

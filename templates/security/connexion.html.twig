@@ -8,7 +8,7 @@
             <div class="connexion-titre">
                 <img class="blason grand" src="{{ logo_club }}" alt="">
                 <h1>{{ apparence.club.nom }}</h1>
-                <p>Gestion du centre de formation</p>
+                <p>La gestion de votre club de football</p>
             </div>
 
             {% if erreur %}
@@ -26,6 +26,8 @@
 
                 <button type="submit" class="bouton principal plein">Se connecter</button>
             </form>
+
+            <p class="connexion-lien">Nouveau club ? <a href="{{ path('app_inscription') }}">Créer mon club</a></p>
         </div>
     </div>
 {% endblock %}

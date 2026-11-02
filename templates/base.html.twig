@@ -46,6 +46,7 @@
                 <div class="compte">
                     {% if is_granted('ROLE_ADMIN') %}
                         <a href="{{ path('app_utilisateur_index') }}" class="{{ route starts with 'app_utilisateur' ? 'actif' }}">Utilisateurs</a>
+                        <a href="{{ path('app_categorie_index') }}" class="{{ route starts with 'app_categorie' ? 'actif' }}">Catégories</a>
                         <a href="{{ path('app_club') }}" class="{{ route == 'app_club' ? 'actif' }}" title="Logo et couleurs du club">Apparence</a>
                     {% endif %}
                     <a href="{{ path('app_mon_compte') }}" title="Mon compte : changer mon mot de passe">{{ app.user }}</a>
