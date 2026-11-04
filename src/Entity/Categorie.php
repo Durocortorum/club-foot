@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\CategorieRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Catégorie d'âge ou équipe (U9, U15, Seniors...) d'un club, rattachée à un de ses secteurs.
@@ -53,6 +54,27 @@ class Categorie implements AppartientAuClub
     #[ORM\Column]
     private int $ordre = 0;
 
+    /** Durée d'un match en minutes (deux mi-temps), null si la catégorie ne joue pas de matchs à feuille. */
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    #[Assert\Range(min: 10, max: 120)]
+    private ?int $dureeMatch = null;
+
+    /** Durée de match proposée d'après le nom (U11 : 2 × 25, U13 : 2 × 30, U15 : 2 × 40, au-delà : 2 × 45). */
+    public static function dureeParDefaut(?string $nom): ?int
+    {
+        if (!preg_match('/^U\s?(\d+)/i', trim((string) $nom), $m)) {
+            return 90;
+        }
+
+        return match (true) {
+            (int) $m[1] <= 9 => null,
+            (int) $m[1] <= 11 => 50,
+            (int) $m[1] <= 13 => 60,
+            (int) $m[1] <= 15 => 80,
+            default => 90,
+        };
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -95,6 +117,38 @@ class Categorie implements AppartientAuClub
     public function setOrdre(int $ordre): static
     {
         $this->ordre = $ordre;
+
+        return $this;
+    }
+
+    /** Âge de la catégorie d'après son nom (« U15 PH » → 15), 99 pour les seniors et équipes sans âge. */
+    public function getAge(): int
+    {
+        return preg_match('/^U\s?(\d+)/i', trim((string) $this->nom), $m) ? (int) $m[1] : 99;
+    }
+
+    /**
+     * Les joueurs de $autre peuvent-ils jouer dans cette catégorie (surclassement) ? Oui pour les deux âges
+     * juste en dessous et les autres équipes du même âge (U17 : U15, U16, U17 DH) ; seniors : à partir de U17.
+     */
+    public function accueilleEnSurclassement(self $autre): bool
+    {
+        if ($autre === $this || $autre->getClub() !== $this->getClub()) {
+            return false;
+        }
+        $age = $this->getAge();
+
+        return 99 === $age ? $autre->getAge() >= 17 : $autre->getAge() >= $age - 2 && $autre->getAge() <= $age;
+    }
+
+    public function getDureeMatch(): ?int
+    {
+        return $this->dureeMatch;
+    }
+
+    public function setDureeMatch(?int $dureeMatch): static
+    {
+        $this->dureeMatch = $dureeMatch;
 
         return $this;
     }

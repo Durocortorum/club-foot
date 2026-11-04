@@ -6,6 +6,22 @@
 {% macro oui_non(libelle, valeur) %}
     <dt>{{ libelle }}</dt><dd>{{ valeur ? 'Oui' : 'Non' }}</dd>
 {% endmacro %}
+
+{# Ligne du tableau « Matchs » : une saison ou le total (voir BilanJoueur). #}
+{% macro ligne_bilan(saison, b) %}
+    <tr>
+        <td>{{ saison }}</td>
+        <td>{{ b.matchs }}</td>
+        <td>{{ b.titularisations }}</td>
+        <td>{{ b.minutes }}</td>
+        <td>{{ b.minutesPossibles ? (b.minutes * 100 / b.minutesPossibles)|round ~ ' %' }}</td>
+        <td>{{ b.buts ?: '' }}</td>
+        <td>{{ b.passes ?: '' }}</td>
+        <td>{{ b.note ? b.note|number_format(1, ',') }}</td>
+        <td>{{ b.jaunes or b.rouges ? b.jaunes ~ ' / ' ~ b.rouges }}</td>
+        <td>{{ b.exclusions ?: '' }}</td>
+    </tr>
+{% endmacro %}
 {% import _self as f %}
 
 {% block body %}
@@ -78,25 +94,31 @@
                 {{ m.ligne('Adresse', joueur.adresse) }}
                 {{ m.ligne('Ville', [joueur.codePostal, joueur.ville]|filter(v => v)|join(' ')) }}
                 {{ m.ligne('Portable joueur', joueur.telJoueur) }}
-                {{ m.ligne('Tél. maison (mère)', joueur.telMaisonMere) }}
-                {{ m.ligne('Tél. maison (père)', joueur.telMaisonPere) }}
-                {{ m.ligne('Portable parent 1', joueur.telPortable1) }}
-                {{ m.ligne('Portable parent 2', joueur.telPortable2) }}
                 {{ m.ligne('E-mail joueur', joueur.emailJoueur) }}
-                {{ m.ligne('E-mail parents', joueur.emailParents) }}
+                {% if joueur.mineur %}
+                    {{ m.ligne('Tél. maison (mère)', joueur.telMaisonMere) }}
+                    {{ m.ligne('Tél. maison (père)', joueur.telMaisonPere) }}
+                    {{ m.ligne('Portable parent 1', joueur.telPortable1) }}
+                    {{ m.ligne('Portable parent 2', joueur.telPortable2) }}
+                    {{ m.ligne('E-mail parents', joueur.emailParents) }}
+                {% endif %}
             </dl>
         </section>
 
         <section class="carte">
             <h2>Famille</h2>
             <dl>
-                {{ m.ligne('Père', joueur.nomPere) }}
-                {{ m.ligne('Profession du père', joueur.professionPere) }}
-                {{ m.ligne('Mère', joueur.nomMere) }}
-                {{ m.ligne('Profession de la mère', joueur.professionMere) }}
+                {% if joueur.mineur %}
+                    {{ m.ligne('Père', joueur.nomPere) }}
+                    {{ m.ligne('Profession du père', joueur.professionPere) }}
+                    {{ m.ligne('Mère', joueur.nomMere) }}
+                    {{ m.ligne('Profession de la mère', joueur.professionMere) }}
+                {% endif %}
                 {{ f.oui_non("Droit à l'image", joueur.droitImage) }}
                 {{ f.oui_non('Transport éducateur', joueur.transportEducateur) }}
-                {{ f.oui_non('Transport parent', joueur.transportParent) }}
+                {% if joueur.mineur %}
+                    {{ f.oui_non('Transport parent', joueur.transportParent) }}
+                {% endif %}
             </dl>
         </section>
 
@@ -146,25 +168,19 @@
             <div class="table-defile">
                 <table class="liste chiffres">
                     <thead>
-                        <tr><th>Saison</th><th>Matchs</th><th>Titulaire</th><th>Minutes</th><th>Buts</th><th>Passes D.</th><th>Note moy.</th><th>Cartons J / R</th><th title="Exclusions temporaires de 10 minutes">Excl. 10'</th></tr>
+                        <tr><th>Saison</th><th>Matchs</th><th>Titulaire</th><th>Minutes</th><th title="Part des minutes jouées sur les matchs où il figurait sur la feuille de match">% minutes</th><th>Buts</th><th>Passes D.</th><th>Note moy.</th><th>Cartons J / R</th><th title="Exclusions temporaires de 10 minutes">Excl. 10'</th></tr>
                     </thead>
                     <tbody>
-                        {% for saison, b in bilan %}
-                            <tr>
-                                <td>{{ saison }}</td>
-                                <td>{{ b.matchs }}</td>
-                                <td>{{ b.titularisations }}</td>
-                                <td>{{ b.minutes }}</td>
-                                <td>{{ b.buts ?: '' }}</td>
-                                <td>{{ b.passes ?: '' }}</td>
-                                <td>{{ b.note ? b.note|number_format(1, ',') }}</td>
-                                <td>{{ b.jaunes or b.rouges ? b.jaunes ~ ' / ' ~ b.rouges }}</td>
-                                <td>{{ b.exclusions ?: '' }}</td>
-                            </tr>
+                        {% for saison, b in bilan|filter((b, saison) => saison != 'Total') %}
+                            {{ f.ligne_bilan(saison, b) }}
                         {% endfor %}
                     </tbody>
+                    <tfoot>
+                        {{ f.ligne_bilan('Total', bilan.Total) }}
+                    </tfoot>
                 </table>
             </div>
+            <p class="discret petit">Statistiques des matchs ayant une feuille de match (aucune pour l'école de foot). % minutes : temps de jeu rapporté à la durée des matchs où il figurait sur la feuille.</p>
 
             {% if matchs %}
                 <h3>Derniers matchs</h3>

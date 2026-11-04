@@ -144,6 +144,7 @@ class RencontreController extends AbstractController
         $form = $this->createForm(RencontreType::class, $rencontre, [
             'secteurs' => $secteurs,
             'joueurs' => $this->joueursSelectionnables($rencontre, $secteurs, $joueurs),
+            'duree' => $rencontre->getCategorie()?->getDureeMatch() ?? 90,
         ]);
         $form->handleRequest($request);
 

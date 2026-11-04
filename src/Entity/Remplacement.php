@@ -15,6 +15,10 @@ class Remplacement implements AppartientAuClub
 {
     use ClubTrait;
 
+    /**
+     * Expulsion et exclusion temporaire ne sont pas des remplacements : cartons de la feuille de match
+     * (rouge avec sa minute, « BL » : 10 minutes), comptés dans le temps de jeu.
+     */
     public const MOTIFS = ['Choix', 'Blessure'];
 
     #[ORM\Id]

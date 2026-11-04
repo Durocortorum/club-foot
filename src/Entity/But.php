@@ -11,9 +11,17 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Un but adverse n'a ni buteur ni passeur.
  */
 #[ORM\Entity(repositoryClass: ButRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class But implements AppartientAuClub
 {
     use ClubTrait;
+
+    /**
+     * Non enregistré : faux pour un but chargé tel quel de la base, vrai dès que son buteur, son passeur
+     * ou sa minute change. Seuls ces buts passent le contrôle « sur le terrain à la minute »
+     * (Rencontre::validerPresences), pour ne pas bloquer les anciens matchs aux feuilles incomplètes.
+     */
+    private bool $aControler = true;
 
     public const GESTES = ['Pied droit', 'Pied gauche', 'Tête', 'Poitrine', 'Talonnade'];
     public const CONDITIONS = [
@@ -47,6 +55,16 @@ class But implements AppartientAuClub
     #[ORM\Column(nullable: true)]
     #[Assert\Range(min: 0, max: 130)]
     private ?int $minute = null;
+
+    /** Minutes d'arrêt de jeu après la fin d'une mi-temps : « 45+2 » = minute 45, additionnel 2. */
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    #[Assert\Range(min: 1, max: 20)]
+    private ?int $additionnel = null;
+
+    /** But adverse : numéro de maillot du buteur (les joueurs adverses ne sont pas dans la base). */
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    #[Assert\Range(min: 1, max: 99)]
+    private ?int $numeroAdverse = null;
 
     #[ORM\Column(length: 30, nullable: true)]
     private ?string $geste = null;
@@ -91,8 +109,20 @@ class But implements AppartientAuClub
         return $this->buteur;
     }
 
+    #[ORM\PostLoad]
+    public function apresChargement(): void
+    {
+        $this->aControler = false;
+    }
+
+    public function isAControler(): bool
+    {
+        return $this->aControler;
+    }
+
     public function setButeur(?Joueur $buteur): static
     {
+        $this->aControler = $this->aControler || $buteur !== $this->buteur;
         $this->buteur = $buteur;
 
         return $this;
@@ -105,6 +135,7 @@ class But implements AppartientAuClub
 
     public function setPasseur(?Joueur $passeur): static
     {
+        $this->aControler = $this->aControler || $passeur !== $this->passeur;
         $this->passeur = $passeur;
 
         return $this;
@@ -120,6 +151,51 @@ class But implements AppartientAuClub
         $this->minute = $minute;
 
         return $this;
+    }
+
+    public function getNumeroAdverse(): ?int
+    {
+        return $this->numeroAdverse;
+    }
+
+    public function setNumeroAdverse(?int $numeroAdverse): static
+    {
+        $this->numeroAdverse = $numeroAdverse;
+
+        return $this;
+    }
+
+    public function getAdditionnel(): ?int
+    {
+        return $this->additionnel;
+    }
+
+    public function setAdditionnel(?int $additionnel): static
+    {
+        $this->additionnel = $additionnel ?: null;
+
+        return $this;
+    }
+
+    /** Minute telle qu'on l'écrit : « 23 », « 45+2 », null si inconnue. */
+    public function getTemps(): ?string
+    {
+        if (null === $this->minute) {
+            return null;
+        }
+
+        return $this->additionnel ? "{$this->minute}+{$this->additionnel}" : (string) $this->minute;
+    }
+
+    /** Inverse de getTemps() : « 45+2 », « 23 » ou null. */
+    public function setTemps(?string $temps): static
+    {
+        $this->aControler = $this->aControler || $temps !== $this->getTemps();
+        if (null === $temps || !preg_match('/^(\d+)(?:\+(\d+))?$/', $temps, $m)) {
+            return $this->setMinute(null)->setAdditionnel(null);
+        }
+
+        return $this->setMinute((int) $m[1])->setAdditionnel(isset($m[2]) ? (int) $m[2] : null);
     }
 
     public function getGeste(): ?string

@@ -22,6 +22,14 @@ class Rencontre implements AppartientAuClub
 
     public const COMPETITIONS = ['Championnat', 'Coupe', 'Amical', 'Tournoi'];
     public const TERRAINS = ['Synthétique', 'Herbe Souple', 'Herbe Gras', 'Herbe Bosselé', 'Herbe Sec', 'Stabilisé'];
+    public const METEOS = ['Soleil', 'Nuageux', 'Couvert', 'Pluie', 'Forte pluie', 'Orage', 'Brouillard', 'Neige', 'Gel', 'Forte chaleur'];
+    public const VENTS = ['Néant', 'Faible', 'Modéré', 'Fort', 'Rafale', 'Violent'];
+    /** Organisations de jeu par format (joueurs de champ, sans le gardien). */
+    public const SYSTEMES = [
+        'Foot à 11' => ['4 4 2', '4 4 2 losange', '4 3 3', '4 2 3 1', '4 1 4 1', '4 5 1', '4 1 3 2', '4 3 1 2', '4 3 2 1', '3 5 2', '3 4 3', '3 4 1 2', '5 3 2', '5 4 1'],
+        'Foot à 9' => ['3 3 2', '3 4 1', '2 4 2', '3 1 3 1', '3 2 3', '4 3 1'],
+        'Foot à 8' => ['3 3 1', '3 2 2', '2 3 2', '2 4 1', '3 1 3', '2 3 1 1'],
+    ];
 
     /** @var list<string> voir reconnaitreClub() */
     private static array $nomsClub = [];
@@ -107,7 +115,7 @@ class Rencontre implements AppartientAuClub
 
     /** @var Collection<int, But> */
     #[ORM\OneToMany(targetEntity: But::class, mappedBy: 'rencontre', cascade: ['persist'], orphanRemoval: true)]
-    #[ORM\OrderBy(['minute' => 'ASC'])]
+    #[ORM\OrderBy(['minute' => 'ASC', 'additionnel' => 'ASC'])]
     #[Assert\Valid]
     private Collection $buts;
 
@@ -438,16 +446,44 @@ class Rencontre implements AppartientAuClub
         return self::estLeClub($this->domicile) || !self::estLeClub($this->exterieur);
     }
 
-    /** Nom qui désigne le club dans les équipes d'un match : celui de l'utilisateur connecté (voir ClubSubscriber). */
+    /**
+     * Nom qui désigne le club dans les équipes d'un match : celui de l'utilisateur connecté (voir ClubSubscriber).
+     * Le nom complet, son cœur sans les mots génériques (« Stade de Reims » → « reims ») ou ses initiales
+     * (« sdr ») : les matchs saisis s'écrivent souvent « METZ – REIMS » ou « tinqueux – sdr ».
+     */
     public static function reconnaitreClub(string $nom): void
     {
-        self::$nomsClub = array_filter([mb_strtolower(trim($nom))]);
+        $complet = self::normaliser($nom);
+        $mots = explode(' ', $complet);
+        $coeur = implode(' ', array_diff($mots, self::MOTS_GENERIQUES));
+        // Initiales seulement à partir de 3 lettres : 2 lettres prêteraient à confusion (« cp », « as »…).
+        $initiales = \count($mots) >= 3 ? implode('', array_map(fn (string $m) => $m[0], $mots)) : '';
+        self::$nomsClub = array_values(array_unique(array_filter([$complet, $coeur, $initiales])));
+    }
+
+    /** Mots qui ne désignent pas un club en particulier. */
+    private const MOTS_GENERIQUES = [
+        'stade', 'de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'fc', 'as', 'us', 'sc', 'ac', 'rc', 'es', 'cs', 'ca',
+        'af', 'js', 'club', 'football', 'foot', 'olympique', 'sporting', 'racing', 'union', 'association', 'entente',
+        'jeunesse', 'sportive', 'avenir', 'etoile',
+    ];
+
+    /** Minuscules sans accents, mots séparés par une espace (« Château-Porcien » → « chateau porcien »). */
+    private static function normaliser(?string $texte): string
+    {
+        $texte = mb_strtolower((string) $texte);
+        $texte = strtr($texte, ['à' => 'a', 'â' => 'a', 'ä' => 'a', 'ç' => 'c', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'î' => 'i', 'ï' => 'i', 'ô' => 'o', 'ö' => 'o', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ÿ' => 'y', 'œ' => 'oe', 'æ' => 'ae']);
+
+        return trim((string) preg_replace('/[^a-z0-9]+/', ' ', $texte));
     }
 
     private static function estLeClub(?string $equipe): bool
     {
+        $equipe = ' ' . self::normaliser($equipe) . ' ';
         foreach (self::$nomsClub as $nom) {
-            if (false !== mb_stripos((string) $equipe, $nom)) {
+            // Mots entiers : « reims » reconnaît « REIMS B » mais pas « Reimsbach ».
+            if (str_contains($equipe, " $nom ")) {
                 return true;
             }
         }
@@ -482,10 +518,21 @@ class Rencontre implements AppartientAuClub
         return $pour <=> $contre ? ($pour > $contre ? 'V' : 'D') : 'N';
     }
 
-    /** Un joueur ne peut pas se faire la passe décisive, ni se remplacer lui-même. */
+    /** Un joueur figure une seule fois sur la feuille, ne se fait pas la passe décisive, ni ne se remplace lui-même. */
     #[Assert\Callback]
     public function validerDoublons(ExecutionContextInterface $context): void
     {
+        $vus = [];
+        foreach ($this->participations as $i => $p) {
+            $joueur = $p->getJoueur();
+            if ($joueur && isset($vus[spl_object_id($joueur)])) {
+                $context->buildViolation('{{ joueur }} est déjà sur la feuille de match.')
+                    ->setParameter('{{ joueur }}', $joueur->getNomComplet())
+                    ->atPath("participations[$i].joueur")
+                    ->addViolation();
+            }
+            $vus[spl_object_id($joueur ?? $p)] = true;
+        }
         foreach ($this->buts as $i => $b) {
             if ($b->getButeur() && $b->getButeur() === $b->getPasseur()) {
                 $context->buildViolation('Le buteur ne peut pas être aussi le passeur.')->atPath("buts[$i].passeur")->addViolation();
@@ -548,7 +595,7 @@ class Rencontre implements AppartientAuClub
         }
     }
 
-    /** Buteurs, passeurs et remplaçants doivent figurer sur la feuille de match, si elle est remplie. */
+    /** Buteurs, passeurs et remplaçants doivent figurer sur la feuille de match. */
     #[Assert\Callback]
     public function validerConvocations(ExecutionContextInterface $context): void
     {
@@ -557,9 +604,6 @@ class Rencontre implements AppartientAuClub
             if ($p->getJoueur()) {
                 $convoques[spl_object_id($p->getJoueur())] = true;
             }
-        }
-        if (!$convoques) {
-            return;
         }
 
         $verifier = function (?Joueur $joueur, string $chemin) use ($convoques, $context): void {
@@ -577,6 +621,109 @@ class Rencontre implements AppartientAuClub
         foreach ($this->remplacements as $i => $r) {
             $verifier($r->getSortant(), "remplacements[$i].sortant");
             $verifier($r->getEntrant(), "remplacements[$i].entrant");
+        }
+    }
+
+    /**
+     * Moments où chaque joueur de la feuille est sur le terrain, d'après les remplacements et les expulsions
+     * (carton rouge avec sa minute). Au coup d'envoi : les joueurs qui n'entrent pas en cours de match,
+     * hors banc déclaré (poste « Non utilisé », n° au-delà de 11). Même règle que feuille_controller.js.
+     *
+     * @return array<int, list<array{float, float}>> intervalles [début, fin] par joueur (spl_object_id)
+     */
+    public function presences(): array
+    {
+        $evenements = [];
+        foreach ($this->remplacements as $r) {
+            if (null !== $r->getMinute()) {
+                $evenements[] = [(float) $r->getMinute(), $r->getSortant(), $r->getEntrant()];
+            }
+        }
+        foreach ($this->participations as $p) {
+            if (\in_array($p->getCarton(), Participation::CARTONS_ROUGES, true) && null !== ($m = self::ordreMinute($p->getMinuteCarton()))) {
+                $evenements[] = [$m, $p->getJoueur(), null];
+            }
+        }
+        usort($evenements, fn (array $a, array $b) => $a[0] <=> $b[0]);
+
+        $premier = [];
+        foreach ($evenements as [, $sort, $entre]) {
+            if ($sort) {
+                $premier[spl_object_id($sort)] ??= 'sort';
+            }
+            if ($entre) {
+                $premier[spl_object_id($entre)] ??= 'entre';
+            }
+        }
+        $ouverts = [];
+        foreach ($this->participations as $p) {
+            if ($j = $p->getJoueur()) {
+                $role = $premier[spl_object_id($j)] ?? null;
+                $banc = 'non utilisé' === mb_strtolower(trim((string) $p->getPoste())) || $p->getNumero() > 11;
+                if ('entre' !== $role && (!$banc || 'sort' === $role)) {
+                    $ouverts[spl_object_id($j)] = 0.0;
+                }
+            }
+        }
+
+        $intervalles = [];
+        foreach ($evenements as [$m, $sort, $entre]) {
+            if ($sort && isset($ouverts[$s = spl_object_id($sort)])) {
+                $intervalles[$s][] = [$ouverts[$s], $m];
+                unset($ouverts[$s]);
+            }
+            if ($entre && !isset($ouverts[$e = spl_object_id($entre)])) {
+                $ouverts[$e] = $m;
+            }
+        }
+        foreach ($ouverts as $id => $debut) {
+            $intervalles[$id][] = [$debut, \INF];
+        }
+
+        return $intervalles;
+    }
+
+    /** « 45+2 » → 45,02 : pour ranger les minutes, arrêts de jeu compris ; null si la minute est inconnue. */
+    public static function ordreMinute(?string $temps): ?float
+    {
+        return preg_match('/^(\d+)(?:\+(\d+))?$/', (string) $temps, $m) ? (int) $m[1] + ((int) ($m[2] ?? 0)) / 100 : null;
+    }
+
+    /**
+     * Buteur, passeur et joueur averti doivent être sur le terrain à la minute du but ou du carton.
+     * Seuls les buts et cartons saisis ou modifiés sont contrôlés (voir But::$aControler) : les anciens
+     * matchs aux remplacements incomplets restent enregistrables.
+     */
+    #[Assert\Callback]
+    public function validerPresences(ExecutionContextInterface $context): void
+    {
+        $presences = $this->presences();
+        $verifier = function (?Joueur $joueur, ?string $temps, string $chemin) use ($presences, $context): void {
+            $m = self::ordreMinute($temps);
+            if (!$joueur || null === $m) {
+                return;
+            }
+            foreach ($presences[spl_object_id($joueur)] ?? [] as [$debut, $fin]) {
+                if ($m >= $debut && $m <= $fin) {
+                    return;
+                }
+            }
+            $context->buildViolation('{{ joueur }} n\'est pas sur le terrain à la {{ minute }}e minute.')
+                ->setParameter('{{ joueur }}', $joueur->getNomComplet())
+                ->setParameter('{{ minute }}', (string) $temps)
+                ->atPath($chemin)
+                ->addViolation();
+        };
+        foreach ($this->buts as $i => $b) {
+            if (!$b->isAdverse() && $b->isAControler()) {
+                $verifier($b->getButeur(), $b->getTemps(), "buts[$i].buteur");
+                $verifier($b->getPasseur(), $b->getTemps(), "buts[$i].passeur");
+            }
+        }
+        foreach ($this->participations as $i => $p) {
+            if ($p->getCarton() && $p->isAControler()) {
+                $verifier($p->getJoueur(), $p->getMinuteCarton(), "participations[$i].minuteCarton");
+            }
         }
     }
 

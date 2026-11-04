@@ -27,7 +27,8 @@ class CreationClub
         $ordre = 0;
         foreach (Categorie::MODELES as $secteur => $noms) {
             foreach ($noms as $nom) {
-                $this->em->persist((new Categorie())->setNom($nom)->setSecteur($secteur)->setOrdre(++$ordre)->setClub($club));
+                $this->em->persist((new Categorie())->setNom($nom)->setSecteur($secteur)->setOrdre(++$ordre)->setClub($club)
+                    ->setDureeMatch(Categorie::dureeParDefaut($nom)));
             }
         }
 

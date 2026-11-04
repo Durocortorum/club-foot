@@ -14,7 +14,7 @@
 
     <div class="table-defile">
         <table class="liste">
-            <thead><tr><th>Ordre</th><th>Catégorie</th><th>Secteur</th><th>Utilisée par</th><th></th></tr></thead>
+            <thead><tr><th>Ordre</th><th>Catégorie</th><th>Secteur</th><th title="Durée d'un match, deux mi-temps">Durée d'un match</th><th>Utilisée par</th><th></th></tr></thead>
             <tbody>
                 {% for c in categories %}
                     <tr>
@@ -31,6 +31,7 @@
                         </td>
                         <td><strong>{{ c.nom }}</strong></td>
                         <td>{{ c.secteurLibelle }}</td>
+                        <td class="nowrap">{{ c.dureeMatch ? c.dureeMatch ~ ' min (2 × ' ~ (c.dureeMatch / 2)|round(1)|replace({'.': ','}) ~ ')' : '—' }}</td>
                         <td class="discret">{{ utilisations[c.id]|join(', ') ?: '—' }}</td>
                         <td class="nowrap actions">
                             <a class="bouton petit" href="{{ path('app_categorie_modifier', {id: c.id}) }}">Modifier</a>
@@ -40,7 +41,7 @@
                         </td>
                     </tr>
                 {% else %}
-                    <tr><td colspan="5" class="vide">Aucune catégorie. Ajoutez vos équipes avec « Nouvelle catégorie ».</td></tr>
+                    <tr><td colspan="6" class="vide">Aucune catégorie. Ajoutez vos équipes avec « Nouvelle catégorie ».</td></tr>
                 {% endfor %}
             </tbody>
         </table>

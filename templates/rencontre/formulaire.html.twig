@@ -6,8 +6,9 @@
 {# Ligne d'une collection (feuille de match, buts, remplacements) sous forme de ligne de tableau. #}
 {% macro ligne(entree, champs) %}
     <tr data-collection-target="ligne">
-        {% for nom in champs %}
-            <td>{{ form_widget(entree[nom]) }}{{ form_errors(entree[nom]) }}</td>
+        {# « buteur|numeroAdverse » : plusieurs champs dans la même case. #}
+        {% for noms in champs %}
+            <td>{% for nom in noms|split('|') %}{{ form_widget(entree[nom]) }}{{ form_errors(entree[nom]) }}{% endfor %}</td>
         {% endfor %}
         <td><button type="button" class="bouton danger petit" data-action="collection#retirer" title="Retirer la ligne">×</button></td>
     </tr>
@@ -40,43 +41,78 @@
     </p>
     <h1>{{ titre }}</h1>
 
-    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire', 'data-controller': 'feuille'}}) }}
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire', 'data-controller': 'feuille score'}}) }}
         {{ form_errors(form) }}
 
         <fieldset class="carte">
             <legend>Match</legend>
-            {{ m.groupe(form, ['date', 'heure', 'categorie', 'equipe', 'competition', 'domicile', 'exterieur', 'butsDomicile', 'butsExterieur', 'butsDomicileMiTemps', 'butsExterieurMiTemps']) }}
+            {{ m.groupe(form, ['date', 'heure', 'categorie', 'competition']) }}
+            <div class="champs equipes-match">
+                <div class="champ">
+                    {{ form_label(form.cote) }}
+                    <div class="choix-cote">{{ form_widget(form.cote) }}</div>
+                </div>
+                {% for nom in ['club', 'adversaire'] %}
+                    <div class="champ">{{ form_label(form[nom]) }}{{ form_widget(form[nom]) }}{{ form_errors(form[nom]) }}</div>
+                {% endfor %}
+            </div>
+
+            {# Score : tiré des buts du rapport de match (bloc « Buts »), non modifiable (score_controller.js). #}
+            {% for champ in [form.butsDomicileMiTemps, form.butsExterieurMiTemps, form.butsDomicile, form.butsExterieur] %}
+                {{ form_widget(champ, {type: 'hidden'}) }}
+            {% endfor %}
+            <div class="tableau-score" aria-live="polite">
+                <span class="equipe" data-score-target="nomDom">{{ rencontre.domicile }}</span>
+                <span class="score-final">
+                    <span data-score-target="affFinDom">{{ rencontre.butsDomicile ?? 0 }}</span><span class="tiret">–</span><span data-score-target="affFinExt">{{ rencontre.butsExterieur ?? 0 }}</span>
+                </span>
+                <span class="equipe" data-score-target="nomExt">{{ rencontre.exterieur }}</span>
+                <span class="mi-temps">
+                    1re mi-temps <strong data-score-target="affMt1">–</strong>
+                    <span class="separateur">·</span>
+                    2e mi-temps <strong data-score-target="affMt2">–</strong>
+                </span>
+                <ul class="buteurs domicile" data-score-target="butsDom"></ul>
+                <span></span>
+                <ul class="buteurs exterieur" data-score-target="butsExt"></ul>
+            </div>
         </fieldset>
 
         <fieldset class="carte">
             <legend>Conditions</legend>
-            {{ m.groupe(form, ['lieu', 'terrain', 'meteo', 'vent', 'temperature', 'systeme', 'note']) }}
+            {{ m.groupe(form, ['lieu', 'terrain', 'meteo', 'vent', 'temperature', 'systeme']) }}
         </fieldset>
 
         <fieldset class="carte">
             <legend>Rapport</legend>
-            {{ m.groupe(form, ['rapport']) }}
+            {{ m.groupe(form, ['note', 'rapport']) }}
         </fieldset>
 
         <fieldset class="carte">
             <legend>Feuille de match</legend>
-            <p class="discret petit">Numéros 1 à 11 : titulaires. Poste « Non utilisé » pour un remplaçant resté sur le banc.</p>
+            <p class="discret petit">
+                Joueurs de la catégorie du match, puis ceux qui peuvent être surclassés (catégorie entre parenthèses).
+                Numéros 1 à 11 : titulaires. Poste « Non utilisé » pour un remplaçant resté sur le banc.
+            </p>
             <label class="case-filtre petit">
                 <input type="checkbox" data-feuille-target="autres" data-action="feuille#filtrer">
-                Afficher aussi les joueurs des autres catégories (surclassement)
+                Afficher tous les joueurs du club (cas exceptionnel)
             </label>
-            {{ s.collection(form.participations, ['N°', 'Joueur', 'Poste', 'Min.', 'Note', 'Carton', 'Appréciation'], ['numero', 'joueur', 'poste', 'tempsJeu', 'note', 'carton', 'appreciation'], '+ Ajouter un joueur') }}
+            {{ s.collection(form.participations, ['N°', 'Joueur', 'Poste', 'Min.', 'Note', 'Carton', 'Appréciation'], ['numero', 'joueur', 'poste', 'tempsJeu', 'note', 'carton|minuteCarton', 'appreciation'], '+ Ajouter un joueur') }}
         </fieldset>
 
         <fieldset class="carte">
             <legend>Buts</legend>
-            <p class="discret petit">Seuls les joueurs de la feuille de match sont proposés comme buteur ou passeur.</p>
-            {{ s.collection(form.buts, ['Min.', 'Pour', 'Buteur', 'Passeur', 'Geste', 'Situation', 'Phase'], ['minute', 'adverse', 'buteur', 'passeur', 'geste', 'conditions', 'phase'], '+ Ajouter un but') }}
+            <p class="discret petit">Seuls les joueurs de la feuille de match sont proposés comme buteur ou passeur : remplissez-la d'abord.</p>
+            {{ s.collection(form.buts, ['Min.', 'Pour', 'Buteur', 'Passeur', 'Geste', 'Situation', 'Phase'], ['temps', 'adverse', 'buteur|numeroAdverse', 'passeur', 'geste', 'conditions', 'phase'], '+ Ajouter un but') }}
         </fieldset>
 
         <fieldset class="carte">
             <legend>Remplacements</legend>
-            <p class="discret petit">Seuls les joueurs de la feuille de match sont proposés.</p>
+            <p class="discret petit">
+                Seuls les joueurs de la feuille de match sont proposés. Les temps de jeu de la feuille se calculent à partir des titulaires et de ces remplacements.
+                Expulsion et exclusion temporaire : se notent en carton sur la feuille de match (rouge avec sa minute ; « BL » : 10 minutes retirées du temps de jeu).
+            </p>
             {{ s.collection(form.remplacements, ['Min.', 'Sort', 'Entre', 'Motif'], ['minute', 'sortant', 'entrant', 'motif'], '+ Ajouter un remplacement') }}
         </fieldset>
 

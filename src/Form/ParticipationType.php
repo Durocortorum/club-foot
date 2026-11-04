@@ -8,7 +8,6 @@ use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
-use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -25,22 +24,37 @@ class ParticipationType extends AbstractType
                 'choice_label' => fn (Joueur $j) => $j->getNom() . ' ' . $j->getPrenom(),
                 'placeholder' => '— Joueur —',
                 'attr' => ['data-feuille-target' => 'convoque'],
-                'choice_attr' => fn (Joueur $j) => ['data-categorie' => $j->getCategorie()?->getId()],
+                // Catégorie du joueur : filtre de la feuille et mention « (U15) » s'il est surclassé (contrôleur « feuille »).
+                'choice_attr' => fn (Joueur $j) => ['data-categorie' => $j->getCategorie()?->getId(), 'data-categorie-nom' => (string) $j->getCategorie()],
             ])
             ->add('poste', ListeOuverteType::class, ['suggestions' => Participation::POSTES, 'attr' => ['data-feuille-poste' => '']])
-            ->add('tempsJeu', IntegerType::class, ['label' => 'Min.', 'required' => false, 'attr' => ['min' => 0, 'max' => 130, 'class' => 'court']])
-            ->add('note', NumberType::class, ['required' => false, 'scale' => 1, 'html5' => true, 'attr' => ['step' => 0.5, 'min' => 0, 'max' => 10, 'class' => 'court']])
+            // Calculé dans la page à partir des titulaires et des remplacements (contrôleur « feuille ») ;
+            // le plus long sert aussi de durée de match à défaut de celle de la catégorie (contrôleur « score »).
+            ->add('tempsJeu', IntegerType::class, ['label' => 'Min.', 'required' => false, 'attr' => [
+                'min' => 0, 'max' => 130, 'class' => 'court calcule', 'readonly' => true, 'tabindex' => -1,
+                'title' => 'Calculé à partir des remplacements', 'data-score-target' => 'temps', 'data-feuille-temps' => '',
+            ]])
             ->add('carton', ChoiceType::class, [
                 'choices' => array_flip(Participation::CARTONS),
                 'choice_label' => fn (string $code) => $code . ' – ' . Participation::CARTONS[$code],
                 'required' => false,
                 'placeholder' => '—',
+                // Rouge : le temps de jeu s'arrête à la minute du carton ; « BL » (exclusion temporaire) :
+                // 10 minutes en moins (contrôleur « feuille »). Cartons affichés sous le score (contrôleur « score »).
+                'choice_attr' => fn (string $code) => ['data-couleur' => Participation::couleurDe($code)],
+                'attr' => ['data-feuille-carton' => ''],
             ])
             ->add('appreciation', TextareaType::class, ['label' => 'Appréciation', 'required' => false, 'attr' => ['rows' => 1]]);
+        ChampNote::poser($builder, 'note', 'Note', fn (Participation $p) => $p->getNote(), ['class' => 'note-liste']);
+        // Minute du carton, affichée seulement quand un carton est choisi (contrôleur « score »).
+        ChampMinute::poser($builder, 'minuteCarton', 'Min. carton', fn (Participation $p) => $p->getMinuteCarton(), $options['duree'],
+            ['class' => 'minute-but', 'title' => 'Minute du carton', 'data-score-target' => 'minuteCarton', 'data-feuille-minute-carton' => '']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => Participation::class, 'joueurs' => []]);
+        // duree : durée de match de la catégorie du match (minutes proposées pour les cartons, voir RencontreType).
+        $resolver->setDefaults(['data_class' => Participation::class, 'joueurs' => [], 'duree' => 90]);
+        $resolver->setAllowedTypes('duree', 'int');
     }
 }

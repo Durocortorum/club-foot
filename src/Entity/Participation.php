@@ -13,9 +13,28 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[ORM\Entity(repositoryClass: ParticipationRepository::class)]
 #[ORM\UniqueConstraint(columns: ['rencontre_id', 'joueur_id'])]
+#[ORM\HasLifecycleCallbacks]
 class Participation implements AppartientAuClub
 {
     use ClubTrait;
+
+    /**
+     * Non enregistré : faux pour une ligne chargée telle quelle de la base, vrai dès que son joueur,
+     * son carton ou la minute du carton change. Seuls ces cartons passent le contrôle « sur le terrain
+     * à la minute » (Rencontre::validerPresences), pour ne pas bloquer les anciens matchs.
+     */
+    private bool $aControler = true;
+
+    #[ORM\PostLoad]
+    public function apresChargement(): void
+    {
+        $this->aControler = false;
+    }
+
+    public function isAControler(): bool
+    {
+        return $this->aControler;
+    }
 
     public const POSTES = [
         'Gardien', 'Latéral droit', 'Latéral gauche', 'Défenseur central', 'Défenseur central droit', 'Défenseur central gauche',
@@ -69,6 +88,10 @@ class Participation implements AppartientAuClub
     #[ORM\Column(length: 5, nullable: true)]
     private ?string $carton = null;
 
+    #[ORM\Column(length: 6, nullable: true)]
+    #[Assert\Regex('/^\d+(\+\d+)?$/', message: 'Minute invalide.')]
+    private ?string $minuteCarton = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $appreciation = null;
 
@@ -96,6 +119,7 @@ class Participation implements AppartientAuClub
 
     public function setJoueur(?Joueur $joueur): static
     {
+        $this->aControler = $this->aControler || $joueur !== $this->joueur;
         $this->joueur = $joueur;
 
         return $this;
@@ -156,7 +180,22 @@ class Participation implements AppartientAuClub
 
     public function setCarton(?string $carton): static
     {
+        $this->aControler = $this->aControler || $carton !== $this->carton;
         $this->carton = $carton;
+
+        return $this;
+    }
+
+    /** Minute du carton telle qu'on l'écrit (« 34 », « 90+2 ») ; un rouge y arrête le temps de jeu. */
+    public function getMinuteCarton(): ?string
+    {
+        return $this->minuteCarton;
+    }
+
+    public function setMinuteCarton(?string $minuteCarton): static
+    {
+        $this->aControler = $this->aControler || ($minuteCarton ?: null) !== $this->minuteCarton;
+        $this->minuteCarton = $minuteCarton ?: null;
 
         return $this;
     }
@@ -169,10 +208,15 @@ class Participation implements AppartientAuClub
     /** « jaune », « rouge » ou « blanc » (exclusion temporaire), pour l'affichage. */
     public function getCouleurCarton(): ?string
     {
+        return self::couleurDe($this->carton);
+    }
+
+    public static function couleurDe(?string $carton): ?string
+    {
         return match (true) {
-            \in_array($this->carton, self::CARTONS_ROUGES, true) => 'rouge',
-            \in_array($this->carton, self::CARTONS_JAUNES, true) => 'jaune',
-            'BL' === $this->carton => 'blanc',
+            \in_array($carton, self::CARTONS_ROUGES, true) => 'rouge',
+            \in_array($carton, self::CARTONS_JAUNES, true) => 'jaune',
+            'BL' === $carton => 'blanc',
             default => null,
         };
     }

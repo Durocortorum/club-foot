@@ -52,9 +52,9 @@
                 <ul class="liste-simple">
                     {% for b in rencontre.buts %}
                         <li class="{{ b.adverse ? 'adverse' }}">
-                            <span class="minute">{{ b.minute is not null ? b.minute ~ "'" }}</span>
+                            <span class="minute">{{ b.temps is not null ? b.temps ~ "'" }}</span>
                             {% if b.adverse %}
-                                <strong>{{ rencontre.adversaire }}</strong>
+                                <strong>{{ rencontre.adversaire }}</strong>{% if b.numeroAdverse %} <span class="discret">(n° {{ b.numeroAdverse }})</span>{% endif %}
                             {% else %}
                                 ⚽ {{ v.joueur(b.buteur) }}
                                 {% if b.passeur %}<span class="discret">(passe de {{ v.joueur(b.passeur) }})</span>{% endif %}

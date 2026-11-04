@@ -39,7 +39,7 @@ class ButRepository extends ServiceEntityRepository
     public function analyse(?array $secteurs, ?string $saison, ?int $categorieId): array
     {
         $qb = $this->createQueryBuilder('b')
-            ->select('b.adverse, b.minute, b.phase, b.conditions')
+            ->select('b.adverse, b.minute, b.additionnel, b.phase, b.conditions')
             ->join('b.rencontre', 'r');
         $buts = $this->rencontres->filtrer($qb, $secteurs, $saison, $categorieId)->getQuery()->getArrayResult();
 
@@ -56,7 +56,7 @@ class ButRepository extends ServiceEntityRepository
         foreach ($buts as $b) {
             $cote = $b['adverse'] ? 'contre' : 'pour';
             ++$resultat[$cote]['total'];
-            ++$resultat[$cote]['tranches'][self::tranche($b['minute'])];
+            ++$resultat[$cote]['tranches'][self::tranche($b['minute'], $b['additionnel'])];
             ++$resultat[$cote]['phases'][isset(But::PHASES[$b['phase']]) ? $b['phase'] : 'inconnue'];
             $situation = $b['conditions'] ?? 'Non renseignée';
             $situations[$situation][$cote] = ($situations[$situation][$cote] ?? 0) + 1;
@@ -91,10 +91,12 @@ class ButRepository extends ServiceEntityRepository
         ];
     }
 
-    public static function tranche(?int $minute): string
+    /** « 90+3 » (minute 90, additionnel 3) compte en arrêt de jeu, « 45+2 » dans la 31e – 45e. */
+    public static function tranche(?int $minute, ?int $additionnel = null): string
     {
         return match (true) {
             null === $minute => 'inconnue',
+            $minute >= 90 && $additionnel > 0 => 'arret',
             $minute <= 15 => '1-15',
             $minute <= 30 => '16-30',
             $minute <= 45 => '31-45',
