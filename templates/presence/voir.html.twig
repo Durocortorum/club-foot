@@ -72,7 +72,10 @@
                                     </select>
                                 </td>
                             {% endfor %}
-                            <td class="nowrap">{{ present }} / {{ p.creneaux|length }}</td>
+                            <td class="nowrap">
+                                {{ present }} / {{ p.creneaux|length }}
+                                {% if p.creneaux|length %}<span class="pourcentage">{{ (present * 100 / p.creneaux|length)|round }} %</span>{% endif %}
+                            </td>
                             <td>
                                 <button type="submit" form="retirer-{{ p.id }}" class="bouton danger petit" title="Retirer {{ j.prenom }} {{ j.nom }} de cette semaine">×</button>
                             </td>

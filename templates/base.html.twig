@@ -10,21 +10,25 @@
         {% set logo_club = club.logo ? path('app_club_logo', {version: club.version}) : asset('images/logo.svg') %}
         {% if club.logo %}<link rel="icon" type="image/png" href="{{ path('app_club_icone', {version: club.version}) }}">{% else %}<link rel="icon" type="image/svg+xml" href="{{ asset('images/logo.svg') }}">{% endif %}
         {% block stylesheets %}{% endblock %}
-        {# Couleurs du club (page « Apparence du club ») : surchargent celles de app.css. #}
-        <style>:root { --rouge: {{ club.couleur }}; --rouge-fonce: {{ club.couleurFoncee }}; --sur-rouge: {{ club.couleurTexte }}; }</style>
         {% block javascripts %}
             {% block importmap %}{{ importmap('app') }}{% endblock %}
         {% endblock %}
     </head>
-    <body>
+    {# Couleurs du club (page « Apparence du club ») sur le <body>, que Turbo remplace à chaque page :
+       dans le <head>, l'ancien style restait après un changement de club. #}
+    <body style="--rouge: {{ club.couleur }}; --rouge-fonce: {{ club.couleurFoncee }}; --sur-rouge: {{ club.couleurTexte }};">
         {% if app.user %}
-            <header class="entete">
+            <header class="entete" data-controller="menu">
                 <a class="marque" href="{{ path('app_accueil') }}">
                     <img class="blason" src="{{ logo_club }}" alt="">
                     {{ club.nom }}
                 </a>
+                {# Petits écrans : le menu et le compte sont repliés derrière ce bouton. #}
+                <button type="button" class="burger" aria-expanded="false" aria-controls="navigation" data-menu-target="bouton" data-action="menu#basculer">
+                    <span aria-hidden="true">☰</span> Menu
+                </button>
                 {% set route = app.request.attributes.get('_route') %}
-                <nav class="menu">
+                <nav class="menu" id="navigation">
                     <a href="{{ path('app_accueil') }}" class="{{ route == 'app_accueil' ? 'actif' }}">Accueil</a>
                     <a href="{{ path('app_joueur_index') }}" class="{{ route starts with 'app_joueur' or route starts with 'app_mesure' or route starts with 'app_test' ? 'actif' }}">Joueurs</a>
                     <a href="{{ path('app_intervenant_index', {type: 'educateurs'}) }}" class="{{ route starts with 'app_intervenant' ? 'actif' }}">Encadrement</a>

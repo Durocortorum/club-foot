@@ -13,7 +13,8 @@ export default class extends Controller {
 
     apercu() {
         const couleur = this.couleurTarget.value;
-        const style = document.documentElement.style;
+        // Sur le <body>, comme base.html.twig : Turbo le remplace à la page suivante, l'aperçu ne survit pas.
+        const style = document.body.style;
         style.setProperty('--rouge', couleur);
         style.setProperty('--rouge-fonce', assombrir(couleur));
         style.setProperty('--sur-rouge', this.texteTarget.value);

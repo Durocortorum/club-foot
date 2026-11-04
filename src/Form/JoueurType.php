@@ -29,7 +29,7 @@ class JoueurType extends AbstractType
             ->add('nom')
             ->add('prenom', null, ['label' => 'Prénom'])
             ->add('surnom', null, ['required' => false])
-            ->add('dateNaissance', DateType::class, ['label' => 'Date de naissance'] + $date)
+            ->add('dateNaissance', DateType::class, ['label' => 'Date de naissance', 'attr' => ['data-mineur-target' => 'naissance', 'data-action' => 'mineur#basculer']] + $date)
             ->add('lieuNaissance', null, ['label' => 'Lieu de naissance', 'required' => false])
             ->add('nationalite', null, ['label' => 'Nationalité', 'required' => false])
             ->add('photo', PhotoType::class)

@@ -222,6 +222,12 @@ class Joueur implements AppartientAuClub
         return $this->dateNaissance?->diff(new \DateTimeImmutable())->y;
     }
 
+    // Sans date de naissance, on le considère mineur : les champs des parents restent visibles.
+    public function isMineur(): bool
+    {
+        return $this->getAge() === null || $this->getAge() < 18;
+    }
+
     public function getLieuNaissance(): ?string
     {
         return $this->lieuNaissance;

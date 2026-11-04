@@ -14,14 +14,13 @@
     </p>
     <h1>{{ titre }}</h1>
 
-    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire', 'data-controller': 'mineur'}}) }}
         {{ form_errors(form) }}
 
         <fieldset class="carte">
             <legend>Identité</legend>
             <div class="avec-photo">
-                {{ m.avatar(joueur, 'grand') }}
-                {{ m.groupe(form, ['nom', 'prenom', 'surnom', 'dateNaissance', 'lieuNaissance', 'nationalite', 'photo']) }}
+                {{ m.avatar(joueur, 'grand') }}                {{ m.groupe(form, ['nom', 'prenom', 'surnom', 'dateNaissance', 'lieuNaissance', 'nationalite', 'photo']) }}
             </div>
         </fieldset>
 
@@ -32,12 +31,19 @@
 
         <fieldset class="carte">
             <legend>Coordonnées</legend>
-            {{ m.groupe(form, ['adresse', 'codePostal', 'ville', 'telJoueur', 'telMaisonMere', 'telMaisonPere', 'telPortable1', 'telPortable2', 'emailJoueur', 'emailParents']) }}
+            {{ m.groupe(form, ['adresse', 'codePostal', 'ville', 'telJoueur', 'emailJoueur']) }}
+            {# Champs des parents : affichés seulement pour un joueur mineur (mineur_controller.js). #}
+            <div class="parents" data-mineur-target="parents" {{ joueur.mineur ? '' : 'hidden' }}>
+                {{ m.groupe(form, ['telMaisonMere', 'telMaisonPere', 'telPortable1', 'telPortable2', 'emailParents']) }}
+            </div>
         </fieldset>
 
         <fieldset class="carte">
             <legend>Famille</legend>
-            {{ m.groupe(form, ['nomPere', 'professionPere', 'nomMere', 'professionMere', 'droitImage', 'transportEducateur', 'transportParent']) }}
+            <div class="parents" data-mineur-target="parents" {{ joueur.mineur ? '' : 'hidden' }}>
+                {{ m.groupe(form, ['nomPere', 'professionPere', 'nomMere', 'professionMere', 'transportParent']) }}
+            </div>
+            {{ m.groupe(form, ['droitImage', 'transportEducateur']) }}
         </fieldset>
 
         <fieldset class="carte">
