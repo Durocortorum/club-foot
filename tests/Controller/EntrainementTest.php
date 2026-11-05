@@ -36,7 +36,7 @@ class EntrainementTest extends WebTestCase
         if ($this->clubId) {
             // Les grilles de présences et les joueurs référencent les catégories : supprimés avant le club.
             $connexion = $this->em()->getConnection();
-            foreach (['presence', 'semaine_presence', 'rencontre', 'joueur'] as $table) {
+            foreach (['presence', 'semaine_presence', 'exercice', 'seance', 'rencontre', 'joueur'] as $table) {
                 $connexion->executeStatement("DELETE FROM $table WHERE club_id = ?", [$this->clubId]);
             }
             $connexion->executeStatement('DELETE FROM club WHERE id = ?', [$this->clubId]);
@@ -80,6 +80,16 @@ class EntrainementTest extends WebTestCase
 
         $mercredis = $this->entrainements($categorie);
         [$premier, $deuxieme] = $mercredis;
+
+        // Séance à préparer depuis le planning : date et catégorie préremplies, puis affichée sur l'entraînement.
+        $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
+        $lien = $crawler->filter('#entrainement-' . $premier->getId())->selectLink('Préparer la séance')->link();
+        $crawler = $this->client->click($lien);
+        self::assertInputValueSame('seance[date]', $premier->getDate()->format('Y-m-d'));
+        $this->client->submit($crawler->filter('form')->last()->form(['seance[theme]' => 'Conservation du ballon']));
+        $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
+        self::assertSelectorTextContains('#entrainement-' . $premier->getId() . ' .seance-prevue', 'Séance : Conservation du ballon');
+        self::assertSelectorTextContains('#entrainement-' . $deuxieme->getId() . ' .seance-prevue', 'Préparer la séance');
         self::assertSame('mer_a', $premier->getCreneauGrille());
 
         // --- La famille voit les entraînements des 14 prochains jours et signale une absence.

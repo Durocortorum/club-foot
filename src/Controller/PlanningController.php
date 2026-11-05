@@ -11,6 +11,8 @@ use App\Entity\Utilisateur;
 use App\Repository\CategorieRepository;
 use App\Repository\CreneauEntrainementRepository;
 use App\Repository\JoueurRepository;
+use App\Repository\SeanceRepository;
+use Doctrine\DBAL\Types\Types;
 use App\Security\ActiviteVoter;
 use App\Security\JoueurVoter;
 use App\Service\EnvoiConvocations;
@@ -38,7 +40,7 @@ class PlanningController extends AbstractController
     }
 
     #[Route('', name: 'app_planning', methods: ['GET'])]
-    public function index(Request $request, CategorieRepository $categories, CreneauEntrainementRepository $creneaux, JoueurRepository $joueurs, EnvoiConvocations $envoi): Response
+    public function index(Request $request, CategorieRepository $categories, CreneauEntrainementRepository $creneaux, JoueurRepository $joueurs, EnvoiConvocations $envoi, SeanceRepository $seances): Response
     {
         $proposees = $categories->findBy(['secteur' => $this->voter->secteursModifiables()], ['ordre' => 'ASC', 'nom' => 'ASC']);
         if (!$proposees) {
@@ -61,6 +63,17 @@ class PlanningController extends AbstractController
         };
         $entrainements = $this->planning->aVenir([$categorie], $jours);
 
+        // Séances préparées (thème, exercices) aux mêmes dates, pour la même catégorie.
+        $seancesParDate = [];
+        foreach ($seances->createQueryBuilder('s')
+            ->andWhere('s.categorie = :c')->setParameter('c', $categorie)
+            ->andWhere('s.date BETWEEN :debut AND :fin')
+            ->setParameter('debut', new \DateTimeImmutable('today'), Types::DATE_IMMUTABLE)
+            ->setParameter('fin', new \DateTimeImmutable("today +$jours days"), Types::DATE_IMMUTABLE)
+            ->getQuery()->getResult() as $s) {
+            $seancesParDate[$s->getDate()->format('Y-m-d')][] = $s;
+        }
+
         return $this->render('planning/index.html.twig', [
             'categories' => $proposees,
             'categorie' => $categorie,
@@ -74,6 +87,7 @@ class PlanningController extends AbstractController
             'jours' => CreneauEntrainement::JOURS,
             'motifs' => array_keys(AbsenceEntrainement::MOTIFS),
             'horizon' => PlanningEntrainements::HORIZON,
+            'seances' => $seancesParDate,
             'periodes' => $periodes,
             'periode' => $periode,
         ]);

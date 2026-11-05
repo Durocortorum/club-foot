@@ -85,6 +85,20 @@
                     </form>
                 </div>
 
+                {# Séance préparée (menu Entraînements) à cette date pour cette catégorie. #}
+                {% set seancesDuJour = seances[e.date|date('Y-m-d')] ?? [] %}
+                <div class="seance-prevue petit">
+                    {% for se in seancesDuJour %}
+                        <a href="{{ path('app_seance_voir', {id: se.id}) }}">Séance : <strong>{{ se.theme }}</strong></a>
+                        <span class="discret">({{ se.exercices|length }} exercice{{ se.exercices|length > 1 ? 's' }}{{ se.duree ? ', ' ~ se.duree ~ ' min' }})</span>{{ not loop.last ? ' · ' }}
+                    {% else %}
+                        {% if not e.annule %}
+                            <span class="discret">Pas encore de séance préparée.</span>
+                            <a class="bouton petit" href="{{ path('app_seance_nouvelle', {date: e.date|date('Y-m-d'), categorie: categorie.id}) }}">Préparer la séance</a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
                 {% if e.annule %}
                     {% set message = annulations[e.id] %}
                     <div class="actions-ligne" data-controller="copier" data-copier-texte-value="{{ message }}">

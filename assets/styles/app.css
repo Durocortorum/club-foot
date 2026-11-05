@@ -594,3 +594,4 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .entrainement.annule { opacity: .75; border-left: 4px solid var(--danger-fonce); }
 .entrainement details { margin-top: .6rem; }
 .entrainement details summary { cursor: pointer; color: var(--gris); }
+.seance-prevue { margin-top: .5rem; display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }

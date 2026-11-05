@@ -57,13 +57,19 @@ class SeanceController extends AbstractController
     }
 
     #[Route('/nouvelle', name: 'app_seance_nouvelle', methods: ['GET', 'POST'])]
-    public function nouvelle(Request $request, EntityManagerInterface $em): Response
+    public function nouvelle(Request $request, EntityManagerInterface $em, CategorieRepository $categories): Response
     {
         $secteurs = $this->voter->secteursModifiables();
         if (!$secteurs) {
             throw $this->createAccessDeniedException();
         }
-        $seance = (new Seance())->setDate(new \DateTimeImmutable('today'));
+        // Depuis le planning des entraînements : date et catégorie de l'entraînement préremplies.
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $request->query->getString('date')) ?: new \DateTimeImmutable('today');
+        $seance = (new Seance())->setDate($date);
+        $categorie = $categories->find($request->query->getInt('categorie'));
+        if ($categorie && \in_array($categorie->getSecteur(), $secteurs, true)) {
+            $seance->setCategorie($categorie);
+        }
         $form = $this->createForm(SeanceType::class, $seance, ['secteurs' => $secteurs]);
         $form->handleRequest($request);
 
