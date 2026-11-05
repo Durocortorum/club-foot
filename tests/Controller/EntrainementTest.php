@@ -134,6 +134,18 @@ class EntrainementTest extends WebTestCase
         $this->client->request('GET', '/espace');
         self::assertSelectorTextContains('#entrainements-' . $lea->getId() . ' + p + ul', 'annulé : Terrain gelé');
 
+        // Rétabli : la famille est prévenue que l'entraînement a bien lieu.
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
+        $this->client->submit($crawler->filter('#entrainement-' . $deuxieme->getId())->selectButton('Rétablir')->form());
+        self::assertEmailCount(1);
+        self::assertEmailHeaderSame(self::getMailerMessage(), 'subject', "Club Test $id : entraînement " . mb_strtolower(['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][(int) $deuxieme->getDate()->format('w')]) . ' ' . $deuxieme->getDate()->format('d/m') . ' maintenu');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', '1 famille prévenue');
+        $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
+        $this->client->submit($crawler->filter('#entrainement-' . $deuxieme->getId())->selectButton('Annuler l\'entraînement')->form(), ['motif' => 'Terrain gelé']);
+        $this->client->loginUser($parent);
+
         // --- Créneau déplacé à 17:00 : le mercredi avec une absence garde sa date, prend le nouvel horaire.
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());

@@ -141,7 +141,9 @@ class PlanningController extends AbstractController
         if ($p->getBoolean('retablir')) {
             $entrainement->retablir();
             $this->em->flush();
-            $this->addFlash('succes', 'Entraînement rétabli. Pensez à prévenir les familles.');
+            $emails = $envoi->annoncerRetablissement($entrainement);
+            $this->addFlash('succes', \sprintf('Entraînement rétabli, %d famille%s prévenue%2$s par e-mail.', $emails, $emails > 1 ? 's' : ''));
+            $this->addFlash('info', 'Pour le groupe WhatsApp : « ' . str_replace("\n", ' ', $envoi->messageRetablissement($entrainement)) . ' »');
         } else {
             $entrainement->annuler($p->getString('motif'));
             $this->em->flush();

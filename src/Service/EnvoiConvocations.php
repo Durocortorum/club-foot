@@ -86,6 +86,24 @@ class EnvoiConvocations
      */
     public function annoncerAnnulation(Entrainement $entrainement): int
     {
+        return $this->annoncer($entrainement, 'annulé', $this->messageAnnulation($entrainement));
+    }
+
+    /** Entraînement rétabli après une annulation : les familles sont prévenues qu'il a bien lieu. */
+    public function annoncerRetablissement(Entrainement $entrainement): int
+    {
+        return $this->annoncer($entrainement, 'maintenu', $this->messageRetablissement($entrainement));
+    }
+
+    public function messageRetablissement(Entrainement $e): string
+    {
+        return \sprintf("ENTRAÎNEMENT MAINTENU – %s\nFinalement, l'entraînement du %s a bien lieu : %s%s.",
+            $e->getCategorie(), $this->quand($e), $e->getHoraire(), $e->getLieu() ? ', ' . $e->getLieu() : '');
+    }
+
+    /** Un e-mail à chaque compte famille actif des joueurs de la catégorie de l'entraînement. */
+    private function annoncer(Entrainement $entrainement, string $etat, string $texte): int
+    {
         if (!$this->acces->emailActif()) {
             return 0;
         }
@@ -102,8 +120,8 @@ class EnvoiConvocations
                     $this->mailer->send((new TemplatedEmail())
                         ->from(new Address($this->expediteur, $club->getNom()))
                         ->to($compte->getEmail())
-                        ->subject(\sprintf('%s : entraînement %s annulé', $club->getNom(), $this->quand($entrainement)))
-                        ->text($this->messageAnnulation($entrainement)));
+                        ->subject(\sprintf('%s : entraînement %s %s', $club->getNom(), $this->quand($entrainement), $etat))
+                        ->text($texte));
                     ++$envoyes;
                 } catch (TransportExceptionInterface $e) {
                     $this->logger->error('Annulation non envoyée à {email} : {erreur}', ['email' => $compte->getEmail(), 'erreur' => $e->getMessage()]);
