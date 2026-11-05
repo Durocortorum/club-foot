@@ -27,12 +27,31 @@
             {% endif %}
         </div>
         <div class="actions">
+            <a class="bouton" href="{{ path('app_convocation', {id: rencontre.id}) }}">{{ convocation ? 'Convocation' : 'Convoquer' }}</a>
             <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Modifier</a>
             {{ m.supprimer(path('app_rencontre_supprimer', {id: rencontre.id}), 'supprimer-match' ~ rencontre.id, 'Supprimer ce match et sa feuille de match ?') }}
         </div>
     </div>
 
     <div class="grille-fiches">
+        {% if convocation %}
+            {% set presents = convocation.parReponse('present')|length %}
+            {% set absents = convocation.parReponse('absent')|length %}
+            {% set attente = convocation.parReponse(null)|length %}
+            <section class="carte">
+                <h2>Convocation</h2>
+                <p>
+                    {{ convocation.convoques|length }} convoqué{{ convocation.convoques|length > 1 ? 's' }}
+                    {% if not convocation.envoyeeLe %}<span class="pastille alerte">pas encore envoyée</span>{% endif %}
+                </p>
+                <p>
+                    <span class="pastille succes">{{ presents }} présent{{ presents > 1 ? 's' }}</span>
+                    <span class="pastille alerte">{{ absents }} absent{{ absents > 1 ? 's' }}</span>
+                    <span class="pastille">{{ attente }} sans réponse</span>
+                </p>
+                <a href="{{ path('app_convocation', {id: rencontre.id}) }}">Voir les réponses</a>
+            </section>
+        {% endif %}
         <section class="carte">
             <h2>Conditions</h2>
             <dl>

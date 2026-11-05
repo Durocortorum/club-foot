@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\Convoque;
 use App\Entity\Utilisateur;
+use App\Repository\ConvoqueRepository;
 use App\Repository\RencontreRepository;
 use App\Repository\UtilisateurRepository;
 use App\Service\ClubCourant;
@@ -27,7 +29,7 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 class EspaceController extends AbstractController
 {
     #[Route('/espace', name: 'app_espace', methods: ['GET'])]
-    public function index(RencontreRepository $rencontres): Response
+    public function index(RencontreRepository $rencontres, ConvoqueRepository $convoques): Response
     {
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
@@ -35,15 +37,49 @@ class EspaceController extends AbstractController
             return $this->redirectToRoute('app_accueil');
         }
 
+        $convocations = [];
+        foreach ($convoques->aVenir($moi->getJoueurs()) as $c) {
+            $convocations[$c->getJoueur()->getId()][] = $c;
+        }
         $enfants = [];
         foreach ($moi->getJoueurs() as $j) {
+            $mesConvocations = $convocations[$j->getId()] ?? [];
+            $convoquesA = array_map(fn (Convoque $c) => $c->getConvocation()->getRencontre(), $mesConvocations);
             $enfants[] = [
                 'joueur' => $j,
-                'matchs' => $j->getCategorie() ? $rencontres->aVenir($j->getCategorie(), 5) : [],
+                'convocations' => $mesConvocations,
+                // Les matchs déjà couverts par une convocation ne sont pas répétés.
+                'matchs' => $j->getCategorie() ? array_values(array_filter($rencontres->aVenir($j->getCategorie(), 5), fn ($r) => !\in_array($r, $convoquesA, true))) : [],
             ];
         }
 
-        return $this->render('espace/index.html.twig', ['enfants' => $enfants]);
+        return $this->render('espace/index.html.twig', ['enfants' => $enfants, 'motifs' => Convoque::MOTIFS]);
+    }
+
+    /** Réponse de la famille à une convocation, jusqu'au jour du match. */
+    #[Route('/espace/convocation/{id}', name: 'app_espace_reponse', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function repondre(Request $request, Convoque $convoque, EntityManagerInterface $em): Response
+    {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        if (!$moi->isFamille() || !$moi->suit($convoque->getJoueur()) || !$convoque->getConvocation()->getEnvoyeeLe()
+            || !$this->isCsrfTokenValid('repondre' . $convoque->getId(), $request->getPayload()->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        if (!$convoque->getConvocation()->isOuverte()) {
+            $this->addFlash('erreur', 'Le match est passé : la réponse ne peut plus être modifiée.');
+
+            return $this->redirectToRoute('app_espace');
+        }
+        $reponse = $request->getPayload()->getString('reponse');
+        if (!\in_array($reponse, [Convoque::PRESENT, Convoque::ABSENT], true)) {
+            throw $this->createAccessDeniedException();
+        }
+        $convoque->repondre($reponse, $request->getPayload()->getString('motif'), (string) $moi->getEmail());
+        $em->flush();
+        $this->addFlash('succes', \sprintf('Merci, réponse enregistrée : %s %s.', $convoque->getJoueur()->getPrenom(), Convoque::PRESENT === $reponse ? 'sera présent(e)' : 'sera absent(e)'));
+
+        return $this->redirectToRoute('app_espace');
     }
 
     #[Route('/activation/{jeton}', name: 'app_activation', requirements: ['jeton' => '[0-9a-f]{48}'], methods: ['GET', 'POST'])]

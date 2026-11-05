@@ -16,6 +16,41 @@
                 </div>
             </div>
 
+            {% if e.convocations %}
+                <h3>Convocations</h3>
+                {% for c in e.convocations %}
+                    {% set cv = c.convocation %}
+                    {% set r = cv.rencontre %}
+                    <div class="convocation-famille">
+                        <strong>{{ ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][r.date|date('w')] }} {{ r.date|date('d/m/Y') }}</strong>{% if r.heure %} à {{ r.heure }}{% endif %}
+                        <div>{{ r.domicile }} – {{ r.exterieur }} <span class="discret">· {{ r.competition ?? 'Match' }}</span></div>
+                        {% if cv.rdvHeure or cv.rdvLieu %}
+                            <div>Rendez-vous{% if cv.rdvHeure %} à <strong>{{ cv.rdvHeure }}</strong>{% endif %}{% if cv.rdvLieu %}, {{ cv.rdvLieu }}{% endif %}</div>
+                        {% endif %}
+                        {% if cv.message %}<p class="memo petit">{{ cv.message }}</p>{% endif %}
+
+                        <p>
+                            {% if c.reponse == 'present' %}<span class="pastille succes">présent</span>
+                            {% elseif c.reponse == 'absent' %}<span class="pastille alerte">absent</span>{% if c.motif %} <span class="petit">{{ c.motif }}</span>{% endif %}
+                            {% else %}<span class="pastille alerte">réponse attendue</span>{% endif %}
+                        </p>
+                        <div class="reponses-famille">
+                            <form method="post" action="{{ path('app_espace_reponse', {id: c.id}) }}" class="en-ligne">
+                                <input type="hidden" name="_token" value="{{ csrf_token('repondre' ~ c.id) }}">
+                                <input type="hidden" name="reponse" value="present">
+                                <button class="bouton {{ c.reponse != 'present' ? 'principal' }}">{{ c.reponse == 'present' ? '✓ Présent' : 'Présent' }}</button>
+                            </form>
+                            <form method="post" action="{{ path('app_espace_reponse', {id: c.id}) }}" class="reponse-convoque">
+                                <input type="hidden" name="_token" value="{{ csrf_token('repondre' ~ c.id) }}">
+                                <input type="hidden" name="reponse" value="absent">
+                                <input type="text" name="motif" value="{{ c.motif }}" placeholder="Motif (facultatif)" list="motifs-absence" maxlength="120" aria-label="Motif de l'absence">
+                                <button class="bouton">{{ c.reponse == 'absent' ? '✓ Absent' : 'Absent' }}</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
             <h3>Prochains matchs</h3>
             {% if e.matchs %}
                 <ul class="liste-simple">
@@ -30,9 +65,9 @@
             {% else %}
                 <p class="discret">Aucun match programmé pour le moment.</p>
             {% endif %}
-            <p class="discret petit">Les convocations arriveront bientôt ici : vous pourrez répondre « présent » ou « absent » en un clic.</p>
         </section>
     {% else %}
         <p class="discret">Votre compte n'est relié à aucun joueur pour le moment. Contactez l'éducateur de l'équipe.</p>
     {% endfor %}
+    <datalist id="motifs-absence">{% for mo in motifs %}<option value="{{ mo }}">{% endfor %}</datalist>
 {% endblock %}

@@ -132,6 +132,7 @@ class AccesFamilleTest extends WebTestCase
         foreach (['/joueurs', '/joueurs/' . $lea->getId(), '/matchs', '/statistiques', '/presences', '/utilisateurs', '/familles'] as $page) {
             $this->client->request('GET', $page);
             self::assertResponseStatusCodeSame(403, $page);
+            self::assertSelectorTextContains('h1', 'réservée à l\'encadrement');
         }
         $this->client->request('GET', '/');
         self::assertResponseRedirects('/espace');

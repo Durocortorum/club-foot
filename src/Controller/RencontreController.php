@@ -4,11 +4,14 @@ namespace App\Controller;
 
 use App\Entity\But;
 use App\Entity\Categorie;
+use App\Entity\Convoque;
 use App\Entity\Joueur;
+use App\Entity\Participation;
 use App\Entity\Rencontre;
 use App\Form\RencontreType;
 use App\Repository\ButRepository;
 use App\Repository\CategorieRepository;
+use App\Repository\ConvocationRepository;
 use App\Repository\JoueurRepository;
 use App\Repository\ParticipationRepository;
 use App\Repository\RencontreRepository;
@@ -113,15 +116,27 @@ class RencontreController extends AbstractController
 
     #[Route('/matchs/{id}', name: 'app_rencontre_voir', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted(ActiviteVoter::GERER, 'rencontre')]
-    public function voir(Rencontre $rencontre): Response
+    public function voir(Rencontre $rencontre, ConvocationRepository $convocations): Response
     {
-        return $this->render('rencontre/voir.html.twig', ['rencontre' => $rencontre]);
+        return $this->render('rencontre/voir.html.twig', ['rencontre' => $rencontre, 'convocation' => $convocations->pour($rencontre)]);
     }
 
     #[Route('/matchs/{id}/modifier', name: 'app_rencontre_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     #[IsGranted(ActiviteVoter::GERER, 'rencontre')]
-    public function modifier(Request $request, Rencontre $rencontre, EntityManagerInterface $em, JoueurRepository $joueurs): Response
+    public function modifier(Request $request, Rencontre $rencontre, EntityManagerInterface $em, JoueurRepository $joueurs, ConvocationRepository $convocations): Response
     {
+        // Feuille de match encore vide : on part des joueurs qui ont répondu présent à la convocation.
+        $prerempli = 0;
+        if ($request->isMethod('GET') && $rencontre->getParticipations()->isEmpty() && ($convocation = $convocations->pour($rencontre))) {
+            foreach ($convocation->parReponse(Convoque::PRESENT) as $c) {
+                $rencontre->addParticipation((new Participation())->setJoueur($c->getJoueur()));
+                ++$prerempli;
+            }
+        }
+        if ($prerempli) {
+            $this->addFlash('info', \sprintf('Feuille de match préremplie avec les %d joueur%s présent%2$s à la convocation : complétez numéros et postes, puis enregistrez.', $prerempli, $prerempli > 1 ? 's' : ''));
+        }
+
         return $this->formulaire($request, $rencontre, $em, $joueurs, 'Modifier le match ' . $rencontre);
     }
 

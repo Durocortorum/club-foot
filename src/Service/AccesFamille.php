@@ -39,7 +39,9 @@ class AccesFamille
     /** L'envoi d'e-mails est-il réglé (MAILER_DSN) ? Sinon, les liens sont à transmettre à la main. */
     public function emailActif(): bool
     {
-        return !str_starts_with($this->mailerDsn, 'null://');
+        // « null://null » : réglage par défaut, rien n'est envoyé. Les tests utilisent « null://default »,
+        // un transport qui n'envoie rien non plus mais laisse vérifier les e-mails préparés.
+        return 'null://null' !== $this->mailerDsn;
     }
 
     /**

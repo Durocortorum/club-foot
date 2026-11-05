@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Accès réservé{% endblock %}
+
+{% block body %}
+    <div class="connexion">
+        <div class="carte">
+            {% if utilisateur and utilisateur.famille %}
+                <h1>Page réservée à l'encadrement</h1>
+                <p>
+                    Vous êtes connecté avec le compte famille <strong>{{ utilisateur.email }}</strong>,
+                    qui donne accès uniquement à l'espace famille.
+                </p>
+                <p>Pour ouvrir cette page avec un compte de l'encadrement, déconnectez-vous puis reconnectez-vous avec ce compte.</p>
+                <a class="bouton principal plein" href="{{ path('app_espace') }}">Retour à mon espace</a>
+            {% else %}
+                <h1>Accès réservé</h1>
+                <p>
+                    Votre compte{% if utilisateur %} <strong>{{ utilisateur.email }}</strong>{% endif %} n'a pas les droits nécessaires pour cette page
+                    (elle concerne peut-être une catégorie ou une section qui ne vous est pas attribuée).
+                </p>
+                <p>Si vous pensez que c'est une erreur, demandez à un administrateur du club de vérifier vos droits.</p>
+                <a class="bouton principal plein" href="{{ path('app_accueil') }}">Retour à l'accueil</a>
+            {% endif %}
+            <p class="connexion-lien"><a href="{{ path('app_deconnexion') }}">Se déconnecter</a></p>
+        </div>
+    </div>
+{% endblock %}

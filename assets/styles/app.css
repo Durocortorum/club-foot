@@ -574,3 +574,14 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .import { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
 .import .champ { margin-bottom: .9rem; }
 @media (max-width: 800px) { .import { grid-template-columns: 1fr; } }
+
+/* Convocations */
+.actions-ligne { display: flex; flex-wrap: wrap; gap: .5rem; margin: .6rem 0; }
+.groupe-joueurs + .groupe-joueurs { margin-top: .8rem; }
+.groupe-joueurs summary { cursor: pointer; font-weight: 600; }
+.cases-joueurs { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .3rem 1rem; margin-top: .6rem; }
+.case-joueur { display: flex; align-items: center; gap: .4rem; cursor: pointer; }
+.reponse-convoque { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.reponse-convoque input[type="text"] { width: 11rem; }
+.reponses-famille { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .6rem; }
+.convocation-famille + .convocation-famille { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--bordure); }

@@ -1,0 +1,17 @@
+{% set r = convocation.rencontre %}
+{% set jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] %}
+Bonjour,
+
+{% if relance %}Petit rappel : nous attendons toujours votre réponse.
+{% endif %}
+{{ convoque.joueur.prenom }} {{ convoque.joueur.nom }} est convoqué(e) pour le match {{ r.equipeAffichee }} – {{ r.adversaire }} le {{ jours[r.date|date('w')] }} {{ r.date|date('d/m/Y') }}{% if r.heure %} à {{ r.heure }}{% endif %}.
+{% if convocation.rdvHeure or convocation.rdvLieu %}
+Rendez-vous{% if convocation.rdvHeure %} à {{ convocation.rdvHeure }}{% endif %}{% if convocation.rdvLieu %}, {{ convocation.rdvLieu }}{% endif %}.
+{% endif %}
+{% if convocation.message %}
+
+{{ convocation.message }}
+{% endif %}
+
+Merci d'indiquer s'il sera présent ou absent dans votre espace famille :
+{{ espace }}

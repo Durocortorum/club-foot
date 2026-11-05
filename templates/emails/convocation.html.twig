@@ -1,0 +1,20 @@
+{% set r = convocation.rencontre %}
+{% set jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] %}
+<div style="font-family: Arial, sans-serif; color: #222; max-width: 520px;">
+    <p>Bonjour,</p>
+    <p>
+        {% if relance %}Petit rappel : nous attendons toujours votre réponse.<br>{% endif %}
+        <strong>{{ convoque.joueur.prenom }} {{ convoque.joueur.nom }}</strong> est convoqué(e) pour le match
+        <strong>{{ r.equipeAffichee }} – {{ r.adversaire }}</strong>
+        le {{ jours[r.date|date('w')] }} {{ r.date|date('d/m/Y') }}{% if r.heure %} à {{ r.heure }}{% endif %}.
+    </p>
+    {% if convocation.rdvHeure or convocation.rdvLieu %}
+        <p>Rendez-vous{% if convocation.rdvHeure %} à <strong>{{ convocation.rdvHeure }}</strong>{% endif %}{% if convocation.rdvLieu %}, {{ convocation.rdvLieu }}{% endif %}.</p>
+    {% endif %}
+    {% if convocation.message %}<p style="white-space: pre-line;">{{ convocation.message }}</p>{% endif %}
+    <p>Merci d'indiquer s'il sera présent ou absent :</p>
+    <p>
+        <a href="{{ espace }}" style="display: inline-block; padding: 10px 18px; background: {{ club.couleur }}; color: {{ club.couleurTexte }}; border-radius: 6px; text-decoration: none; font-weight: bold;">Répondre</a>
+    </p>
+    <p style="color: #666; font-size: 13px;">Le bouton ouvre votre espace famille ({{ espace }}) ; connectez-vous avec votre adresse e-mail et votre mot de passe.</p>
+</div>

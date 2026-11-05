@@ -31,6 +31,8 @@ security:
                 target: app_connexion
             login_throttling:
                 max_attempts: 5
+            # Page explicative au lieu de l'erreur 403 brute (compte famille sur une page de l'encadrement...).
+            access_denied_handler: App\Security\AccesRefuse
 
     # Note: Only the *first* access control that matches will be used
     access_control:

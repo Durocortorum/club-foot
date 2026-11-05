@@ -1,0 +1,140 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Convocation · {{ rencontre }}{% endblock %}
+
+{% block body %}
+    {% set jours = constant('App\\Service\\EnvoiConvocations::JOURS') %}
+    <p><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← Retour au match</a></p>
+
+    <div class="titre-page">
+        <div>
+            <p class="discret">{{ rencontre.equipeAffichee }} · {{ jours[rencontre.date|date('w')] }} {{ rencontre.date|date('d/m/Y') }}{% if rencontre.heure %} à {{ rencontre.heure }}{% endif %}</p>
+            <h1>Convocation · {{ rencontre.domicile }} – {{ rencontre.exterieur }}</h1>
+        </div>
+        {% if convocation %}
+            <div class="actions">
+                {{ m.supprimer(path('app_convocation_supprimer', {id: rencontre.id}), 'supprimer-convocation' ~ convocation.id, 'Supprimer la convocation et les réponses des familles ? Les convoqués encore vierges sur la feuille de match (sans numéro, poste, note…) en seront aussi retirés. Les familles ne sont pas prévenues.') }}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if convocation %}
+        {% set presents = convocation.parReponse('present') %}
+        {% set absents = convocation.parReponse('absent') %}
+        {% set attente = convocation.parReponse(null) %}
+
+        <div class="grille-fiches">
+            <section class="carte">
+                <h2>Envoi</h2>
+                {% if convocation.envoyeeLe %}
+                    <p>Envoyée aux familles le {{ convocation.envoyeeLe|date('d/m/Y à H:i') }}.</p>
+                {% else %}
+                    <p><span class="pastille alerte">pas encore envoyée</span> Les familles ne voient la convocation qu'une fois envoyée.</p>
+                {% endif %}
+                <div class="actions-ligne">
+                    <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
+                        <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
+                        <button class="bouton principal">{{ convocation.envoyeeLe ? 'Renvoyer à tous' : 'Envoyer aux familles' }}</button>
+                    </form>
+                    {% if convocation.envoyeeLe and attente %}
+                        <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
+                            <input type="hidden" name="relance" value="1">
+                            <button class="bouton">Relancer les {{ attente|length }} sans réponse</button>
+                        </form>
+                    {% endif %}
+                </div>
+                <p class="discret petit">Un e-mail part vers chaque compte famille actif. Pour les autres : message du groupe ci-dessous, ou boutons « SMS » du tableau des réponses (depuis un téléphone, le SMS s'ouvre tout prêt).</p>
+            </section>
+
+            <section class="carte" data-controller="copier" data-copier-texte-value="{{ message_groupe }}">
+                <h2>Message pour le groupe</h2>
+                <p class="memo petit">{{ message_groupe }}</p>
+                <div class="actions-ligne">
+                    <button type="button" class="bouton petit" data-action="copier#copier" data-copier-target="bouton">Copier le message</button>
+                    <a class="bouton petit" href="https://wa.me/?text={{ message_groupe|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
+                </div>
+            </section>
+        </div>
+
+        <section class="bloc" id="reponses">
+            <h2 class="titre-bloc">
+                Réponses
+                <span class="pastille succes">{{ presents|length }} présent{{ presents|length > 1 ? 's' }}</span>
+                <span class="pastille alerte">{{ absents|length }} absent{{ absents|length > 1 ? 's' }}</span>
+                <span class="pastille">{{ attente|length }} sans réponse</span>
+            </h2>
+            <div class="table-defile">
+                <table class="liste">
+                    <thead><tr><th>Joueur</th><th>Prévenir</th><th>Réponse</th><th>Par</th><th>Modifier la réponse</th></tr></thead>
+                    <tbody>
+                        {% for c in convocation.convoques %}
+                            {% set s = sms[c.id] %}
+                            <tr>
+                                <td class="nowrap"><a href="{{ path('app_joueur_voir', {id: c.joueur.id}) }}"><strong>{{ c.joueur.nom }}</strong> {{ c.joueur.prenom }}</a></td>
+                                <td class="nowrap">
+                                    {% if s.compte %}<span class="pastille succes" title="Reçoit la convocation par e-mail et répond dans son espace">compte famille</span>{% endif %}
+                                    {% for qui, numero in s.numeros %}
+                                        <a class="bouton petit" href="sms:{{ numero }}?&body={{ s.texte|url_encode }}" title="SMS au {{ qui|lower }} ({{ numero }}) depuis votre téléphone">SMS {{ qui|lower }}</a>
+                                    {% else %}
+                                        {% if not s.compte %}<span class="pastille alerte">ni compte ni portable</span>{% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% if c.reponse == 'present' %}<span class="pastille succes">présent</span>
+                                    {% elseif c.reponse == 'absent' %}<span class="pastille alerte">absent</span>{% if c.motif %} <span class="petit">{{ c.motif }}</span>{% endif %}
+                                    {% else %}<span class="pastille">sans réponse</span>{% endif %}
+                                </td>
+                                <td class="petit discret">{% if c.reponduLe %}{{ c.reponduPar }}, le {{ c.reponduLe|date('d/m à H:i') }}{% endif %}</td>
+                                <td>
+                                    <form method="post" action="{{ path('app_convocation_reponse', {id: rencontre.id, convoque: c.id}) }}" class="reponse-convoque">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('reponse-convoque' ~ c.id) }}">
+                                        <select name="reponse" aria-label="Réponse pour {{ c.joueur.prenom }}">
+                                            <option value="">Sans réponse</option>
+                                            <option value="present" {{ c.reponse == 'present' ? 'selected' }}>Présent</option>
+                                            <option value="absent" {{ c.reponse == 'absent' ? 'selected' }}>Absent</option>
+                                        </select>
+                                        <input type="text" name="motif" value="{{ c.motif }}" placeholder="Motif d'absence" list="motifs-absence" maxlength="120">
+                                        <button class="bouton petit">OK</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <datalist id="motifs-absence">{% for mo in motifs %}<option value="{{ mo }}">{% endfor %}</datalist>
+        </section>
+    {% endif %}
+
+    <section class="bloc">
+        <h2 class="titre-bloc">{{ convocation ? 'Modifier la convocation' : 'Préparer la convocation' }}</h2>
+        {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+            {{ form_errors(form) }}
+            <fieldset class="carte">
+                <legend>Joueurs convoqués</legend>
+                {{ form_errors(form.joueurs) }}
+                {% for groupe, choix in form.joueurs.vars.choices %}
+                    <details class="groupe-joueurs" {{ loop.first ? 'open' }}>
+                        <summary>{{ groupe }} <span class="discret petit">({{ choix.choices|length }})</span></summary>
+                        <div class="cases-joueurs">
+                            {% for c in choix.choices %}
+                                <label class="case-joueur">{{ form_widget(form.joueurs[c.value]) }} {{ c.label }}</label>
+                            {% endfor %}
+                        </div>
+                    </details>
+                {% endfor %}
+                {% do form.joueurs.setRendered %}
+            </fieldset>
+            <fieldset class="carte">
+                <legend>Rendez-vous</legend>
+                {{ m.groupe(form, ['rdvHeure', 'rdvLieu', 'message']) }}
+            </fieldset>
+            {{ form_rest(form) }}
+            <div class="barre-actions">
+                <button type="submit" class="bouton principal">Enregistrer la convocation</button>
+            </div>
+        {{ form_end(form) }}
+    </section>
+{% endblock %}

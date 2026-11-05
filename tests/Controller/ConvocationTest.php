@@ -1,0 +1,191 @@
+<?php
+
+namespace App\Tests\Controller;
+
+use App\Entity\Categorie;
+use App\Entity\Club;
+use App\Entity\Convocation;
+use App\Entity\Convoque;
+use App\Entity\Joueur;
+use App\Entity\Participation;
+use App\Entity\Rencontre;
+use App\Entity\Utilisateur;
+use App\Service\CreationClub;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+
+/**
+ * Convocations : l'éducateur convoque et envoie, la famille répond dans son espace,
+ * les présents préremplissent la feuille de match. Données fictives, club supprimé à la fin.
+ */
+class ConvocationTest extends WebTestCase
+{
+    private KernelBrowser $client;
+    private ?int $clubId = null;
+
+    protected function setUp(): void
+    {
+        $this->client = static::createClient();
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->clubId) {
+            $connexion = $this->em()->getConnection();
+            foreach (['rencontre', 'joueur', 'club'] as $table) {
+                $connexion->executeStatement("DELETE FROM $table WHERE " . ('club' === $table ? 'id' : 'club_id') . ' = ?', [$this->clubId]);
+            }
+        }
+        parent::tearDown();
+    }
+
+    public function testConvocationJusquALaFeuilleDeMatch(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Coach');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+
+        $em = $this->em();
+        $categorie = $em->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+        $lea = $this->joueur($club, $categorie, 'Léa');
+        $tom = $this->joueur($club, $categorie, 'Tom')->setTelPortable1('06 12 34 56 78');
+        $this->joueur($club, $categorie, 'Max');
+        $rencontre = (new Rencontre())->setClub($club)->setCategorie($categorie)->setDate(new \DateTimeImmutable('+4 days'))
+            ->setHeure('15h00')->setDomicile("CLUB TEST $id")->setExterieur('Adversaire FC')->setLieu('Stade municipal');
+        $em->persist($rencontre);
+        $parent = (new Utilisateur())->setClub($club)->setFamille(true)->setEmail("parent-$id@exemple.test")->setNom('Martin')->setPrenom('Famille')->addJoueur($lea);
+        $parent->setPassword(static::getContainer()->get(UserPasswordHasherInterface::class)->hashPassword($parent, 'secret-famille'));
+        $em->persist($parent);
+        $em->flush();
+        $match = '/matchs/' . $rencontre->getId();
+
+        // --- L'éducateur prépare la convocation (Léa et Tom, pas Max).
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', $match);
+        self::assertSelectorExists('a[href="' . $match . '/convocation"]');
+        $crawler = $this->client->request('GET', "$match/convocation");
+        self::assertResponseIsSuccessful();
+        self::assertInputValueSame('form[rdvLieu]', 'Stade municipal');
+        $form = $crawler->selectButton('Enregistrer la convocation')->form();
+        $form['form[joueurs]'][0]->tick(); // ordre alphabétique des prénoms à nom égal : Léa, Max, Tom
+        $form['form[joueurs]'][2]->tick();
+        $form['form[rdvHeure]'] = '14h15';
+        $this->client->submit($form);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'pas encore envoyée');
+
+        $convocation = $this->convocation($rencontre);
+        self::assertEqualsCanonicalizing(['Léa', 'Tom'], array_map(fn (Joueur $j) => $j->getPrenom(), $convocation->getJoueurs()));
+
+        // Pas encore envoyée : la famille ne la voit pas.
+        $this->client->loginUser($parent);
+        $this->client->request('GET', '/espace');
+        self::assertSelectorNotExists('.convocation-famille');
+
+        // --- Envoi : un e-mail pour la famille de Léa ; Tom n'a pas de compte, il est signalé.
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', "$match/convocation");
+        $this->client->submit($crawler->selectButton('Envoyer aux familles')->form());
+        self::assertEmailCount(1);
+        $email = self::getMailerMessage();
+        self::assertEmailAddressContains($email, 'to', "parent-$id@exemple.test");
+        self::assertEmailTextBodyContains($email, 'Rendez-vous à 14h15, Stade municipal');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-info', 'Tom Martin');
+        self::assertSelectorTextContains('[data-copier-texte-value]', 'Joueurs convoqués');
+        // SMS depuis le téléphone de l'éducateur : Tom (pas de compte) par son portable parent 1, Léa a un compte.
+        $sms = $this->client->getCrawler()->filter('#reponses a[href^="sms:"]');
+        self::assertCount(1, $sms);
+        self::assertStringStartsWith('sms:0612345678?&body=', $sms->attr('href'));
+        self::assertStringContainsString('répondre par SMS', urldecode($sms->attr('href')));
+        self::assertSelectorTextContains('#reponses', 'compte famille');
+
+        // --- La famille répond « absent » (malade), puis change d'avis.
+        $this->client->loginUser($parent);
+        $crawler = $this->client->request('GET', '/espace');
+        self::assertSelectorTextContains('.convocation-famille', 'Rendez-vous à 14h15');
+        self::assertSelectorTextContains('.convocation-famille', 'réponse attendue');
+        $this->client->submit($crawler->selectButton('Absent')->form(), ['motif' => 'Malade']);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'Léa sera absent(e)');
+        $reponseLea = $this->convoque($rencontre, 'Léa');
+        self::assertSame([Convoque::ABSENT, 'Malade', "parent-$id@exemple.test"], [$reponseLea->getReponse(), $reponseLea->getMotif(), $reponseLea->getReponduPar()]);
+        $this->client->submit($crawler->selectButton('Présent')->form());
+        self::assertSame(Convoque::PRESENT, $this->convoque($rencontre, 'Léa')->getReponse());
+
+        // Elle ne peut ni répondre pour Tom, ni ouvrir la page de l'éducateur.
+        $tomConvoque = $this->convoque($rencontre, 'Tom');
+        $this->client->request('POST', '/espace/convocation/' . $tomConvoque->getId(), ['reponse' => 'present', '_token' => 'x']);
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('GET', "$match/convocation");
+        self::assertResponseStatusCodeSame(403);
+
+        // --- L'éducateur note Tom présent (réponse reçue par téléphone) ; relance : plus personne à relancer.
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', "$match/convocation");
+        $ligneTom = $crawler->filter('#reponses tr')->reduce(fn ($tr) => str_contains($tr->text(), 'Tom'));
+        $this->client->submit($ligneTom->filter('form')->form(), ['reponse' => 'present']);
+        self::assertSame([Convoque::PRESENT, 'Coach Test'], [$this->convoque($rencontre, 'Tom')->getReponse(), $this->convoque($rencontre, 'Tom')->getReponduPar()]);
+        $crawler = $this->client->request('GET', "$match/convocation");
+        self::assertSelectorTextContains('#reponses', '2 présents');
+        self::assertSelectorNotExists('input[name="relance"]');
+
+        // --- La feuille de match vide est préremplie avec les deux présents.
+        $crawler = $this->client->request('GET', "$match/modifier");
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.flash-info', 'préremplie avec les 2 joueurs');
+        $choisis = $crawler->filter('select[name$="[joueur]"] option[selected]')->each(fn ($o) => $o->text());
+        self::assertCount(2, $choisis);
+
+        // --- Convocation supprimée (erreur) : la ligne vierge de Tom quitte la feuille, celle de Léa (n° saisi) reste.
+        $em = $this->em();
+        $em->clear();
+        $r = $em->find(Rencontre::class, $rencontre->getId());
+        $r->addParticipation((new Participation())->setClub($r->getClub())->setJoueur($em->find(Joueur::class, $tom->getId())));
+        $r->addParticipation((new Participation())->setClub($r->getClub())->setJoueur($em->find(Joueur::class, $lea->getId()))->setNumero(9));
+        $em->flush();
+        $crawler = $this->client->request('GET', "$match/convocation");
+        $this->client->submit($crawler->filter('form[action$="/convocation/supprimer"]')->form());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', '1 joueur retiré de la feuille de match');
+        $em->clear();
+        $restants = array_map(fn (Participation $p) => $p->getJoueur()->getPrenom(), $em->find(Rencontre::class, $rencontre->getId())->getParticipations()->toArray());
+        self::assertSame(['Léa'], $restants);
+        self::assertNull($em->getRepository(Convocation::class)->findOneBy(['rencontre' => $rencontre->getId()]));
+    }
+
+    private function joueur(Club $club, Categorie $categorie, string $prenom): Joueur
+    {
+        $joueur = (new Joueur())->setClub($club)->setCategorie($categorie)->setNom('Martin')->setPrenom($prenom);
+        $this->em()->persist($joueur);
+
+        return $joueur;
+    }
+
+    private function convocation(Rencontre $rencontre): Convocation
+    {
+        $em = $this->em();
+        $em->clear();
+
+        return $em->getRepository(Convocation::class)->findOneBy(['rencontre' => $rencontre->getId()]);
+    }
+
+    private function convoque(Rencontre $rencontre, string $prenom): Convoque
+    {
+        foreach ($this->convocation($rencontre)->getConvoques() as $c) {
+            if ($c->getJoueur()->getPrenom() === $prenom) {
+                return $c;
+            }
+        }
+        self::fail("$prenom n'est pas convoqué.");
+    }
+
+    private function em(): EntityManagerInterface
+    {
+        return static::getContainer()->get(EntityManagerInterface::class);
+    }
+}
