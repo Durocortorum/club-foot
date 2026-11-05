@@ -2,6 +2,8 @@
 
 namespace App\Security;
 
+use App\Entity\CreneauEntrainement;
+use App\Entity\Entrainement;
 use App\Entity\Rencontre;
 use App\Entity\Seance;
 use App\Entity\SemainePresence;
@@ -13,7 +15,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  * Matchs, présences et séances d'entraînement : un éducateur gère ceux des secteurs auxquels il a accès.
  * Le droit « Rapports de match » donne accès aux matchs de tous les secteurs.
  *
- * @extends Voter<string, Rencontre|SemainePresence|Seance>
+ * @extends Voter<string, Rencontre|SemainePresence|Seance|Entrainement|CreneauEntrainement>
  */
 class ActiviteVoter extends Voter
 {
@@ -37,7 +39,8 @@ class ActiviteVoter extends Voter
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return self::GERER === $attribute && ($subject instanceof Rencontre || $subject instanceof SemainePresence || $subject instanceof Seance);
+        return self::GERER === $attribute && ($subject instanceof Rencontre || $subject instanceof SemainePresence || $subject instanceof Seance
+            || $subject instanceof Entrainement || $subject instanceof CreneauEntrainement);
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool

@@ -51,6 +51,44 @@
                 {% endfor %}
             {% endif %}
 
+            {% if e.entrainements %}
+                <h3 id="entrainements-{{ j.id }}">Prochains entraînements</h3>
+                <p class="discret petit">{{ j.prenom }} est attendu(e) à chaque entraînement : signalez seulement une absence.</p>
+                <ul class="liste-simple">
+                    {% for en in e.entrainements %}
+                        {% set absence = en.absenceDe(j) %}
+                        {% set jeton = csrf_token('entrainement' ~ en.id ~ '-' ~ j.id) %}
+                        <li>
+                            <strong class="nowrap">{{ ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][en.date|date('w')] }} {{ en.date|date('d/m') }}</strong>
+                            · {{ en.horaire }}{% if en.lieu %} · {{ en.lieu }}{% endif %}
+                            {% if en.annule %}
+                                <span class="pastille alerte">annulé{{ en.motifAnnulation ? ' : ' ~ en.motifAnnulation }}</span>
+                            {% elseif absence %}
+                                <span class="pastille alerte">absent(e) · {{ absence.motif }}</span>
+                                <form method="post" action="{{ path('app_espace_entrainement', {id: en.id}) }}" class="en-ligne">
+                                    <input type="hidden" name="_token" value="{{ jeton }}">
+                                    <input type="hidden" name="joueur" value="{{ j.id }}">
+                                    <input type="hidden" name="retirer" value="1">
+                                    <button class="bouton petit">Finalement présent(e)</button>
+                                </form>
+                            {% else %}
+                                <span class="pastille succes">attendu(e)</span>
+                                <details class="petit">
+                                    <summary>Signaler une absence</summary>
+                                    <form method="post" action="{{ path('app_espace_entrainement', {id: en.id}) }}" class="reponse-convoque">
+                                        <input type="hidden" name="_token" value="{{ jeton }}">
+                                        <input type="hidden" name="joueur" value="{{ j.id }}">
+                                        <select name="motif" aria-label="Motif">{% for mo in motifs_entrainement %}<option>{{ mo }}</option>{% endfor %}</select>
+                                        <input type="text" name="commentaire" placeholder="Précision (facultatif)" maxlength="120" aria-label="Précision">
+                                        <button class="bouton petit">Signaler l'absence</button>
+                                    </form>
+                                </details>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
             <h3>Prochains matchs</h3>
             {% if e.matchs %}
                 <ul class="liste-simple">

@@ -7,7 +7,10 @@
     <div class="titre-page">
         <h1>Présences <span class="compteur">{{ total }} semaines</span></h1>
         {% if peut_creer %}
-            <a class="bouton principal" href="{{ path('app_presence_nouvelle') }}">+ Nouvelle semaine</a>
+            <span class="actions">
+                <a class="bouton" href="{{ path('app_planning') }}">Planning et absences</a>
+                <a class="bouton principal" href="{{ path('app_presence_nouvelle') }}">+ Nouvelle semaine</a>
+            </span>
         {% endif %}
     </div>
 

@@ -586,3 +586,11 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .reponses-famille { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .6rem; }
 .convocation-famille + .convocation-famille { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--bordure); }
 .match-joue { margin-top: .9rem; }
+
+/* Planning des entraînements */
+.ligne-creneau { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.ligne-creneau input[type="text"] { flex: 1 1 12rem; }
+.entrainement + .entrainement { margin-top: .8rem; }
+.entrainement.annule { opacity: .75; border-left: 4px solid var(--danger-fonce); }
+.entrainement details { margin-top: .6rem; }
+.entrainement details summary { cursor: pointer; color: var(--gris); }

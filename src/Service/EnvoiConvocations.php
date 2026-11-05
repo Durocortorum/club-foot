@@ -4,7 +4,9 @@ namespace App\Service;
 
 use App\Entity\Convocation;
 use App\Entity\Convoque;
+use App\Entity\Entrainement;
 use App\Entity\Joueur;
+use App\Repository\JoueurRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
@@ -26,6 +28,7 @@ class EnvoiConvocations
         private readonly UrlGeneratorInterface $urls,
         private readonly EntityManagerInterface $em,
         private readonly LoggerInterface $logger,
+        private readonly JoueurRepository $joueurs,
         #[Autowire('%env(MAILER_EXPEDITEUR)%')]
         private readonly string $expediteur,
     ) {
@@ -74,6 +77,54 @@ class EnvoiConvocations
         $this->em->flush();
 
         return $resultat;
+    }
+
+    /**
+     * Entraînement annulé : un e-mail à chaque compte famille actif des joueurs de la catégorie.
+     *
+     * @return int e-mails envoyés
+     */
+    public function annoncerAnnulation(Entrainement $entrainement): int
+    {
+        if (!$this->acces->emailActif()) {
+            return 0;
+        }
+        $club = $entrainement->getClub();
+        $envoyes = 0;
+        $deja = [];
+        foreach ($this->joueurs->findBy(['categorie' => $entrainement->getCategorie(), 'ancien' => false]) as $j) {
+            foreach ($this->acces->comptes($j) as $compte) {
+                if (null === $compte->getPassword() || isset($deja[$compte->getId()])) {
+                    continue;
+                }
+                $deja[$compte->getId()] = true;
+                try {
+                    $this->mailer->send((new TemplatedEmail())
+                        ->from(new Address($this->expediteur, $club->getNom()))
+                        ->to($compte->getEmail())
+                        ->subject(\sprintf('%s : entraînement %s annulé', $club->getNom(), $this->quand($entrainement)))
+                        ->text($this->messageAnnulation($entrainement)));
+                    ++$envoyes;
+                } catch (TransportExceptionInterface $e) {
+                    $this->logger->error('Annulation non envoyée à {email} : {erreur}', ['email' => $compte->getEmail(), 'erreur' => $e->getMessage()]);
+                }
+            }
+        }
+
+        return $envoyes;
+    }
+
+    /** Message d'annulation, pour l'e-mail et le groupe WhatsApp. */
+    public function messageAnnulation(Entrainement $e): string
+    {
+        return \sprintf("ENTRAÎNEMENT ANNULÉ – %s\n%s %s%s.%s",
+            $e->getCategorie(), ucfirst($this->quand($e)), $e->getHoraire(), $e->getLieu() ? ', ' . $e->getLieu() : '',
+            $e->getMotifAnnulation() ? "\nMotif : " . $e->getMotifAnnulation() : '');
+    }
+
+    private function quand(Entrainement $e): string
+    {
+        return mb_strtolower(self::JOURS[(int) $e->getDate()->format('w')]) . ' ' . $e->getDate()->format('d/m');
     }
 
     /** Message prêt à coller dans le groupe WhatsApp de l'équipe. */

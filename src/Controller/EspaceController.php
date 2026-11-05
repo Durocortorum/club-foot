@@ -2,9 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\AbsenceEntrainement;
 use App\Entity\Convoque;
+use App\Entity\Entrainement;
 use App\Entity\Utilisateur;
 use App\Repository\ConvoqueRepository;
+use App\Repository\JoueurRepository;
+use App\Service\PlanningEntrainements;
 use App\Repository\RencontreRepository;
 use App\Repository\UtilisateurRepository;
 use App\Service\ClubCourant;
@@ -29,7 +33,7 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 class EspaceController extends AbstractController
 {
     #[Route('/espace', name: 'app_espace', methods: ['GET'])]
-    public function index(RencontreRepository $rencontres, ConvoqueRepository $convoques): Response
+    public function index(RencontreRepository $rencontres, ConvoqueRepository $convoques, PlanningEntrainements $planning): Response
     {
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
@@ -47,6 +51,14 @@ class EspaceController extends AbstractController
         foreach ($convoques->aVenir($moi->getJoueurs()) as $c) {
             $convocations[$c->getJoueur()->getId()][] = $c;
         }
+        $categories = [];
+        foreach ($moi->getJoueurs() as $j) {
+            if ($c = $j->getCategorie()) {
+                $categories[$c->getId()] = $c;
+            }
+        }
+        $entrainements = $planning->aVenir(array_values($categories), self::JOURS_ENTRAINEMENTS);
+
         $enfants = [];
         foreach ($moi->getJoueurs() as $j) {
             $mesConvocations = $convocations[$j->getId()] ?? [];
@@ -54,12 +66,47 @@ class EspaceController extends AbstractController
             $enfants[] = [
                 'joueur' => $j,
                 'convocations' => $mesConvocations,
+                'entrainements' => array_values(array_filter($entrainements, fn (Entrainement $e) => $e->getCategorie() === $j->getCategorie())),
                 // Les matchs déjà couverts par une convocation ne sont pas répétés.
                 'matchs' => $j->getCategorie() ? array_values(array_filter($rencontres->aVenir($j->getCategorie(), 5), fn ($r) => !\in_array($r, $convoquesA, true))) : [],
             ];
         }
 
-        return $this->render('espace/index.html.twig', ['enfants' => $enfants, 'motifs' => Convoque::MOTIFS]);
+        return $this->render('espace/index.html.twig', [
+            'enfants' => $enfants,
+            'motifs' => Convoque::MOTIFS,
+            'motifs_entrainement' => array_keys(AbsenceEntrainement::MOTIFS),
+        ]);
+    }
+
+    /** Entraînements montrés aux familles, en jours. */
+    private const JOURS_ENTRAINEMENTS = 14;
+
+    /** La famille signale une absence à un entraînement, ou la retire (finalement présent). */
+    #[Route('/espace/entrainement/{id}', name: 'app_espace_entrainement', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function absenceEntrainement(Request $request, Entrainement $entrainement, JoueurRepository $joueurs, PlanningEntrainements $planning): Response
+    {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        $p = $request->getPayload();
+        $joueur = $joueurs->find($p->getInt('joueur'));
+        if (!$moi->isFamille() || !$joueur || !$moi->suit($joueur) || $joueur->getCategorie() !== $entrainement->getCategorie()
+            || !$this->isCsrfTokenValid('entrainement' . $entrainement->getId() . '-' . $joueur->getId(), $p->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        if (!$entrainement->isOuvert()) {
+            $this->addFlash('erreur', 'Cet entraînement est passé ou annulé : rien à signaler.');
+        } elseif ($p->getBoolean('retirer')) {
+            if ($a = $entrainement->absenceDe($joueur)) {
+                $planning->retirerAbsence($a);
+            }
+            $this->addFlash('succes', \sprintf('C\'est noté : %s sera présent(e) à l\'entraînement.', $joueur->getPrenom()));
+        } else {
+            $planning->signalerAbsence($entrainement, $joueur, $p->getString('motif'), $p->getString('commentaire'), (string) $moi->getEmail());
+            $this->addFlash('succes', \sprintf('Absence de %s signalée à l\'éducateur. Merci !', $joueur->getPrenom()));
+        }
+
+        return $this->redirect($this->generateUrl('app_espace') . '#entrainements-' . $joueur->getId());
     }
 
     /** Réponse de la famille à une convocation, jusqu'au jour du match. */

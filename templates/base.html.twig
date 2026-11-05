@@ -40,7 +40,7 @@
                     <a href="{{ path('app_rencontre_index') }}" class="{{ route starts with 'app_rencontre' ? 'actif' }}">Matchs</a>
                     <a href="{{ path('app_statistiques') }}" class="{{ route == 'app_statistiques' ? 'actif' }}">Statistiques</a>
                     <a href="{{ path('app_presence_index') }}" class="{{ route starts with 'app_presence' ? 'actif' }}">Présences</a>
-                    <a href="{{ path('app_seance_index') }}" class="{{ route starts with 'app_seance' or route starts with 'app_exercice' ? 'actif' }}">Entraînements</a>
+                    <a href="{{ path('app_seance_index') }}" class="{{ route starts with 'app_seance' or route starts with 'app_exercice' or route starts with 'app_planning' ? 'actif' }}">Entraînements</a>
                     <a href="{{ path('app_archives') }}" class="{{ route starts with 'app_archives' ? 'actif' }}">Archives</a>
                     {% if is_granted('ROLE_ECOLE_FOOT') or is_granted('ROLE_PREFORMATION') or is_granted('ROLE_FORMATION') or is_granted('ROLE_ELITE') or is_granted('ROLE_PRO') %}
                         <a href="{{ path('app_detection_index') }}" class="{{ route starts with 'app_detection' or route starts with 'app_observe' ? 'actif' }}">Recrutement</a>

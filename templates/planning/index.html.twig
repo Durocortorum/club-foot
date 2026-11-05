@@ -1,0 +1,129 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Planning des entraînements{% endblock %}
+
+{% macro champs_creneau(c, jours, periode) %}
+    <select name="jour" aria-label="Jour">
+        {% for n, j in jours %}<option value="{{ n }}" {{ c and c.jour == n ? 'selected' }}>{{ j }}</option>{% endfor %}
+    </select>
+    <input type="time" name="heureDebut" value="{{ c ? c.heureDebut : '14:00' }}" required aria-label="Début">
+    <span>à</span>
+    <input type="time" name="heureFin" value="{{ c ? c.heureFin }}" aria-label="Fin">
+    <input type="text" name="lieu" value="{{ c ? c.lieu }}" placeholder="Lieu (stade, gymnase…)" maxlength="120" aria-label="Lieu">
+    <input type="hidden" name="_token" value="{{ csrf_token('creneau') }}"><input type="hidden" name="periode" value="{{ periode }}">
+{% endmacro %}
+{% import _self as s %}
+
+{% block body %}
+    {% set joursDate = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'] %}
+    <div class="titre-page">
+        <h1>Planning des entraînements</h1>
+        <span class="actions"><a class="bouton" href="{{ path('app_presence_index') }}">Grilles de présences</a></span>
+    </div>
+
+    <form class="filtres" method="get">
+        <select name="categorie" onchange="this.form.requestSubmit()" aria-label="Catégorie">
+            {% for c in categories %}<option value="{{ c.id }}" {{ c == categorie ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
+        </select>
+        <select name="periode" onchange="this.form.requestSubmit()" aria-label="Période affichée">
+            {% for cle, libelle in periodes %}<option value="{{ cle }}" {{ cle == periode ? 'selected' }}>{{ libelle }}</option>{% endfor %}
+        </select>
+    </form>
+
+    <section class="carte bloc">
+        <h2>Créneaux de la semaine · {{ categorie.nom }}</h2>
+        <p class="discret petit">
+            Les entraînements des {{ horizon }} prochains jours sont préparés à partir de ces créneaux. Toute l'équipe est attendue ;
+            les familles signalent les absences dans leur espace, et elles sont reportées dans la grille des présences.
+        </p>
+        <ul class="liste-simple">
+            {% for c in creneaux %}
+                <li class="avec-actions">
+                    <form method="post" action="{{ path('app_planning_creneau', {id: c.id}) }}" class="ligne-creneau">
+                        {{ s.champs_creneau(c, jours, periode) }}
+                        <button class="bouton petit">Enregistrer</button>
+                    </form>
+                    {{ m.supprimer(path('app_planning_creneau_supprimer', {id: c.id}), 'supprimer-creneau' ~ c.id, 'Supprimer le créneau « ' ~ c ~ ' » et ses entraînements à venir ?', '×') }}
+                </li>
+            {% else %}
+                <li class="discret">Aucun créneau pour cette catégorie : ajoutez le premier ci-dessous.</li>
+            {% endfor %}
+            <li>
+                <form method="post" action="{{ path('app_planning_creneau') }}" class="ligne-creneau">
+                    <input type="hidden" name="categorie" value="{{ categorie.id }}">
+                    {{ s.champs_creneau(null, jours, periode) }}
+                    <button class="bouton petit principal">+ Ajouter le créneau</button>
+                </form>
+            </li>
+        </ul>
+    </section>
+
+    <section class="bloc">
+        <h2 class="titre-bloc">Entraînements à venir <span class="compteur">{{ entrainements|length }}</span></h2>
+        {% for e in entrainements %}
+            {% set absences = e.absences %}
+            <article class="carte entrainement {{ e.annule ? 'annule' }}" id="entrainement-{{ e.id }}">
+                <div class="avec-actions">
+                    <div>
+                        <strong>{{ joursDate[e.date|date('w')] }} {{ e.date|date('d/m') }}</strong> · {{ e.horaire }}{% if e.lieu %} · {{ e.lieu }}{% endif %}
+                        {% if e.annule %}
+                            <span class="pastille alerte">annulé{{ e.motifAnnulation ? ' : ' ~ e.motifAnnulation }}</span>
+                        {% else %}
+                            <span class="pastille {{ absences ? 'alerte' : 'succes' }}">{{ absences|length }} absent{{ absences|length > 1 ? 's' }} signalé{{ absences|length > 1 ? 's' }}</span>
+                        {% endif %}
+                    </div>
+                    <form method="post" action="{{ path('app_planning_annulation', {id: e.id}) }}" class="reponse-convoque">
+                        <input type="hidden" name="_token" value="{{ csrf_token('annulation' ~ e.id) }}"><input type="hidden" name="periode" value="{{ periode }}">
+                        {% if e.annule %}
+                            <input type="hidden" name="retablir" value="1">
+                            <button class="bouton petit">Rétablir</button>
+                        {% else %}
+                            <input type="text" name="motif" placeholder="Motif (terrain gelé…)" maxlength="120" aria-label="Motif d'annulation">
+                            <button class="bouton petit danger">Annuler l'entraînement</button>
+                        {% endif %}
+                    </form>
+                </div>
+
+                {% if e.annule %}
+                    {% set message = annulations[e.id] %}
+                    <div class="actions-ligne" data-controller="copier" data-copier-texte-value="{{ message }}">
+                        <button type="button" class="bouton petit" data-action="copier#copier" data-copier-target="bouton">Copier le message</button>
+                        <a class="bouton petit" href="https://wa.me/?text={{ message|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
+                    </div>
+                {% else %}
+                    {% if absences %}
+                        <ul class="liste-simple petit">
+                            {% for a in absences %}
+                                <li class="avec-actions">
+                                    <span><strong>{{ a.joueur.nom }}</strong> {{ a.joueur.prenom }} · {{ a.motif }}{% if a.commentaire %} <span class="discret">({{ a.commentaire }})</span>{% endif %}
+                                        <span class="discret">— {{ a.declareePar }}, le {{ a.declareeLe|date('d/m à H:i') }}</span></span>
+                                    <form method="post" action="{{ path('app_planning_absence', {id: e.id}) }}" class="en-ligne">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('absence' ~ e.id) }}"><input type="hidden" name="periode" value="{{ periode }}">
+                                        <input type="hidden" name="joueur" value="{{ a.joueur.id }}">
+                                        <input type="hidden" name="retirer" value="1">
+                                        <button class="bouton petit" title="Finalement présent">Retirer</button>
+                                    </form>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    <details class="petit">
+                        <summary>Noter une absence</summary>
+                        <form method="post" action="{{ path('app_planning_absence', {id: e.id}) }}" class="reponse-convoque">
+                            <input type="hidden" name="_token" value="{{ csrf_token('absence' ~ e.id) }}"><input type="hidden" name="periode" value="{{ periode }}">
+                            <select name="joueur" aria-label="Joueur">
+                                {% for j in joueurs %}<option value="{{ j.id }}">{{ j.nom }} {{ j.prenom }}</option>{% endfor %}
+                            </select>
+                            <select name="motif" aria-label="Motif">{% for mo in motifs %}<option>{{ mo }}</option>{% endfor %}</select>
+                            <input type="text" name="commentaire" placeholder="Précision (facultatif)" maxlength="120" aria-label="Précision">
+                            <button class="bouton petit">Noter</button>
+                        </form>
+                    </details>
+                {% endif %}
+            </article>
+        {% else %}
+            <p class="discret">Aucun entraînement dans les {{ horizon }} prochains jours : ajoutez les créneaux de l'équipe ci-dessus.</p>
+        {% endfor %}
+    </section>
+{% endblock %}
