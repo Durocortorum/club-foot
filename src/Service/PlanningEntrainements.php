@@ -21,8 +21,11 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 class PlanningEntrainements
 {
-    /** Entraînements préparés à l'avance, en jours. */
-    public const HORIZON = 21;
+    /**
+     * Entraînements préparés à l'avance, en jours : 4 semaines. C'est aussi ce que voient les familles
+     * dans leur espace et la période affichée par défaut à l'éducateur (même liste des deux côtés).
+     */
+    public const HORIZON = 28;
 
     public function __construct(
         private readonly EntityManagerInterface $em,

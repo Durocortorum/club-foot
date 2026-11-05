@@ -52,9 +52,9 @@ class PlanningController extends AbstractController
                 $categorie = $c;
             }
         }
-        // Période affichée : 3 semaines par défaut, 2 mois, ou jusqu'à la fin de la saison (30 juin).
-        $periodes = ['3s' => '3 semaines', '2m' => '2 mois', 'saison' => 'Jusqu\'à la fin de la saison'];
-        $periode = isset($periodes[$p = $request->query->getString('periode')]) ? $p : '3s';
+        // Période affichée : 4 semaines par défaut (ce que voient les familles), 2 mois, ou jusqu'à la fin de la saison.
+        $periodes = ['4s' => '4 semaines (vu par les familles)', '2m' => '2 mois', 'saison' => 'Jusqu\'à la fin de la saison'];
+        $periode = isset($periodes[$p = $request->query->getString('periode')]) ? $p : '4s';
         $finSaison = Rencontre::bornesSaison(Rencontre::saisonDe(new \DateTimeImmutable('today')))[1];
         $jours = match ($periode) {
             '2m' => 61,

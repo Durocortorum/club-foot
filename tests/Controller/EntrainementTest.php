@@ -71,7 +71,8 @@ class EntrainementTest extends WebTestCase
         self::assertSelectorTextContains('.flash-succes', 'Mercredi 18:00-19:30');
         self::assertGreaterThanOrEqual(3, $crawler->filter('article.entrainement')->count());
         // Période plus longue : jusqu'au 30 juin, un mercredi par semaine.
-        $troisSemaines = $crawler->filter('article.entrainement')->count();
+        $datesEducateur = $crawler->filter('article.entrainement strong')->each(fn ($n) => $n->text());
+        $troisSemaines = \count($datesEducateur);
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId() . '&periode=saison');
         $finSaison = new \DateTimeImmutable(((int) date('Y') + ((int) date('n') >= 7 ? 1 : 0)) . '-06-30');
         $attendus = intdiv((new \DateTimeImmutable('today'))->diff($finSaison)->days, 7);
@@ -97,6 +98,8 @@ class EntrainementTest extends WebTestCase
         $crawler = $this->client->request('GET', '/espace');
         self::assertSelectorTextContains('#entrainements-' . $lea->getId(), 'Prochains entraînements');
         self::assertSelectorTextContains('main', '18h00 – 19h30');
+        // Mêmes dates que la page de l'éducateur (période par défaut).
+        self::assertSame($datesEducateur, $crawler->filter('#entrainements-' . $lea->getId() . ' + p + ul > li > strong')->each(fn ($n) => $n->text()));
         $this->client->submit($crawler->selectButton('Signaler l\'absence')->first()->form(), ['motif' => 'Malade', 'commentaire' => 'Fièvre']);
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('.flash-succes', 'Absence de Léa signalée');

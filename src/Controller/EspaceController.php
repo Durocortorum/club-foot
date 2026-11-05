@@ -57,7 +57,8 @@ class EspaceController extends AbstractController
                 $categories[$c->getId()] = $c;
             }
         }
-        $entrainements = $planning->aVenir(array_values($categories), self::JOURS_ENTRAINEMENTS);
+        // Même période que la page « Planning » de l'éducateur.
+        $entrainements = $planning->aVenir(array_values($categories), PlanningEntrainements::HORIZON);
 
         $enfants = [];
         foreach ($moi->getJoueurs() as $j) {
@@ -78,9 +79,6 @@ class EspaceController extends AbstractController
             'motifs_entrainement' => array_keys(AbsenceEntrainement::MOTIFS),
         ]);
     }
-
-    /** Entraînements montrés aux familles, en jours. */
-    private const JOURS_ENTRAINEMENTS = 28;
 
     /** La famille signale une absence à un entraînement, ou la retire (finalement présent). */
     #[Route('/espace/entrainement/{id}', name: 'app_espace_entrainement', requirements: ['id' => '\d+'], methods: ['POST'])]
