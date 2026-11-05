@@ -26,14 +26,16 @@ class ImportJoueurs
         'adresse' => 'adresse', 'code postal' => 'codePostal', 'cp' => 'codePostal', 'ville' => 'ville',
         'portable' => 'telJoueur', 'portable du joueur' => 'telJoueur', 'telephone' => 'telJoueur', 'tel' => 'telJoueur', 'tel joueur' => 'telJoueur',
         'email' => 'emailJoueur', 'e mail' => 'emailJoueur', 'email du joueur' => 'emailJoueur', 'e mail du joueur' => 'emailJoueur',
-        'email des parents' => 'emailParents', 'e mail des parents' => 'emailParents', 'email parents' => 'emailParents',
+        // Un ancien fichier avec une seule colonne « E-mail des parents » la range dans le parent 1.
+        'email des parents' => 'emailParent1', 'e mail des parents' => 'emailParent1', 'email parents' => 'emailParent1',
+        'email parent 1' => 'emailParent1', 'e mail parent 1' => 'emailParent1', 'email parent 2' => 'emailParent2', 'e mail parent 2' => 'emailParent2',
         'portable parent 1' => 'telPortable1', 'tel parent 1' => 'telPortable1', 'portable parent 2' => 'telPortable2', 'tel parent 2' => 'telPortable2',
         'date d arrivee' => 'dateArrivee', 'arrivee' => 'dateArrivee',
     ];
 
     /** Colonnes du fichier modèle proposé au téléchargement. */
     public const MODELE = ['Nom', 'Prénom', 'Date de naissance', 'Catégorie', 'Poste', 'Pied fort', 'N° licence', 'Adresse', 'Code postal', 'Ville',
-        'Portable du joueur', 'E-mail du joueur', 'E-mail des parents', 'Portable parent 1', 'Portable parent 2'];
+        'Portable du joueur', 'E-mail du joueur', 'Portable parent 1', 'E-mail parent 1', 'Portable parent 2', 'E-mail parent 2'];
 
     public function __construct(private readonly JoueurRepository $joueurs)
     {
@@ -132,7 +134,7 @@ class ImportJoueurs
                     $joueur->{'set' . ucfirst($date)}(new \DateTimeImmutable($v[$date]));
                 }
             }
-            foreach (['lieuNaissance', 'nationalite', 'poste', 'pied', 'licence', 'adresse', 'codePostal', 'ville', 'telJoueur', 'emailJoueur', 'emailParents', 'telPortable1', 'telPortable2'] as $champ) {
+            foreach (['lieuNaissance', 'nationalite', 'poste', 'pied', 'licence', 'adresse', 'codePostal', 'ville', 'telJoueur', 'emailJoueur', 'emailParent1', 'emailParent2', 'telPortable1', 'telPortable2'] as $champ) {
                 if (isset($v[$champ]) && '' !== $v[$champ]) {
                     $joueur->{'set' . ucfirst($champ)}($v[$champ]);
                 }
@@ -184,7 +186,7 @@ class ImportJoueurs
                 }
             }
         }
-        foreach (['emailJoueur', 'emailParents'] as $champ) {
+        foreach (['emailJoueur', 'emailParent1', 'emailParent2'] as $champ) {
             if (!empty($valeurs[$champ])) {
                 if (filter_var($valeurs[$champ], \FILTER_VALIDATE_EMAIL)) {
                     $v[$champ] = mb_strtolower($valeurs[$champ]);

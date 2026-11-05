@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon espace{% endblock %}
+
+{% block body %}
+    <h1>Bonjour {{ app.user.prenom != 'Famille' ? app.user.prenom : '' }}</h1>
+
+    {% for e in enfants %}
+        {% set j = e.joueur %}
+        <section class="carte bloc">
+            <div class="identite">
+                <div class="avatar">{{ j.prenom|first|upper }}{{ j.nom|first|upper }}</div>
+                <div>
+                    <h2>{{ j.prenom }} <strong>{{ j.nom }}</strong></h2>
+                    <p class="discret">{{ j.categorie ?? 'Catégorie à venir' }}{% if j.educateur %} · éducateur : {{ j.educateur }}{% endif %}</p>
+                </div>
+            </div>
+
+            <h3>Prochains matchs</h3>
+            {% if e.matchs %}
+                <ul class="liste-simple">
+                    {% for r in e.matchs %}
+                        <li>
+                            <strong class="nowrap">{{ ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][r.date|date('w')] }} {{ r.date|date('d/m/Y') }}</strong>{% if r.heure %} à {{ r.heure }}{% endif %}
+                            <div>{{ r.domicile }} – {{ r.exterieur }} <span class="discret">· {{ r.competition ?? 'Match' }}</span></div>
+                            {% if r.lieu %}<div class="discret petit">{{ r.lieu }}</div>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="discret">Aucun match programmé pour le moment.</p>
+            {% endif %}
+            <p class="discret petit">Les convocations arriveront bientôt ici : vous pourrez répondre « présent » ou « absent » en un clic.</p>
+        </section>
+    {% else %}
+        <p class="discret">Votre compte n'est relié à aucun joueur pour le moment. Contactez l'éducateur de l'équipe.</p>
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,24 @@
+{# Liens d'activation tout juste préparés : affichés une seule fois, car ils ne sont pas conservés en clair. #}
+<section class="carte liens-famille">
+    <h2>Liens d'activation</h2>
+    <p class="discret petit">
+        Chaque lien est personnel et fonctionne une seule fois, pendant {{ constant('App\\Service\\AccesFamille::DUREE_LIEN') }} jours.
+        Il n'est affiché qu'ici : envoyez-le maintenant, ou préparez-en un nouveau plus tard depuis la fiche du joueur.
+    </p>
+    <ul class="liste-simple">
+        {% for l in liens %}
+            {% set message = 'Bonjour, voici votre lien pour accéder à l\'espace famille de ' ~ apparence.club.nom ~ ' (' ~ l.joueur ~ ') et choisir votre mot de passe : ' ~ l.lien %}
+            <li class="avec-actions">
+                <span>
+                    <strong>{{ l.email }}</strong> <span class="discret">· {{ l.joueur }}</span>
+                    {% if l.envoye %}<span class="pastille succes">e-mail envoyé</span>{% else %}<span class="pastille alerte">à transmettre</span>{% endif %}
+                </span>
+                <span class="nowrap" data-controller="copier" data-copier-texte-value="{{ message }}">
+                    <button type="button" class="bouton petit" data-action="copier#copier" data-copier-target="bouton">Copier le message</button>
+                    <a class="bouton petit" href="https://wa.me/?text={{ message|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
+                    <a class="bouton petit" href="sms:?&body={{ message|url_encode }}">SMS</a>
+                </span>
+            </li>
+        {% endfor %}
+    </ul>
+</section>

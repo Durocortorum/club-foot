@@ -1,0 +1,16 @@
+<div style="font-family: Arial, sans-serif; color: #222; max-width: 520px;">
+    <p>Bonjour,</p>
+    <p>
+        {{ club.nom }} vous ouvre l'espace famille de <strong>{{ joueur.prenom }} {{ joueur.nom }}</strong>{% if joueur.categorie %} ({{ joueur.categorie }}){% endif %} :
+        prochains matchs et, bientôt, convocations auxquelles vous répondrez en un clic.
+    </p>
+    <p>Pour activer votre compte, choisissez votre mot de passe :</p>
+    <p>
+        <a href="{{ lien }}" style="display: inline-block; padding: 10px 18px; background: {{ club.couleur }}; color: {{ club.couleurTexte }}; border-radius: 6px; text-decoration: none; font-weight: bold;">Activer mon compte</a>
+    </p>
+    <p style="color: #666; font-size: 13px;">
+        Ce lien est personnel et valable {{ jours }} jours. Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :<br>
+        {{ lien }}
+    </p>
+    <p style="color: #666; font-size: 13px;">Vous n'êtes pas concerné ? Ignorez simplement ce message.</p>
+</div>

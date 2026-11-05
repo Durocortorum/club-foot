@@ -57,6 +57,7 @@
         <a href="#fiche">Fiche</a>
         <a href="#matchs">Matchs</a>
         <a href="#presences">Présences</a>
+        {% if famille %}<a href="#famille">Accès famille</a>{% endif %}
         {% if is_granted('ROLE_SCOLAIRE') or sanctions %}<a href="#scolarite">Scolarité et discipline</a>{% endif %}
         {% if is_granted('ROLE_INFIRMERIE') %}<a href="#infirmerie">Infirmerie</a>{% endif %}
         <a href="#physique">Mesures et tests</a>
@@ -95,13 +96,6 @@
                 {{ m.ligne('Ville', [joueur.codePostal, joueur.ville]|filter(v => v)|join(' ')) }}
                 {{ m.ligne('Portable joueur', joueur.telJoueur) }}
                 {{ m.ligne('E-mail joueur', joueur.emailJoueur) }}
-                {% if joueur.mineur %}
-                    {{ m.ligne('Tél. maison (mère)', joueur.telMaisonMere) }}
-                    {{ m.ligne('Tél. maison (père)', joueur.telMaisonPere) }}
-                    {{ m.ligne('Portable parent 1', joueur.telPortable1) }}
-                    {{ m.ligne('Portable parent 2', joueur.telPortable2) }}
-                    {{ m.ligne('E-mail parents', joueur.emailParents) }}
-                {% endif %}
             </dl>
         </section>
 
@@ -109,10 +103,14 @@
             <h2>Famille</h2>
             <dl>
                 {% if joueur.mineur %}
-                    {{ m.ligne('Père', joueur.nomPere) }}
-                    {{ m.ligne('Profession du père', joueur.professionPere) }}
-                    {{ m.ligne('Mère', joueur.nomMere) }}
-                    {{ m.ligne('Profession de la mère', joueur.professionMere) }}
+                    {{ m.ligne('Parent 1', joueur.nomParent1) }}
+                    {{ m.ligne('Profession parent 1', joueur.professionParent1) }}
+                    {{ m.ligne('Portable parent 1', joueur.telPortable1) }}
+                    {{ m.ligne('E-mail parent 1', joueur.emailParent1) }}
+                    {{ m.ligne('Parent 2', joueur.nomParent2) }}
+                    {{ m.ligne('Profession parent 2', joueur.professionParent2) }}
+                    {{ m.ligne('Portable parent 2', joueur.telPortable2) }}
+                    {{ m.ligne('E-mail parent 2', joueur.emailParent2) }}
                 {% endif %}
                 {{ f.oui_non("Droit à l'image", joueur.droitImage) }}
                 {{ f.oui_non('Transport éducateur', joueur.transportEducateur) }}
@@ -233,6 +231,66 @@
             <p class="discret">Aucune présence enregistrée.</p>
         {% endif %}
     </section>
+
+    {# ---------- Accès famille ---------- #}
+    {% if famille %}
+        <section class="bloc" id="famille">
+            <div class="titre-page">
+                <h2 class="titre-bloc">Accès famille</h2>
+                {% if famille.a_inviter|length > 1 %}
+                    <form method="post" action="{{ path('app_famille_inviter', {id: joueur.id}) }}" class="en-ligne">
+                        <input type="hidden" name="_token" value="{{ csrf_token('inviter-famille' ~ joueur.id) }}">
+                        <button class="bouton">Inviter toutes les adresses</button>
+                    </form>
+                {% endif %}
+            </div>
+            <p class="discret petit">
+                Le joueur et ses parents reçoivent un lien pour choisir leur mot de passe. Ils accèdent ensuite à leur espace
+                (prochains matchs, bientôt les convocations), sans jamais voir les autres pages de l'application.
+            </p>
+            {% if famille.comptes or famille.a_inviter %}
+                <ul class="liste-simple carte">
+                    {% for c in famille.comptes %}
+                        <li class="avec-actions">
+                            <span>
+                                <strong>{{ c.email }}</strong>
+                                {% if c.statutAcces == 'actif' %}
+                                    <span class="pastille succes">compte actif</span>
+                                {% elseif c.statutAcces == 'invite' %}
+                                    <span class="pastille">invité le {{ c.inviteLe|date('d/m/Y') }}, lien valable jusqu'au {{ c.jetonExpireLe|date('d/m/Y') }}</span>
+                                {% else %}
+                                    <span class="pastille alerte">lien expiré</span>
+                                {% endif %}
+                                {% if c.joueurs|length > 1 %}<span class="discret petit">· suit aussi {{ c.joueurs|filter(j => j != joueur)|map(j => j.prenom)|join(', ') }}</span>{% endif %}
+                            </span>
+                            <span class="nowrap">
+                                {% if c.statutAcces != 'actif' %}
+                                    <form method="post" action="{{ path('app_famille_inviter', {id: joueur.id}) }}" class="en-ligne">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('inviter-famille' ~ joueur.id) }}">
+                                        <input type="hidden" name="email" value="{{ c.email }}">
+                                        <button class="bouton petit">Nouveau lien</button>
+                                    </form>
+                                {% endif %}
+                                {{ m.supprimer(path('app_famille_retirer', {id: joueur.id, compte: c.id}), 'retirer-famille' ~ c.id, 'Retirer l\'accès de ' ~ c.email ~ ' à ' ~ joueur.prenom ~ ' ?', 'Retirer') }}
+                            </span>
+                        </li>
+                    {% endfor %}
+                    {% for email, qui in famille.a_inviter %}
+                        <li class="avec-actions">
+                            <span><strong>{{ email }}</strong> <span class="discret petit">· e-mail {{ {joueur: 'du joueur', parent1: 'du parent 1', parent2: 'du parent 2'}[qui] }}</span> <span class="pastille">pas encore invité</span></span>
+                            <form method="post" action="{{ path('app_famille_inviter', {id: joueur.id}) }}" class="en-ligne">
+                                <input type="hidden" name="_token" value="{{ csrf_token('inviter-famille' ~ joueur.id) }}">
+                                <input type="hidden" name="email" value="{{ email }}">
+                                <button class="bouton petit principal">Inviter</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="discret">Aucune adresse e-mail sur la fiche : ajoutez celle du joueur ou des parents (bouton « Modifier ») pour pouvoir les inviter.</p>
+            {% endif %}
+        </section>
+    {% endif %}
 
     {# ---------- Scolarité et discipline ---------- #}
     {% if is_granted('ROLE_SCOLAIRE') or sanctions %}

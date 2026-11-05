@@ -30,7 +30,9 @@ class UtilisateurController extends AbstractController
     public function index(UtilisateurRepository $utilisateurs): Response
     {
         return $this->render('utilisateur/index.html.twig', [
-            'utilisateurs' => $utilisateurs->findBy([], ['nom' => 'ASC', 'prenom' => 'ASC']),
+            // Les comptes famille se gèrent depuis les fiches joueurs (« Accès famille »).
+            'utilisateurs' => $utilisateurs->findBy(['famille' => false], ['nom' => 'ASC', 'prenom' => 'ASC']),
+            'familles' => $utilisateurs->count(['famille' => true]),
         ]);
     }
 
@@ -45,6 +47,10 @@ class UtilisateurController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function modifier(Request $request, Utilisateur $utilisateur): Response
     {
+        if ($utilisateur->isFamille()) {
+            throw $this->createNotFoundException();
+        }
+
         return $this->formulaire($request, $utilisateur, 'Compte de ' . $utilisateur);
     }
 

@@ -208,7 +208,7 @@ td.avec-vignette { display: table-cell; vertical-align: middle; }
 td.avec-vignette .avatar { display: inline-grid; vertical-align: middle; margin-right: .5rem; }
 .avec-photo { display: flex; gap: 1.2rem; align-items: flex-start; }
 .avec-photo .champs { flex: 1; }
-.champs + .parents, .parents + .champs { margin-top: .9rem; }
+.champs + .parents, .parents + .champs, .champs + .champs { margin-top: .9rem; }
 
 /* Formulaire de match : côté du club et tableau de score (score_controller.js) */
 input.majuscules { text-transform: uppercase; }

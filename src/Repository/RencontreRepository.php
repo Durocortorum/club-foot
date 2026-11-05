@@ -2,8 +2,10 @@
 
 namespace App\Repository;
 
+use App\Entity\Categorie;
 use App\Entity\Rencontre;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
@@ -37,6 +39,23 @@ class RencontreRepository extends ServiceEntityRepository
         }
 
         return new Paginator($qb);
+    }
+
+    /**
+     * Prochains matchs d'une catégorie, à partir d'aujourd'hui (espace famille).
+     *
+     * @return list<Rencontre>
+     */
+    public function aVenir(Categorie $categorie, int $nombre): array
+    {
+        return $this->createQueryBuilder('r')
+            ->andWhere('r.categorie = :c')->setParameter('c', $categorie)
+            ->andWhere('r.date >= :jour')->setParameter('jour', new \DateTimeImmutable('today'), Types::DATE_IMMUTABLE)
+            ->orderBy('r.date')
+            ->addOrderBy('r.heure')
+            ->setMaxResults($nombre)
+            ->getQuery()
+            ->getResult();
     }
 
     /**

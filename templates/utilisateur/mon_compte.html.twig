@@ -12,9 +12,13 @@
             <dl>
                 <dt>Nom</dt><dd>{{ moi.prenom }} {{ moi.nom }}</dd>
                 <dt>Adresse e-mail</dt><dd>{{ moi.email }}</dd>
-                <dt>Droits</dt><dd>{{ moi.admin ? 'Administration (tous les droits)' : (moi.libellesRoles|join(', ') ?: 'aucun') }}</dd>
+                {% if moi.famille %}
+                    <dt>Joueurs suivis</dt><dd>{{ moi.joueurs|map(j => j.prenom ~ ' ' ~ j.nom)|join(', ') ?: 'aucun' }}</dd>
+                {% else %}
+                    <dt>Droits</dt><dd>{{ moi.admin ? 'Administration (tous les droits)' : (moi.libellesRoles|join(', ') ?: 'aucun') }}</dd>
+                {% endif %}
             </dl>
-            <p class="discret petit">Pour changer vos droits, adressez-vous à un administrateur.</p>
+            <p class="discret petit">{{ moi.famille ? 'Pour changer d\'adresse ou supprimer votre compte, adressez-vous à l\'éducateur de l\'équipe.' : 'Pour changer vos droits, adressez-vous à un administrateur.' }}</p>
         </section>
 
         <section class="carte">

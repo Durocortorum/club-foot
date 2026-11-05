@@ -89,12 +89,7 @@ class Joueur implements AppartientAuClub
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $telJoueur = null;
 
-    #[ORM\Column(length: 20, nullable: true)]
-    private ?string $telMaisonMere = null;
-
-    #[ORM\Column(length: 20, nullable: true)]
-    private ?string $telMaisonPere = null;
-
+    // Parents : un portable et un e-mail pour chacun (les anciens téléphones maison sont dans le mémo).
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $telPortable1 = null;
 
@@ -105,20 +100,23 @@ class Joueur implements AppartientAuClub
     private ?string $emailJoueur = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    private ?string $emailParents = null;
-
-    // --- Famille
-    #[ORM\Column(length: 50, nullable: true)]
-    private ?string $nomPere = null;
+    private ?string $emailParent1 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    private ?string $professionPere = null;
+    private ?string $emailParent2 = null;
 
+    // --- Famille (parent 1 et parent 2, anciennement père et mère)
     #[ORM\Column(length: 50, nullable: true)]
-    private ?string $nomMere = null;
+    private ?string $nomParent1 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    private ?string $professionMere = null;
+    private ?string $professionParent1 = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $nomParent2 = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $professionParent2 = null;
 
     #[ORM\Column]
     private bool $droitImage = false;
@@ -420,30 +418,6 @@ class Joueur implements AppartientAuClub
         return $this;
     }
 
-    public function getTelMaisonMere(): ?string
-    {
-        return $this->telMaisonMere;
-    }
-
-    public function setTelMaisonMere(?string $telMaisonMere): static
-    {
-        $this->telMaisonMere = $telMaisonMere;
-
-        return $this;
-    }
-
-    public function getTelMaisonPere(): ?string
-    {
-        return $this->telMaisonPere;
-    }
-
-    public function setTelMaisonPere(?string $telMaisonPere): static
-    {
-        $this->telMaisonPere = $telMaisonPere;
-
-        return $this;
-    }
-
     public function getTelPortable1(): ?string
     {
         return $this->telPortable1;
@@ -480,62 +454,74 @@ class Joueur implements AppartientAuClub
         return $this;
     }
 
-    public function getEmailParents(): ?string
+    public function getEmailParent1(): ?string
     {
-        return $this->emailParents;
+        return $this->emailParent1;
     }
 
-    public function setEmailParents(?string $emailParents): static
+    public function setEmailParent1(?string $emailParent1): static
     {
-        $this->emailParents = $emailParents;
+        $this->emailParent1 = $emailParent1;
 
         return $this;
     }
 
-    public function getNomPere(): ?string
+    public function getEmailParent2(): ?string
     {
-        return $this->nomPere;
+        return $this->emailParent2;
     }
 
-    public function setNomPere(?string $nomPere): static
+    public function setEmailParent2(?string $emailParent2): static
     {
-        $this->nomPere = $nomPere;
+        $this->emailParent2 = $emailParent2;
 
         return $this;
     }
 
-    public function getProfessionPere(): ?string
+    public function getNomParent1(): ?string
     {
-        return $this->professionPere;
+        return $this->nomParent1;
     }
 
-    public function setProfessionPere(?string $professionPere): static
+    public function setNomParent1(?string $nomParent1): static
     {
-        $this->professionPere = $professionPere;
+        $this->nomParent1 = $nomParent1;
 
         return $this;
     }
 
-    public function getNomMere(): ?string
+    public function getProfessionParent1(): ?string
     {
-        return $this->nomMere;
+        return $this->professionParent1;
     }
 
-    public function setNomMere(?string $nomMere): static
+    public function setProfessionParent1(?string $professionParent1): static
     {
-        $this->nomMere = $nomMere;
+        $this->professionParent1 = $professionParent1;
 
         return $this;
     }
 
-    public function getProfessionMere(): ?string
+    public function getNomParent2(): ?string
     {
-        return $this->professionMere;
+        return $this->nomParent2;
     }
 
-    public function setProfessionMere(?string $professionMere): static
+    public function setNomParent2(?string $nomParent2): static
     {
-        $this->professionMere = $professionMere;
+        $this->nomParent2 = $nomParent2;
+
+        return $this;
+    }
+
+    public function getProfessionParent2(): ?string
+    {
+        return $this->professionParent2;
+    }
+
+    public function setProfessionParent2(?string $professionParent2): static
+    {
+        $this->professionParent2 = $professionParent2;
 
         return $this;
     }

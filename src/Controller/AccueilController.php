@@ -16,6 +16,9 @@ class AccueilController extends AbstractController
     #[Route('/', name: 'app_accueil')]
     public function index(JoueurRepository $joueurs, CategorieRepository $categories, JoueurVoter $voter, PremiersPas $premiersPas): Response
     {
+        if (!$this->isGranted('ROLE_ENCADREMENT')) {
+            return $this->redirectToRoute('app_espace');
+        }
         // Toutes les catégories des secteurs de l'utilisateur, même sans joueur (club qui démarre).
         $effectifs = array_column($joueurs->compterActifsParCategorie(), 'total', 'id');
         $secteurs = array_fill_keys(array_keys(Categorie::SECTEURS), []);

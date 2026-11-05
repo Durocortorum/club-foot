@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Accès familles{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_joueur_index') }}">← Joueurs</a></p>
+
+    <div class="titre-page">
+        <h1>Accès familles · {{ categorie.nom }}</h1>
+        {% if a_inviter %}
+            <form method="post" action="{{ path('app_famille_inviter_categorie') }}" class="en-ligne"
+                  data-confirmation="Préparer {{ a_inviter }} invitation{{ a_inviter > 1 ? 's' }} pour la catégorie {{ categorie.nom }} ?{{ email_actif ? ' Chaque adresse recevra un e-mail.' }}"
+                  data-confirmation-bouton="Inviter">
+                <input type="hidden" name="_token" value="{{ csrf_token('inviter-familles' ~ categorie.id) }}">
+                <input type="hidden" name="categorie" value="{{ categorie.id }}">
+                <button class="bouton principal">Inviter les {{ a_inviter }} adresse{{ a_inviter > 1 ? 's' }} sans compte</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <form class="filtres" method="get">
+        <select name="categorie" onchange="this.form.requestSubmit()">
+            {% for c in categories %}
+                <option value="{{ c.id }}" {{ c == categorie ? 'selected' }}>{{ c.nom }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {% if not email_actif %}
+        <p class="flash flash-info">
+            L'envoi d'e-mails n'est pas encore réglé sur ce site : après chaque invitation, l'application affiche les liens,
+            à transmettre par WhatsApp, SMS ou votre propre messagerie.
+        </p>
+    {% endif %}
+
+    {% if lignes %}
+        <div class="table-defile">
+            <table class="liste">
+                <thead><tr><th>Joueur</th><th>Comptes</th><th>Adresses de la fiche sans compte</th></tr></thead>
+                <tbody>
+                    {% for l in lignes %}
+                        <tr>
+                            <td class="nowrap"><a href="{{ path('app_joueur_voir', {id: l.joueur.id}) }}#famille"><strong>{{ l.joueur.nom }}</strong> {{ l.joueur.prenom }}</a></td>
+                            <td class="petit">
+                                {% for c in l.comptes %}
+                                    <div>
+                                        {{ c.email }}
+                                        {% if c.statutAcces == 'actif' %}<span class="pastille succes">actif</span>
+                                        {% elseif c.statutAcces == 'invite' %}<span class="pastille">invité</span>
+                                        {% else %}<span class="pastille alerte">lien expiré</span>{% endif %}
+                                    </div>
+                                {% else %}
+                                    <span class="discret">—</span>
+                                {% endfor %}
+                            </td>
+                            <td class="petit">
+                                {% for email, qui in l.a_inviter %}
+                                    <div>{{ email }} <span class="discret">({{ {joueur: 'joueur', parent1: 'parent 1', parent2: 'parent 2'}[qui] }})</span></div>
+                                {% else %}
+                                    {% if not l.comptes %}<span class="pastille alerte">aucune adresse e-mail</span>{% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="discret">Aucun joueur actif dans cette catégorie.</p>
+    {% endif %}
+{% endblock %}

@@ -8,7 +8,12 @@
         <a class="bouton principal" href="{{ path('app_utilisateur_nouveau') }}">+ Nouveau compte</a>
     </div>
 
-    {% set sans = utilisateurs|filter(u => not u.password)|length %}
+    <p class="discret petit">
+        Comptes de l'encadrement.{% if familles %} S'y ajoutent {{ familles }} compte{{ familles > 1 ? 's' }} famille (joueurs, parents),{% else %} Les comptes famille (joueurs, parents) sont{% endif %}
+        gérés depuis la fiche de chaque joueur ou la page <a href="{{ path('app_famille_index') }}">Accès familles</a>.
+    </p>
+
+    {% set sans =utilisateurs|filter(u => not u.password)|length %}
     {% if sans %}
         <p class="flash flash-info">
             {{ sans }} compte{{ sans > 1 ? 's n\'ont' : ' n\'a' }} pas encore de mot de passe et ne peu{{ sans > 1 ? 'vent' : 't' }} donc pas se connecter.

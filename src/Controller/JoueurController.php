@@ -18,6 +18,7 @@ use App\Repository\SanctionRepository;
 use App\Repository\SemainePresenceRepository;
 use App\Repository\TestPhysiqueRepository;
 use App\Security\JoueurVoter;
+use App\Service\AccesFamille;
 use App\Service\BilanJoueur;
 use App\Service\Photos;
 use Symfony\Component\Form\FormInterface;
@@ -126,6 +127,7 @@ class JoueurController extends AbstractController
         SanctionRepository $sanctions,
         DetectionRepository $detections,
         BilanJoueur $bilan,
+        AccesFamille $acces,
     ): Response {
         $matchs = $participations->parJoueur($joueur);
         $scolaire = $this->isGranted('ROLE_SCOLAIRE');
@@ -142,6 +144,7 @@ class JoueurController extends AbstractController
             // Les sanctions sont utiles aux éducateurs du joueur (suspensions), pas seulement au suivi scolaire.
             'sanctions' => $scolaire || $this->isGranted(JoueurVoter::MODIFIER, $joueur) ? $sanctions->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
             'detection' => $detections->findOneBy(['joueur' => $joueur]),
+            'famille' => $this->isGranted(JoueurVoter::MODIFIER, $joueur) ? $acces->etat($joueur) : null,
         ]);
     }
 

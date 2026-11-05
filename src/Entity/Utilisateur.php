@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UtilisateurRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
@@ -60,6 +62,40 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
     #[ORM\Column(nullable: true)]
     private ?string $password = null;
 
+    /**
+     * Compte d'un joueur ou de ses parents : il ne voit que l'espace famille (ROLE_FAMILLE),
+     * jamais les pages de l'encadrement (ROLE_ENCADREMENT).
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $famille = false;
+
+    /**
+     * Joueurs suivis par un compte famille (plusieurs pour une fratrie).
+     *
+     * @var Collection<int, Joueur>
+     */
+    #[ORM\ManyToMany(targetEntity: Joueur::class)]
+    #[ORM\JoinTable(name: 'utilisateur_joueur')]
+    #[ORM\JoinColumn(onDelete: 'CASCADE')]
+    #[ORM\InverseJoinColumn(onDelete: 'CASCADE')]
+    #[ORM\OrderBy(['prenom' => 'ASC'])]
+    private Collection $joueurs;
+
+    /** Empreinte (SHA-256) du lien d'activation envoyé : le lien lui-même n'est jamais conservé. */
+    #[ORM\Column(length: 64, nullable: true, unique: true)]
+    private ?string $jetonActivation = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $jetonExpireLe = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $inviteLe = null;
+
+    public function __construct()
+    {
+        $this->joueurs = new ArrayCollection();
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -108,7 +144,8 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
 
     public function getRoles(): array
     {
-        $roles = $this->roles;
+        // Un compte famille n'a jamais de droit de l'encadrement, même s'il en restait en base.
+        $roles = $this->famille ? ['ROLE_FAMILLE'] : [...$this->roles, 'ROLE_ENCADREMENT'];
         $roles[] = 'ROLE_USER';
 
         return array_values(array_unique($roles));
@@ -163,6 +200,96 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
 
     public function eraseCredentials(): void
     {
+    }
+
+    public function isFamille(): bool
+    {
+        return $this->famille;
+    }
+
+    public function setFamille(bool $famille): static
+    {
+        $this->famille = $famille;
+        if ($famille) {
+            $this->roles = [];
+        }
+
+        return $this;
+    }
+
+    /** @return Collection<int, Joueur> */
+    public function getJoueurs(): Collection
+    {
+        return $this->joueurs;
+    }
+
+    public function addJoueur(Joueur $joueur): static
+    {
+        if (!$this->joueurs->contains($joueur)) {
+            $this->joueurs->add($joueur);
+        }
+
+        return $this;
+    }
+
+    public function removeJoueur(Joueur $joueur): static
+    {
+        $this->joueurs->removeElement($joueur);
+
+        return $this;
+    }
+
+    public function suit(Joueur $joueur): bool
+    {
+        return $this->joueurs->contains($joueur);
+    }
+
+    /**
+     * Prépare un nouveau lien d'activation (valable $jours jours) et renvoie le jeton à mettre dans le lien.
+     * Le précédent lien, s'il y en avait un, ne fonctionne plus.
+     */
+    public function nouveauJeton(int $jours = 14): string
+    {
+        $jeton = bin2hex(random_bytes(24));
+        $this->jetonActivation = self::empreinte($jeton);
+        $this->jetonExpireLe = new \DateTimeImmutable("+$jours days");
+        $this->inviteLe = new \DateTimeImmutable();
+
+        return $jeton;
+    }
+
+    public static function empreinte(string $jeton): string
+    {
+        return hash('sha256', $jeton);
+    }
+
+    public function isJetonValide(): bool
+    {
+        return null !== $this->jetonActivation && $this->jetonExpireLe > new \DateTimeImmutable();
+    }
+
+    public function effacerJeton(): static
+    {
+        $this->jetonActivation = null;
+        $this->jetonExpireLe = null;
+
+        return $this;
+    }
+
+    public function getJetonExpireLe(): ?\DateTimeImmutable
+    {
+        return $this->jetonExpireLe;
+    }
+
+    public function getInviteLe(): ?\DateTimeImmutable
+    {
+        return $this->inviteLe;
+    }
+
+    /** « actif » (mot de passe choisi), « invite » (lien en cours de validité) ou « expire ». */
+    public function getStatutAcces(): string
+    {
+        return $this->password ? 'actif' : ($this->isJetonValide() ? 'invite' : 'expire');
     }
 
     public function __toString(): string

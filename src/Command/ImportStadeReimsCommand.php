@@ -21,6 +21,11 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 class ImportStadeReimsCommand extends Command
 {
     private const DOMAINE_EMAIL = 'stade-reims.invalid';
+    /** Colonnes de la fiche joueur renommées depuis l'ancienne base (nouvelle => ancienne). */
+    private const PARENTS = [
+        'nom_parent1' => 'nom_pere', 'profession_parent1' => 'profession_pere',
+        'nom_parent2' => 'nom_mere', 'profession_parent2' => 'profession_mere',
+    ];
 
     public function __construct(
         private readonly Connection $db,
@@ -175,10 +180,15 @@ class ImportStadeReimsCommand extends Command
                 $jointure && 'ville' === $colonne => 'v.nom',
                 'joueur_observe' === $table && 'club_actuel' === $colonne => 's.club',
                 'utilisateur' === $table && 'email' === $colonne => "CONCAT(s.identifiant, '@" . self::DOMAINE_EMAIL . "')",
+                // Fiche joueur : « parents » et « père / mère » sont devenus parent 1 et parent 2.
+                'joueur' === $table && 'email_parent1' === $colonne && \in_array('email_parents', $anciennes, true) => 's.email_parents',
+                'joueur' === $table && isset(self::PARENTS[$colonne]) && \in_array(self::PARENTS[$colonne], $anciennes, true) => 's.' . self::PARENTS[$colonne],
                 \in_array($colonne, $anciennes, true) => "s.`$colonne`",
-                default => throw new \RuntimeException("Colonne $table.$colonne absente de l'ancienne base."),
+                // Colonne apparue depuis (comptes famille, e-mail du parent 2…) : valeur par défaut de la base.
+                default => null,
             };
         }
+        $valeurs = array_filter($valeurs, fn (?string $v) => null !== $v);
 
         return (int) $this->db->executeStatement(sprintf(
             'INSERT INTO `%s` (%s) SELECT %s FROM `%s`.`%s` s %s',

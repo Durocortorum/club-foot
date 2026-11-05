@@ -28,6 +28,11 @@
                     <span aria-hidden="true">☰</span> Menu
                 </button>
                 {% set route = app.request.attributes.get('_route') %}
+                {% if not is_granted('ROLE_ENCADREMENT') %}
+                <nav class="menu" id="navigation">
+                    <a href="{{ path('app_espace') }}" class="{{ route == 'app_espace' ? 'actif' }}">Mon espace</a>
+                </nav>
+                {% else %}
                 <nav class="menu" id="navigation">
                     <a href="{{ path('app_accueil') }}" class="{{ route == 'app_accueil' ? 'actif' }}">Accueil</a>
                     <a href="{{ path('app_joueur_index') }}" class="{{ route starts with 'app_joueur' or route starts with 'app_mesure' or route starts with 'app_test' ? 'actif' }}">Joueurs</a>
@@ -47,6 +52,7 @@
                         <a href="{{ path('app_infirmerie_index') }}" class="{{ route starts with 'app_infirmerie' or route starts with 'app_blessure' or route starts with 'app_contact' ? 'actif' }}">Infirmerie</a>
                     {% endif %}
                 </nav>
+                {% endif %}
                 <div class="compte">
                     {% if is_granted('ROLE_ADMIN') %}
                         <a href="{{ path('app_utilisateur_index') }}" class="{{ route starts with 'app_utilisateur' ? 'actif' }}">Utilisateurs</a>
@@ -60,11 +66,17 @@
         {% endif %}
 
         <main class="contenu">
-            {% for type, messages in app.flashes %}
+            {# Les liens d'invitation (« lien_famille ») sont affichés par famille/_liens.html.twig. #}
+            {% for type, messages in app.flashes(['succes', 'erreur', 'info']) %}
                 {% for message in messages %}
                     <div class="flash flash-{{ type }}">{{ message }}</div>
                 {% endfor %}
             {% endfor %}
+
+            {% set liens_famille = app.user ? app.flashes('lien_famille') : [] %}
+            {% if liens_famille %}
+                {{ include('famille/_liens.html.twig', {liens: liens_famille}) }}
+            {% endif %}
 
             {% block body %}{% endblock %}
         </main>

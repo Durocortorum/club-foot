@@ -32,16 +32,15 @@
         <fieldset class="carte">
             <legend>Coordonnées</legend>
             {{ m.groupe(form, ['adresse', 'codePostal', 'ville', 'telJoueur', 'emailJoueur']) }}
-            {# Champs des parents : affichés seulement pour un joueur mineur (mineur_controller.js). #}
-            <div class="parents" data-mineur-target="parents" {{ joueur.mineur ? '' : 'hidden' }}>
-                {{ m.groupe(form, ['telMaisonMere', 'telMaisonPere', 'telPortable1', 'telPortable2', 'emailParents']) }}
-            </div>
         </fieldset>
 
         <fieldset class="carte">
             <legend>Famille</legend>
+            {# Champs des parents : affichés seulement pour un joueur mineur (mineur_controller.js). #}
             <div class="parents" data-mineur-target="parents" {{ joueur.mineur ? '' : 'hidden' }}>
-                {{ m.groupe(form, ['nomPere', 'professionPere', 'nomMere', 'professionMere', 'transportParent']) }}
+                {{ m.groupe(form, ['nomParent1', 'professionParent1', 'nomParent2', 'professionParent2']) }}
+                {{ m.groupe(form, ['telPortable1', 'emailParent1', 'telPortable2', 'emailParent2']) }}
+                {{ m.groupe(form, ['transportParent']) }}
             </div>
             {{ m.groupe(form, ['droitImage', 'transportEducateur']) }}
         </fieldset>

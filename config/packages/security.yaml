@@ -38,7 +38,13 @@ security:
         - { path: ^/inscription, roles: PUBLIC_ACCESS }
         # Logo et icône du club : affichés sur la page de connexion.
         - { path: ^/club/(logo|icone)/, roles: PUBLIC_ACCESS }
-        - { path: ^/, roles: ROLE_USER }
+        # Lien d'activation d'un compte famille, reçu par e-mail ou message.
+        - { path: ^/activation/, roles: PUBLIC_ACCESS }
+        # Pages ouvertes aux comptes famille (joueurs, parents). L'accueil les renvoie vers leur espace.
+        - { path: ^/(espace|mon-compte|deconnexion)(/|$), roles: ROLE_USER }
+        - { path: ^/$, roles: ROLE_USER }
+        # Tout le reste est réservé à l'encadrement du club.
+        - { path: ^/, roles: ROLE_ENCADREMENT }
 
 when@test:
     security:
