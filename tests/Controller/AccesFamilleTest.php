@@ -88,6 +88,11 @@ class AccesFamilleTest extends WebTestCase
         self::assertCount(2, $compte->getJoueurs());
         self::assertNull($compte->getPassword());
 
+        // Lien de l'espace famille ouvert avec un compte de l'encadrement : message explicite.
+        $this->client->request('GET', '/espace');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-info', 'espace famille');
+
         // La liste des utilisateurs ne montre que l'encadrement.
         $this->client->request('GET', '/utilisateurs');
         self::assertResponseIsSuccessful();

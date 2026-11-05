@@ -34,6 +34,12 @@ class EspaceController extends AbstractController
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
         if (!$moi->isFamille()) {
+            // Lien d'un SMS ou d'un e-mail de convocation ouvert avec un compte de l'encadrement.
+            $this->addFlash('info', \sprintf(
+                'Ce lien mène à l\'espace famille, où les parents répondent aux convocations. Vous êtes connecté avec le compte de l\'encadrement %s : déconnectez-vous puis connectez-vous avec un compte famille pour voir cet espace.',
+                $moi->getEmail(),
+            ));
+
             return $this->redirectToRoute('app_accueil');
         }
 
