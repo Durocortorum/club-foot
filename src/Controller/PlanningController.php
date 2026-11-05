@@ -7,6 +7,7 @@ use App\Entity\Categorie;
 use App\Entity\CreneauEntrainement;
 use App\Entity\Entrainement;
 use App\Entity\Rencontre;
+use App\Entity\SemainePresence;
 use App\Entity\Utilisateur;
 use App\Repository\CategorieRepository;
 use App\Repository\CreneauEntrainementRepository;
@@ -40,7 +41,7 @@ class PlanningController extends AbstractController
     }
 
     #[Route('', name: 'app_planning', methods: ['GET'])]
-    public function index(Request $request, CategorieRepository $categories, CreneauEntrainementRepository $creneaux, JoueurRepository $joueurs, EnvoiConvocations $envoi, SeanceRepository $seances): Response
+    public function index(Request $request, CategorieRepository $categories, CreneauEntrainementRepository $creneaux, EnvoiConvocations $envoi, SeanceRepository $seances): Response
     {
         $proposees = $categories->findBy(['secteur' => $this->voter->secteursModifiables()], ['ordre' => 'ASC', 'nom' => 'ASC']);
         if (!$proposees) {
@@ -83,11 +84,14 @@ class PlanningController extends AbstractController
                 array_map(fn (Entrainement $e) => $e->getId(), $entrainements),
                 array_map(fn (Entrainement $e) => $e->isAnnule() ? $envoi->messageAnnulation($e) : null, $entrainements),
             ),
-            'joueurs' => $joueurs->findBy(['categorie' => $categorie, 'ancien' => false], ['nom' => 'ASC', 'prenom' => 'ASC']),
             'jours' => CreneauEntrainement::JOURS,
-            'motifs' => array_keys(AbsenceEntrainement::MOTIFS),
             'horizon' => PlanningEntrainements::HORIZON,
             'seances' => $seancesParDate,
+            'appels' => array_combine(
+                array_map(fn (Entrainement $e) => $e->getId(), $entrainements),
+                array_map(fn (Entrainement $e) => $e->isAnnule() ? [] : $this->planning->appel($e), $entrainements),
+            ),
+            'codes_absence' => SemainePresence::MOTIFS,
             'periodes' => $periodes,
             'periode' => $periode,
         ]);
@@ -152,6 +156,25 @@ class PlanningController extends AbstractController
         }
 
         return $this->retour($entrainement->getCategorie());
+    }
+
+    /** Feuille d'appel enregistrée : présents et absents reportés dans la grille des présences. */
+    #[Route('/entrainement/{id}/appel', name: 'app_planning_appel', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted(ActiviteVoter::GERER, 'entrainement')]
+    public function appel(Request $request, Entrainement $entrainement): Response
+    {
+        $p = $request->getPayload();
+        if (!$this->isCsrfTokenValid('appel' . $entrainement->getId(), $p->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        try {
+            $notes = $this->planning->enregistrerAppel($entrainement, array_map('strval', $p->all('choix')));
+            $this->addFlash('succes', \sprintf('Appel enregistré (%d joueur%s noté%2$s), reporté dans la grille des présences.', $notes, $notes > 1 ? 's' : ''));
+        } catch (\DomainException $e) {
+            $this->addFlash('erreur', $e->getMessage());
+        }
+
+        return $this->retour($entrainement->getCategorie(), 'entrainement-' . $entrainement->getId());
     }
 
     /** Absence notée par l'éducateur (prévenu par téléphone...), ou retirée. */

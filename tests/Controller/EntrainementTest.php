@@ -71,7 +71,7 @@ class EntrainementTest extends WebTestCase
         self::assertSelectorTextContains('.flash-succes', 'Mercredi 18:00-19:30');
         self::assertGreaterThanOrEqual(3, $crawler->filter('article.entrainement')->count());
         // Période plus longue : jusqu'au 30 juin, un mercredi par semaine.
-        $datesEducateur = $crawler->filter('article.entrainement strong')->each(fn ($n) => $n->text());
+        $datesEducateur = $crawler->filter('article.entrainement > .avec-actions > div > strong')->each(fn ($n) => $n->text());
         $troisSemaines = \count($datesEducateur);
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId() . '&periode=saison');
         $finSaison = new \DateTimeImmutable(((int) date('Y') + ((int) date('n') >= 7 ? 1 : 0)) . '-06-30');
@@ -118,9 +118,29 @@ class EntrainementTest extends WebTestCase
         // --- L'éducateur note Tom absent (scolaire) et annule le deuxième mercredi (famille prévenue par e-mail).
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
-        $article = $crawler->filter('#entrainement-' . $premier->getId());
-        $this->client->submit($article->selectButton('Noter')->form(), ['joueur' => (string) $tom->getId(), 'motif' => 'Scolaire']);
-        self::assertSame('Excusé', $this->grille($categorie, $premier, 'Tom'));
+        // Feuille d'appel : la famille de Léa la signale blessée ; l'éducateur note Tom présent.
+        $this->client->loginUser($parent);
+        $crawler = $this->client->request('GET', '/espace');
+        $this->client->submit($crawler->selectButton('Signaler l\'absence')->first()->form(), ['motif' => 'Blessé', 'commentaire' => 'Cheville']);
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
+        $appel = $crawler->filter('#entrainement-' . $premier->getId() . ' .appel');
+        self::assertStringContainsString('Cheville', $appel->text());
+        self::assertSame('Blessé', $appel->filter('select[name="choix[' . $lea->getId() . ']"] option[selected]')->attr('value'));
+        self::assertSame('', $appel->filter('select[name="choix[' . $tom->getId() . ']"]')->filter('option[selected]')->count() ? 'x' : '');
+        $this->client->submit($appel->selectButton('Enregistrer l\'appel')->form(), ['choix[' . $tom->getId() . ']' => 'present']);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'Appel enregistré (2 joueurs notés)');
+        self::assertSame((string) $categorie, $this->grille($categorie, $premier, 'Tom'));
+        self::assertSame('Blessé', $this->grille($categorie, $premier, 'Léa'));
+
+        // Léa finalement venue : notée présente, son absence signalée est retirée.
+        $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
+        $appel = $crawler->filter('#entrainement-' . $premier->getId() . ' .appel');
+        self::assertSame('present', $appel->filter('select[name="choix[' . $tom->getId() . ']"] option[selected]')->attr('value'));
+        $this->client->submit($appel->selectButton('Enregistrer l\'appel')->form(), ['choix[' . $lea->getId() . ']' => 'present']);
+        self::assertSame((string) $categorie, $this->grille($categorie, $premier, 'Léa'));
+        self::assertCount(0, $this->em()->getRepository(AbsenceEntrainement::class)->findBy(['joueur' => $lea->getId()]));
 
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
         $this->client->submit($crawler->filter('#entrainement-' . $deuxieme->getId())->selectButton('Annuler l\'entraînement')->form(), ['motif' => 'Terrain gelé']);
@@ -144,9 +164,8 @@ class EntrainementTest extends WebTestCase
         self::assertSelectorTextContains('.flash-succes', '1 famille prévenue');
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
         $this->client->submit($crawler->filter('#entrainement-' . $deuxieme->getId())->selectButton('Annuler l\'entraînement')->form(), ['motif' => 'Terrain gelé']);
-        $this->client->loginUser($parent);
 
-        // --- Créneau déplacé à 17:00 : le mercredi avec une absence garde sa date, prend le nouvel horaire.
+        // --- Créneau déplacé à 17:00 : le mercredi annulé est conservé (avec son annulation), au nouvel horaire.
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
         $this->client->submit($crawler->filter('form.ligne-creneau')->first()->form(), ['heureDebut' => '17:00']);
@@ -154,7 +173,8 @@ class EntrainementTest extends WebTestCase
         $this->em()->clear();
         $apres = $this->entrainements($categorie);
         self::assertSame(['17:00'], array_values(array_unique(array_map(fn (Entrainement $e) => $e->getHeureDebut(), $apres))));
-        self::assertNotNull($this->em()->find(Entrainement::class, $premier->getId()), 'entraînement avec absence conservé');
+        self::assertTrue($this->em()->find(Entrainement::class, $deuxieme->getId())?->isAnnule(), 'entraînement annulé conservé');
+        self::assertSame((string) $categorie, $this->grille($categorie, $premier, 'Tom'), 'l\'appel reste dans la grille');
 
         // --- Créneau supprimé : plus d'entraînements à venir.
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());

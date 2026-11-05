@@ -123,6 +123,113 @@ class PlanningEntrainements
     }
 
     /**
+     * Feuille d'appel d'un entraînement : chaque joueur actif de la catégorie (plus ceux qui ont une absence
+     * signalée), son choix actuel et l'absence signalée par la famille. Choix : « present », un code d'absence
+     * de la grille (SemainePresence::MOTIFS), ou '' (pas encore noté). Sans rien dans la grille, une absence
+     * signalée est proposée d'office.
+     *
+     * @return list<array{joueur: Joueur, choix: string, absence: ?AbsenceEntrainement}>
+     */
+    public function appel(Entrainement $e): array
+    {
+        $cle = $e->getCreneauGrille();
+        $grille = [];
+        if ($cle && $semaine = $this->semaine($e, false)) {
+            foreach ($semaine->getPresences() as $p) {
+                $grille[$p->getJoueur()->getId()] = $p->getCreneau($cle);
+            }
+        }
+        $joueurs = [];
+        foreach ($this->joueurs->findBy(['categorie' => $e->getCategorie(), 'ancien' => false]) as $j) {
+            $joueurs[$j->getId()] = $j;
+        }
+        foreach ($e->getAbsences() as $a) {
+            $joueurs[$a->getJoueur()->getId()] = $a->getJoueur();
+        }
+        uasort($joueurs, fn (Joueur $a, Joueur $b) => [$a->getNom(), $a->getPrenom()] <=> [$b->getNom(), $b->getPrenom()]);
+
+        $lignes = [];
+        foreach ($joueurs as $id => $j) {
+            $valeur = $grille[$id] ?? null;
+            $absence = $e->absenceDe($j);
+            $choix = match (true) {
+                null === $valeur || '' === $valeur => $absence?->getCodeGrille() ?? '',
+                isset(SemainePresence::MOTIFS[$valeur]) => $valeur,
+                default => 'present',
+            };
+            $lignes[] = ['joueur' => $j, 'choix' => $choix, 'absence' => $absence];
+        }
+
+        return $lignes;
+    }
+
+    /**
+     * Enregistre l'appel dans la grille des présences de la semaine (créée si besoin) :
+     * présent = nom de l'équipe, absent = code du motif, '' = case vidée. Un joueur noté présent
+     * alors que sa famille l'avait dit absent : l'absence signalée est retirée.
+     *
+     * @param array<int, string> $choix id du joueur => choix
+     *
+     * @return int joueurs notés (présents ou absents)
+     */
+    public function enregistrerAppel(Entrainement $e, array $choix): int
+    {
+        $cle = $e->getCreneauGrille() ?? throw new \DomainException('La grille des présences n\'a pas de case pour le dimanche.');
+        $semaine = $this->semaine($e, true);
+        $notes = 0;
+        foreach ($this->appel($e) as ['joueur' => $j, 'absence' => $absence]) {
+            $c = (string) ($choix[$j->getId()] ?? '');
+            if ('present' !== $c && '' !== $c && !isset(SemainePresence::MOTIFS[$c])) {
+                continue;
+            }
+            $presence = $this->presence($semaine, $j, $e);
+            $creneaux = $presence->getCreneaux();
+            if ('' === $c) {
+                unset($creneaux[$cle]);
+            } else {
+                $creneaux[$cle] = 'present' === $c ? (string) $e->getCategorie() : $c;
+                ++$notes;
+            }
+            $presence->setCreneaux($creneaux);
+            if ('present' === $c && $absence) {
+                $e->retirerAbsence($absence);
+            }
+        }
+        $this->em->flush();
+
+        return $notes;
+    }
+
+    /** Semaine de présences de l'entraînement ; créée avec l'effectif de la catégorie si $creer. */
+    private function semaine(Entrainement $e, bool $creer): ?SemainePresence
+    {
+        $lundi = $e->getDate()->modify('monday this week');
+        $semaine = $this->semaines->findOneBy(['categorie' => $e->getCategorie(), 'lundi' => $lundi]);
+        if (!$semaine && $creer) {
+            $semaine = (new SemainePresence())->setLundi($lundi)->setCategorie($e->getCategorie())->setClub($e->getClub());
+            foreach ($this->joueurs->findBy(['categorie' => $e->getCategorie(), 'ancien' => false], ['nom' => 'ASC']) as $j) {
+                $semaine->addPresence((new Presence())->setJoueur($j)->setClub($e->getClub()));
+            }
+            $this->em->persist($semaine);
+        }
+
+        return $semaine;
+    }
+
+    /** Ligne du joueur dans la semaine, ajoutée si besoin. */
+    private function presence(SemainePresence $semaine, Joueur $joueur, Entrainement $e): Presence
+    {
+        foreach ($semaine->getPresences() as $p) {
+            if ($p->getJoueur() === $joueur) {
+                return $p;
+            }
+        }
+        $semaine->addPresence($p = (new Presence())->setJoueur($joueur)->setClub($e->getClub()));
+
+        return $p;
+    }
+
+    /**
      * Grille des présences de la semaine : la case du créneau prend le code d'absence ($code),
      * ou est vidée ($code null) si elle contient encore $ancienCode. Une case où l'éducateur a noté
      * le joueur présent (nom d'équipe) n'est jamais écrasée. Semaine créée si besoin, avec l'effectif.
@@ -133,30 +240,11 @@ class PlanningEntrainements
         if (!$cle) {
             return;
         }
-        $lundi = $e->getDate()->modify('monday this week');
-        $semaine = $this->semaines->findOneBy(['categorie' => $e->getCategorie(), 'lundi' => $lundi]);
+        $semaine = $this->semaine($e, null !== $code);
         if (!$semaine) {
-            if (null === $code) {
-                return;
-            }
-            $semaine = (new SemainePresence())->setLundi($lundi)->setCategorie($e->getCategorie())->setClub($e->getClub());
-            foreach ($this->joueurs->findBy(['categorie' => $e->getCategorie(), 'ancien' => false], ['nom' => 'ASC']) as $j) {
-                $semaine->addPresence((new Presence())->setJoueur($j)->setClub($e->getClub()));
-            }
-            $this->em->persist($semaine);
+            return;
         }
-        $presence = null;
-        foreach ($semaine->getPresences() as $p) {
-            if ($p->getJoueur() === $joueur) {
-                $presence = $p;
-            }
-        }
-        if (!$presence) {
-            if (null === $code) {
-                return;
-            }
-            $semaine->addPresence($presence = (new Presence())->setJoueur($joueur)->setClub($e->getClub()));
-        }
+        $presence = $this->presence($semaine, $joueur, $e);
 
         $actuel = $presence->getCreneau($cle);
         $creneaux = $presence->getCreneaux();

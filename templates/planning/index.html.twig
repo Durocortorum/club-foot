@@ -106,33 +106,55 @@
                         <a class="bouton petit" href="https://wa.me/?text={{ message|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
                     </div>
                 {% else %}
-                    {% if absences %}
-                        <ul class="liste-simple petit">
-                            {% for a in absences %}
-                                <li class="avec-actions">
-                                    <span><strong>{{ a.joueur.nom }}</strong> {{ a.joueur.prenom }} · {{ a.motif }}{% if a.commentaire %} <span class="discret">({{ a.commentaire }})</span>{% endif %}
-                                        <span class="discret">— {{ a.declareePar }}, le {{ a.declareeLe|date('d/m à H:i') }}</span></span>
-                                    <form method="post" action="{{ path('app_planning_absence', {id: e.id}) }}" class="en-ligne">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('absence' ~ e.id) }}"><input type="hidden" name="periode" value="{{ periode }}">
-                                        <input type="hidden" name="joueur" value="{{ a.joueur.id }}">
-                                        <input type="hidden" name="retirer" value="1">
-                                        <button class="bouton petit" title="Finalement présent">Retirer</button>
-                                    </form>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                    <details class="petit">
-                        <summary>Noter une absence</summary>
-                        <form method="post" action="{{ path('app_planning_absence', {id: e.id}) }}" class="reponse-convoque">
-                            <input type="hidden" name="_token" value="{{ csrf_token('absence' ~ e.id) }}"><input type="hidden" name="periode" value="{{ periode }}">
-                            <select name="joueur" aria-label="Joueur">
-                                {% for j in joueurs %}<option value="{{ j.id }}">{{ j.nom }} {{ j.prenom }}</option>{% endfor %}
-                            </select>
-                            <select name="motif" aria-label="Motif">{% for mo in motifs %}<option>{{ mo }}</option>{% endfor %}</select>
-                            <input type="text" name="commentaire" placeholder="Précision (facultatif)" maxlength="120" aria-label="Précision">
-                            <button class="bouton petit">Noter</button>
-                        </form>
+                    {# Feuille d'appel : tous les joueurs ; absences signalées par les familles déjà choisies. #}
+                    {% set lignes = appels[e.id] %}
+                    {% set nb_presents = lignes|filter(l => l.choix == 'present')|length %}
+                    {% set nb_absents = lignes|filter(l => l.choix != 'present' and l.choix != '')|length %}
+                    {% set nb_attente = lignes|length - nb_presents - nb_absents %}
+                    <details class="appel" {{ e.date|date('Y-m-d') == 'now'|date('Y-m-d') ? 'open' }}>
+                        <summary>
+                            Feuille d'appel
+                            <span class="pastille succes">{{ nb_presents }} présent{{ nb_presents > 1 ? 's' }}</span>
+                            <span class="pastille alerte">{{ nb_absents }} absent{{ nb_absents > 1 ? 's' }}</span>
+                            <span class="pastille">{{ nb_attente }} à noter</span>
+                        </summary>
+                        {% if e.creneauGrille is null %}
+                            <p class="discret petit">Le dimanche n'existe pas dans la grille des présences : l'appel ne peut pas y être reporté.</p>
+                        {% else %}
+                            <form method="post" action="{{ path('app_planning_appel', {id: e.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('appel' ~ e.id) }}"><input type="hidden" name="periode" value="{{ periode }}">
+                                <table class="liste appel-joueurs">
+                                    <thead><tr><th>Joueur</th><th>Prévenu par la famille</th><th>Appel</th></tr></thead>
+                                    <tbody>
+                                        {% for l in lignes %}
+                                            {% set a = l.absence %}
+                                            <tr>
+                                                <td class="nowrap"><strong>{{ l.joueur.nom }}</strong> {{ l.joueur.prenom }}</td>
+                                                <td class="petit">
+                                                    {% if a %}
+                                                        <span class="pastille alerte">{{ a.motif }}</span>{% if a.commentaire %} {{ a.commentaire }}{% endif %}
+                                                        <span class="discret">— {{ a.declareePar }}, le {{ a.declareeLe|date('d/m à H:i') }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <select name="choix[{{ l.joueur.id }}]" class="choix-appel {{ l.choix == 'present' ? 'present' : (l.choix ? 'absence' : 'vide') }}" aria-label="Appel pour {{ l.joueur.prenom }}">
+                                                        <option value="">— à noter —</option>
+                                                        <option value="present" {{ l.choix == 'present' ? 'selected' }}>✓ Présent</option>
+                                                        {% for code, libelle in codes_absence %}
+                                                            <option value="{{ code }}" {{ l.choix == code ? 'selected' }}>{{ libelle }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                <div class="actions-ligne">
+                                    <button type="button" class="bouton petit" onclick="this.form.querySelectorAll('select.choix-appel').forEach((s) => { if (s.value === '') s.value = 'present'; })">Tous les autres présents</button>
+                                    <button class="bouton petit principal">Enregistrer l'appel</button>
+                                </div>
+                            </form>
+                        {% endif %}
                     </details>
                 {% endif %}
             </article>
