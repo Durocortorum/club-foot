@@ -163,15 +163,22 @@ class RencontreController extends AbstractController
         ]);
         $form->handleRequest($request);
 
+        $nouveau = null === $rencontre->getId();
         if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($rencontre);
             $em->flush();
+            if ($nouveau && 'convocation' === $request->getPayload()->getString('suite')) {
+                $this->addFlash('succes', 'Match enregistré. Choisissez maintenant les joueurs convoqués.');
+
+                return $this->redirectToRoute('app_convocation', ['id' => $rencontre->getId()]);
+            }
             $this->addFlash('succes', 'Match enregistré.');
 
             return $this->redirectToRoute('app_rencontre_voir', ['id' => $rencontre->getId()]);
         }
 
         return $this->render('rencontre/formulaire.html.twig', [
+            'nouveau' => $nouveau,
             'rencontre' => $rencontre,
             'form' => $form,
             'titre' => $titre,

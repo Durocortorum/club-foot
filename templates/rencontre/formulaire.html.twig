@@ -52,7 +52,7 @@
                     {{ form_label(form.cote) }}
                     <div class="choix-cote">{{ form_widget(form.cote) }}</div>
                 </div>
-                {% for nom in ['club', 'adversaire'] %}
+                {% for nom in ['club', 'adversaire', 'lieu'] %}
                     <div class="champ">{{ form_label(form[nom]) }}{{ form_widget(form[nom]) }}{{ form_errors(form[nom]) }}</div>
                 {% endfor %}
             </div>
@@ -61,7 +61,7 @@
             {% for champ in [form.butsDomicileMiTemps, form.butsExterieurMiTemps, form.butsDomicile, form.butsExterieur] %}
                 {{ form_widget(champ, {type: 'hidden'}) }}
             {% endfor %}
-            <div class="tableau-score" aria-live="polite">
+            <div class="tableau-score" aria-live="polite" {{ nouveau ? 'hidden' }}>
                 <span class="equipe" data-score-target="nomDom">{{ rencontre.domicile }}</span>
                 <span class="score-final">
                     <span data-score-target="affFinDom">{{ rencontre.butsDomicile ?? 0 }}</span><span class="tiret">–</span><span data-score-target="affFinExt">{{ rencontre.butsExterieur ?? 0 }}</span>
@@ -78,9 +78,12 @@
             </div>
         </fieldset>
 
+        {# Nouveau match : d'abord les informations du match et la convocation ; le reste se remplit
+           ensuite, avec « Modifier ». Les blocs restent dans la page (masqués) pour feuille_controller.js. #}
+        <div {{ nouveau ? 'hidden' }}>
         <fieldset class="carte">
             <legend>Conditions</legend>
-            {{ m.groupe(form, ['lieu', 'terrain', 'meteo', 'vent', 'temperature', 'systeme']) }}
+            {{ m.groupe(form, ['terrain', 'meteo', 'vent', 'temperature', 'systeme']) }}
         </fieldset>
 
         <fieldset class="carte">
@@ -115,10 +118,17 @@
             </p>
             {{ s.collection(form.remplacements, ['Min.', 'Sort', 'Entre', 'Motif'], ['minute', 'sortant', 'entrant', 'motif'], '+ Ajouter un remplacement') }}
         </fieldset>
+        </div>
 
         {{ form_rest(form) }}
         <div class="barre-actions">
-            <button type="submit" class="bouton principal">Enregistrer le match</button>
+            {% if nouveau %}
+                <button type="submit" class="bouton principal" name="suite" value="convocation">Enregistrer et convoquer</button>
+                <button type="submit" class="bouton">Enregistrer sans convoquer</button>
+                <p class="discret petit">Score, conditions, rapport et feuille de match se remplissent ensuite, avec « Modifier » sur la page du match.</p>
+            {% else %}
+                <button type="submit" class="bouton principal">Enregistrer le match</button>
+            {% endif %}
         </div>
     {{ form_end(form) }}
 {% endblock %}

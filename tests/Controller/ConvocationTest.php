@@ -158,6 +158,36 @@ class ConvocationTest extends WebTestCase
         self::assertNull($em->getRepository(Convocation::class)->findOneBy(['rencontre' => $rencontre->getId()]));
     }
 
+    /** Nouveau match : seulement le bloc « Match » (stade compris), puis directement la convocation. */
+    public function testNouveauMatchPuisConvocation(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Coach');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $categorie = $this->em()->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', '/matchs/nouveau');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('fieldset:first-of-type [name="rencontre[lieu]"]');
+        self::assertSelectorExists('div[hidden] [name="rencontre[terrain]"]');
+
+        $form = $crawler->selectButton('Enregistrer et convoquer')->form([
+            'rencontre[date]' => (new \DateTimeImmutable('+5 days'))->format('Y-m-d'),
+            'rencontre[heure]' => '14h30',
+            'rencontre[categorie]' => (string) $categorie->getId(),
+            'rencontre[adversaire]' => 'SEDAN',
+            'rencontre[lieu]' => 'Stade du château',
+        ]);
+        $this->client->submit($form);
+        $rencontre = $this->em()->getRepository(Rencontre::class)->findOneBy(['club' => $club]);
+        self::assertResponseRedirects('/matchs/' . $rencontre->getId() . '/convocation');
+        $this->client->followRedirect();
+        self::assertInputValueSame('form[rdvLieu]', 'Stade du château');
+    }
+
     private function joueur(Club $club, Categorie $categorie, string $prenom): Joueur
     {
         $joueur = (new Joueur())->setClub($club)->setCategorie($categorie)->setNom('Martin')->setPrenom($prenom);

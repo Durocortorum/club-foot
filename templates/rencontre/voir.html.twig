@@ -16,6 +16,7 @@
             <p class="discret">
                 {{ rencontre.equipeAffichee }} · {{ rencontre.competition ?? 'Match' }}
                 · {{ rencontre.date ? rencontre.date|date('d/m/Y') : 'date inconnue' }}{% if rencontre.heure %} à {{ rencontre.heure }}{% endif %}
+                {% if rencontre.lieu %}· {{ rencontre.lieu }}{% endif %}
             </p>
             <h1 class="affiche">
                 <span>{{ rencontre.domicile }}</span>
@@ -55,7 +56,6 @@
         <section class="carte">
             <h2>Conditions</h2>
             <dl>
-                {{ m.ligne('Stade', rencontre.lieu) }}
                 {{ m.ligne('Terrain', rencontre.terrain) }}
                 {{ m.ligne('Météo', rencontre.meteo) }}
                 {{ m.ligne('Vent', rencontre.vent) }}
