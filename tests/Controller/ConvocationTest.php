@@ -186,6 +186,30 @@ class ConvocationTest extends WebTestCase
         self::assertResponseRedirects('/matchs/' . $rencontre->getId() . '/convocation');
         $this->client->followRedirect();
         self::assertInputValueSame('form[rdvLieu]', 'Stade du château');
+
+        // Pas encore joué : pas de score, le match ne compte pas dans le bilan.
+        self::assertNull($rencontre->getButsDomicile());
+        $this->client->request('GET', '/matchs');
+        self::assertSelectorNotExists('.tuile'); // bilan masqué : aucun match joué
+
+        // Modifié sans cocher « Match joué » (score 0 – 0 envoyé par la page) : toujours pas de score.
+        $crawler = $this->client->request('GET', '/matchs/' . $rencontre->getId() . '/modifier');
+        self::assertCheckboxNotChecked('rencontre[joue]');
+        $form = $crawler->selectButton('Enregistrer le match')->form();
+        $form['rencontre[butsDomicile]'] = '0';
+        $form['rencontre[butsExterieur]'] = '0';
+        $this->client->submit($form);
+        $this->em()->clear();
+        self::assertNull($this->em()->find(Rencontre::class, $rencontre->getId())->getButsDomicile());
+
+        // Case cochée : 0 – 0, un nul.
+        $form = $this->client->request('GET', '/matchs/' . $rencontre->getId() . '/modifier')->selectButton('Enregistrer le match')->form();
+        $form['rencontre[joue]']->tick();
+        $form['rencontre[butsDomicile]'] = '0';
+        $form['rencontre[butsExterieur]'] = '0';
+        $this->client->submit($form);
+        $this->em()->clear();
+        self::assertSame('N', $this->em()->find(Rencontre::class, $rencontre->getId())->getResultat());
     }
 
     private function joueur(Club $club, Categorie $categorie, string $prenom): Joueur

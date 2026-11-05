@@ -8,6 +8,7 @@ use App\Repository\CategorieRepository;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -116,6 +117,13 @@ class RencontreType extends AbstractType
                 'attr' => ['class' => 'majuscules', 'data-score-target' => $cible, 'maxlength' => 255],
             ];
             $event->getForm()
+                // Tant que le match n'est pas joué, il n'a pas de score : il ne compte ni dans le bilan ni comme un nul.
+                ->add('joue', CheckboxType::class, [
+                    'mapped' => false,
+                    'required' => false,
+                    'label' => 'Match joué : le score compte dans le bilan et les statistiques',
+                    'data' => null !== $r?->getButsDomicile() || null !== $r?->getButsExterieur(),
+                ])
                 ->add('cote', ChoiceType::class, [
                     'mapped' => false,
                     'label' => 'Le club joue',
@@ -138,6 +146,11 @@ class RencontreType extends AbstractType
             $adversaire = mb_strtoupper(trim((string) $form->get('adversaire')->getData()));
             [$domicile, $exterieur] = 'exterieur' === $form->get('cote')->getData() ? [$adversaire, $club] : [$club, $adversaire];
             $r->setDomicile($domicile ?: null)->setExterieur($exterieur ?: null);
+
+            // Pas joué (case décochée et aucun but saisi) : pas de score, même 0 – 0.
+            if (!$form->get('joue')->getData() && $r->getButs()->isEmpty()) {
+                $r->setButsDomicile(null)->setButsExterieur(null)->setButsDomicileMiTemps(null)->setButsExterieurMiTemps(null);
+            }
         });
     }
 

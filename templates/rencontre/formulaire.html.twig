@@ -61,6 +61,12 @@
             {% for champ in [form.butsDomicileMiTemps, form.butsExterieurMiTemps, form.butsDomicile, form.butsExterieur] %}
                 {{ form_widget(champ, {type: 'hidden'}) }}
             {% endfor %}
+            {% if nouveau %}
+                {% do form.joue.setRendered %}
+            {% else %}
+                <div class="champ case match-joue">{{ form_label(form.joue) }}{{ form_widget(form.joue) }}</div>
+                <p class="discret petit">Le score vient des buts saisis plus bas. Un match avec des buts compte forcément ; sans but, cochez la case pour un 0 – 0.</p>
+            {% endif %}
             <div class="tableau-score" aria-live="polite" {{ nouveau ? 'hidden' }}>
                 <span class="equipe" data-score-target="nomDom">{{ rencontre.domicile }}</span>
                 <span class="score-final">

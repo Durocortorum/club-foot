@@ -585,3 +585,4 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .reponse-convoque input[type="text"] { width: 11rem; }
 .reponses-famille { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .6rem; }
 .convocation-famille + .convocation-famille { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--bordure); }
+.match-joue { margin-top: .9rem; }
