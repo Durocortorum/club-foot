@@ -80,12 +80,13 @@ class EnvoiConvocations
     public function messageGroupe(Convocation $convocation): string
     {
         $r = $convocation->getRencontre();
+        // Pas d'émoji : certaines versions de WhatsApp les affichent en « � » dans un message prérempli.
         $lignes = [
-            \sprintf('📣 Convocation %s – %s', $r->getEquipeAffichee(), $r->getAdversaire()),
-            \sprintf('📅 %s %s%s', self::JOURS[(int) $r->getDate()->format('w')], $r->getDate()->format('d/m'), $r->getHeure() ? ' à ' . $r->getHeure() : ''),
+            \sprintf('CONVOCATION %s – %s', $r->getEquipeAffichee(), $r->getAdversaire()),
+            \sprintf('Match : %s %s%s%s', self::JOURS[(int) $r->getDate()->format('w')], $r->getDate()->format('d/m'), $r->getHeure() ? ' à ' . $r->getHeure() : '', $r->getLieu() ? ', ' . $r->getLieu() : ''),
         ];
         if ($convocation->getRdvHeure() || $convocation->getRdvLieu()) {
-            $lignes[] = '📍 Rendez-vous ' . trim(($convocation->getRdvHeure() ? 'à ' . $convocation->getRdvHeure() : '') . ($convocation->getRdvLieu() ? ' – ' . $convocation->getRdvLieu() : ''), ' –');
+            $lignes[] = 'Rendez-vous : ' . trim(($convocation->getRdvHeure() ? $convocation->getRdvHeure() : '') . ($convocation->getRdvLieu() ? ', ' . $convocation->getRdvLieu() : ''), ' ,');
         }
         if ($convocation->getMessage()) {
             $lignes[] = $convocation->getMessage();
