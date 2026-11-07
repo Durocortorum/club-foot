@@ -3,14 +3,21 @@
 {% block title %}Droits d'accès{% endblock %}
 
 {% block body %}
+    {# Libellés des niveaux : droit simple (non / oui) et section à deux niveaux (aucun / voir / modifier). #}
+    {% set textes_simples = ['—', '✓'] %}
+    {% set textes_niveaux = ['—', 'voir', 'modifier'] %}
+    {% set classes = ['non', 'lecture', 'oui'] %}
+
     <div class="titre-page">
         <h1>Droits d'accès <span class="compteur">{{ utilisateurs|length }}</span></h1>
         <a class="bouton" href="{{ path('app_utilisateur_index') }}">← Liste des comptes</a>
     </div>
 
     <p class="discret petit">
-        Cliquez sur une case pour donner ou retirer un accès : c'est enregistré tout de suite.
-        Un administrateur a automatiquement tous les accès. Passez la souris sur un titre de colonne pour voir ce qu'il ouvre (détail sous le tableau).
+        Cliquez sur une case pour changer l'accès : c'est enregistré tout de suite.
+        Pour Infirmerie, Visite médicale, Scolarité et Tests physiques, chaque clic passe à l'étape suivante :
+        <strong>—</strong> (aucun accès) → <strong>voir</strong> (consultation seule) → <strong>modifier</strong> (consultation et saisie) → <strong>—</strong>.
+        Un administrateur a automatiquement tous les accès. Le détail de chaque colonne est sous le tableau.
     </p>
 
     <div data-controller="droits">
@@ -20,8 +27,8 @@
             <thead>
                 <tr>
                     <th class="droits-nom">Compte</th>
-                    {% for role, libelle in roles %}
-                        <th title="{{ descriptions[role] }}">{{ libelle|replace({' (paramètres)': ''}) }}</th>
+                    {% for c in colonnes %}
+                        <th title="{{ c.description }}">{{ c.libelle }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -33,22 +40,26 @@
                             <strong>{{ u.nom }}</strong> {{ u.prenom }}{% if u == app.user %} <span class="pastille">vous</span>{% endif %}
                             {% if not u.password %}<br><span class="pastille alerte" title="Ce compte ne peut pas encore se connecter">pas de mot de passe</span>{% endif %}
                         </td>
-                        {% for role, libelle in roles %}
-                            {% set a = role in u.rolesAttribues %}
-                            {% set inclus = admin and role != 'ROLE_ADMIN' %}
-                            {% set verrou = role == 'ROLE_ADMIN' and u == app.user %}
+                        {% for c in colonnes %}
+                            {% set n = c.niveaux ? u.niveau(c.cle) : (c.cle in u.rolesAttribues ? 1 : 0) %}
+                            {% set max = c.niveaux ? 2 : 1 %}
+                            {% set inclus = admin and c.cle != 'ROLE_ADMIN' %}
+                            {% set verrou = c.cle == 'ROLE_ADMIN' and u == app.user %}
+                            {% set texte = c.niveaux ? textes_niveaux[n] : textes_simples[n] %}
                             <td class="droits-case">
                                 <form method="post" action="{{ path('app_utilisateur_droit', {id: u.id}) }}" data-action="droits#basculer">
                                     <input type="hidden" name="_token" value="{{ csrf_token('droits-utilisateurs') }}">
-                                    <input type="hidden" name="role" value="{{ role }}">
-                                    <input type="hidden" name="actif" value="{{ a ? '0' : '1' }}">
-                                    <button type="submit" class="interrupteur {{ inclus ? 'inclus' : (a ? 'oui' : 'non') }}"
-                                            data-role="{{ role }}" {% if verrou %}data-verrou{% endif %}
+                                    <input type="hidden" name="droit" value="{{ c.cle }}">
+                                    {# Niveau suivant, envoyé au clic : 0 → 1 (→ 2) → 0. #}
+                                    <input type="hidden" name="niveau" value="{{ n >= max ? 0 : n + 1 }}">
+                                    <button type="submit" class="interrupteur {{ inclus ? 'inclus' : (n == max ? 'oui' : classes[n]) }}"
+                                            data-cle="{{ c.cle }}"
+                                            {% if c.niveaux %}data-lecture="{{ c.niveaux.lecture }}" data-modif="{{ c.niveaux.modif }}"{% endif %}
+                                            {% if verrou %}data-verrou{% endif %}
                                             {% if inclus or verrou %}disabled{% endif %}
-                                            aria-pressed="{{ a or inclus ? 'true' : 'false' }}"
-                                            aria-label="{{ libelle }} pour {{ u }}"
-                                            title="{{ verrou ? 'Vous ne pouvez pas retirer votre propre administration' : (inclus ? 'Inclus dans l\'administration' : libelle) }}">
-                                        {{ inclus ? 'inclus' : (a ? '✓' : '—') }}
+                                            aria-label="{{ c.libelle }} pour {{ u }}"
+                                            title="{{ verrou ? 'Vous ne pouvez pas retirer votre propre administration' : (inclus ? 'Inclus dans l\'administration' : c.libelle) }}">
+                                        {{ inclus ? 'inclus' : texte }}
                                     </button>
                                 </form>
                             </td>
@@ -62,9 +73,9 @@
 
     <h2 class="droits-legende-titre">Ce que chaque accès ouvre</h2>
     <dl class="droits-legende">
-        {% for role, libelle in roles %}
-            <dt>{{ libelle }}</dt>
-            <dd>{{ descriptions[role] }}</dd>
+        {% for c in colonnes %}
+            <dt>{{ c.libelle }}</dt>
+            <dd>{{ c.description }}{% if c.niveaux %} <em>« voir » : consultation seule ; « modifier » : consultation et saisie.</em>{% endif %}</dd>
         {% endfor %}
         <dt>Tous les comptes</dt>
         <dd>Accueil, joueurs, encadrement, matchs, statistiques, présences, entraînements et archives ; chacun ne modifie que ce que ses accès lui permettent.</dd>

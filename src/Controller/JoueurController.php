@@ -130,17 +130,17 @@ class JoueurController extends AbstractController
         AccesFamille $acces,
     ): Response {
         $matchs = $participations->parJoueur($joueur);
-        $scolaire = $this->isGranted('ROLE_SCOLAIRE');
+        $scolaire = $this->isGranted('ROLE_SCOLAIRE_LECTURE');
 
         return $this->render('joueur/voir.html.twig', [
             'joueur' => $joueur,
             'matchs' => \array_slice($matchs, 0, 10),
             'bilan' => $bilan->parSaison($joueur, $matchs),
             'presences' => $presences->bilanParSaison($joueur),
-            'blessures' => $this->isGranted('ROLE_INFIRMERIE') ? $blessures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
-            // Visite médicale (poids, taille...) : données de santé, réservées à l'infirmerie.
-            'mesures' => $this->isGranted('ROLE_INFIRMERIE') ? $mesures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
-            'tests' => $tests->findBy(['joueur' => $joueur], ['date' => 'DESC']),
+            'blessures' => $this->isGranted('ROLE_INFIRMERIE_LECTURE') ? $blessures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
+            // Visite médicale (poids, taille...) : données de santé, droit « Visite médicale ».
+            'mesures' => $this->isGranted('ROLE_VISITE_MEDICALE_LECTURE') ? $mesures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
+            'tests' => $this->isGranted('ROLE_TESTS_PHYSIQUES_LECTURE') ? $tests->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
             'bulletins' => $scolaire ? $bulletins->findBy(['joueur' => $joueur], ['saison' => 'DESC', 'id' => 'DESC']) : [],
             // Les sanctions sont utiles aux éducateurs du joueur (suspensions), pas seulement au suivi scolaire.
             'sanctions' => $scolaire || $this->isGranted(JoueurVoter::MODIFIER, $joueur) ? $sanctions->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],

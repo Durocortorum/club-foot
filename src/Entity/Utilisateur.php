@@ -22,7 +22,10 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
 {
     use ClubTrait;
 
-    /** Rôles attribuables, avec leur libellé. */
+    /**
+     * Rôles attribuables, avec leur libellé. Pour les sections à deux niveaux (voir SECTIONS),
+     * ROLE_X donne la modification et inclut ROLE_X_LECTURE (hiérarchie dans security.yaml).
+     */
     public const ROLES = [
         'ROLE_ADMIN' => 'Administration (paramètres)',
         'ROLE_ECOLE_FOOT' => 'École de foot',
@@ -30,12 +33,26 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         'ROLE_FORMATION' => 'Formation',
         'ROLE_ELITE' => 'Élite',
         'ROLE_PRO' => 'Pro',
-        'ROLE_INFIRMERIE' => 'Infirmerie',
+        'ROLE_INFIRMERIE_LECTURE' => 'Infirmerie (voir)',
+        'ROLE_INFIRMERIE' => 'Infirmerie (modifier)',
+        'ROLE_VISITE_MEDICALE_LECTURE' => 'Visite médicale (voir)',
+        'ROLE_VISITE_MEDICALE' => 'Visite médicale (modifier)',
+        'ROLE_SCOLAIRE_LECTURE' => 'Scolarité (voir)',
+        'ROLE_SCOLAIRE' => 'Scolarité (modifier)',
+        'ROLE_TESTS_PHYSIQUES_LECTURE' => 'Tests physiques (voir)',
+        'ROLE_TESTS_PHYSIQUES' => 'Tests physiques (modifier)',
         'ROLE_RAPPORT_MATCH' => 'Rapports de match',
-        'ROLE_SCOLAIRE' => 'Scolaire',
     ];
 
-    /** Ce que chaque droit ouvre, affiché sur le tableau des droits d'accès. */
+    /** Sections à deux niveaux d'accès : rôle « voir » et rôle « modifier ». */
+    public const SECTIONS = [
+        'infirmerie' => ['libelle' => 'Infirmerie', 'lecture' => 'ROLE_INFIRMERIE_LECTURE', 'modif' => 'ROLE_INFIRMERIE'],
+        'visite_medicale' => ['libelle' => 'Visite médicale', 'lecture' => 'ROLE_VISITE_MEDICALE_LECTURE', 'modif' => 'ROLE_VISITE_MEDICALE'],
+        'scolarite' => ['libelle' => 'Scolarité', 'lecture' => 'ROLE_SCOLAIRE_LECTURE', 'modif' => 'ROLE_SCOLAIRE'],
+        'tests_physiques' => ['libelle' => 'Tests physiques', 'lecture' => 'ROLE_TESTS_PHYSIQUES_LECTURE', 'modif' => 'ROLE_TESTS_PHYSIQUES'],
+    ];
+
+    /** Ce que chaque droit (ou section) ouvre, affiché sur le tableau des droits d'accès. */
     public const DESCRIPTIONS_ROLES = [
         'ROLE_ADMIN' => 'Utilisateurs, catégories, apparence du club. Donne aussi tous les autres droits.',
         'ROLE_ECOLE_FOOT' => 'Modifier joueurs, matchs et présences de l\'École de foot ; Recrutement.',
@@ -43,9 +60,11 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         'ROLE_FORMATION' => 'Modifier joueurs, matchs et présences de la Formation ; Recrutement.',
         'ROLE_ELITE' => 'Modifier joueurs, matchs et présences de l\'Élite ; Recrutement.',
         'ROLE_PRO' => 'Modifier joueurs, matchs et présences des Pros ; Recrutement.',
-        'ROLE_INFIRMERIE' => 'Page Infirmerie : blessures, contacts médicaux, pour tous les joueurs.',
+        'infirmerie' => 'Page Infirmerie : blessures, contacts médicaux, renseignements médicaux de la fiche, pour tous les joueurs.',
+        'visite_medicale' => 'Bloc Visite médicale de la fiche joueur : poids, taille, IMC, pointure.',
+        'scolarite' => 'Page Scolarité : bulletins, discipline et sanctions.',
+        'tests_physiques' => 'Bloc Tests physiques de la fiche joueur (VMA, sprints, détente…). Modifier : pour les joueurs de ses secteurs, ou tous avec l\'Infirmerie.',
         'ROLE_RAPPORT_MATCH' => 'Rédiger les rapports de tous les matchs, quel que soit le secteur.',
-        'ROLE_SCOLAIRE' => 'Page Scolarité : bulletins, discipline et sanctions.',
     ];
 
     #[ORM\Id]
@@ -192,6 +211,44 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
     public function getLibellesRoles(): array
     {
         return array_map(fn (string $r) => self::ROLES[$r], $this->getRolesAttribues());
+    }
+
+    /**
+     * Colonnes du tableau des droits, dans l'ordre : droits simples (oui / non) et sections à deux niveaux.
+     *
+     * @return list<array{cle: string, libelle: string, description: string, niveaux: ?array{lecture: string, modif: string}}>
+     */
+    public static function colonnesDroits(): array
+    {
+        $colonnes = [];
+        foreach (['ROLE_ADMIN', 'ROLE_ECOLE_FOOT', 'ROLE_PREFORMATION', 'ROLE_FORMATION', 'ROLE_ELITE', 'ROLE_PRO'] as $role) {
+            $colonnes[] = ['cle' => $role, 'libelle' => 'ROLE_ADMIN' === $role ? 'Administration' : self::ROLES[$role], 'description' => self::DESCRIPTIONS_ROLES[$role], 'niveaux' => null];
+        }
+        foreach (self::SECTIONS as $cle => $s) {
+            $colonnes[] = ['cle' => $cle, 'libelle' => $s['libelle'], 'description' => self::DESCRIPTIONS_ROLES[$cle], 'niveaux' => ['lecture' => $s['lecture'], 'modif' => $s['modif']]];
+        }
+        $colonnes[] = ['cle' => 'ROLE_RAPPORT_MATCH', 'libelle' => self::ROLES['ROLE_RAPPORT_MATCH'], 'description' => self::DESCRIPTIONS_ROLES['ROLE_RAPPORT_MATCH'], 'niveaux' => null];
+
+        return $colonnes;
+    }
+
+    /** Niveau d'accès à une section (voir SECTIONS) : 0 aucun, 1 voir, 2 modifier. */
+    public function getNiveau(string $section): int
+    {
+        $s = self::SECTIONS[$section];
+
+        return \in_array($s['modif'], $this->roles, true) ? 2 : (\in_array($s['lecture'], $this->roles, true) ? 1 : 0);
+    }
+
+    public function setNiveau(string $section, int $niveau): static
+    {
+        $s = self::SECTIONS[$section];
+        $roles = array_diff($this->getRolesAttribues(), [$s['lecture'], $s['modif']]);
+        if ($niveau > 0) {
+            $roles[] = 2 === $niveau ? $s['modif'] : $s['lecture'];
+        }
+
+        return $this->setRolesAttribues(array_values($roles));
     }
 
     /** Donne ou retire un seul droit (tableau des droits d'accès). */

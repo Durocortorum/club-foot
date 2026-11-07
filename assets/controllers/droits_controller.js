@@ -1,9 +1,12 @@
 import { Controller } from '@hotwired/stimulus';
 
 /*
- * Tableau des droits d'accès : un clic sur une case donne ou retire le droit,
- * enregistré tout de suite sans recharger la page.
+ * Tableau des droits d'accès : un clic sur une case passe au niveau suivant
+ * (droit simple : — / ✓ ; section : — / voir / modifier), enregistré sans recharger la page.
  */
+const TEXTES_SIMPLES = ['—', '✓'];
+const TEXTES_NIVEAUX = ['—', 'voir', 'modifier'];
+
 export default class extends Controller {
     static targets = ['statut'];
 
@@ -38,16 +41,20 @@ export default class extends Controller {
     afficher(ligne, roles) {
         const admin = roles.includes('ROLE_ADMIN');
         ligne.querySelectorAll('button.interrupteur').forEach((bouton) => {
-            const role = bouton.dataset.role;
-            const actif = roles.includes(role);
-            const inclus = admin && role !== 'ROLE_ADMIN';
-            bouton.classList.remove('oui', 'non', 'inclus');
-            bouton.classList.add(inclus ? 'inclus' : (actif ? 'oui' : 'non'));
-            bouton.textContent = inclus ? 'inclus' : (actif ? '✓' : '—');
-            bouton.setAttribute('aria-pressed', actif || inclus ? 'true' : 'false');
+            const { cle, lecture, modif } = bouton.dataset;
+            const section = lecture !== undefined;
+            const max = section ? 2 : 1;
+            const niveau = section
+                ? (roles.includes(modif) ? 2 : (roles.includes(lecture) ? 1 : 0))
+                : (roles.includes(cle) ? 1 : 0);
+            const inclus = admin && cle !== 'ROLE_ADMIN';
+
+            bouton.classList.remove('oui', 'non', 'lecture', 'inclus');
+            bouton.classList.add(inclus ? 'inclus' : (niveau === max ? 'oui' : (niveau ? 'lecture' : 'non')));
+            bouton.textContent = inclus ? 'inclus' : (section ? TEXTES_NIVEAUX : TEXTES_SIMPLES)[niveau];
             bouton.disabled = inclus || 'verrou' in bouton.dataset;
             bouton.title = inclus ? 'Inclus dans l\'administration' : bouton.getAttribute('aria-label').split(' pour ')[0];
-            bouton.form.querySelector('input[name="actif"]').value = actif ? '0' : '1';
+            bouton.form.querySelector('input[name="niveau"]').value = niveau >= max ? 0 : niveau + 1;
         });
     }
 

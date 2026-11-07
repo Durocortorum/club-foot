@@ -614,6 +614,8 @@ table.droits .droits-nom { position: sticky; left: 0; background: #fff; z-index:
 .interrupteur.oui { background: #e5f4ea; border-color: #a9d8b8; color: var(--succes); }
 .interrupteur.non:hover { border-color: var(--gris); }
 .interrupteur.oui:hover { border-color: var(--succes); }
+.interrupteur.lecture { background: #eef3fb; border-color: #b9cbe8; color: #2b4a7a; }
+.interrupteur.lecture:hover { border-color: #2b4a7a; }
 .interrupteur.inclus { background: #f0f0f3; font-weight: 400; font-size: .75rem; cursor: default; }
 .interrupteur:disabled { cursor: default; }
 .interrupteur[data-verrou] { opacity: .8; }

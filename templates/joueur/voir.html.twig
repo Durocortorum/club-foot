@@ -31,7 +31,13 @@
 
 {% block body %}
     {% set peut_modifier = is_granted('JOUEUR_MODIFIER', joueur) %}
-    {% set peut_suivre = peut_modifier or is_granted('ROLE_INFIRMERIE') %}
+    {# Sections à deux niveaux (voir / modifier), réglées dans le tableau des droits d'accès. #}
+    {% set inf_voir, inf_modif = is_granted('ROLE_INFIRMERIE_LECTURE'), is_granted('ROLE_INFIRMERIE') %}
+    {% set vm_voir, vm_modif = is_granted('ROLE_VISITE_MEDICALE_LECTURE'), is_granted('ROLE_VISITE_MEDICALE') %}
+    {% set scol_voir, scol_modif = is_granted('ROLE_SCOLAIRE_LECTURE'), is_granted('ROLE_SCOLAIRE') %}
+    {# Tests physiques : modifier seulement pour les joueurs de ses secteurs, ou tous avec l'infirmerie. #}
+    {% set tests_voir = is_granted('ROLE_TESTS_PHYSIQUES_LECTURE') %}
+    {% set tests_modif = is_granted('ROLE_TESTS_PHYSIQUES') and (peut_modifier or inf_modif) %}
 
     <p><a href="{{ path('app_joueur_index') }}">← Retour à la liste</a></p>
 
@@ -63,9 +69,10 @@
         <a href="#matchs">Matchs</a>
         <a href="#presences">Présences</a>
         {% if famille %}<a href="#famille">Accès famille</a>{% endif %}
-        {% if is_granted('ROLE_SCOLAIRE') or sanctions %}<a href="#scolarite">Scolarité et discipline</a>{% endif %}
-        {% if is_granted('ROLE_INFIRMERIE') %}<a href="#infirmerie">Infirmerie</a><a href="#visite-medicale">Visite médicale</a>{% endif %}
-        <a href="#physique">Tests physiques</a>
+        {% if scol_voir or sanctions %}<a href="#scolarite">Scolarité et discipline</a>{% endif %}
+        {% if inf_voir %}<a href="#infirmerie">Infirmerie</a>{% endif %}
+        {% if vm_voir %}<a href="#visite-medicale">Visite médicale</a>{% endif %}
+        {% if tests_voir %}<a href="#physique">Tests physiques</a>{% endif %}
     </nav>
 
     <div class="grille-fiches" id="fiche">
@@ -145,7 +152,7 @@
             </section>
         {% endif %}
 
-        {% if is_granted('ROLE_INFIRMERIE') %}
+        {% if inf_voir %}
             <section class="carte medical">
                 <h2>Médical <span class="pastille">confidentiel</span></h2>
                 <dl>
@@ -307,12 +314,13 @@
     {% endif %}
 
     {# ---------- Scolarité et discipline ---------- #}
-    {% if is_granted('ROLE_SCOLAIRE') or sanctions %}
+    {# Droit Scolarité : « voir » ou « modifier ». Les éducateurs du joueur voient aussi ses sanctions (suspensions). #}
+    {% if scol_voir or sanctions %}
         <section class="bloc" id="scolarite">
-            {% if is_granted('ROLE_SCOLAIRE') %}
+            {% if scol_voir %}
                 <div class="titre-page">
                     <h2 class="titre-bloc">Bulletins scolaires</h2>
-                    <a class="bouton" href="{{ path('app_bulletin_nouveau', {joueur: joueur.id}) }}">+ Bulletin</a>
+                    {% if scol_modif %}<a class="bouton" href="{{ path('app_bulletin_nouveau', {joueur: joueur.id}) }}">+ Bulletin</a>{% endif %}
                 </div>
                 {% if bulletins %}
                     <ul class="liste-simple carte">
@@ -323,8 +331,8 @@
                                     {% if not b.fichier and b.origine %}<span class="pastille" title="{{ b.origine }}">PDF à joindre</span>{% endif %}
                                 </span>
                                 <span class="nowrap">
-                                    {% if b.fichier %}<a href="{{ path('app_bulletin_pdf', {id: b.id}) }}" target="_blank">Ouvrir le PDF</a> · {% endif %}
-                                    <a href="{{ path('app_bulletin_modifier', {id: b.id}) }}">{{ b.fichier ? 'Modifier' : 'Joindre le PDF' }}</a>
+                                    {% if b.fichier %}<a href="{{ path('app_bulletin_pdf', {id: b.id}) }}" target="_blank">Ouvrir le PDF</a>{% endif %}
+                                    {% if scol_modif %}{{ b.fichier ? ' · ' }}<a href="{{ path('app_bulletin_modifier', {id: b.id}) }}">{{ b.fichier ? 'Modifier' : 'Joindre le PDF' }}</a>{% endif %}
                                 </span>
                             </li>
                         {% endfor %}
@@ -336,12 +344,12 @@
 
             <div class="titre-page">
                 <h2 class="titre-bloc">Discipline</h2>
-                {% if is_granted('ROLE_SCOLAIRE') %}<a class="bouton" href="{{ path('app_sanction_nouvelle', {joueur: joueur.id}) }}">+ Incident</a>{% endif %}
+                {% if scol_modif %}<a class="bouton" href="{{ path('app_sanction_nouvelle', {joueur: joueur.id}) }}">+ Incident</a>{% endif %}
             </div>
             {% if sanctions %}
                 <div class="table-defile">
                     <table class="liste liste-fiches">
-                        <thead><tr><th>Date</th><th>Lieu</th><th>Motif</th><th>Sanction sportive</th><th>Sanction scolaire</th><th>Gravité</th>{% if is_granted('ROLE_SCOLAIRE') %}<th></th>{% endif %}</tr></thead>
+                        <thead><tr><th>Date</th><th>Lieu</th><th>Motif</th><th>Sanction sportive</th><th>Sanction scolaire</th><th>Gravité</th>{% if scol_modif %}<th></th>{% endif %}</tr></thead>
                         <tbody>
                             {% for s in sanctions %}
                                 <tr>
@@ -351,7 +359,7 @@
                                     <td data-label="sportive :">{{ s.sanctionSportive }}</td>
                                     <td data-label="scolaire :">{{ s.sanctionScolaire }}</td>
                                     <td data-label="gravité">{{ s.graviteLibelle }}</td>
-                                    {% if is_granted('ROLE_SCOLAIRE') %}<td class="a-cote"><a href="{{ path('app_sanction_modifier', {id: s.id}) }}">Modifier</a></td>{% endif %}
+                                    {% if scol_modif %}<td class="a-cote"><a href="{{ path('app_sanction_modifier', {id: s.id}) }}">Modifier</a></td>{% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -363,17 +371,17 @@
         </section>
     {% endif %}
 
-    {# ---------- Infirmerie ---------- #}
-    {% if is_granted('ROLE_INFIRMERIE') %}
+    {# ---------- Infirmerie (blessures) ---------- #}
+    {% if inf_voir %}
         <section class="bloc" id="infirmerie">
             <div class="titre-page">
                 <h2 class="titre-bloc">Blessures <span class="pastille">confidentiel</span></h2>
-                <a class="bouton" href="{{ path('app_blessure_nouvelle', {joueur: joueur.id}) }}">+ Blessure</a>
+                {% if inf_modif %}<a class="bouton" href="{{ path('app_blessure_nouvelle', {joueur: joueur.id}) }}">+ Blessure</a>{% endif %}
             </div>
             {% if blessures %}
                 <div class="table-defile">
                     <table class="liste liste-fiches">
-                        <thead><tr><th>Date</th><th>Blessure</th><th>Circonstances</th><th>Reprise</th><th>Durée</th><th></th></tr></thead>
+                        <thead><tr><th>Date</th><th>Blessure</th><th>Circonstances</th><th>Reprise</th><th>Durée</th>{% if inf_modif %}<th></th>{% endif %}</tr></thead>
                         <tbody>
                             {% for b in blessures %}
                                 <tr>
@@ -382,7 +390,7 @@
                                     <td>{{ b.lieu }}{% if b.avecArret is not null %} · {{ b.avecArret ? 'avec arrêt' : 'sans arrêt' }}{% endif %}</td>
                                     <td class="nowrap" data-label="reprise">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') }}</td>
                                     <td data-label="durée">{{ b.duree is not null ? b.duree ~ ' j' }}</td>
-                                    <td class="a-cote"><a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a></td>
+                                    {% if inf_modif %}<td class="a-cote"><a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a></td>{% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -391,16 +399,20 @@
             {% else %}
                 <p class="discret">Aucune blessure enregistrée.</p>
             {% endif %}
+        </section>
+    {% endif %}
 
-            {# Visite médicale : poids, taille... Données de santé, réservées à l'infirmerie. #}
-            <div class="titre-page" id="visite-medicale">
+    {# ---------- Visite médicale (poids, taille...) : droit « Visite médicale » ---------- #}
+    {% if vm_voir %}
+        <section class="bloc" id="visite-medicale">
+            <div class="titre-page">
                 <h2 class="titre-bloc">Visite médicale <span class="pastille">confidentiel</span></h2>
-                <a class="bouton" href="{{ path('app_mesure_nouvelle', {id: joueur.id}) }}">+ Visite</a>
+                {% if vm_modif %}<a class="bouton" href="{{ path('app_mesure_nouvelle', {id: joueur.id}) }}">+ Visite</a>{% endif %}
             </div>
             {% if mesures %}
                 <div class="table-defile">
                     <table class="liste chiffres liste-fiches">
-                        <thead><tr><th>Date</th><th>Poids</th><th>Taille</th><th>IMC</th><th>Taille assis</th><th>Pointure</th><th></th></tr></thead>
+                        <thead><tr><th>Date</th><th>Poids</th><th>Taille</th><th>IMC</th><th>Taille assis</th><th>Pointure</th>{% if vm_modif %}<th></th>{% endif %}</tr></thead>
                         <tbody>
                             {% for x in mesures %}
                                 <tr>
@@ -410,7 +422,7 @@
                                     <td data-label="IMC">{{ x.imc ? x.imc|number_format(1, ',') }}</td>
                                     <td data-label="taille assis">{{ x.tailleAssis ? x.tailleAssis|number_format(2, ',') ~ ' m' }}</td>
                                     <td data-label="pointure">{{ x.pointure }}</td>
-                                    <td class="a-cote">{{ m.supprimer(path('app_mesure_supprimer', {id: x.id}), 'supprimer-mesure' ~ x.id, 'Supprimer cette visite ?', '×') }}</td>
+                                    {% if vm_modif %}<td class="a-cote">{{ m.supprimer(path('app_mesure_supprimer', {id: x.id}), 'supprimer-mesure' ~ x.id, 'Supprimer cette visite ?', '×') }}</td>{% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -422,39 +434,41 @@
         </section>
     {% endif %}
 
-    {# ---------- Tests physiques ---------- #}
-    <section class="bloc" id="physique">
-        <div class="titre-page">
-            <h2 class="titre-bloc">Tests physiques</h2>
-            {% if peut_suivre %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Test</a>{% endif %}
-        </div>
-        {% if tests %}
-            {% set epreuves = constant('App\\Entity\\TestPhysique::EPREUVES') %}
-            <div class="table-defile">
-                <table class="liste chiffres liste-fiches">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            {% for champ, e in epreuves %}<th>{{ e[0] }} <span class="discret">({{ e[1] }})</span></th>{% endfor %}
-                            {% if peut_suivre %}<th></th>{% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in tests %}
-                            <tr>
-                                <td class="principal etroit">{{ t.date|date('d/m/Y') }}</td>
-                                {% for champ, e in epreuves %}
-                                    {% set v = attribute(t, champ) %}
-                                    <td data-label="{{ e[0] }} ({{ e[1] }})">{{ v is not null ? v|number_format(2, ',')|trim('0', 'right')|trim(',', 'right') }}</td>
-                                {% endfor %}
-                                {% if peut_suivre %}<td class="a-cote">{{ m.supprimer(path('app_test_supprimer', {id: t.id}), 'supprimer-test' ~ t.id, 'Supprimer ce test ?', '×') }}</td>{% endif %}
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    {# ---------- Tests physiques : droit « Tests physiques » ---------- #}
+    {% if tests_voir %}
+        <section class="bloc" id="physique">
+            <div class="titre-page">
+                <h2 class="titre-bloc">Tests physiques</h2>
+                {% if tests_modif %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Test</a>{% endif %}
             </div>
-        {% else %}
-            <p class="discret">Aucun test enregistré.</p>
-        {% endif %}
-    </section>
+            {% if tests %}
+                {% set epreuves = constant('App\\Entity\\TestPhysique::EPREUVES') %}
+                <div class="table-defile">
+                    <table class="liste chiffres liste-fiches">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                {% for champ, e in epreuves %}<th>{{ e[0] }} <span class="discret">({{ e[1] }})</span></th>{% endfor %}
+                                {% if tests_modif %}<th></th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in tests %}
+                                <tr>
+                                    <td class="principal etroit">{{ t.date|date('d/m/Y') }}</td>
+                                    {% for champ, e in epreuves %}
+                                        {% set v = attribute(t, champ) %}
+                                        <td data-label="{{ e[0] }} ({{ e[1] }})">{{ v is not null ? v|number_format(2, ',')|trim('0', 'right')|trim(',', 'right') }}</td>
+                                    {% endfor %}
+                                    {% if tests_modif %}<td class="a-cote">{{ m.supprimer(path('app_test_supprimer', {id: t.id}), 'supprimer-test' ~ t.id, 'Supprimer ce test ?', '×') }}</td>{% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="discret">Aucun test enregistré.</p>
+            {% endif %}
+        </section>
+    {% endif %}
 {% endblock %}

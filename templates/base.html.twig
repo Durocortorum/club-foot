@@ -45,10 +45,10 @@
                     {% if is_granted('ROLE_ECOLE_FOOT') or is_granted('ROLE_PREFORMATION') or is_granted('ROLE_FORMATION') or is_granted('ROLE_ELITE') or is_granted('ROLE_PRO') %}
                         <a href="{{ path('app_detection_index') }}" class="{{ route starts with 'app_detection' or route starts with 'app_observe' ? 'actif' }}">Recrutement</a>
                     {% endif %}
-                    {% if is_granted('ROLE_SCOLAIRE') %}
+                    {% if is_granted('ROLE_SCOLAIRE_LECTURE') %}
                         <a href="{{ path('app_scolarite_index') }}" class="{{ route starts with 'app_scolarite' or route starts with 'app_bulletin' or route starts with 'app_discipline' or route starts with 'app_sanction' ? 'actif' }}">Scolarité</a>
                     {% endif %}
-                    {% if is_granted('ROLE_INFIRMERIE') %}
+                    {% if is_granted('ROLE_INFIRMERIE_LECTURE') %}
                         <a href="{{ path('app_infirmerie_index') }}" class="{{ route starts with 'app_infirmerie' or route starts with 'app_blessure' or route starts with 'app_contact' ? 'actif' }}">Infirmerie</a>
                     {% endif %}
                 </nav>

@@ -43,8 +43,7 @@ class UtilisateurController extends AbstractController
     {
         return $this->render('utilisateur/droits.html.twig', [
             'utilisateurs' => $utilisateurs->findBy(['famille' => false], ['nom' => 'ASC', 'prenom' => 'ASC']),
-            'roles' => Utilisateur::ROLES,
-            'descriptions' => Utilisateur::DESCRIPTIONS_ROLES,
+            'colonnes' => Utilisateur::colonnesDroits(),
         ]);
     }
 
@@ -57,21 +56,31 @@ class UtilisateurController extends AbstractController
     public function basculerDroit(Request $request, Utilisateur $utilisateur): Response
     {
         $donnees = $request->getPayload();
-        $role = $donnees->getString('role');
-        $actif = $donnees->getBoolean('actif');
+        // « droit » : un rôle simple (ROLE_...) ou une section à deux niveaux (infirmerie, scolarite...).
+        // « niveau » : 0 aucun, 1 oui (ou « voir » pour une section), 2 « modifier » (sections seulement).
+        $droit = $donnees->getString('droit');
+        $niveau = $donnees->getInt('niveau');
+        $colonnes = array_column(Utilisateur::colonnesDroits(), null, 'cle');
+        $colonne = $colonnes[$droit] ?? null;
         $json = \in_array('application/json', $request->getAcceptableContentTypes(), true);
 
         $erreur = match (true) {
             !$this->isCsrfTokenValid('droits-utilisateurs', $donnees->getString('_token')) => 'La page a expiré : rechargez-la.',
-            $utilisateur->isFamille() || !isset(Utilisateur::ROLES[$role]) => 'Droit inconnu.',
-            !$actif && 'ROLE_ADMIN' === $role && $utilisateur === $this->getUser() => 'Vous ne pouvez pas retirer votre propre accès à l\'administration.',
+            $utilisateur->isFamille() || null === $colonne || $niveau < 0 || $niveau > (null === $colonne['niveaux'] ? 1 : 2) => 'Droit inconnu.',
+            0 === $niveau && 'ROLE_ADMIN' === $droit && $utilisateur === $this->getUser() => 'Vous ne pouvez pas retirer votre propre accès à l\'administration.',
             default => null,
         };
 
         if (null === $erreur) {
-            $utilisateur->basculerRole($role, $actif);
+            if (null === $colonne['niveaux']) {
+                $utilisateur->basculerRole($droit, 1 === $niveau);
+                $etat = $niveau ? 'accordé' : 'retiré';
+            } else {
+                $utilisateur->setNiveau($droit, $niveau);
+                $etat = ['retiré', 'en consultation (voir)', 'en modification'][$niveau];
+            }
             $this->em->flush();
-            $message = sprintf('%s : « %s » %s.', $utilisateur, Utilisateur::ROLES[$role], $actif ? 'accordé' : 'retiré');
+            $message = sprintf('%s : « %s » %s.', $utilisateur, $colonne['libelle'], $etat);
         }
 
         if ($json) {

@@ -51,7 +51,7 @@ class VisiteMedicaleTest extends WebTestCase
         $em->persist($joueur);
         $em->persist((new Mesure())->setClub($club)->setJoueur($joueur)->setDate(new \DateTimeImmutable('2026-09-01'))->setPoids(41.5));
         $educateur = (new Utilisateur())->setClub($club)->setEmail("educ-$id@exemple.test")->setNom('Durand')->setPrenom('Educ')
-            ->setRolesAttribues([Categorie::SECTEURS[$categorie->getSecteur()]['role']]);
+            ->setRolesAttribues([Categorie::SECTEURS[$categorie->getSecteur()]['role'], 'ROLE_TESTS_PHYSIQUES']);
         $em->persist($educateur);
         $em->flush();
         $mesure = $em->getRepository(Mesure::class)->findOneBy(['joueur' => $joueur]);

@@ -22,7 +22,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * Suivi des blessures et carnet d'adresses médical. Réservé à l'infirmerie.
  */
 #[Route('/infirmerie')]
-#[IsGranted('ROLE_INFIRMERIE')]
+#[IsGranted('ROLE_INFIRMERIE_LECTURE')]
 class InfirmerieController extends AbstractController
 {
     public function __construct(private readonly Anatomie $anatomie)
@@ -51,6 +51,7 @@ class InfirmerieController extends AbstractController
         ]);
     }
 
+    #[IsGranted('ROLE_INFIRMERIE')]
     #[Route('/blessures/nouvelle', name: 'app_blessure_nouvelle', methods: ['GET', 'POST'])]
     public function nouvelleBlessure(Request $request, EntityManagerInterface $em, JoueurRepository $joueurs): Response
     {
@@ -63,12 +64,14 @@ class InfirmerieController extends AbstractController
         return $this->formulaireBlessure($request, $em, $blessure, 'Nouvelle blessure', null !== $joueur);
     }
 
+    #[IsGranted('ROLE_INFIRMERIE')]
     #[Route('/blessures/{id}/modifier', name: 'app_blessure_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function modifierBlessure(Request $request, EntityManagerInterface $em, Blessure $blessure): Response
     {
         return $this->formulaireBlessure($request, $em, $blessure, 'Blessure de ' . $blessure->getJoueur()->getNomComplet(), true);
     }
 
+    #[IsGranted('ROLE_INFIRMERIE')]
     #[Route('/blessures/{id}/supprimer', name: 'app_blessure_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimerBlessure(Request $request, EntityManagerInterface $em, Blessure $blessure): Response
     {
@@ -90,6 +93,7 @@ class InfirmerieController extends AbstractController
         ]);
     }
 
+    #[IsGranted('ROLE_INFIRMERIE')]
     #[Route('/contacts/nouveau', name: 'app_contact_nouveau', methods: ['GET', 'POST'])]
     #[Route('/contacts/{id}/modifier', name: 'app_contact_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function formulaireContact(Request $request, EntityManagerInterface $em, ?ContactMedical $contact = null): Response
@@ -113,6 +117,7 @@ class InfirmerieController extends AbstractController
         ]);
     }
 
+    #[IsGranted('ROLE_INFIRMERIE')]
     #[Route('/contacts/{id}/supprimer', name: 'app_contact_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimerContact(Request $request, EntityManagerInterface $em, ContactMedical $contact): Response
     {

@@ -52,23 +52,29 @@ class DroitsAccesTest extends WebTestCase
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', '/utilisateurs/droits');
         self::assertResponseIsSuccessful();
-        $ligne = $crawler->filter('table.droits tbody tr')->reduce(fn ($tr) => str_contains($tr->text(), 'Durand'));
+        $ligne = $this->ligne($crawler);
         self::assertCount(1, $ligne->filter('button.oui'));
-        self::assertSame('ROLE_FORMATION', $ligne->filter('button.oui')->attr('data-role'));
-        self::assertNotNull($crawler->filter('button[data-role="ROLE_ADMIN"][data-verrou]')->attr('disabled'));
+        self::assertSame('ROLE_FORMATION', $ligne->filter('button.oui')->attr('data-cle'));
+        self::assertNotNull($crawler->filter('button[data-cle="ROLE_ADMIN"][data-verrou]')->attr('disabled'));
+        self::assertSame('—', trim($ligne->filter('button[data-cle="infirmerie"]')->text()));
 
-        // Clic sur « Infirmerie » (réponse JSON, comme dans le navigateur).
-        $form = $ligne->filter('button[data-role="ROLE_INFIRMERIE"]')->closest('form')->form();
+        // Infirmerie : un clic → « voir » (réponse JSON, comme dans le navigateur), un deuxième → « modifier ».
+        $form = $ligne->filter('button[data-cle="infirmerie"]')->closest('form')->form();
         $this->client->request('POST', $form->getUri(), $form->getValues(), [], ['HTTP_ACCEPT' => 'application/json']);
         self::assertResponseIsSuccessful();
         $reponse = json_decode($this->client->getResponse()->getContent(), true);
-        self::assertEqualsCanonicalizing(['ROLE_FORMATION', 'ROLE_INFIRMERIE'], $reponse['roles']);
+        self::assertEqualsCanonicalizing(['ROLE_FORMATION', 'ROLE_INFIRMERIE_LECTURE'], $reponse['roles']);
+        $ligne = $this->ligne($this->client->request('GET', '/utilisateurs/droits'));
+        self::assertSame('voir', trim($ligne->filter('button[data-cle="infirmerie"]')->text()));
+        $this->client->submit($ligne->filter('button[data-cle="infirmerie"]')->closest('form')->form());
         self::assertEqualsCanonicalizing(['ROLE_FORMATION', 'ROLE_INFIRMERIE'], $this->compte($coach)->getRolesAttribues());
+        self::assertSame(2, $this->compte($coach)->getNiveau('infirmerie'));
 
         // Retrait de « Formation » par le formulaire classique (sans JavaScript).
         $crawler = $this->client->request('GET', '/utilisateurs/droits');
-        $ligne = $crawler->filter('table.droits tbody tr')->reduce(fn ($tr) => str_contains($tr->text(), 'Durand'));
-        $this->client->submit($ligne->filter('button[data-role="ROLE_FORMATION"]')->closest('form')->form());
+        $ligne = $this->ligne($crawler);
+        self::assertSame('modifier', trim($ligne->filter('button[data-cle="infirmerie"]')->text()));
+        $this->client->submit($ligne->filter('button[data-cle="ROLE_FORMATION"]')->closest('form')->form());
         self::assertResponseRedirects('/utilisateurs/droits');
         $this->client->followRedirect();
         self::assertSelectorTextContains('.flash-succes', 'retiré');
@@ -77,23 +83,39 @@ class DroitsAccesTest extends WebTestCase
         // Impossible de retirer sa propre administration, même en forçant la requête.
         $jeton = $crawler->filter('input[name="_token"]')->attr('value');
         $this->client->request('POST', '/utilisateurs/' . $admin->getId() . '/droit',
-            ['role' => 'ROLE_ADMIN', 'actif' => '0', '_token' => $jeton], [], ['HTTP_ACCEPT' => 'application/json']);
+            ['droit' => 'ROLE_ADMIN', 'niveau' => '0', '_token' => $jeton], [], ['HTTP_ACCEPT' => 'application/json']);
         self::assertResponseStatusCodeSame(422);
         self::assertTrue($this->compte($admin)->isAdmin());
 
-        // Droit inconnu ou jeton invalide : refusé.
-        $this->client->request('POST', '/utilisateurs/' . $coach->getId() . '/droit',
-            ['role' => 'ROLE_SUPER', 'actif' => '1', '_token' => $jeton], [], ['HTTP_ACCEPT' => 'application/json']);
-        self::assertResponseStatusCodeSame(422);
-        $this->client->request('POST', '/utilisateurs/' . $coach->getId() . '/droit',
-            ['role' => 'ROLE_PRO', 'actif' => '1', '_token' => 'faux'], [], ['HTTP_ACCEPT' => 'application/json']);
-        self::assertResponseStatusCodeSame(422);
+        // Droit inconnu, niveau impossible ou jeton invalide : refusé.
+        foreach ([['ROLE_SUPER', '1', $jeton], ['ROLE_PRO', '2', $jeton], ['scolarite', '3', $jeton], ['ROLE_PRO', '1', 'faux']] as [$droit, $niveau, $j]) {
+            $this->client->request('POST', '/utilisateurs/' . $coach->getId() . '/droit',
+                ['droit' => $droit, 'niveau' => $niveau, '_token' => $j], [], ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseStatusCodeSame(422, "$droit / $niveau");
+        }
         self::assertSame(['ROLE_INFIRMERIE'], $this->compte($coach)->getRolesAttribues());
+
+        // « Voir » seulement : la page Infirmerie s'ouvre, sans bouton d'ajout ; la saisie est refusée.
+        $this->client->request('POST', '/utilisateurs/' . $coach->getId() . '/droit',
+            ['droit' => 'infirmerie', 'niveau' => '1', '_token' => $jeton], [], ['HTTP_ACCEPT' => 'application/json']);
+        $this->client->loginUser($this->compte($coach));
+        $this->client->request('GET', '/infirmerie');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('a[href="/infirmerie/blessures/nouvelle"]');
+        $this->client->request('GET', '/infirmerie/blessures/nouvelle');
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('GET', '/scolarite');
+        self::assertResponseStatusCodeSame(403);
 
         // Un compte sans administration n'ouvre pas le tableau.
         $this->client->loginUser($this->compte($coach));
         $this->client->request('GET', '/utilisateurs/droits');
         self::assertResponseStatusCodeSame(403);
+    }
+
+    private function ligne(\Symfony\Component\DomCrawler\Crawler $crawler): \Symfony\Component\DomCrawler\Crawler
+    {
+        return $crawler->filter('table.droits tbody tr')->reduce(fn ($tr) => str_contains($tr->text(), 'Durand'));
     }
 
     private function compte(Utilisateur $u): Utilisateur

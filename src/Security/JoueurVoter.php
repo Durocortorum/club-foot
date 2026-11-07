@@ -30,7 +30,7 @@ class JoueurVoter extends Voter
      */
     public function secteursVisibles(): array
     {
-        $tous = $this->security->isGranted('ROLE_INFIRMERIE');
+        $tous = $this->security->isGranted('ROLE_INFIRMERIE_LECTURE');
 
         return array_keys(array_filter(
             Categorie::SECTEURS,

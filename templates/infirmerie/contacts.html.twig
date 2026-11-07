@@ -11,7 +11,7 @@
 
     <div class="titre-page">
         <h1>Contacts médicaux <span class="compteur">{{ contacts|length }}</span></h1>
-        <a class="bouton principal" href="{{ path('app_contact_nouveau') }}">+ Nouveau contact</a>
+        {% if is_granted('ROLE_INFIRMERIE') %}<a class="bouton principal" href="{{ path('app_contact_nouveau') }}">+ Nouveau contact</a>{% endif %}
     </div>
 
     <div class="table-defile">
@@ -24,10 +24,10 @@
                         <td class="principal etroit"><strong>{{ c.nom }}</strong> {{ c.prenom }}</td>
                         <td class="nowrap">{% if c.telephone %}<a href="tel:{{ c.telephone|replace({' ': ''}) }}">{{ c.telephone }}</a>{% endif %}</td>
                         <td>{{ [c.adresse, [c.codePostal, c.ville]|filter(v => v)|join(' ')]|filter(v => v)|join(', ') }}</td>
-                        <td class="nowrap a-cote">
+                        <td class="nowrap a-cote">{% if is_granted('ROLE_INFIRMERIE') %}
                             <a href="{{ path('app_contact_modifier', {id: c.id}) }}">Modifier</a>
                             {{ m.supprimer(path('app_contact_supprimer', {id: c.id}), 'supprimer-contact' ~ c.id, 'Supprimer ce contact ?', '×') }}
-                        </td>
+                        {% endif %}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="5" class="vide">Aucun contact.</td></tr>

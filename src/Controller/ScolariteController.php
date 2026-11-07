@@ -24,7 +24,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * Suivi scolaire : bulletins de notes et discipline. Réservé au droit « Scolaire ».
  */
 #[Route('/scolarite')]
-#[IsGranted('ROLE_SCOLAIRE')]
+#[IsGranted('ROLE_SCOLAIRE_LECTURE')]
 class ScolariteController extends AbstractController
 {
     public function __construct(
@@ -63,6 +63,7 @@ class ScolariteController extends AbstractController
         ]);
     }
 
+    #[IsGranted('ROLE_SCOLAIRE')]
     #[Route('/bulletins/nouveau', name: 'app_bulletin_nouveau', methods: ['GET', 'POST'])]
     public function nouveauBulletin(Request $request, JoueurRepository $joueurs): Response
     {
@@ -73,6 +74,7 @@ class ScolariteController extends AbstractController
         return $this->formulaireBulletin($request, $bulletin, 'Nouveau bulletin', null !== $joueur);
     }
 
+    #[IsGranted('ROLE_SCOLAIRE')]
     #[Route('/bulletins/{id}/modifier', name: 'app_bulletin_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function modifierBulletin(Request $request, BulletinScolaire $bulletin): Response
     {
@@ -93,6 +95,7 @@ class ScolariteController extends AbstractController
             ->setPrivate();
     }
 
+    #[IsGranted('ROLE_SCOLAIRE')]
     #[Route('/bulletins/{id}/supprimer', name: 'app_bulletin_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimerBulletin(Request $request, BulletinScolaire $bulletin): Response
     {
@@ -119,6 +122,7 @@ class ScolariteController extends AbstractController
         ]);
     }
 
+    #[IsGranted('ROLE_SCOLAIRE')]
     #[Route('/discipline/nouvelle', name: 'app_sanction_nouvelle', methods: ['GET', 'POST'])]
     public function nouvelleSanction(Request $request, JoueurRepository $joueurs): Response
     {
@@ -129,12 +133,14 @@ class ScolariteController extends AbstractController
         return $this->formulaireSanction($request, $sanction, 'Nouvel incident de discipline', null !== $joueur);
     }
 
+    #[IsGranted('ROLE_SCOLAIRE')]
     #[Route('/discipline/{id}/modifier', name: 'app_sanction_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function modifierSanction(Request $request, Sanction $sanction): Response
     {
         return $this->formulaireSanction($request, $sanction, 'Discipline – ' . $sanction->getJoueur()->getNomComplet(), true);
     }
 
+    #[IsGranted('ROLE_SCOLAIRE')]
     #[Route('/discipline/{id}/supprimer', name: 'app_sanction_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimerSanction(Request $request, Sanction $sanction): Response
     {

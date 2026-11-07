@@ -16,8 +16,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Visite médicale (mesures : poids, taille...) et tests physiques d'un joueur.
- * Les mesures sont confidentielles : réservées à l'infirmerie. Les tests physiques sont aussi
- * saisis par les éducateurs qui peuvent modifier la fiche du joueur.
+ * Visite médicale : droit « Visite médicale (modifier) ». Tests physiques : droit « Tests physiques (modifier) »,
+ * pour les joueurs dont on peut modifier la fiche, ou tous avec l'infirmerie.
  */
 class SuiviPhysiqueController extends AbstractController
 {
@@ -86,17 +86,18 @@ class SuiviPhysiqueController extends AbstractController
         return $this->redirectToRoute('app_joueur_voir', ['id' => $joueur->getId(), '_fragment' => $bloc]);
     }
 
-    /** Visite médicale : données de santé, réservées au droit Infirmerie. */
+    /** Visite médicale : données de santé, droit « Visite médicale (modifier) ». */
     private function verifierInfirmerie(): void
     {
-        if (!$this->isGranted('ROLE_INFIRMERIE')) {
+        if (!$this->isGranted('ROLE_VISITE_MEDICALE')) {
             throw $this->createAccessDeniedException();
         }
     }
 
     private function verifier(Joueur $joueur): void
     {
-        if (!$this->isGranted('ROLE_INFIRMERIE') && !$this->isGranted(JoueurVoter::MODIFIER, $joueur)) {
+        if (!$this->isGranted('ROLE_TESTS_PHYSIQUES')
+            || (!$this->isGranted('ROLE_INFIRMERIE') && !$this->isGranted(JoueurVoter::MODIFIER, $joueur))) {
             throw $this->createAccessDeniedException();
         }
     }

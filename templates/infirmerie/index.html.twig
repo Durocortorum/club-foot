@@ -11,7 +11,7 @@
 
     <div class="titre-page">
         <h1>{{ filtres.statut == 'en_cours' ? 'Joueurs indisponibles' : 'Toutes les blessures' }} <span class="compteur">{{ total }}</span></h1>
-        <a class="bouton principal" href="{{ path('app_blessure_nouvelle') }}">+ Nouvelle blessure</a>
+        {% if is_granted('ROLE_INFIRMERIE') %}<a class="bouton principal" href="{{ path('app_blessure_nouvelle') }}">+ Nouvelle blessure</a>{% endif %}
     </div>
 
     <form class="filtres" method="get">
@@ -41,7 +41,7 @@
                         <td class="large">{{ b.libelle }}</td>
                         <td>{{ b.lieu }}</td>
                         <td class="nowrap" data-label="reprise">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') : '' }}{% if b.enCours %} <span class="pastille alerte">indisponible</span>{% endif %}</td>
-                        <td class="a-cote"><a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a></td>
+                        <td class="a-cote">{% if is_granted('ROLE_INFIRMERIE') %}<a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a>{% endif %}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="7" class="vide">{{ filtres.statut == 'en_cours' ? 'Aucun joueur actif n\'est indisponible.' : 'Aucune blessure pour ces critères.' }}</td></tr>
