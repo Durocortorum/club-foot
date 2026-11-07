@@ -20,19 +20,20 @@
     {% include 'rencontre/_bilan.html.twig' %}
 
     <div class="table-defile">
-        <table class="liste">
+        <table class="liste liste-fiches">
             <thead>
                 <tr><th>Date</th><th>Équipe</th><th>Match</th><th>Score</th><th>Compétition</th><th>Note</th></tr>
             </thead>
             <tbody>
                 {% for r in rencontres %}
+                    {# Sur téléphone : le match et son score en haut, le reste en dessous (voir .liste-fiches). #}
                     <tr>
                         <td class="nowrap">{{ r.date ? r.date|date('d/m/Y') : '?' }}</td>
-                        <td>{{ r.equipeAffichee }}</td>
-                        <td><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a></td>
-                        <td>{{ m.score(r) }}</td>
+                        <td class="fort">{{ r.equipeAffichee }}</td>
+                        <td class="principal etroit"><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a></td>
+                        <td class="a-cote">{{ m.score(r) }}</td>
                         <td>{{ r.competition }}</td>
-                        <td>{{ r.note ? r.note|number_format(1, ',') }}</td>
+                        <td data-label="note">{{ r.note ? r.note|number_format(1, ',') }}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="6" class="vide">Aucun match pour ces critères.</td></tr>

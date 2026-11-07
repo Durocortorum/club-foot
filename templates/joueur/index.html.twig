@@ -65,7 +65,7 @@
     {% endif %}
 
     <div class="table-defile">
-        <table class="liste liste-joueurs">
+        <table class="liste liste-fiches">
             <thead>
                 <tr>
                     <th>Nom</th>
@@ -80,13 +80,13 @@
             <tbody>
                 {% for j in joueurs %}
                     <tr>
-                        <td class="avec-vignette">
+                        <td class="avec-vignette principal">
                             {{ m.avatar(j, 'mini') }}
                             <a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a>
                             {% if j.ancien %}<span class="pastille">ancien</span>{% endif %}
                         </td>
                         {# data-label : intitulé affiché devant la valeur sur téléphone (fiche au lieu du tableau). #}
-                        <td class="categorie">{{ j.categorie }}</td>
+                        <td class="fort">{{ j.categorie }}</td>
                         <td data-label="né le">{{ j.dateNaissance ? j.dateNaissance|date('d/m/Y') }}</td>
                         <td>{{ j.poste }}</td>
                         <td data-label="pied">{{ j.pied }}</td>
