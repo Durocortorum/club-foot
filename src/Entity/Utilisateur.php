@@ -279,6 +279,19 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         return $jeton;
     }
 
+    /**
+     * Lien « mot de passe oublié », valable une heure. Utilise le même emplacement que le lien
+     * d'activation (un seul lien valide à la fois), sans toucher à la date d'invitation.
+     */
+    public function jetonReinitialisation(): string
+    {
+        $jeton = bin2hex(random_bytes(24));
+        $this->jetonActivation = self::empreinte($jeton);
+        $this->jetonExpireLe = new \DateTimeImmutable('+1 hour');
+
+        return $jeton;
+    }
+
     public static function empreinte(string $jeton): string
     {
         return hash('sha256', $jeton);

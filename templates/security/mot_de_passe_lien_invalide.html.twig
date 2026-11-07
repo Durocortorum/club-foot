@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Lien expiré{% endblock %}
+
+{% block body %}
+    <div class="connexion">
+        <div class="carte">
+            <h1>Ce lien ne fonctionne plus</h1>
+            <p>Il a déjà servi, ou il a expiré (une heure), ou un lien plus récent a été demandé.</p>
+            <a class="bouton principal plein" href="{{ path('app_mot_de_passe_oublie') }}">Demander un nouveau lien</a>
+            <p class="connexion-lien"><a href="{{ path('app_connexion') }}">Retour à la connexion</a></p>
+        </div>
+    </div>
+{% endblock %}

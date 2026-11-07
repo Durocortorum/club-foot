@@ -18,8 +18,20 @@ framework:
     php_errors:
         log: true
 
+    # « Mot de passe oublié » : quelques demandes seulement par adresse IP, contre les envois en rafale.
+    rate_limiter:
+        mot_de_passe_oublie:
+            policy: fixed_window
+            lock_factory: null
+            limit: 5
+            interval: '15 minutes'
+
 when@test:
     framework:
         test: true
+        rate_limiter:
+            mot_de_passe_oublie:
+                policy: no_limit
+                lock_factory: null
         session:
             storage_factory_id: session.storage.factory.mock_file

@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Vérifiez vos e-mails{% endblock %}
+
+{% block body %}
+    <div class="connexion">
+        <div class="carte">
+            <h1>Vérifiez vos e-mails</h1>
+            <p>
+                Si un compte existe avec l'adresse <strong>{{ email }}</strong>, un e-mail vient de lui être envoyé
+                avec un lien pour choisir un nouveau mot de passe. Ce lien est valable <strong>une heure</strong>.
+            </p>
+            <p class="discret petit">
+                Rien reçu après quelques minutes ? Regardez dans les courriers indésirables (spam), vérifiez l'adresse,
+                ou demandez à l'administrateur de votre club de vous définir un mot de passe.
+            </p>
+            <a class="bouton principal plein" href="{{ path('app_connexion') }}">Retour à la connexion</a>
+        </div>
+    </div>
+{% endblock %}

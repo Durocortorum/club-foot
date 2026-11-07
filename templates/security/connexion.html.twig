@@ -27,6 +27,8 @@
                 <button type="submit" class="bouton principal plein">Se connecter</button>
             </form>
 
+            <p class="connexion-lien"><a href="{{ path('app_mot_de_passe_oublie', dernier_email ? {email: dernier_email} : {}) }}">Mot de passe oublié ?</a></p>
+
             <p class="connexion-lien">Nouveau club ? <a href="{{ path('app_inscription') }}">Créer mon club</a></p>
         </div>
     </div>

@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau mot de passe{% endblock %}
+
+{% block body %}
+    <div class="connexion">
+        <div class="carte">
+            <div class="connexion-titre">
+                <img class="blason grand" src="{{ logo_club }}" alt="">
+                <h1>{{ apparence.club.nom }}</h1>
+                <p>Nouveau mot de passe</p>
+            </div>
+
+            <p>Choisissez le nouveau mot de passe du compte <strong>{{ compte.email }}</strong>.</p>
+
+            {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+                {{ form_errors(form) }}
+                <div class="champ">{{ form_label(form.motDePasse.first) }}{{ form_widget(form.motDePasse.first) }}{{ form_help(form.motDePasse.first) }}{{ form_errors(form.motDePasse.first) }}</div>
+                <div class="champ">{{ form_label(form.motDePasse.second) }}{{ form_widget(form.motDePasse.second) }}{{ form_errors(form.motDePasse.second) }}</div>
+                {{ form_errors(form.motDePasse) }}
+                {{ form_rest(form) }}
+                <button type="submit" class="bouton principal plein">Enregistrer et me connecter</button>
+            {{ form_end(form) }}
+        </div>
+    </div>
+{% endblock %}
