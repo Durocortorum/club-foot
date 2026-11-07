@@ -27,6 +27,8 @@
                         <td class="nowrap a-cote">{% if is_granted('ROLE_INFIRMERIE') %}
                             <a href="{{ path('app_contact_modifier', {id: c.id}) }}">Modifier</a>
                             {{ m.supprimer(path('app_contact_supprimer', {id: c.id}), 'supprimer-contact' ~ c.id, 'Supprimer ce contact ?', '×') }}
+                        {% endif %}{% if is_granted('ROLE_ADMIN') %}
+                            <a href="{{ path('app_contact_compte_medecin', {id: c.id}) }}" title="Créer son compte de médecin du club (connexion, droits médicaux)">Compte médecin</a>
                         {% endif %}</td>
                     </tr>
                 {% else %}

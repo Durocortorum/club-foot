@@ -11,6 +11,20 @@ use App\Repository\CategorieRepository;
 use App\Repository\ContactMedicalRepository;
 use App\Repository\JoueurRepository;
 use App\Service\Anatomie;
+use App\Entity\Utilisateur;
+use App\Repository\UtilisateurRepository;
+use App\Service\AccesFamille;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email as MimeEmail;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Constraints\NotBlank;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -117,6 +131,88 @@ class InfirmerieController extends AbstractController
         ]);
     }
 
+    /**
+     * Crée le compte d'un médecin du club à partir de son contact (ou donne le rôle Médecin à un compte existant).
+     * Le médecin reçoit par e-mail un lien (14 jours) pour choisir lui-même son mot de passe.
+     */
+    #[IsGranted('ROLE_ADMIN')]
+    #[Route('/contacts/{id}/compte-medecin', name: 'app_contact_compte_medecin', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    public function compteMedecin(
+        Request $request,
+        ContactMedical $contact,
+        EntityManagerInterface $em,
+        UtilisateurRepository $utilisateurs,
+        AccesFamille $acces,
+        MailerInterface $mailer,
+        LoggerInterface $logger,
+        #[Autowire('%env(MAILER_EXPEDITEUR)%')] string $expediteur,
+    ): Response {
+        $form = $this->createFormBuilder()
+            ->add('email', EmailType::class, [
+                'label' => 'Adresse e-mail du médecin',
+                'help' => 'Elle sert à se connecter et à recevoir les codes d\'accès aux données médicales : une adresse personnelle et réelle.',
+                'constraints' => [new NotBlank(message: 'Indiquez son adresse e-mail.'), new Email(message: 'Adresse e-mail invalide.')],
+            ])
+            ->getForm();
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $email = mb_strtolower(trim($form->get('email')->getData()));
+            $compte = $utilisateurs->tousClubs(['email' => $email])[0] ?? null;
+            /** @var Utilisateur $moi */
+            $moi = $this->getUser();
+
+            if ($compte && ($compte->isFamille() || $compte->getClub() !== $moi->getClub())) {
+                $form->get('email')->addError(new FormError('Cette adresse est déjà utilisée par un compte famille ou un autre club.'));
+            } elseif ($compte) {
+                $compte->basculerRole('ROLE_MEDECIN', true);
+                $em->flush();
+                $this->addFlash('succes', \sprintf('%s a déjà un compte : il est maintenant médecin du club.', $compte));
+
+                return $this->redirectToRoute('app_contact_index');
+            } else {
+                $compte = (new Utilisateur())
+                    ->setEmail($email)
+                    ->setNom((string) $contact->getNom())
+                    ->setPrenom($contact->getPrenom() ?: 'Docteur')
+                    ->setRolesAttribues(['ROLE_MEDECIN']);
+                $jeton = $compte->nouveauJeton(14);
+                $em->persist($compte);
+                $em->flush();
+                $lien = $this->generateUrl('app_mot_de_passe_nouveau', ['jeton' => $jeton], UrlGeneratorInterface::ABSOLUTE_URL);
+
+                $envoye = false;
+                if ($acces->emailActif()) {
+                    $club = (string) $moi->getClub()?->getNom();
+                    try {
+                        $mailer->send((new MimeEmail())
+                            ->from(new Address($expediteur, $club))
+                            ->to($email)
+                            ->subject($club . ' : votre compte de médecin du club')
+                            ->text(\sprintf(
+                                "Bonjour,\n\n%s vous ouvre un compte de médecin du club sur l'application du club : infirmerie, blessures, visites médicales, et les droits médicaux que vous donnez aux autres membres.\n\nChoisissez votre mot de passe en ouvrant ce lien (personnel, valable 14 jours) :\n%s\n\nEnsuite, connectez-vous avec cette adresse e-mail. Pour consulter les données médicales, un code vous sera envoyé par e-mail à chaque fois.\n",
+                                $club, $lien,
+                            )));
+                        $envoye = true;
+                    } catch (TransportExceptionInterface $e) {
+                        $logger->error('Invitation médecin non envoyée à {email} : {erreur}', ['email' => $email, 'erreur' => $e->getMessage()]);
+                    }
+                }
+                $this->addFlash('succes', $envoye
+                    ? \sprintf('Compte médecin créé pour %s : un e-mail lui permet de choisir son mot de passe.', $email)
+                    : \sprintf('Compte médecin créé pour %s, mais l\'e-mail n\'est pas parti. Transmettez-lui ce lien (14 jours) : %s', $email, $lien));
+
+                return $this->redirectToRoute('app_contact_index');
+            }
+        }
+
+        return $this->render('commun/formulaire.html.twig', [
+            'form' => $form,
+            'titre' => 'Compte médecin – ' . trim($contact->getPrenom() . ' ' . $contact->getNom()),
+            'aide' => 'Le médecin aura tout le médical (Infirmerie, Visite médicale) et pourra donner ces droits aux autres membres, pour une durée limitée. Il recevra un e-mail pour choisir son mot de passe.',
+            'retour' => $this->generateUrl('app_contact_index'),
+        ]);
+    }
     #[IsGranted('ROLE_INFIRMERIE')]
     #[Route('/contacts/{id}/supprimer', name: 'app_contact_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimerContact(Request $request, EntityManagerInterface $em, ContactMedical $contact): Response

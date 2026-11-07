@@ -127,6 +127,45 @@ class AccesMedicalTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
+    public function testCompteMedecinDepuisUnContact(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Admin');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $contact = (new \App\Entity\ContactMedical())->setClub($club)->setNom('Durand')->setPrenom('Claire')->setProfession('Médecin');
+        $this->em()->persist($contact);
+        $this->em()->flush();
+
+        // L'administrateur (après le code médical) crée le compte depuis le contact.
+        $this->client->loginUser($admin);
+        $this->ouvrirMedical($this->client);
+        $crawler = $this->client->request('GET', '/infirmerie/contacts');
+        $this->client->click($crawler->selectLink('Compte médecin')->link());
+        $email = "claire-$id@exemple.test";
+        $this->client->submitForm('Enregistrer', ['form[email]' => $email]);
+        self::assertEmailCount(1);
+        $message = self::getMailerMessage();
+        self::assertInstanceOf(\Symfony\Component\Mime\Email::class, $message);
+        self::assertSame(1, preg_match('#https?://\S+/mot-de-passe/[0-9a-f]{48}#', $message->getTextBody(), $m));
+        $medecin = $this->em()->getRepository(Utilisateur::class)->findOneBy(['email' => $email]);
+        self::assertTrue($medecin->isMedecin());
+        self::assertSame('Claire', $medecin->getPrenom());
+        self::assertNull($medecin->getPassword());
+
+        // Le médecin choisit son mot de passe (lien de l'e-mail) et accède aux droits médicaux.
+        $this->client->restart();
+        $crawler = $this->client->request('GET', $m[0]);
+        $this->client->submit($crawler->selectButton('Enregistrer et me connecter')->form(), [
+            'form[motDePasse][first]' => 'secret-medecin', 'form[motDePasse][second]' => 'secret-medecin',
+        ]);
+        $this->client->followRedirect();
+        $this->client->request('GET', '/utilisateurs/droits');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Droits médicaux');
+    }
+
     /** @param list<string> $roles */
     private function compteEncadrement(Club $club, string $email, string $prenom, array $roles): Utilisateur
     {
