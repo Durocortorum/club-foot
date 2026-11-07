@@ -35,6 +35,19 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         'ROLE_SCOLAIRE' => 'Scolaire',
     ];
 
+    /** Ce que chaque droit ouvre, affiché sur le tableau des droits d'accès. */
+    public const DESCRIPTIONS_ROLES = [
+        'ROLE_ADMIN' => 'Utilisateurs, catégories, apparence du club. Donne aussi tous les autres droits.',
+        'ROLE_ECOLE_FOOT' => 'Modifier joueurs, matchs et présences de l\'École de foot ; Recrutement.',
+        'ROLE_PREFORMATION' => 'Modifier joueurs, matchs et présences de la Préformation ; Recrutement.',
+        'ROLE_FORMATION' => 'Modifier joueurs, matchs et présences de la Formation ; Recrutement.',
+        'ROLE_ELITE' => 'Modifier joueurs, matchs et présences de l\'Élite ; Recrutement.',
+        'ROLE_PRO' => 'Modifier joueurs, matchs et présences des Pros ; Recrutement.',
+        'ROLE_INFIRMERIE' => 'Page Infirmerie : blessures, contacts médicaux, pour tous les joueurs.',
+        'ROLE_RAPPORT_MATCH' => 'Rédiger les rapports de tous les matchs, quel que soit le secteur.',
+        'ROLE_SCOLAIRE' => 'Page Scolarité : bulletins, discipline et sanctions.',
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -179,6 +192,14 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
     public function getLibellesRoles(): array
     {
         return array_map(fn (string $r) => self::ROLES[$r], $this->getRolesAttribues());
+    }
+
+    /** Donne ou retire un seul droit (tableau des droits d'accès). */
+    public function basculerRole(string $role, bool $actif): static
+    {
+        $roles = array_diff($this->getRolesAttribues(), [$role]);
+
+        return $this->setRolesAttribues($actif ? [...$roles, $role] : $roles);
     }
 
     public function isAdmin(): bool

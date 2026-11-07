@@ -36,7 +36,58 @@ class UtilisateurController extends AbstractController
         ]);
     }
 
-    #[Route('/utilisateurs/nouveau', name: 'app_utilisateur_nouveau', methods: ['GET', 'POST'])]
+    /** Tableau des droits d'accès : une ligne par compte, une case à cliquer par section. */
+    #[Route('/utilisateurs/droits', name: 'app_utilisateur_droits', methods: ['GET'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function droits(UtilisateurRepository $utilisateurs): Response
+    {
+        return $this->render('utilisateur/droits.html.twig', [
+            'utilisateurs' => $utilisateurs->findBy(['famille' => false], ['nom' => 'ASC', 'prenom' => 'ASC']),
+            'roles' => Utilisateur::ROLES,
+            'descriptions' => Utilisateur::DESCRIPTIONS_ROLES,
+        ]);
+    }
+
+    /**
+     * Donne ou retire un droit depuis le tableau. Répond en JSON au clic (sans recharger la page),
+     * ou par une redirection si le navigateur envoie le formulaire classique.
+     */
+    #[Route('/utilisateurs/{id}/droit', name: 'app_utilisateur_droit', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function basculerDroit(Request $request, Utilisateur $utilisateur): Response
+    {
+        $donnees = $request->getPayload();
+        $role = $donnees->getString('role');
+        $actif = $donnees->getBoolean('actif');
+        $json = \in_array('application/json', $request->getAcceptableContentTypes(), true);
+
+        $erreur = match (true) {
+            !$this->isCsrfTokenValid('droits-utilisateurs', $donnees->getString('_token')) => 'La page a expiré : rechargez-la.',
+            $utilisateur->isFamille() || !isset(Utilisateur::ROLES[$role]) => 'Droit inconnu.',
+            !$actif && 'ROLE_ADMIN' === $role && $utilisateur === $this->getUser() => 'Vous ne pouvez pas retirer votre propre accès à l\'administration.',
+            default => null,
+        };
+
+        if (null === $erreur) {
+            $utilisateur->basculerRole($role, $actif);
+            $this->em->flush();
+            $message = sprintf('%s : « %s » %s.', $utilisateur, Utilisateur::ROLES[$role], $actif ? 'accordé' : 'retiré');
+        }
+
+        if ($json) {
+            return $this->json(
+                null === $erreur
+                    ? ['roles' => $utilisateur->getRolesAttribues(), 'message' => $message]
+                    : ['erreur' => $erreur],
+                null === $erreur ? 200 : 422,
+            );
+        }
+        $this->addFlash(null === $erreur ? 'succes' : 'erreur', $erreur ?? $message);
+
+        return $this->redirectToRoute('app_utilisateur_droits', [], 303);
+    }
+
+    #[Route('/utilisateurs/nouveau',name: 'app_utilisateur_nouveau', methods: ['GET', 'POST'])]
     #[IsGranted('ROLE_ADMIN')]
     public function nouveau(Request $request): Response
     {

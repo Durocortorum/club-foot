@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Droits d'accès{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Droits d'accès <span class="compteur">{{ utilisateurs|length }}</span></h1>
+        <a class="bouton" href="{{ path('app_utilisateur_index') }}">← Liste des comptes</a>
+    </div>
+
+    <p class="discret petit">
+        Cliquez sur une case pour donner ou retirer un accès : c'est enregistré tout de suite.
+        Un administrateur a automatiquement tous les accès. Passez la souris sur un titre de colonne pour voir ce qu'il ouvre (détail sous le tableau).
+    </p>
+
+    <div data-controller="droits">
+    <p class="droits-statut" data-droits-target="statut" aria-live="polite"></p>
+    <div class="table-defile">
+        <table class="liste droits">
+            <thead>
+                <tr>
+                    <th class="droits-nom">Compte</th>
+                    {% for role, libelle in roles %}
+                        <th title="{{ descriptions[role] }}">{{ libelle|replace({' (paramètres)': ''}) }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in utilisateurs %}
+                    {% set admin = u.admin %}
+                    <tr>
+                        <td class="droits-nom">
+                            <strong>{{ u.nom }}</strong> {{ u.prenom }}{% if u == app.user %} <span class="pastille">vous</span>{% endif %}
+                            {% if not u.password %}<br><span class="pastille alerte" title="Ce compte ne peut pas encore se connecter">pas de mot de passe</span>{% endif %}
+                        </td>
+                        {% for role, libelle in roles %}
+                            {% set a = role in u.rolesAttribues %}
+                            {% set inclus = admin and role != 'ROLE_ADMIN' %}
+                            {% set verrou = role == 'ROLE_ADMIN' and u == app.user %}
+                            <td class="droits-case">
+                                <form method="post" action="{{ path('app_utilisateur_droit', {id: u.id}) }}" data-action="droits#basculer">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('droits-utilisateurs') }}">
+                                    <input type="hidden" name="role" value="{{ role }}">
+                                    <input type="hidden" name="actif" value="{{ a ? '0' : '1' }}">
+                                    <button type="submit" class="interrupteur {{ inclus ? 'inclus' : (a ? 'oui' : 'non') }}"
+                                            data-role="{{ role }}" {% if verrou %}data-verrou{% endif %}
+                                            {% if inclus or verrou %}disabled{% endif %}
+                                            aria-pressed="{{ a or inclus ? 'true' : 'false' }}"
+                                            aria-label="{{ libelle }} pour {{ u }}"
+                                            title="{{ verrou ? 'Vous ne pouvez pas retirer votre propre administration' : (inclus ? 'Inclus dans l\'administration' : libelle) }}">
+                                        {{ inclus ? 'inclus' : (a ? '✓' : '—') }}
+                                    </button>
+                                </form>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    </div>
+
+    <h2 class="droits-legende-titre">Ce que chaque accès ouvre</h2>
+    <dl class="droits-legende">
+        {% for role, libelle in roles %}
+            <dt>{{ libelle }}</dt>
+            <dd>{{ descriptions[role] }}</dd>
+        {% endfor %}
+        <dt>Tous les comptes</dt>
+        <dd>Accueil, joueurs, encadrement, matchs, statistiques, présences, entraînements et archives ; chacun ne modifie que ce que ses accès lui permettent.</dd>
+    </dl>
+{% endblock %}

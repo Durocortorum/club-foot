@@ -600,3 +600,28 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .appel-joueurs { margin-top: .6rem; }
 .choix-appel.present { background: #e5f4ea; }
 .choix-appel.absence { background: var(--danger-clair); }
+
+/* Tableau des droits d'accès */
+.droits-statut:empty { display: none; }
+table.droits th:not(.droits-nom), table.droits td.droits-case { text-align: center; }
+table.droits th { font-size: .8rem; cursor: help; }
+table.droits .droits-nom { position: sticky; left: 0; background: #fff; z-index: 1; min-width: 9rem; text-align: left; }
+.droits-case form { margin: 0; }
+.interrupteur {
+    min-width: 2.6rem; padding: .3rem .5rem; border-radius: 99px; border: 1px solid var(--bordure);
+    font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; background: #fff; color: var(--gris);
+}
+.interrupteur.oui { background: #e5f4ea; border-color: #a9d8b8; color: var(--succes); }
+.interrupteur.non:hover { border-color: var(--gris); }
+.interrupteur.oui:hover { border-color: var(--succes); }
+.interrupteur.inclus { background: #f0f0f3; font-weight: 400; font-size: .75rem; cursor: default; }
+.interrupteur:disabled { cursor: default; }
+.interrupteur[data-verrou] { opacity: .8; }
+.droits-legende-titre { margin-top: 1.5rem; font-size: 1.05rem; }
+.droits-legende { display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1rem; font-size: .9rem; }
+.droits-legende dt { font-weight: 600; }
+.droits-legende dd { margin: 0; color: var(--gris); }
+@media (max-width: 600px) {
+    .droits-legende { grid-template-columns: 1fr; }
+    .droits-legende dd { margin-bottom: .4rem; }
+}

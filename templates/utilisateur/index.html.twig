@@ -5,7 +5,10 @@
 {% block body %}
     <div class="titre-page">
         <h1>Utilisateurs <span class="compteur">{{ utilisateurs|length }}</span></h1>
-        <a class="bouton principal" href="{{ path('app_utilisateur_nouveau') }}">+ Nouveau compte</a>
+        <span>
+            <a class="bouton" href="{{ path('app_utilisateur_droits') }}">Tableau des droits d'accès</a>
+            <a class="bouton principal" href="{{ path('app_utilisateur_nouveau') }}">+ Nouveau compte</a>
+        </span>
     </div>
 
     <p class="discret petit">
