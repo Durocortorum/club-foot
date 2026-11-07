@@ -640,3 +640,6 @@ table.droits .droits-nom { position: sticky; left: 0; background: #fff; z-index:
     .liste-joueurs td.avec-vignette .avatar { margin-right: 0; flex: none; }
     .liste-joueurs td.vide { width: 100%; }
 }
+
+/* Fiche joueur : information essentielle encore vide. */
+.non-renseigne { color: var(--gris); font-style: italic; font-size: .9em; }

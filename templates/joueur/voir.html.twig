@@ -7,6 +7,11 @@
     <dt>{{ libelle }}</dt><dd>{{ valeur ? 'Oui' : 'Non' }}</dd>
 {% endmacro %}
 
+{# Information essentielle : toujours affichée, « non renseigné » si vide, pour voir ce qu'il reste à compléter. #}
+{% macro essentiel(libelle, valeur) %}
+    <dt>{{ libelle }}</dt><dd>{% if valeur is not same as(null) and valeur != '' %}{{ valeur }}{% else %}<span class="non-renseigne">non renseigné</span>{% endif %}</dd>
+{% endmacro %}
+
 {# Ligne du tableau « Matchs » : une saison ou le total (voir BilanJoueur). #}
 {% macro ligne_bilan(saison, b) %}
     <tr>
@@ -68,7 +73,7 @@
             <h2>Identité</h2>
             <dl>
                 {{ m.ligne('Surnom', joueur.surnom) }}
-                {{ m.ligne('Date de naissance', joueur.dateNaissance ? joueur.dateNaissance|date('d/m/Y')) }}
+                {{ f.essentiel('Date de naissance', joueur.dateNaissance ? joueur.dateNaissance|date('d/m/Y')) }}
                 {{ m.ligne('Lieu de naissance', joueur.lieuNaissance) }}
                 {{ m.ligne('Nationalité', joueur.nationalite) }}
             </dl>
@@ -77,13 +82,15 @@
         <section class="carte">
             <h2>Club</h2>
             <dl>
-                {{ m.ligne('Catégorie', joueur.categorie) }}
+                {{ f.essentiel('Catégorie', joueur.categorie) }}
                 {% if joueur.educateur %}
                     <dt>Éducateur</dt><dd><a href="{{ path('app_intervenant_voir', {type: 'educateurs', id: joueur.educateur.id}) }}">{{ joueur.educateur }}</a></dd>
+                {% else %}
+                    {{ f.essentiel('Éducateur', null) }}
                 {% endif %}
-                {{ m.ligne('N° de licence', joueur.licence) }}
-                {{ m.ligne('Poste', joueur.poste) }}
-                {{ m.ligne('Pied fort', joueur.pied) }}
+                {{ f.essentiel('N° de licence', joueur.licence) }}
+                {{ f.essentiel('Poste', joueur.poste) }}
+                {{ f.essentiel('Pied fort', joueur.pied) }}
                 {{ m.ligne("Arrivé le", joueur.dateArrivee ? joueur.dateArrivee|date('d/m/Y')) }}
                 {{ f.oui_non('Sélectionné', joueur.selectionne) }}
             </dl>
