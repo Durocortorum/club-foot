@@ -58,7 +58,7 @@ security:
         # (plus, pour un médecin, le tableau des droits médicaux et les demandes d'accès).
         - { path: ^/(infirmerie|medical|photos)(/|$), roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
         - { path: ^/(joueurs/\d+/mesures/nouvelle|mesures/\d+/supprimer)$, roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
-        - { path: ^/utilisateurs/(droits|\d+/droit)$, roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
+        - { path: ^/utilisateurs/(droits(/nouvelle-personne)?|\d+/droit)$, roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
         - { path: ^/acces-medical/demande/\d+/(accorder|refuser)$, roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
         # Tout le reste est réservé à l'encadrement du club.
         - { path: ^/, roles: ROLE_ENCADREMENT }

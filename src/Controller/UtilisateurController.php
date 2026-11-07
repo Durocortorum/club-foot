@@ -7,6 +7,13 @@ use App\Form\ChangementMotDePasseType;
 use App\Form\UtilisateurType;
 use App\Repository\DemandeAccesMedicalRepository;
 use App\Repository\UtilisateurRepository;
+use App\Service\InvitationCompte;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Constraints\NotBlank;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -57,6 +64,72 @@ class UtilisateurController extends AbstractController
             'durees' => Utilisateur::DUREES_MEDICALES,
             // Demandes d'accès médical à traiter (médecin du club ou administrateur).
             'demandes' => array_intersect(Utilisateur::SECTIONS_MEDICALES, $modifiables) ? $demandes->enAttente() : [],
+        ]);
+    }
+
+    /**
+     * Le médecin du club (ou l'administrateur) crée le compte d'une personne qui n'aura que du médical
+     * (kiné, infirmière...) : droits Infirmerie / Visite médicale avec échéance, et invitation par e-mail
+     * pour choisir son mot de passe. Le compte ne voit que l'Infirmerie (compte médical seul).
+     */
+    #[Route('/utilisateurs/droits/nouvelle-personne', name: 'app_droits_nouvelle_personne', methods: ['GET', 'POST'])]
+    public function nouvellePersonneMedicale(Request $request, UtilisateurRepository $utilisateurs, InvitationCompte $invitation): Response
+    {
+        if (!array_intersect(Utilisateur::SECTIONS_MEDICALES, $this->colonnesModifiables())) {
+            throw $this->createAccessDeniedException();
+        }
+        $niveaux = ['Aucun accès' => 0, 'Voir (consultation seule)' => 1, 'Modifier (consultation et saisie)' => 2];
+        $form = $this->createFormBuilder(['infirmerie' => 1, 'visite_medicale' => 0, 'duree' => '30'])
+            ->add('prenom', TextType::class, ['label' => 'Prénom', 'constraints' => [new NotBlank(message: 'Indiquez le prénom.')]])
+            ->add('nom', TextType::class, ['constraints' => [new NotBlank(message: 'Indiquez le nom.')]])
+            ->add('email', EmailType::class, [
+                'label' => 'Adresse e-mail',
+                'help' => 'Elle sert à se connecter et à recevoir les codes d\'accès aux données médicales : une adresse réelle.',
+                'constraints' => [new NotBlank(message: 'Indiquez l\'adresse e-mail.'), new Email(message: 'Adresse e-mail invalide.')],
+            ])
+            ->add('infirmerie', ChoiceType::class, ['label' => '🔒 Infirmerie (blessures, renseignements médicaux, contacts)', 'choices' => $niveaux, 'expanded' => true])
+            ->add('visite_medicale', ChoiceType::class, ['label' => '🔒 Visite médicale (poids, taille, IMC)', 'choices' => $niveaux, 'expanded' => true])
+            ->add('duree', ChoiceType::class, ['label' => 'Pendant', 'choices' => array_flip(Utilisateur::DUREES_MEDICALES)])
+            ->getForm();
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $donnees = $form->getData();
+            $email = mb_strtolower(trim($donnees['email']));
+            if (0 === $donnees['infirmerie'] + $donnees['visite_medicale']) {
+                $form->addError(new FormError('Choisissez au moins un accès : Infirmerie ou Visite médicale.'));
+            } elseif ($utilisateurs->tousClubs(['email' => $email])) {
+                $form->get('email')->addError(new FormError('Cette adresse a déjà un compte. S\'il est de votre club, donnez-lui l\'accès dans le tableau des droits médicaux.'));
+            } else {
+                $echeance = Utilisateur::echeanceMedicale($donnees['duree']);
+                $compte = (new Utilisateur())->setEmail($email)->setNom(trim($donnees['nom']))->setPrenom(trim($donnees['prenom']));
+                foreach (Utilisateur::SECTIONS_MEDICALES as $section) {
+                    if ($donnees[$section] > 0) {
+                        $compte->setNiveau($section, $donnees[$section], $echeance);
+                    }
+                }
+                /** @var Utilisateur $moi */
+                $moi = $this->getUser();
+                $club = (string) $moi->getClub()?->getNom();
+                $resultat = $invitation->inviter($compte, $club, 'votre accès aux données médicales',
+                    \sprintf('vous ouvre un accès aux données médicales du club (%s), jusqu\'au %s.',
+                        implode(', ', array_map(fn ($s) => Utilisateur::SECTIONS[$s]['libelle'], array_filter(Utilisateur::SECTIONS_MEDICALES, fn ($s) => $donnees[$s] > 0))),
+                        $echeance->format('d/m/Y')));
+                $this->em->persist($compte);
+                $this->em->flush();
+                $this->addFlash('succes', $resultat['envoye']
+                    ? \sprintf('Compte créé pour %s (accès jusqu\'au %s) : un e-mail lui permet de choisir son mot de passe.', $compte, $echeance->format('d/m/Y'))
+                    : \sprintf('Compte créé pour %s, mais l\'e-mail n\'est pas parti. Transmettez-lui ce lien (%d jours) : %s', $compte, InvitationCompte::DUREE_JOURS, $resultat['lien']));
+
+                return $this->redirectToRoute('app_utilisateur_droits');
+            }
+        }
+
+        return $this->render('commun/formulaire.html.twig', [
+            'form' => $form,
+            'titre' => 'Nouvelle personne – accès médical',
+            'aide' => 'Pour un kiné, une infirmière... qui n\'a besoin que du médical : son compte ne verra que l\'Infirmerie et les dossiers médicaux, pour tout le club, jusqu\'à l\'échéance choisie. Elle recevra un e-mail pour choisir son mot de passe.',
+            'retour' => $this->generateUrl('app_utilisateur_droits'),
         ]);
     }
 

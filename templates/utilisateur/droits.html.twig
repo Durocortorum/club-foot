@@ -60,6 +60,7 @@
                 {% for cle, libelle in durees %}<option value="{{ cle }}" {{ cle == '30' ? 'selected' }}>{{ libelle }}</option>{% endfor %}
             </select>
             <span>À l'échéance, le droit tombe tout seul. Pour les consulter, chacun saisit en plus un code reçu par e-mail.</span>
+            <a class="bouton petit" href="{{ path('app_droits_nouvelle_personne') }}" title="Créer le compte d'un kiné, d'une infirmière... qui n'aura que le médical">+ Nouvelle personne (accès médical)</a>
         </p>
     {% endif %}
     <p class="droits-statut" data-droits-target="statut" aria-live="polite"></p>

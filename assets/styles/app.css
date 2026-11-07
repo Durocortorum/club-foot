@@ -674,3 +674,8 @@ table.droits thead th.droits-nom { z-index: 3; }
 .echeance.proche { color: var(--danger-fonce); }
 .droits-duree { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .8rem; }
 .droits-duree select { width: auto; }
+
+/* Choix par boutons radio (accès médical, demandes) : bouton et libellé sur la même ligne. */
+.champ div[id]:has(> input[type="radio"]) { display: grid; grid-template-columns: auto 1fr; gap: .35rem .5rem; align-items: center; margin-top: .3rem; }
+.champ div[id] > input[type="radio"] { width: auto; margin: 0; }
+.champ div[id] > input[type="radio"] + label { margin: 0; font-size: .92rem; color: var(--encre); }

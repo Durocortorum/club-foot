@@ -329,6 +329,53 @@ class AccesMedicalTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Entorse Dehors');
     }
 
+    public function testNouvellePersonneMedicale(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Admin');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $categorie = $this->em()->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+        $medecin = $this->compteEncadrement($club, "medecin-$id@exemple.test", 'Docteur', ['ROLE_MEDECIN']);
+        $coach = $this->compteEncadrement($club, "coach-$id@exemple.test", 'Coach', [Categorie::SECTEURS[$categorie->getSecteur()]['role']]);
+        $this->em()->flush();
+
+        // Le médecin crée le compte d'un kiné : Infirmerie (voir) pour 1 semaine.
+        $this->client->loginUser($medecin);
+        $crawler = $this->client->request('GET', '/utilisateurs/droits');
+        $crawler = $this->client->click($crawler->selectLink('+ Nouvelle personne (accès médical)')->link());
+        $email = "kine-$id@exemple.test";
+        $this->client->submit($crawler->selectButton('Enregistrer')->form(), [
+            'form[prenom]' => 'Paul', 'form[nom]' => 'Kiné', 'form[email]' => $email,
+            'form[infirmerie]' => '1', 'form[visite_medicale]' => '0', 'form[duree]' => '7',
+        ]);
+        self::assertResponseRedirects('/utilisateurs/droits');
+        self::assertEmailCount(1);
+        $message = self::getMailerMessage();
+        self::assertInstanceOf(\Symfony\Component\Mime\Email::class, $message);
+        self::assertSame(1, preg_match('#https?://\S+/mot-de-passe/[0-9a-f]{48}#', $message->getTextBody(), $m));
+        $kine = $this->em()->getRepository(Utilisateur::class)->findOneBy(['email' => $email]);
+        self::assertTrue($kine->isMedicalSeul());
+        self::assertSame(1, $kine->getNiveau('infirmerie'));
+        self::assertSame(0, $kine->getNiveau('visite_medicale'));
+        self::assertSame((new \DateTimeImmutable('+7 days'))->format('Y-m-d'), $kine->getEcheance('infirmerie')->format('Y-m-d'));
+
+        // Le kiné choisit son mot de passe : il ne voit que l'Infirmerie.
+        $this->client->restart();
+        $crawler = $this->client->request('GET', $m[0]);
+        $this->client->submit($crawler->selectButton('Enregistrer et me connecter')->form(), [
+            'form[motDePasse][first]' => 'secret-kine', 'form[motDePasse][second]' => 'secret-kine',
+        ]);
+        $this->client->followRedirect();
+        self::assertResponseRedirects('/infirmerie');
+
+        // Un éducateur ne peut pas créer de compte médical.
+        $this->client->loginUser($this->compte($coach));
+        $this->client->request('GET', '/utilisateurs/droits/nouvelle-personne');
+        self::assertResponseStatusCodeSame(403);
+    }
+
     /** @param list<string> $roles */
     private function compteEncadrement(Club $club, string $email, string $prenom, array $roles): Utilisateur
     {
