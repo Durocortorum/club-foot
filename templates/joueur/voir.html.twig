@@ -255,6 +255,13 @@
                 Le joueur et ses parents reçoivent un lien pour choisir leur mot de passe. Ils accèdent ensuite à leur espace
                 (prochains matchs, réponse aux convocations), sans jamais voir les autres pages de l'application.
             </p>
+            {% if famille.majeur %}
+                <p class="flash flash-info petit">
+                    {{ joueur.prenom }} est majeur(e) : le club n'invite que lui ou elle. C'est {{ joueur.prenom }} qui décide
+                    de l'accès de ses parents, depuis son espace (rubrique « Accès de mes parents »).
+                    {% if not joueur.emailJoueur %}Ajoutez d'abord son adresse e-mail sur la fiche (bouton « Modifier »).{% endif %}
+                </p>
+            {% endif %}
             {% if famille.comptes or famille.a_inviter %}
                 <ul class="liste-simple carte">
                     {% for c in famille.comptes %}

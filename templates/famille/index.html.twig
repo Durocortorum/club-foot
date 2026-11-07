@@ -40,7 +40,7 @@
                 <tbody>
                     {% for l in lignes %}
                         <tr>
-                            <td class="nowrap principal"><a href="{{ path('app_joueur_voir', {id: l.joueur.id}) }}#famille"><strong>{{ l.joueur.nom }}</strong> {{ l.joueur.prenom }}</a></td>
+                            <td class="nowrap principal"><a href="{{ path('app_joueur_voir', {id: l.joueur.id}) }}#famille"><strong>{{ l.joueur.nom }}</strong> {{ l.joueur.prenom }}</a>{% if l.majeur %} <span class="pastille" title="Joueur majeur : il ouvre lui-même l'accès à ses parents depuis son espace">majeur</span>{% endif %}</td>
                             <td class="petit large">
                                 {% for c in l.comptes %}
                                     <div>

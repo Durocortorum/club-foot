@@ -5,7 +5,9 @@ namespace App\Controller;
 use App\Entity\AbsenceEntrainement;
 use App\Entity\Convoque;
 use App\Entity\Entrainement;
+use App\Entity\Joueur;
 use App\Entity\Utilisateur;
+use App\Service\AccesFamille;
 use App\Repository\ConvoqueRepository;
 use App\Repository\JoueurRepository;
 use App\Service\PlanningEntrainements;
@@ -33,7 +35,7 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 class EspaceController extends AbstractController
 {
     #[Route('/espace', name: 'app_espace', methods: ['GET'])]
-    public function index(RencontreRepository $rencontres, ConvoqueRepository $convoques, PlanningEntrainements $planning): Response
+    public function index(RencontreRepository $rencontres, ConvoqueRepository $convoques, PlanningEntrainements $planning, AccesFamille $acces): Response
     {
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
@@ -70,6 +72,8 @@ class EspaceController extends AbstractController
                 'entrainements' => array_values(array_filter($entrainements, fn (Entrainement $e) => $e->getCategorie() === $j->getCategorie())),
                 // Les matchs déjà couverts par une convocation ne sont pas répétés.
                 'matchs' => $j->getCategorie() ? array_values(array_filter($rencontres->aVenir($j->getCategorie(), 5), fn ($r) => !\in_array($r, $convoquesA, true))) : [],
+                // Joueur majeur connecté avec son propre compte : il ouvre ou retire l'accès de ses parents.
+                'parents' => $acces->decideAccesParents($moi, $j) ? $acces->parentsDuJoueur($j) : null,
             ];
         }
 
@@ -78,6 +82,59 @@ class EspaceController extends AbstractController
             'motifs' => Convoque::MOTIFS,
             'motifs_entrainement' => array_keys(AbsenceEntrainement::MOTIFS),
         ]);
+    }
+
+    /** Joueur majeur : il ouvre l'accès à l'un de ses parents (adresse de sa fiche). */
+    #[Route('/espace/parents/{id}/inviter', name: 'app_espace_parent_inviter', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function inviterParent(Request $request, Joueur $joueur, AccesFamille $acces): Response
+    {
+        $this->joueurMajeurConnecte($request, $joueur, $acces);
+        $qui = $request->getPayload()->getString('qui');
+        $parent = array_values(array_filter($acces->parentsDuJoueur($joueur), fn (array $p) => $p['qui'] === $qui))[0] ?? null;
+        if (!$parent) {
+            throw $this->createAccessDeniedException();
+        }
+        try {
+            $resultat = $acces->inviter($joueur, $parent['email'], $qui);
+        } catch (\DomainException $e) {
+            $this->addFlash('erreur', $e->getMessage());
+
+            return $this->redirect($this->generateUrl('app_espace') . '#parents-' . $joueur->getId());
+        }
+        $this->addFlash('succes', match (true) {
+            null === $resultat['lien'] => \sprintf('%s a déjà un compte : votre espace y est maintenant visible.', $parent['email']),
+            $resultat['envoye'] => \sprintf('Invitation envoyée à %s : un e-mail lui permet de choisir son mot de passe.', $parent['email']),
+            default => \sprintf('Accès préparé pour %s. Transmettez-lui ce lien pour choisir son mot de passe : %s', $parent['email'], $resultat['lien']),
+        });
+
+        return $this->redirect($this->generateUrl('app_espace') . '#parents-' . $joueur->getId());
+    }
+
+    /** Joueur majeur : il retire l'accès d'un de ses parents. */
+    #[Route('/espace/parents/{id}/retirer/{compte}', name: 'app_espace_parent_retirer', requirements: ['id' => '\d+', 'compte' => '\d+'], methods: ['POST'])]
+    public function retirerParent(Request $request, Joueur $joueur, Utilisateur $compte, AccesFamille $acces): Response
+    {
+        $moi = $this->joueurMajeurConnecte($request, $joueur, $acces);
+        if ($compte === $moi || !$compte->isFamille() || !$compte->suit($joueur)) {
+            throw $this->createAccessDeniedException();
+        }
+        $acces->retirer($joueur, $compte);
+        $this->addFlash('succes', \sprintf('%s n\'a plus accès à votre espace.', $compte->getEmail()));
+
+        return $this->redirect($this->generateUrl('app_espace') . '#parents-' . $joueur->getId());
+    }
+
+    /** Le compte connecté est celui du joueur, majeur, et le formulaire vient bien de son espace. */
+    private function joueurMajeurConnecte(Request $request, Joueur $joueur, AccesFamille $acces): Utilisateur
+    {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        if (!$acces->decideAccesParents($moi, $joueur)
+            || !$this->isCsrfTokenValid('parents' . $joueur->getId(), $request->getPayload()->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+
+        return $moi;
     }
 
     /** La famille signale une absence à un entraînement, ou la retire (finalement présent). */

@@ -75,8 +75,9 @@ class AccesFamille
     /**
      * Accès famille d'un joueur : comptes qui le suivent et adresses de la fiche encore sans compte.
      * Un lien expiré se renvoie depuis la fiche, adresse par adresse.
+     * Joueur majeur : le club n'invite que lui ; c'est lui qui ouvre l'accès à ses parents (voir parentsDuJoueur).
      *
-     * @return array{comptes: list<Utilisateur>, a_inviter: array<string, string>}
+     * @return array{comptes: list<Utilisateur>, a_inviter: array<string, string>, majeur: bool}
      */
     public function etat(Joueur $joueur): array
     {
@@ -85,8 +86,45 @@ class AccesFamille
         foreach ($comptes as $c) {
             unset($aInviter[$c->getEmail()]);
         }
+        $majeur = !$joueur->isMineur();
+        if ($majeur) {
+            $aInviter = array_filter($aInviter, fn (string $qui) => 'joueur' === $qui);
+        }
 
-        return ['comptes' => $comptes, 'a_inviter' => $aInviter];
+        return ['comptes' => $comptes, 'a_inviter' => $aInviter, 'majeur' => $majeur];
+    }
+
+    /** Ce compte est-il celui du joueur lui-même (adresse e-mail du joueur sur sa fiche) ? */
+    public function estLeJoueur(Utilisateur $compte, Joueur $joueur): bool
+    {
+        return 'joueur' === ($this->adresses($joueur)[$compte->getEmail()] ?? null);
+    }
+
+    /** Le joueur connecté est majeur et décide lui-même de l'accès de ses parents. */
+    public function decideAccesParents(Utilisateur $compte, Joueur $joueur): bool
+    {
+        return $compte->isFamille() && $compte->suit($joueur) && !$joueur->isMineur() && $this->estLeJoueur($compte, $joueur);
+    }
+
+    /**
+     * Adresses des parents sur la fiche, avec le compte qui les utilise déjà pour ce joueur (ou null).
+     *
+     * @return list<array{email: string, qui: string, compte: ?Utilisateur}>
+     */
+    public function parentsDuJoueur(Joueur $joueur): array
+    {
+        $comptes = [];
+        foreach ($this->comptes($joueur) as $c) {
+            $comptes[$c->getEmail()] = $c;
+        }
+        $parents = [];
+        foreach ($this->adresses($joueur) as $email => $qui) {
+            if ('joueur' !== $qui) {
+                $parents[] = ['email' => $email, 'qui' => $qui, 'compte' => $comptes[$email] ?? null];
+            }
+        }
+
+        return $parents;
     }
 
     /**
