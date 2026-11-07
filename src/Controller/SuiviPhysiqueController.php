@@ -21,10 +21,14 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 class SuiviPhysiqueController extends AbstractController
 {
+    public function __construct(private readonly JoueurVoter $voter)
+    {
+    }
+
     #[Route('/joueurs/{id}/mesures/nouvelle', name: 'app_mesure_nouvelle', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function nouvelleMesure(Request $request, Joueur $joueur, EntityManagerInterface $em): Response
     {
-        $this->verifierInfirmerie();
+        $this->verifierVisite($joueur);
         $mesure = (new Mesure())->setJoueur($joueur)->setDate(new \DateTimeImmutable('today'));
 
         return $this->formulaire($request, $em, MesureType::class, $mesure, $joueur, 'Visite médicale – ' . $joueur->getNomComplet(), 'visite-medicale', 'app_dossier_medical');
@@ -42,7 +46,7 @@ class SuiviPhysiqueController extends AbstractController
     #[Route('/mesures/{id}/supprimer', name: 'app_mesure_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimerMesure(Request $request, Mesure $mesure, EntityManagerInterface $em): Response
     {
-        $this->verifierInfirmerie();
+        $this->verifierVisite($mesure->getJoueur());
 
         return $this->supprimer($request, $em, $mesure, $mesure->getJoueur(), 'mesure', 'visite-medicale', 'app_dossier_medical');
     }
@@ -86,10 +90,10 @@ class SuiviPhysiqueController extends AbstractController
         return $this->redirectToRoute($page, ['id' => $joueur->getId(), '_fragment' => $bloc]);
     }
 
-    /** Visite médicale : données de santé, droit « Visite médicale (modifier) ». */
-    private function verifierInfirmerie(): void
+    /** Visite médicale : données de santé, droit « Visite médicale (modifier) », dans son périmètre médical. */
+    private function verifierVisite(Joueur $joueur): void
     {
-        if (!$this->isGranted('ROLE_VISITE_MEDICALE')) {
+        if (!$this->isGranted('ROLE_VISITE_MEDICALE') || !$this->voter->dansPerimetreMedical($joueur)) {
             throw $this->createAccessDeniedException();
         }
     }
@@ -97,7 +101,7 @@ class SuiviPhysiqueController extends AbstractController
     private function verifier(Joueur $joueur): void
     {
         if (!$this->isGranted('ROLE_TESTS_PHYSIQUES')
-            || (!$this->isGranted('ROLE_INFIRMERIE') && !$this->isGranted(JoueurVoter::MODIFIER, $joueur))) {
+            || (!$this->isGranted(JoueurVoter::MODIFIER, $joueur) && !($this->isGranted('ROLE_INFIRMERIE') && $this->voter->dansPerimetreMedical($joueur)))) {
             throw $this->createAccessDeniedException();
         }
     }

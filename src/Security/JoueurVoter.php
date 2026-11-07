@@ -10,7 +10,8 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
  * Un utilisateur voit et modifie les joueurs des secteurs auxquels il a accès
- * (ROLE_FORMATION pour la Formation, etc.). L'infirmerie voit tous les joueurs.
+ * (ROLE_FORMATION pour la Formation, etc.). Le droit Infirmerie n'élargit pas cette liste :
+ * son périmètre propre est donné par secteursMedicaux().
  *
  * @extends Voter<string, Joueur>
  */
@@ -30,12 +31,32 @@ class JoueurVoter extends Voter
      */
     public function secteursVisibles(): array
     {
-        $tous = $this->security->isGranted('ROLE_INFIRMERIE_LECTURE');
+        return $this->secteursModifiables();
+    }
 
-        return array_keys(array_filter(
-            Categorie::SECTEURS,
-            fn (array $s) => $tous || $this->security->isGranted($s['role'])
-        ));
+    /**
+     * Périmètre médical (Infirmerie, dossiers médicaux, visite médicale) : null pour tout le club
+     * (administrateur, médecin du club, compte médical seul), sinon les secteurs de l'éducateur.
+     *
+     * @return list<string>|null
+     */
+    public function secteursMedicaux(): ?array
+    {
+        foreach (['ROLE_ADMIN', 'ROLE_MEDECIN', 'ROLE_MEDICAL_SEUL'] as $role) {
+            if ($this->security->isGranted($role)) {
+                return null;
+            }
+        }
+
+        return $this->secteursVisibles();
+    }
+
+    /** Ce joueur est-il dans le périmètre médical du compte connecté ? */
+    public function dansPerimetreMedical(Joueur $joueur): bool
+    {
+        $secteurs = $this->secteursMedicaux();
+
+        return null === $secteurs || \in_array($joueur->getCategorie()?->getSecteur(), $secteurs, true);
     }
 
     /**

@@ -4,12 +4,14 @@ namespace App\Controller;
 
 use App\Entity\Blessure;
 use App\Entity\ContactMedical;
+use App\Entity\Joueur;
 use App\Form\BlessureType;
 use App\Form\ContactMedicalType;
 use App\Repository\BlessureRepository;
 use App\Repository\CategorieRepository;
 use App\Repository\ContactMedicalRepository;
 use App\Repository\JoueurRepository;
+use App\Security\JoueurVoter;
 use App\Service\Anatomie;
 use App\Entity\Utilisateur;
 use App\Repository\UtilisateurRepository;
@@ -39,8 +41,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_INFIRMERIE_LECTURE')]
 class InfirmerieController extends AbstractController
 {
-    public function __construct(private readonly Anatomie $anatomie)
-    {
+    public function __construct(
+        private readonly Anatomie $anatomie,
+        private readonly JoueurVoter $voter,
+    ) {
     }
 
     #[Route('', name: 'app_infirmerie_index', methods: ['GET'])]
@@ -52,7 +56,9 @@ class InfirmerieController extends AbstractController
             'categorie' => $request->query->getInt('categorie') ?: null,
         ];
         $page = max(1, $request->query->getInt('page', 1));
-        $resultats = $blessures->rechercher($filtres['statut'], $filtres['q'], $filtres['categorie'], $page);
+        // Éducateur : ses secteurs seulement ; médecin, compte médical seul, administrateur : tout le club.
+        $secteurs = $this->voter->secteursMedicaux();
+        $resultats = $blessures->rechercher($filtres['statut'], $filtres['q'], $filtres['categorie'], $page, $secteurs);
 
         return $this->render('infirmerie/index.html.twig', [
             'blessures' => $resultats,
@@ -60,8 +66,8 @@ class InfirmerieController extends AbstractController
             'pages' => max(1, (int) ceil(\count($resultats) / BlessureRepository::PAR_PAGE)),
             'page' => $page,
             'filtres' => $filtres,
-            'categories' => $categories->findBy([], ['ordre' => 'ASC']),
-            'par_type' => $blessures->compterParType(),
+            'categories' => $categories->findBy(null === $secteurs ? [] : ['secteur' => $secteurs], ['ordre' => 'ASC']),
+            'par_type' => $blessures->compterParType(10, $secteurs),
         ]);
     }
 
@@ -72,6 +78,7 @@ class InfirmerieController extends AbstractController
         $blessure = (new Blessure())->setDate(new \DateTimeImmutable('today'));
         $joueur = $request->query->getInt('joueur') ? $joueurs->find($request->query->getInt('joueur')) : null;
         if ($joueur) {
+            $this->verifierPerimetre($joueur);
             $blessure->setJoueur($joueur)->setEquipe($joueur->getCategorie()?->getNom());
         }
 
@@ -82,6 +89,8 @@ class InfirmerieController extends AbstractController
     #[Route('/blessures/{id}/modifier', name: 'app_blessure_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function modifierBlessure(Request $request, EntityManagerInterface $em, Blessure $blessure): Response
     {
+        $this->verifierPerimetre($blessure->getJoueur());
+
         return $this->formulaireBlessure($request, $em, $blessure, 'Blessure de ' . $blessure->getJoueur()->getNomComplet(), true);
     }
 
@@ -90,6 +99,7 @@ class InfirmerieController extends AbstractController
     public function supprimerBlessure(Request $request, EntityManagerInterface $em, Blessure $blessure): Response
     {
         $joueur = $blessure->getJoueur();
+        $this->verifierPerimetre($joueur);
         if ($this->isCsrfTokenValid('supprimer-blessure' . $blessure->getId(), $request->getPayload()->getString('_token'))) {
             $em->remove($blessure);
             $em->flush();
@@ -228,7 +238,7 @@ class InfirmerieController extends AbstractController
 
     private function formulaireBlessure(Request $request, EntityManagerInterface $em, Blessure $blessure, string $titre, bool $joueurFixe): Response
     {
-        $form = $this->createForm(BlessureType::class, $blessure, ['joueur_fixe' => $joueurFixe]);
+        $form = $this->createForm(BlessureType::class, $blessure, ['joueur_fixe' => $joueurFixe, 'secteurs' => $this->voter->secteursMedicaux()]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -256,5 +266,13 @@ class InfirmerieController extends AbstractController
         }
 
         return $this->render('infirmerie/blessure.html.twig', $vue);
+    }
+
+    /** Joueur hors du périmètre médical (autre secteur pour un éducateur) : refusé. */
+    private function verifierPerimetre(?Joueur $joueur): void
+    {
+        if ($joueur && !$this->voter->dansPerimetreMedical($joueur)) {
+            throw $this->createAccessDeniedException();
+        }
     }
 }

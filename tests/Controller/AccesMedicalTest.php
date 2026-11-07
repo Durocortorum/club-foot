@@ -278,6 +278,57 @@ class AccesMedicalTest extends WebTestCase
         self::assertSelectorExists('nav.menu a[href="/matchs"]');
     }
 
+    public function testPerimetreDeLEducateur(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Admin');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = $this->em();
+        $categories = $em->getRepository(Categorie::class)->findBy(['club' => $club], ['ordre' => 'ASC']);
+        $parSecteur = [];
+        foreach ($categories as $c) {
+            $parSecteur[$c->getSecteur()] ??= $c;
+        }
+        [$a, $b] = array_values($parSecteur);
+        $chez = (new Joueur())->setClub($club)->setCategorie($a)->setNom('Dedans')->setPrenom('Léo');
+        $ailleurs = (new Joueur())->setClub($club)->setCategorie($b)->setNom('Dehors')->setPrenom('Tom');
+        foreach ([$chez, $ailleurs] as $j) {
+            $em->persist($j);
+            $em->persist((new Blessure())->setClub($club)->setJoueur($j)->setDate(new \DateTimeImmutable('-2 days'))->setType('Entorse ' . $j->getNom()));
+        }
+        $educ = $this->compteEncadrement($club, "educ-$id@exemple.test", 'Educ', [Categorie::SECTEURS[$a->getSecteur()]['role'], 'ROLE_INFIRMERIE']);
+        $educ->setEcheance('infirmerie', new \DateTimeImmutable('+30 days'));
+        $em->flush();
+
+        // L'Infirmerie n'élargit plus la liste des joueurs ni les fiches.
+        $this->client->loginUser($educ);
+        $this->client->request('GET', '/joueurs');
+        self::assertSelectorTextContains('main', 'Dedans');
+        self::assertSelectorTextNotContains('main', 'Dehors');
+        $this->client->request('GET', '/joueurs/' . $ailleurs->getId());
+        self::assertResponseStatusCodeSame(403);
+
+        // Dans l'Infirmerie : ses secteurs seulement.
+        $this->ouvrirMedical($this->client);
+        $this->client->request('GET', '/infirmerie?statut=toutes');
+        self::assertSelectorTextContains('main', 'Entorse Dedans');
+        self::assertSelectorTextNotContains('main', 'Entorse Dehors');
+        $this->client->request('GET', '/infirmerie/dossiers');
+        self::assertSelectorTextNotContains('main', 'Dehors');
+        $this->client->request('GET', '/infirmerie/dossiers/' . $ailleurs->getId());
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('GET', '/infirmerie/blessures/nouvelle?joueur=' . $ailleurs->getId());
+        self::assertResponseStatusCodeSame(403);
+
+        // L'administrateur voit tout le club.
+        $this->client->loginUser($admin);
+        $this->ouvrirMedical($this->client);
+        $this->client->request('GET', '/infirmerie?statut=toutes');
+        self::assertSelectorTextContains('main', 'Entorse Dehors');
+    }
+
     /** @param list<string> $roles */
     private function compteEncadrement(Club $club, string $email, string $prenom, array $roles): Utilisateur
     {

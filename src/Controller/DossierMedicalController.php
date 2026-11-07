@@ -8,6 +8,7 @@ use App\Repository\BlessureRepository;
 use App\Repository\CategorieRepository;
 use App\Repository\JoueurRepository;
 use App\Repository\MesureRepository;
+use App\Security\JoueurVoter;
 use App\Service\AccesMedical;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,8 +25,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[Route('/infirmerie/dossiers')]
 class DossierMedicalController extends AbstractController
 {
-    public function __construct(private readonly AccesMedical $acces)
-    {
+    public function __construct(
+        private readonly AccesMedical $acces,
+        private readonly JoueurVoter $voter,
+    ) {
     }
 
     #[Route('', name: 'app_dossier_medical_index', methods: ['GET'])]
@@ -45,10 +48,15 @@ class DossierMedicalController extends AbstractController
         if ($categorie) {
             $requete->andWhere('c.id = :categorie')->setParameter('categorie', $categorie);
         }
+        // Éducateur : ses secteurs seulement ; médecin, compte médical seul, administrateur : tout le club.
+        $secteurs = $this->voter->secteursMedicaux();
+        if (null !== $secteurs) {
+            $requete->andWhere('c.secteur IN (:secteurs)')->setParameter('secteurs', $secteurs ?: ['-']);
+        }
 
         return $this->render('infirmerie/dossiers.html.twig', [
             'joueurs' => $requete->getQuery()->getResult(),
-            'categories' => $categories->findBy([], ['ordre' => 'ASC', 'nom' => 'ASC']),
+            'categories' => $categories->findBy(null === $secteurs ? [] : ['secteur' => $secteurs], ['ordre' => 'ASC', 'nom' => 'ASC']),
             'filtres' => ['q' => $q, 'categorie' => $categorie],
         ]);
     }
@@ -56,7 +64,7 @@ class DossierMedicalController extends AbstractController
     #[Route('/{id}', name: 'app_dossier_medical', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function voir(Joueur $joueur, BlessureRepository $blessures, MesureRepository $mesures): Response
     {
-        $this->verifier();
+        $this->verifier($joueur);
 
         return $this->render('infirmerie/dossier.html.twig', [
             'joueur' => $joueur,
@@ -69,6 +77,7 @@ class DossierMedicalController extends AbstractController
     #[Route('/{id}/renseignements', name: 'app_dossier_medical_renseignements', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function renseignements(Request $request, Joueur $joueur, EntityManagerInterface $em): Response
     {
+        $this->verifier($joueur);
         $form = $this->createForm(RenseignementsMedicauxType::class, $joueur);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
@@ -85,10 +94,13 @@ class DossierMedicalController extends AbstractController
         ]);
     }
 
-    /** Un droit médical en vigueur (Infirmerie ou Visite médicale) suffit pour ouvrir les dossiers. */
-    private function verifier(): void
+    /**
+     * Un droit médical en vigueur (Infirmerie ou Visite médicale) suffit pour ouvrir les dossiers,
+     * dans son périmètre médical (ses secteurs pour un éducateur).
+     */
+    private function verifier(?Joueur $joueur = null): void
     {
-        if (!$this->acces->aLeDroit()) {
+        if (!$this->acces->aLeDroit() || ($joueur && !$this->voter->dansPerimetreMedical($joueur))) {
             throw $this->createAccessDeniedException();
         }
     }

@@ -24,8 +24,16 @@ class BlessureType extends AbstractType
                 'class' => Joueur::class,
                 'placeholder' => '— Choisir —',
                 'choice_label' => fn (Joueur $j) => sprintf('%s %s (%s)', $j->getNom(), $j->getPrenom(), $j->getCategorie() ?? '?'),
-                'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('j')
-                    ->where('j.ancien = false')->orderBy('j.nom')->addOrderBy('j.prenom'),
+                // Seulement les joueurs du périmètre médical de l'utilisateur (option « secteurs », null : tout le club).
+                'query_builder' => function (EntityRepository $r) use ($options) {
+                    $qb = $r->createQueryBuilder('j')->leftJoin('j.categorie', 'c')
+                        ->where('j.ancien = false')->orderBy('j.nom')->addOrderBy('j.prenom');
+                    if (null !== $options['secteurs']) {
+                        $qb->andWhere('c.secteur IN (:secteurs)')->setParameter('secteurs', $options['secteurs'] ?: ['-']);
+                    }
+
+                    return $qb;
+                },
                 'disabled' => $options['joueur_fixe'],
             ])
             ->add('date', DateType::class, ['label' => 'Date de la blessure'] + $date)
@@ -42,6 +50,7 @@ class BlessureType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => Blessure::class, 'joueur_fixe' => false]);
+        $resolver->setDefaults(['data_class' => Blessure::class, 'joueur_fixe' => false, 'secteurs' => null]);
+        $resolver->setAllowedTypes('secteurs', ['null', 'array']);
     }
 }

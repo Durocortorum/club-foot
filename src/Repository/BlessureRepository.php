@@ -20,9 +20,10 @@ class BlessureRepository extends ServiceEntityRepository
     }
 
     /**
-     * @param string $statut 'en_cours' ou 'toutes'
+     * @param string            $statut   'en_cours' ou 'toutes'
+     * @param list<string>|null $secteurs secteurs des joueurs (périmètre médical), null pour tout le club
      */
-    public function rechercher(string $statut, ?string $texte, ?int $categorieId, int $page): Paginator
+    public function rechercher(string $statut, ?string $texte, ?int $categorieId, int $page, ?array $secteurs = null): Paginator
     {
         $qb = $this->createQueryBuilder('b')
             ->addSelect('j', 'c')
@@ -44,6 +45,9 @@ class BlessureRepository extends ServiceEntityRepository
         if ($categorieId) {
             $qb->andWhere('c.id = :cat')->setParameter('cat', $categorieId);
         }
+        if (null !== $secteurs) {
+            $qb->andWhere('c.secteur IN (:secteurs)')->setParameter('secteurs', $secteurs ?: ['-']);
+        }
 
         return new Paginator($qb);
     }
@@ -51,11 +55,18 @@ class BlessureRepository extends ServiceEntityRepository
     /**
      * Nombre de blessures par type, pour les statistiques de l'infirmerie.
      *
+     * @param list<string>|null $secteurs périmètre médical, null pour tout le club
+     *
      * @return array<string, int>
      */
-    public function compterParType(int $limite = 10): array
+    public function compterParType(int $limite = 10, ?array $secteurs = null): array
     {
-        $lignes = $this->createQueryBuilder('b')
+        $qb = $this->createQueryBuilder('b');
+        if (null !== $secteurs) {
+            $qb->join('b.joueur', 'j')->join('j.categorie', 'c')
+                ->andWhere('c.secteur IN (:secteurs)')->setParameter('secteurs', $secteurs ?: ['-']);
+        }
+        $lignes = $qb
             ->select('b.type, COUNT(b.id) AS total')
             ->andWhere('b.type IS NOT NULL')
             ->groupBy('b.type')
