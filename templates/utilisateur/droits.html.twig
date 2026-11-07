@@ -22,7 +22,8 @@
 
     <div data-controller="droits">
     <p class="droits-statut" data-droits-target="statut" aria-live="polite"></p>
-    <div class="table-defile">
+    {# Le tableau défile dans son cadre (hauteur de l'écran) : la ligne des titres reste visible en haut. #}
+    <div class="table-defile droits-defile">
         <table class="liste droits">
             <thead>
                 <tr>

@@ -606,6 +606,10 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 table.droits th:not(.droits-nom), table.droits td.droits-case { text-align: center; }
 table.droits th { font-size: .8rem; cursor: help; }
 table.droits .droits-nom { position: sticky; left: 0; background: #fff; z-index: 1; min-width: 9rem; text-align: left; }
+/* Titres fixés en haut du cadre quand on fait défiler ; la case « Compte » reste aussi fixée à gauche. */
+.droits-defile { max-height: calc(100vh - 7rem); overflow: auto; }
+table.droits thead th { position: sticky; top: 0; z-index: 2; background: #fff; box-shadow: inset 0 -1px 0 var(--bordure); }
+table.droits thead th.droits-nom { z-index: 3; }
 .droits-case form { margin: 0; }
 .interrupteur {
     min-width: 2.6rem; padding: .3rem .5rem; border-radius: 99px; border: 1px solid var(--bordure);
