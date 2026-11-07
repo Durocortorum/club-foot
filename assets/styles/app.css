@@ -630,7 +630,9 @@ table.droits .droits-nom { position: sticky; left: 0; background: #fff; z-index:
    td.principal : première ligne de la fiche ; td.a-cote : à sa droite (le score) ; data-label : intitulé devant la valeur. */
 @media (max-width: 600px) {
     .liste-fiches thead { display: none; }
-    .liste-fiches, .liste-fiches tbody { display: block; }
+    .liste-fiches, .liste-fiches tbody, .liste-fiches tfoot { display: block; }
+    .liste-fiches tfoot tr { background: #fafafb; border-top: 2px solid var(--bordure); }
+    .liste-fiches tfoot td { border: 0; background: none; }
     .liste-fiches tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .9rem; padding: .65rem .8rem; border-bottom: 1px solid var(--bordure); }
     .liste-fiches tr:last-child { border-bottom: 0; }
     .liste-fiches td { display: block; padding: 0; border: 0; font-size: .85rem; color: var(--gris); }

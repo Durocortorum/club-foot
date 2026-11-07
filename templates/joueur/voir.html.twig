@@ -15,16 +15,16 @@
 {# Ligne du tableau « Matchs » : une saison ou le total (voir BilanJoueur). #}
 {% macro ligne_bilan(saison, b) %}
     <tr>
-        <td>{{ saison }}</td>
-        <td>{{ b.matchs }}</td>
-        <td>{{ b.titularisations }}</td>
-        <td>{{ b.minutes }}</td>
-        <td>{{ b.minutesPossibles ? (b.minutes * 100 / b.minutesPossibles)|round ~ ' %' }}</td>
-        <td>{{ b.buts ?: '' }}</td>
-        <td>{{ b.passes ?: '' }}</td>
-        <td>{{ b.note ? b.note|number_format(1, ',') }}</td>
-        <td>{{ b.jaunes or b.rouges ? b.jaunes ~ ' / ' ~ b.rouges }}</td>
-        <td>{{ b.exclusions ?: '' }}</td>
+        <td class="principal">{{ saison }}</td>
+        <td data-label="matchs">{{ b.matchs }}</td>
+        <td data-label="titulaire">{{ b.titularisations }}</td>
+        <td data-label="min.">{{ b.minutes }}</td>
+        <td data-label="temps">{{ b.minutesPossibles ? (b.minutes * 100 / b.minutesPossibles)|round ~ ' %' }}</td>
+        <td data-label="buts">{{ b.buts ?: '' }}</td>
+        <td data-label="passes D.">{{ b.passes ?: '' }}</td>
+        <td data-label="note">{{ b.note ? b.note|number_format(1, ',') }}</td>
+        <td data-label="cartons J/R">{{ b.jaunes or b.rouges ? b.jaunes ~ ' / ' ~ b.rouges }}</td>
+        <td data-label="excl. 10'">{{ b.exclusions ?: '' }}</td>
     </tr>
 {% endmacro %}
 {% import _self as f %}
@@ -171,7 +171,7 @@
         <h2 class="titre-bloc">Matchs</h2>
         {% if bilan %}
             <div class="table-defile">
-                <table class="liste chiffres">
+                <table class="liste chiffres liste-fiches">
                     <thead>
                         <tr><th>Saison</th><th>Matchs</th><th>Titulaire</th><th>Minutes</th><th title="Part des minutes jouées sur les matchs où il figurait sur la feuille de match">% minutes</th><th>Buts</th><th>Passes D.</th><th>Note moy.</th><th>Cartons J / R</th><th title="Exclusions temporaires de 10 minutes">Excl. 10'</th></tr>
                     </thead>
@@ -190,18 +190,18 @@
             {% if matchs %}
                 <h3>Derniers matchs</h3>
                 <div class="table-defile">
-                    <table class="liste">
+                    <table class="liste liste-fiches">
                         <thead><tr><th>Date</th><th>Match</th><th>Score</th><th>Poste</th><th>Min.</th><th>Note</th><th>Appréciation</th></tr></thead>
                         <tbody>
                             {% for p in matchs %}
                                 {% set r = p.rencontre %}
                                 <tr>
                                     <td class="nowrap">{{ r.date ? r.date|date('d/m/Y') }}</td>
-                                    <td><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a> <span class="discret">{{ r.equipeAffichee }}</span></td>
-                                    <td>{{ m.score(r) }}</td>
+                                    <td class="principal etroit"><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a> <span class="discret">{{ r.equipeAffichee }}</span></td>
+                                    <td class="a-cote">{{ m.score(r) }}</td>
                                     <td>{{ p.poste }}</td>
-                                    <td>{{ p.tempsJeu }}</td>
-                                    <td>{{ p.note ? p.note|number_format(1, ',') }}</td>
+                                    <td data-label="min.">{{ p.tempsJeu }}</td>
+                                    <td data-label="note">{{ p.note ? p.note|number_format(1, ',') }}</td>
                                     <td class="petit">{{ p.appreciation }}</td>
                                 </tr>
                             {% endfor %}
@@ -219,14 +219,14 @@
         <h2 class="titre-bloc">Présences à l'entraînement</h2>
         {% if presences %}
             <div class="table-defile">
-                <table class="liste chiffres">
+                <table class="liste chiffres liste-fiches">
                     <thead><tr><th>Saison</th><th>Séances</th><th>Présent</th><th>Taux</th><th>Absences</th></tr></thead>
                     <tbody>
                         {% for saison, b in presences %}
                             <tr>
-                                <td>{{ saison }}</td>
-                                <td>{{ b.seances }}</td>
-                                <td>{{ b.presences }}</td>
+                                <td class="principal">{{ saison }}</td>
+                                <td data-label="séances">{{ b.seances }}</td>
+                                <td data-label="présent">{{ b.presences }}</td>
                                 <td><span class="jauge"><span style="width: {{ b.taux ?? 0 }}%"></span></span> {{ b.taux }} %</td>
                                 <td class="texte petit">{% for motif, n in b.absences %}{{ motif }} : {{ n }}{{ not loop.last ? ' · ' }}{% endfor %}</td>
                             </tr>
@@ -333,18 +333,18 @@
             </div>
             {% if sanctions %}
                 <div class="table-defile">
-                    <table class="liste">
+                    <table class="liste liste-fiches">
                         <thead><tr><th>Date</th><th>Lieu</th><th>Motif</th><th>Sanction sportive</th><th>Sanction scolaire</th><th>Gravité</th>{% if is_granted('ROLE_SCOLAIRE') %}<th></th>{% endif %}</tr></thead>
                         <tbody>
                             {% for s in sanctions %}
                                 <tr>
                                     <td class="nowrap">{{ s.date|date('d/m/Y') }}</td>
                                     <td>{{ s.lieu }}</td>
-                                    <td>{{ s.motif }}</td>
-                                    <td>{{ s.sanctionSportive }}</td>
-                                    <td>{{ s.sanctionScolaire }}</td>
-                                    <td>{{ s.graviteLibelle }}</td>
-                                    {% if is_granted('ROLE_SCOLAIRE') %}<td><a href="{{ path('app_sanction_modifier', {id: s.id}) }}">Modifier</a></td>{% endif %}
+                                    <td class="principal etroit">{{ s.motif }}</td>
+                                    <td data-label="sportive :">{{ s.sanctionSportive }}</td>
+                                    <td data-label="scolaire :">{{ s.sanctionScolaire }}</td>
+                                    <td data-label="gravité">{{ s.graviteLibelle }}</td>
+                                    {% if is_granted('ROLE_SCOLAIRE') %}<td class="a-cote"><a href="{{ path('app_sanction_modifier', {id: s.id}) }}">Modifier</a></td>{% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -365,17 +365,17 @@
             </div>
             {% if blessures %}
                 <div class="table-defile">
-                    <table class="liste">
+                    <table class="liste liste-fiches">
                         <thead><tr><th>Date</th><th>Blessure</th><th>Circonstances</th><th>Reprise</th><th>Durée</th><th></th></tr></thead>
                         <tbody>
                             {% for b in blessures %}
                                 <tr>
                                     <td class="nowrap">{{ b.date ? b.date|date('d/m/Y') : '?' }}</td>
-                                    <td>{{ b.libelle }}{% if b.enCours %} <span class="pastille alerte">en cours</span>{% endif %}</td>
+                                    <td class="principal etroit">{{ b.libelle }}{% if b.enCours %} <span class="pastille alerte">en cours</span>{% endif %}</td>
                                     <td>{{ b.lieu }}{% if b.avecArret is not null %} · {{ b.avecArret ? 'avec arrêt' : 'sans arrêt' }}{% endif %}</td>
-                                    <td class="nowrap">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') }}</td>
-                                    <td>{{ b.duree is not null ? b.duree ~ ' j' }}</td>
-                                    <td><a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a></td>
+                                    <td class="nowrap" data-label="reprise">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') }}</td>
+                                    <td data-label="durée">{{ b.duree is not null ? b.duree ~ ' j' }}</td>
+                                    <td class="a-cote"><a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a></td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -395,18 +395,18 @@
         </div>
         {% if mesures %}
             <div class="table-defile">
-                <table class="liste chiffres">
+                <table class="liste chiffres liste-fiches">
                     <thead><tr><th>Date</th><th>Poids</th><th>Taille</th><th>IMC</th><th>Taille assis</th><th>Pointure</th>{% if peut_suivre %}<th></th>{% endif %}</tr></thead>
                     <tbody>
                         {% for x in mesures %}
                             <tr>
-                                <td>{{ x.date|date('d/m/Y') }}</td>
-                                <td>{{ x.poids ? x.poids|number_format(1, ',') ~ ' kg' }}</td>
-                                <td>{{ x.taille ? x.taille|number_format(2, ',') ~ ' m' }}</td>
-                                <td>{{ x.imc ? x.imc|number_format(1, ',') }}</td>
-                                <td>{{ x.tailleAssis ? x.tailleAssis|number_format(2, ',') ~ ' m' }}</td>
-                                <td>{{ x.pointure }}</td>
-                                {% if peut_suivre %}<td>{{ m.supprimer(path('app_mesure_supprimer', {id: x.id}), 'supprimer-mesure' ~ x.id, 'Supprimer cette mesure ?', '×') }}</td>{% endif %}
+                                <td class="principal etroit">{{ x.date|date('d/m/Y') }}</td>
+                                <td data-label="poids">{{ x.poids ? x.poids|number_format(1, ',') ~ ' kg' }}</td>
+                                <td data-label="taille">{{ x.taille ? x.taille|number_format(2, ',') ~ ' m' }}</td>
+                                <td data-label="IMC">{{ x.imc ? x.imc|number_format(1, ',') }}</td>
+                                <td data-label="taille assis">{{ x.tailleAssis ? x.tailleAssis|number_format(2, ',') ~ ' m' }}</td>
+                                <td data-label="pointure">{{ x.pointure }}</td>
+                                {% if peut_suivre %}<td class="a-cote">{{ m.supprimer(path('app_mesure_supprimer', {id: x.id}), 'supprimer-mesure' ~ x.id, 'Supprimer cette mesure ?', '×') }}</td>{% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -423,7 +423,7 @@
         {% if tests %}
             {% set epreuves = constant('App\\Entity\\TestPhysique::EPREUVES') %}
             <div class="table-defile">
-                <table class="liste chiffres">
+                <table class="liste chiffres liste-fiches">
                     <thead>
                         <tr>
                             <th>Date</th>
@@ -434,12 +434,12 @@
                     <tbody>
                         {% for t in tests %}
                             <tr>
-                                <td>{{ t.date|date('d/m/Y') }}</td>
+                                <td class="principal etroit">{{ t.date|date('d/m/Y') }}</td>
                                 {% for champ, e in epreuves %}
                                     {% set v = attribute(t, champ) %}
-                                    <td>{{ v is not null ? v|number_format(2, ',')|trim('0', 'right')|trim(',', 'right') }}</td>
+                                    <td data-label="{{ e[0] }} ({{ e[1] }})">{{ v is not null ? v|number_format(2, ',')|trim('0', 'right')|trim(',', 'right') }}</td>
                                 {% endfor %}
-                                {% if peut_suivre %}<td>{{ m.supprimer(path('app_test_supprimer', {id: t.id}), 'supprimer-test' ~ t.id, 'Supprimer ce test ?', '×') }}</td>{% endif %}
+                                {% if peut_suivre %}<td class="a-cote">{{ m.supprimer(path('app_test_supprimer', {id: t.id}), 'supprimer-test' ~ t.id, 'Supprimer ce test ?', '×') }}</td>{% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>
