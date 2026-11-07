@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Demander l'accès médical{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>🔒 Demander l'accès médical</h1>
+    </div>
+
+    <p class="flash flash-info">
+        Les données médicales des joueurs sont confidentielles. Votre demande est transmise au médecin du club,
+        qui l'accorde pour une durée limitée ou la refuse ; vous êtes prévenu(e) par e-mail.
+        Une fois l'accès accordé, un code vous est envoyé par e-mail à chaque consultation.
+    </p>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+        <div class="carte">
+            <div class="champ large">{{ form_label(form.section) }}{{ form_widget(form.section) }}{{ form_errors(form.section) }}</div>
+            <div class="champ large">{{ form_label(form.niveau) }}{{ form_widget(form.niveau) }}{{ form_errors(form.niveau) }}</div>
+            <div class="champ large">{{ form_label(form.motif) }}{{ form_widget(form.motif) }}{{ form_help(form.motif) }}{{ form_errors(form.motif) }}</div>
+        </div>
+        {{ form_rest(form) }}
+        <button type="submit" class="bouton principal">Envoyer la demande</button>
+    {{ form_end(form) }}
+
+    {% if mes_demandes %}
+        <h2 class="titre-bloc">Mes demandes</h2>
+        <ul class="liste-simple carte">
+            {% for d in mes_demandes %}
+                <li class="avec-actions">
+                    <span>{{ d.sectionLibelle }} ({{ d.niveauLibelle }}) <span class="discret petit">· le {{ d.demandeeLe|date('d/m/Y', 'Europe/Paris') }}</span></span>
+                    {% if d.enAttente %}<span class="pastille">en attente</span>
+                    {% elseif d.decision == 'accordee' %}<span class="pastille succes">accordée</span>
+                    {% else %}<span class="pastille alerte">refusée</span>{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

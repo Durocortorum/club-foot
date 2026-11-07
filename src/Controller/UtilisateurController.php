@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Utilisateur;
 use App\Form\ChangementMotDePasseType;
 use App\Form\UtilisateurType;
+use App\Repository\DemandeAccesMedicalRepository;
 use App\Repository\UtilisateurRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -41,7 +42,7 @@ class UtilisateurController extends AbstractController
      * Administrateur : toutes les colonnes. Médecin du club : seulement les droits médicaux.
      */
     #[Route('/utilisateurs/droits', name: 'app_utilisateur_droits', methods: ['GET'])]
-    public function droits(UtilisateurRepository $utilisateurs): Response
+    public function droits(UtilisateurRepository $utilisateurs, DemandeAccesMedicalRepository $demandes): Response
     {
         $modifiables = $this->colonnesModifiables();
         if (!$modifiables) {
@@ -54,6 +55,8 @@ class UtilisateurController extends AbstractController
             'modifiables' => $modifiables,
             'medicales' => Utilisateur::SECTIONS_MEDICALES,
             'durees' => Utilisateur::DUREES_MEDICALES,
+            // Demandes d'accès médical à traiter (médecin du club ou administrateur).
+            'demandes' => array_intersect(Utilisateur::SECTIONS_MEDICALES, $modifiables) ? $demandes->enAttente() : [],
         ]);
     }
 
@@ -73,7 +76,7 @@ class UtilisateurController extends AbstractController
         $colonnes = array_column(Utilisateur::colonnesDroits(), null, 'cle');
         $colonne = $colonnes[$droit] ?? null;
         $medical = \in_array($droit, Utilisateur::SECTIONS_MEDICALES, true);
-        $echeance = $medical && $niveau > 0 ? $this->echeance($donnees->getString('duree', '30')) : null;
+        $echeance = $medical && $niveau > 0 ? Utilisateur::echeanceMedicale($donnees->getString('duree', '30')) : null;
         $json = \in_array('application/json', $request->getAcceptableContentTypes(), true);
 
         $erreur = match (true) {
@@ -125,20 +128,6 @@ class UtilisateurController extends AbstractController
         }
 
         return $this->isGranted('ROLE_MEDECIN') ? Utilisateur::SECTIONS_MEDICALES : [];
-    }
-
-    /** Échéance d'un droit médical d'après la durée choisie ; null si la durée est inconnue. */
-    private function echeance(string $duree): ?\DateTimeImmutable
-    {
-        $aujourdhui = new \DateTimeImmutable('today');
-        if ('saison' === $duree) {
-            // Fin de saison : le 30 juin qui suit (ou aujourd'hui si c'est le 30 juin).
-            $fin = $aujourdhui->setDate((int) $aujourdhui->format('Y'), 6, 30);
-
-            return $fin < $aujourdhui ? $fin->modify('+1 year') : $fin;
-        }
-
-        return isset(Utilisateur::DUREES_MEDICALES[$duree]) ? $aujourdhui->modify('+' . (int) $duree . ' days') : null;
     }
 
     /** @return array<string, ?string> section médicale => échéance (jj/mm/aaaa) */

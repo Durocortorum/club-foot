@@ -23,6 +23,35 @@
         {% if not admin_connecte %}En tant que médecin du club, vous donnez les droits médicaux ; les autres colonnes sont gérées par l'administrateur.{% endif %}
     </p>
 
+    {% if demandes %}
+        <section class="bloc carte verrou-medical demandes-medicales" id="demandes">
+            <h2>🔒 Demandes d'accès médical <span class="compteur">{{ demandes|length }}</span></h2>
+            <ul class="liste-simple">
+                {% for d in demandes %}
+                    {% set jeton = csrf_token('traiter-demande' ~ d.id) %}
+                    <li class="avec-actions">
+                        <span>
+                            <strong>{{ d.demandeur }}</strong> demande <strong>{{ d.sectionLibelle }}</strong> ({{ d.niveauLibelle }})
+                            <span class="discret petit">· le {{ d.demandeeLe|date('d/m à H:i', 'Europe/Paris') }}</span>
+                            {% if d.motif %}<br><span class="petit">« {{ d.motif }} »</span>{% endif %}
+                        </span>
+                        <span class="nowrap">
+                            <form method="post" action="{{ path('app_demande_medicale_traiter', {id: d.id, decision: 'accorder'}) }}" class="en-ligne">
+                                <input type="hidden" name="_token" value="{{ jeton }}">
+                                <select name="duree" aria-label="Durée" class="petit">{% for cle, libelle in durees %}<option value="{{ cle }}" {{ cle == '30' ? 'selected' }}>{{ libelle }}</option>{% endfor %}</select>
+                                <button class="bouton petit principal">Accorder</button>
+                            </form>
+                            <form method="post" action="{{ path('app_demande_medicale_traiter', {id: d.id, decision: 'refuser'}) }}" class="en-ligne">
+                                <input type="hidden" name="_token" value="{{ jeton }}">
+                                <button class="bouton petit danger">Refuser</button>
+                            </form>
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
     <div data-controller="droits">
     {% if medical_modifiable %}
         <p class="droits-duree flash flash-info petit">

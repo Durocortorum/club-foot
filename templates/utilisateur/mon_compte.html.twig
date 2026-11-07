@@ -19,6 +19,9 @@
                 {% endif %}
             </dl>
             <p class="discret petit">{{ moi.famille ? 'Pour changer d\'adresse ou supprimer votre compte, adressez-vous à l\'éducateur de l\'équipe.' : 'Pour changer vos droits, adressez-vous à un administrateur.' }}</p>
+            {% if not moi.famille and not (moi.admin or moi.medecin) %}
+                <p><a class="bouton" href="{{ path('app_demande_medicale') }}">🔒 Demander l'accès médical</a></p>
+            {% endif %}
         </section>
 
         <section class="carte">

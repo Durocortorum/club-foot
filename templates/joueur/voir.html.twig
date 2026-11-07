@@ -75,6 +75,7 @@
         {% if famille %}<a href="#famille">Accès famille</a>{% endif %}
         {% if scol_voir or sanctions %}<a href="#scolarite">Scolarité et discipline</a>{% endif %}
         {% if medical_verrouille %}<a href="#medical-verrou">🔒 Médical</a>{% endif %}
+        {% if not (inf_droit and vm_droit) %}<a href="{{ path('app_demande_medicale', {section: inf_droit ? 'visite_medicale' : 'infirmerie'}) }}" title="Demander au médecin du club l'accès aux données médicales">🔒 Demander l'accès médical</a>{% endif %}
         {% if inf_voir %}<a href="#infirmerie">Infirmerie</a>{% endif %}
         {% if vm_voir %}<a href="#visite-medicale">Visite médicale</a>{% endif %}
         {% if tests_voir %}<a href="#physique">Tests physiques</a>{% endif %}

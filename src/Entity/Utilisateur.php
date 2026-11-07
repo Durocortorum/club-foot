@@ -252,6 +252,20 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         return $colonnes;
     }
 
+    /** Échéance d'un droit médical d'après la durée choisie (voir DUREES_MEDICALES) ; null si la durée est inconnue. */
+    public static function echeanceMedicale(string $duree): ?\DateTimeImmutable
+    {
+        $aujourdhui = new \DateTimeImmutable('today');
+        if ('saison' === $duree) {
+            // Fin de saison : le 30 juin qui suit (ou aujourd'hui si c'est le 30 juin).
+            $fin = $aujourdhui->setDate((int) $aujourdhui->format('Y'), 6, 30);
+
+            return $fin < $aujourdhui ? $fin->modify('+1 year') : $fin;
+        }
+
+        return isset(self::DUREES_MEDICALES[$duree]) ? $aujourdhui->modify('+' . (int) $duree . ' days') : null;
+    }
+
     /** @return list<string> rôles des sections médicales (voir et modifier) */
     public static function rolesMedicaux(): array
     {

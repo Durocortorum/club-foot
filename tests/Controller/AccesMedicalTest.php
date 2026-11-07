@@ -166,6 +166,66 @@ class AccesMedicalTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Droits médicaux');
     }
 
+    public function testDemandeDAcces(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Admin');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $categorie = $this->em()->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+        $joueur = (new Joueur())->setClub($club)->setCategorie($categorie)->setNom('Martin')->setPrenom('Léo');
+        $this->em()->persist($joueur);
+        $medecin = $this->compteEncadrement($club, "medecin-$id@exemple.test", 'Docteur', ['ROLE_MEDECIN']);
+        $coach = $this->compteEncadrement($club, "coach-$id@exemple.test", 'Coach', [Categorie::SECTEURS[$categorie->getSecteur()]['role']]);
+        $this->em()->flush();
+
+        // Le coach, sans droit médical, trouve le lien sur la fiche et fait sa demande.
+        $this->client->loginUser($coach);
+        $crawler = $this->client->request('GET', '/joueurs/' . $joueur->getId());
+        $crawler = $this->client->click($crawler->selectLink('🔒 Demander l\'accès médical')->link());
+        $this->client->submit($crawler->selectButton('Envoyer la demande')->form(), [
+            'form[section]' => 'infirmerie', 'form[niveau]' => '2', 'form[motif]' => 'Suivi de la blessure de Léo',
+        ]);
+        self::assertEmailCount(2); // le médecin et l'administrateur
+        self::assertStringContainsString('Suivi de la blessure de Léo', self::getMailerMessage()->getTextBody());
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'médecin du club');
+        self::assertSelectorTextContains('main', 'en attente');
+        self::assertSelectorTextNotContains('main', 'Docteur'); // le nom du médecin n'est jamais montré
+
+        // Une deuxième demande identique est refusée.
+        $this->client->submit($crawler->selectButton('Envoyer la demande')->form(), ['form[section]' => 'infirmerie', 'form[niveau]' => '1']);
+        self::assertSelectorTextContains('main', 'déjà une demande en attente');
+
+        // Le médecin voit la demande (pastille du menu) et l'accorde pour 1 semaine.
+        $this->client->loginUser($medecin);
+        $crawler = $this->client->request('GET', '/utilisateurs/droits');
+        self::assertSelectorTextContains('a[title="Donner les droits médicaux"] .pastille', '1');
+        self::assertSelectorTextContains('#demandes', 'Suivi de la blessure de Léo');
+        $this->client->submit($crawler->filter('#demandes')->selectButton('Accorder')->form(), ['duree' => '7']);
+        self::assertEmailCount(1);
+        self::assertStringContainsString('accordée jusqu\'au ' . (new \DateTimeImmutable('+7 days'))->format('d/m/Y'), self::getMailerMessage()->getTextBody());
+        $coach = $this->compte($coach);
+        self::assertSame(2, $coach->getNiveau('infirmerie'));
+        self::assertSame((new \DateTimeImmutable('+7 days'))->format('Y-m-d'), $coach->getEcheance('infirmerie')->format('Y-m-d'));
+
+        // Demande de visite médicale, refusée : le coach est prévenu, rien n'est accordé.
+        $this->client->loginUser($coach);
+        $crawler = $this->client->request('GET', '/acces-medical/demande');
+        $this->client->submit($crawler->selectButton('Envoyer la demande')->form(), ['form[section]' => 'visite_medicale', 'form[niveau]' => '1']);
+        $this->client->loginUser($this->compte($medecin));
+        $crawler = $this->client->request('GET', '/utilisateurs/droits');
+        $this->client->submit($crawler->filter('#demandes')->selectButton('Refuser')->form());
+        self::assertStringContainsString('n\'a pas été accordée', self::getMailerMessage()->getTextBody());
+        self::assertSame(0, $this->compte($coach)->getNiveau('visite_medicale'));
+
+        // Un compte sans droit de traitement ne peut pas accorder.
+        $this->client->loginUser($this->compte($coach));
+        $this->client->request('POST', '/acces-medical/demande/1/accorder', ['_token' => 'x']);
+        self::assertResponseStatusCodeSame(403);
+    }
+
     /** @param list<string> $roles */
     private function compteEncadrement(Club $club, string $email, string $prenom, array $roles): Utilisateur
     {
