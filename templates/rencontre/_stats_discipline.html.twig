@@ -56,13 +56,13 @@
         <h2>Cartons de la période <span class="compteur">{{ cartons|length }}</span></h2>
         {% if cartons %}
             <div class="table-defile defile-vertical">
-                <table class="liste">
+                <table class="liste liste-fiches">
                     <thead><tr><th>Date</th><th>Joueur</th><th>Carton</th></tr></thead>
                     <tbody>
                         {% for c in cartons %}
                             <tr>
                                 <td class="nowrap"><a href="{{ path('app_rencontre_voir', {id: c.rencontre}) }}">{{ c.date ? c.date|date('d/m/Y') : '?' }}</a></td>
-                                <td class="nowrap"><a href="{{ path('app_joueur_voir', {id: c.id}) }}"><strong>{{ c.nom }}</strong> {{ c.prenom }}</a></td>
+                                <td class="nowrap principal"><a href="{{ path('app_joueur_voir', {id: c.id}) }}"><strong>{{ c.nom }}</strong> {{ c.prenom }}</a></td>
                                 <td class="nowrap"><span class="carton {{ couleurs[c.carton] }}"></span> {{ c.carton }} <span class="discret petit">{{ libelles[c.carton] }}</span></td>
                             </tr>
                         {% endfor %}

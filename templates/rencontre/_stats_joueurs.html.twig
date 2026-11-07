@@ -8,7 +8,7 @@
 </div>
 
 <div class="table-defile">
-    <table class="liste chiffres stats-joueurs">
+    <table class="liste chiffres stats-joueurs liste-fiches">
         <thead>
             <tr>
                 <th>#</th>
@@ -35,25 +35,25 @@
         <tbody>
             {% for l in stats.joueurs %}
                 <tr>
-                    <td class="discret">{{ loop.index }}</td>
-                    <td class="texte nowrap"><a href="{{ path('app_joueur_voir', {id: l.id}) }}"><strong>{{ l.nom }}</strong> {{ l.prenom }}</a></td>
-                    {% if not avec_parts %}<td class="texte">{{ l.categorie }}</td>{% endif %}
-                    <td class="{{ filtres.tri == 'convocations' ? 'fort' }}">{{ l.convocations }}</td>
-                    {% if avec_parts %}<td>{{ l.partConvocations }} %</td>{% endif %}
-                    <td class="{{ filtres.tri == 'matchs' ? 'fort' }}">{{ l.matchs }}</td>
-                    <td class="{{ filtres.tri == 'titularisations' ? 'fort' }}">{{ l.titularisations }}</td>
-                    <td class="{{ filtres.tri == 'complets' ? 'fort' }}">{{ l.complets ?: '' }}</td>
-                    <td class="{{ filtres.tri == 'remplacantDepart' ? 'fort' }}">{{ l.remplacantDepart ?: '' }}</td>
-                    <td class="{{ filtres.tri == 'nonUtilise' ? 'fort' }}">{{ l.nonUtilise ?: '' }}</td>
-                    <td class="{{ filtres.tri == 'entrees' ? 'fort' }}">{{ l.entrees ?: '' }}</td>
-                    <td class="{{ filtres.tri == 'sorties' ? 'fort' }}">{{ l.sorties ?: '' }}</td>
-                    <td class="{{ filtres.tri == 'minutes' ? 'fort' }}">{{ l.minutes }}</td>
-                    {% if avec_parts %}<td>{{ l.partTemps|number_format(1, ',') }} %</td>{% endif %}
-                    <td class="{{ filtres.tri == 'buts' ? 'fort' }}">{{ l.buts ?: '' }}</td>
-                    <td class="{{ filtres.tri == 'passes' ? 'fort' }}">{{ l.passes ?: '' }}</td>
-                    <td class="{{ filtres.tri == 'note' ? 'fort' }}">{{ l.note ? l.note|number_format(1, ',') }}</td>
-                    <td>{{ l.jaunes or l.rouges ? l.jaunes ~ ' / ' ~ l.rouges }}</td>
-                    <td>{{ l.exclusions ?: '' }}</td>
+                    <td class="discret rang">{{ loop.index }}</td>
+                    <td class="texte nowrap principal etroit"><a href="{{ path('app_joueur_voir', {id: l.id}) }}"><strong>{{ l.nom }}</strong> {{ l.prenom }}</a></td>
+                    {% if not avec_parts %}<td class="texte fort">{{ l.categorie }}</td>{% endif %}
+                    <td data-label="convoc." class="{{ filtres.tri == 'convocations' ? 'fort' }}">{{ l.convocations }}</td>
+                    {% if avec_parts %}<td data-label="conv.">{{ l.partConvocations }} %</td>{% endif %}
+                    <td data-label="joués" class="{{ filtres.tri == 'matchs' ? 'fort' }}">{{ l.matchs }}</td>
+                    <td data-label="titulaire" class="{{ filtres.tri == 'titularisations' ? 'fort' }}">{{ l.titularisations }}</td>
+                    <td data-label="complets" class="{{ filtres.tri == 'complets' ? 'fort' }}">{{ l.complets ?: '' }}</td>
+                    <td data-label="remp. départ" class="{{ filtres.tri == 'remplacantDepart' ? 'fort' }}">{{ l.remplacantDepart ?: '' }}</td>
+                    <td data-label="non utilisé" class="{{ filtres.tri == 'nonUtilise' ? 'fort' }}">{{ l.nonUtilise ?: '' }}</td>
+                    <td data-label="entrées" class="{{ filtres.tri == 'entrees' ? 'fort' }}">{{ l.entrees ?: '' }}</td>
+                    <td data-label="sorties" class="{{ filtres.tri == 'sorties' ? 'fort' }}">{{ l.sorties ?: '' }}</td>
+                    <td data-label="min." class="{{ filtres.tri == 'minutes' ? 'fort' }}">{{ l.minutes }}</td>
+                    {% if avec_parts %}<td data-label="temps">{{ l.partTemps|number_format(1, ',') }} %</td>{% endif %}
+                    <td data-label="buts" class="{{ filtres.tri == 'buts' ? 'fort' }}">{{ l.buts ?: '' }}</td>
+                    <td data-label="passes D." class="{{ filtres.tri == 'passes' ? 'fort' }}">{{ l.passes ?: '' }}</td>
+                    <td data-label="note" class="{{ filtres.tri == 'note' ? 'fort' }}">{{ l.note ? l.note|number_format(1, ',') }}</td>
+                    <td data-label="cartons J/R">{{ l.jaunes or l.rouges ? l.jaunes ~ ' / ' ~ l.rouges }}</td>
+                    <td data-label="excl. 10'">{{ l.exclusions ?: '' }}</td>
                 </tr>
             {% else %}
                 <tr><td colspan="20" class="vide">Aucune feuille de match pour ces critères.</td></tr>
