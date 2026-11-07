@@ -71,7 +71,7 @@
     {% include 'rencontre/_bilan.html.twig' %}
 
     <div class="table-defile bloc">
-        <table class="liste chiffres">
+        <table class="liste chiffres liste-fiches">
             <thead>
                 <tr>
                     <th class="texte">Joueur</th>
@@ -94,18 +94,18 @@
                     {% set mt = j.match %}
                     {% set pr = j.presence %}
                     <tr>
-                        <td class="texte nowrap"><a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a></td>
+                        <td class="texte nowrap principal"><a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a></td>
                         <td class="texte">{{ j.poste }}</td>
-                        <td>{{ mt ? mt.convocations }}</td>
-                        <td>{{ mt ? mt.matchs }}</td>
-                        <td>{{ mt ? mt.titularisations }}</td>
-                        <td>{{ mt ? mt.minutes }}</td>
-                        <td>{{ mt and mt.buts ? mt.buts }}</td>
-                        <td>{{ mt and mt.passes ? mt.passes }}</td>
-                        <td>{{ mt and (mt.jaunes or mt.rouges) ? mt.jaunes ~ ' / ' ~ mt.rouges }}</td>
+                        <td data-label="convoc.">{{ mt ? mt.convocations }}</td>
+                        <td data-label="joués">{{ mt ? mt.matchs }}</td>
+                        <td data-label="titulaire">{{ mt ? mt.titularisations }}</td>
+                        <td data-label="min.">{{ mt ? mt.minutes }}</td>
+                        <td data-label="buts">{{ mt and mt.buts ? mt.buts }}</td>
+                        <td data-label="passes D.">{{ mt and mt.passes ? mt.passes }}</td>
+                        <td data-label="cartons J/R">{{ mt and (mt.jaunes or mt.rouges) ? mt.jaunes ~ ' / ' ~ mt.rouges }}</td>
                         {% if voit_presences %}
-                            <td>{{ pr ? pr.seances }}</td>
-                            <td>{{ pr and pr.taux is not null ? pr.taux ~ ' %' }}</td>
+                            <td data-label="séances">{{ pr ? pr.seances }}</td>
+                            <td data-label="présence">{{ pr and pr.taux is not null ? pr.taux ~ ' %' }}</td>
                         {% endif %}
                     </tr>
                 {% else %}

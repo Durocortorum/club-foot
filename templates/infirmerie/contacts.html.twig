@@ -15,16 +15,16 @@
     </div>
 
     <div class="table-defile">
-        <table class="liste">
+        <table class="liste liste-fiches">
             <thead><tr><th>Profession</th><th>Nom</th><th>Téléphone</th><th>Adresse</th><th></th></tr></thead>
             <tbody>
                 {% for c in contacts %}
                     <tr>
-                        <td>{{ c.profession }}</td>
-                        <td><strong>{{ c.nom }}</strong> {{ c.prenom }}</td>
+                        <td class="fort">{{ c.profession }}</td>
+                        <td class="principal etroit"><strong>{{ c.nom }}</strong> {{ c.prenom }}</td>
                         <td class="nowrap">{% if c.telephone %}<a href="tel:{{ c.telephone|replace({' ': ''}) }}">{{ c.telephone }}</a>{% endif %}</td>
                         <td>{{ [c.adresse, [c.codePostal, c.ville]|filter(v => v)|join(' ')]|filter(v => v)|join(', ') }}</td>
-                        <td class="nowrap">
+                        <td class="nowrap a-cote">
                             <a href="{{ path('app_contact_modifier', {id: c.id}) }}">Modifier</a>
                             {{ m.supprimer(path('app_contact_supprimer', {id: c.id}), 'supprimer-contact' ~ c.id, 'Supprimer ce contact ?', '×') }}
                         </td>

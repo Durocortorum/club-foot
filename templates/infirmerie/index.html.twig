@@ -30,18 +30,18 @@
     </form>
 
     <div class="table-defile">
-        <table class="liste">
+        <table class="liste liste-fiches">
             <thead><tr><th>Joueur</th><th>Catégorie</th><th>Date</th><th>Blessure</th><th>Circonstances</th><th>Reprise</th><th></th></tr></thead>
             <tbody>
                 {% for b in blessures %}
                     <tr>
-                        <td class="avec-vignette nowrap">{{ m.avatar(b.joueur, 'mini') }} <a href="{{ path('app_joueur_voir', {id: b.joueur.id, _fragment: 'infirmerie'}) }}"><strong>{{ b.joueur.nom }}</strong> {{ b.joueur.prenom }}</a></td>
-                        <td>{{ b.joueur.categorie }}</td>
+                        <td class="avec-vignette nowrap principal etroit">{{ m.avatar(b.joueur, 'mini') }} <a href="{{ path('app_joueur_voir', {id: b.joueur.id, _fragment: 'infirmerie'}) }}"><strong>{{ b.joueur.nom }}</strong> {{ b.joueur.prenom }}</a></td>
+                        <td class="fort">{{ b.joueur.categorie }}</td>
                         <td class="nowrap">{{ b.date ? b.date|date('d/m/Y') : '?' }}</td>
-                        <td>{{ b.libelle }}</td>
+                        <td class="large">{{ b.libelle }}</td>
                         <td>{{ b.lieu }}</td>
-                        <td class="nowrap">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') : '' }}{% if b.enCours %} <span class="pastille alerte">indisponible</span>{% endif %}</td>
-                        <td><a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a></td>
+                        <td class="nowrap" data-label="reprise">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') : '' }}{% if b.enCours %} <span class="pastille alerte">indisponible</span>{% endif %}</td>
+                        <td class="a-cote"><a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a></td>
                     </tr>
                 {% else %}
                     <tr><td colspan="7" class="vide">{{ filtres.statut == 'en_cours' ? 'Aucun joueur actif n\'est indisponible.' : 'Aucune blessure pour ces critères.' }}</td></tr>

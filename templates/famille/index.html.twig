@@ -35,13 +35,13 @@
 
     {% if lignes %}
         <div class="table-defile">
-            <table class="liste">
+            <table class="liste liste-fiches">
                 <thead><tr><th>Joueur</th><th>Comptes</th><th>Adresses de la fiche sans compte</th></tr></thead>
                 <tbody>
                     {% for l in lignes %}
                         <tr>
-                            <td class="nowrap"><a href="{{ path('app_joueur_voir', {id: l.joueur.id}) }}#famille"><strong>{{ l.joueur.nom }}</strong> {{ l.joueur.prenom }}</a></td>
-                            <td class="petit">
+                            <td class="nowrap principal"><a href="{{ path('app_joueur_voir', {id: l.joueur.id}) }}#famille"><strong>{{ l.joueur.nom }}</strong> {{ l.joueur.prenom }}</a></td>
+                            <td class="petit large">
                                 {% for c in l.comptes %}
                                     <div>
                                         {{ c.email }}
@@ -53,7 +53,7 @@
                                     <span class="discret">—</span>
                                 {% endfor %}
                             </td>
-                            <td class="petit">
+                            <td class="petit large" data-label="sans compte :">
                                 {% for email, qui in l.a_inviter %}
                                     <div>{{ email }} <span class="discret">({{ {joueur: 'joueur', parent1: 'parent 1', parent2: 'parent 2'}[qui] }})</span></div>
                                 {% else %}

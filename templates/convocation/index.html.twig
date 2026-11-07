@@ -66,14 +66,14 @@
                 <span class="pastille">{{ attente|length }} sans réponse</span>
             </h2>
             <div class="table-defile">
-                <table class="liste">
+                <table class="liste liste-fiches">
                     <thead><tr><th>Joueur</th><th>Prévenir</th><th>Réponse</th><th>Par</th><th>Modifier la réponse</th></tr></thead>
                     <tbody>
                         {% for c in convocation.convoques %}
                             {% set s = sms[c.id] %}
                             <tr>
-                                <td class="nowrap"><a href="{{ path('app_joueur_voir', {id: c.joueur.id}) }}"><strong>{{ c.joueur.nom }}</strong> {{ c.joueur.prenom }}</a></td>
-                                <td class="nowrap">
+                                <td class="nowrap principal"><a href="{{ path('app_joueur_voir', {id: c.joueur.id}) }}"><strong>{{ c.joueur.nom }}</strong> {{ c.joueur.prenom }}</a></td>
+                                <td class="nowrap large">
                                     {% if s.compte %}<span class="pastille succes" title="Reçoit la convocation par e-mail et répond dans son espace">compte famille</span>{% endif %}
                                     {% for qui, numero in s.numeros %}
                                         <a class="bouton petit" href="sms:{{ numero }}?&body={{ s.texte|url_encode }}" title="SMS au {{ qui|lower }} ({{ numero }}) depuis votre téléphone">SMS {{ qui|lower }}</a>
@@ -87,7 +87,7 @@
                                     {% else %}<span class="pastille">sans réponse</span>{% endif %}
                                 </td>
                                 <td class="petit discret">{% if c.reponduLe %}{{ c.reponduPar }}, le {{ c.reponduLe|date('d/m à H:i') }}{% endif %}</td>
-                                <td>
+                                <td class="large">
                                     <form method="post" action="{{ path('app_convocation_reponse', {id: rencontre.id, convoque: c.id}) }}" class="reponse-convoque">
                                         <input type="hidden" name="_token" value="{{ csrf_token('reponse-convoque' ~ c.id) }}">
                                         <select name="reponse" aria-label="Réponse pour {{ c.joueur.prenom }}">

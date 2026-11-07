@@ -115,16 +115,16 @@
         <h2 class="titre-bloc">Feuille de match</h2>
         {% if rencontre.participations|length %}
             <div class="table-defile">
-                <table class="liste">
+                <table class="liste liste-fiches">
                     <thead><tr><th>N°</th><th>Joueur</th><th>Poste</th><th>Min.</th><th>Note</th><th>Carton</th><th>Appréciation</th></tr></thead>
                     <tbody>
                         {% for p in rencontre.participations %}
                             <tr class="{{ not p.titulaire ? 'remplacant' }}">
-                                <td>{{ p.numero }}</td>
-                                <td class="avec-vignette">{{ m.avatar(p.joueur, 'mini') }} {{ v.joueur(p.joueur) }}</td>
+                                <td class="rang">{{ p.numero }}</td>
+                                <td class="avec-vignette principal etroit">{{ m.avatar(p.joueur, 'mini') }} {{ v.joueur(p.joueur) }}</td>
                                 <td>{{ p.poste }}</td>
-                                <td>{{ p.tempsJeu }}</td>
-                                <td>{% if p.note %}<span class="note note-{{ p.note >= 6 ? 'haute' : (p.note < 4 ? 'basse' : 'moyenne') }}">{{ p.note|number_format(1, ',') }}</span>{% endif %}</td>
+                                <td data-label="min.">{{ p.tempsJeu }}</td>
+                                <td class="a-cote">{% if p.note %}<span class="note note-{{ p.note >= 6 ? 'haute' : (p.note < 4 ? 'basse' : 'moyenne') }}">{{ p.note|number_format(1, ',') }}</span>{% endif %}</td>
                                 <td>{% if p.carton %}<span class="carton {{ p.couleurCarton }}" title="{{ p.cartonLibelle }}"></span> <span class="petit discret">{{ p.cartonLibelle }}</span>{% endif %}</td>
                                 <td class="petit">{{ p.appreciation }}</td>
                             </tr>

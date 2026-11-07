@@ -13,7 +13,7 @@
     </div>
 
     <div class="table-defile">
-        <table class="liste">
+        <table class="liste liste-fiches">
             <thead><tr><th>Ordre</th><th>Catégorie</th><th>Secteur</th><th title="Durée d'un match, deux mi-temps">Durée d'un match</th><th>Utilisée par</th><th></th></tr></thead>
             <tbody>
                 {% for c in categories %}
@@ -29,11 +29,11 @@
                                 {% endif %}
                             {% endfor %}
                         </td>
-                        <td><strong>{{ c.nom }}</strong></td>
+                        <td class="principal"><strong>{{ c.nom }}</strong></td>
                         <td>{{ c.secteurLibelle }}</td>
-                        <td class="nowrap">{{ c.dureeMatch ? c.dureeMatch ~ ' min (2 × ' ~ (c.dureeMatch / 2)|round(1)|replace({'.': ','}) ~ ')' : '—' }}</td>
-                        <td class="discret">{{ utilisations[c.id]|join(', ') ?: '—' }}</td>
-                        <td class="nowrap actions">
+                        <td class="nowrap" data-label="match :">{{ c.dureeMatch ? c.dureeMatch ~ ' min (2 × ' ~ (c.dureeMatch / 2)|round(1)|replace({'.': ','}) ~ ')' : '—' }}</td>
+                        <td class="discret" data-label="utilisée par">{{ utilisations[c.id]|join(', ') ?: '—' }}</td>
+                        <td class="nowrap actions fin">
                             <a class="bouton petit" href="{{ path('app_categorie_modifier', {id: c.id}) }}">Modifier</a>
                             {% if not utilisations[c.id] %}
                                 {{ m.supprimer(path('app_categorie_supprimer', {id: c.id}), 'supprimer-categorie' ~ c.id, 'Supprimer la catégorie « ' ~ c.nom ~ ' » ?', '×') }}

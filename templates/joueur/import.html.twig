@@ -52,17 +52,17 @@
         </p>
 
         <div class="table-defile bloc">
-            <table class="liste">
+            <table class="liste liste-fiches">
                 <thead><tr><th>Ligne</th><th>Nom</th><th>Prénom</th><th>Né le</th><th>Catégorie</th><th>Statut</th></tr></thead>
                 <tbody>
                     {% for l in analyse.lignes %}
                         <tr>
-                            <td class="discret">{{ l.numero }}</td>
-                            <td><strong>{{ l.valeurs.nom }}</strong></td>
+                            <td class="discret" data-label="ligne">{{ l.numero }}</td>
+                            <td class="principal etroit"><strong>{{ l.valeurs.nom }}</strong></td>
                             <td>{{ l.valeurs.prenom }}</td>
                             <td>{{ l.valeurs.dateNaissance is defined ? l.valeurs.dateNaissance|date('d/m/Y') }}</td>
-                            <td>{{ l.valeurs.categorieNom }}</td>
-                            <td>
+                            <td class="fort">{{ l.valeurs.categorieNom }}</td>
+                            <td class="large">
                                 {% if l.erreurs %}<span class="pastille alerte">Erreur</span> {{ l.erreurs|join(' ') }}
                                 {% elseif l.doublon %}<span class="pastille">Déjà présent</span>
                                 {% else %}<span class="pastille succes">OK</span>{% endif %}

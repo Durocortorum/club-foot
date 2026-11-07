@@ -35,16 +35,16 @@
     </form>
 
     <div class="table-defile">
-        <table class="liste">
+        <table class="liste liste-fiches">
             <thead><tr><th>Joueur</th><th>Catégorie</th><th>Saison</th><th>Bulletin</th><th>PDF</th></tr></thead>
             <tbody>
                 {% for b in bulletins %}
                     <tr>
-                        <td><a href="{{ path('app_joueur_voir', {id: b.joueur.id, _fragment: 'scolarite'}) }}"><strong>{{ b.joueur.nom }}</strong> {{ b.joueur.prenom }}</a></td>
-                        <td>{{ b.joueur.categorie }}</td>
+                        <td class="principal etroit"><a href="{{ path('app_joueur_voir', {id: b.joueur.id, _fragment: 'scolarite'}) }}"><strong>{{ b.joueur.nom }}</strong> {{ b.joueur.prenom }}</a></td>
+                        <td class="fort">{{ b.joueur.categorie }}</td>
                         <td>{{ b.saison }}</td>
                         <td>{{ b.libelle }}</td>
-                        <td class="nowrap">
+                        <td class="nowrap a-cote">
                             {% if b.fichier %}
                                 <a href="{{ path('app_bulletin_pdf', {id: b.id}) }}" target="_blank">Ouvrir</a>
                             {% else %}

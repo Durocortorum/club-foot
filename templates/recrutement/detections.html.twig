@@ -26,18 +26,18 @@
     </form>
 
     <div class="table-defile">
-        <table class="liste">
+        <table class="liste liste-fiches">
             <thead><tr><th>Enfant</th><th>Né en</th><th>Poste</th><th>Club actuel</th><th>Niveau</th><th>Détecté le</th><th>Suite</th></tr></thead>
             <tbody>
                 {% for d in detections %}
                     <tr>
-                        <td class="avec-vignette nowrap">{{ m.avatar(d, 'mini') }} <a href="{{ path('app_detection_voir', {id: d.id}) }}"><strong>{{ d.nom }}</strong> {{ d.prenom }}</a></td>
-                        <td>{{ d.generation }}</td>
+                        <td class="avec-vignette nowrap principal etroit">{{ m.avatar(d, 'mini') }} <a href="{{ path('app_detection_voir', {id: d.id}) }}"><strong>{{ d.nom }}</strong> {{ d.prenom }}</a></td>
+                        <td data-label="né en">{{ d.generation }}</td>
                         <td>{{ d.poste }}</td>
                         <td>{{ d.clubActuel }}</td>
-                        <td>{{ d.niveau }}</td>
-                        <td class="nowrap">{{ d.dateDetection ? d.dateDetection|date('d/m/Y') }}</td>
-                        <td class="nowrap">
+                        <td data-label="niveau">{{ d.niveau }}</td>
+                        <td class="nowrap" data-label="détecté le">{{ d.dateDetection ? d.dateDetection|date('d/m/Y') }}</td>
+                        <td class="nowrap a-cote">
                             {% if d.joueur %}
                                 <a href="{{ path('app_joueur_voir', {id: d.joueur.id}) }}" class="pastille succes">au club</a>
                             {% elseif d.retenu %}

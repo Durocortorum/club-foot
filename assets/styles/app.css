@@ -645,6 +645,10 @@ table.droits .droits-nom { position: sticky; left: 0; background: #fff; z-index:
     .liste-fiches td.rang { order: -3; }
     .liste-fiches td.rang::after { content: "."; }
     .liste-fiches td.principal.nowrap { white-space: normal; }
+    .liste-fiches td.large { flex: 1 1 100%; }
+    .liste-fiches td.fin { margin-left: auto; }
+    .liste-fiches tr.remplacant { background: #fafafb; }
+    .liste-fiches tr.remplacant td { background: none; }
     .liste-fiches td.avec-vignette { display: flex; align-items: center; }
     .liste-fiches td.avec-vignette .avatar { margin-right: 0; flex: none; }
     .liste-fiches td.vide { width: 100%; }

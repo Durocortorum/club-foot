@@ -123,20 +123,20 @@
                         {% else %}
                             <form method="post" action="{{ path('app_planning_appel', {id: e.id}) }}">
                                 <input type="hidden" name="_token" value="{{ csrf_token('appel' ~ e.id) }}"><input type="hidden" name="periode" value="{{ periode }}">
-                                <table class="liste appel-joueurs">
+                                <table class="liste appel-joueurs liste-fiches">
                                     <thead><tr><th>Joueur</th><th>Prévenu par la famille</th><th>Appel</th></tr></thead>
                                     <tbody>
                                         {% for l in lignes %}
                                             {% set a = l.absence %}
                                             <tr>
-                                                <td class="nowrap"><strong>{{ l.joueur.nom }}</strong> {{ l.joueur.prenom }}</td>
-                                                <td class="petit">
+                                                <td class="nowrap principal etroit"><strong>{{ l.joueur.nom }}</strong> {{ l.joueur.prenom }}</td>
+                                                <td class="petit large">
                                                     {% if a %}
                                                         <span class="pastille alerte">{{ a.motif }}</span>{% if a.commentaire %} {{ a.commentaire }}{% endif %}
                                                         <span class="discret">— {{ a.declareePar }}, le {{ a.declareeLe|date('d/m à H:i') }}</span>
                                                     {% endif %}
                                                 </td>
-                                                <td>
+                                                <td class="a-cote">
                                                     <select name="choix[{{ l.joueur.id }}]" class="choix-appel {{ l.choix == 'present' ? 'present' : (l.choix ? 'absence' : 'vide') }}" aria-label="Appel pour {{ l.joueur.prenom }}">
                                                         <option value="">— à noter —</option>
                                                         <option value="present" {{ l.choix == 'present' ? 'selected' }}>✓ Présent</option>

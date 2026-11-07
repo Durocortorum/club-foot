@@ -32,15 +32,15 @@
     </form>
 
     <div class="table-defile">
-        <table class="liste">
+        <table class="liste liste-fiches">
             <thead><tr><th>Date</th><th>Équipe</th><th>Thème</th><th>Exercices</th><th>Durée</th></tr></thead>
             <tbody>
                 {% for s in seances %}
                     <tr>
                         <td class="nowrap"><a href="{{ path('app_seance_voir', {id: s.id}) }}">{{ s.date|date('d/m/Y') }}</a></td>
-                        <td>{{ s.categorie }}</td>
-                        <td><a href="{{ path('app_seance_voir', {id: s.id}) }}">{{ s.theme }}</a></td>
-                        <td>{{ s.exercices|length }}</td>
+                        <td class="fort">{{ s.categorie }}</td>
+                        <td class="principal"><a href="{{ path('app_seance_voir', {id: s.id}) }}">{{ s.theme }}</a></td>
+                        <td data-label="exercices">{{ s.exercices|length }}</td>
                         <td>{{ s.duree ? s.duree ~ ' min' }}</td>
                     </tr>
                 {% else %}

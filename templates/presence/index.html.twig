@@ -31,14 +31,14 @@
     </form>
 
     <div class="table-defile">
-        <table class="liste">
+        <table class="liste liste-fiches">
             <thead><tr><th>Semaine</th><th>Équipe</th><th>Joueurs</th></tr></thead>
             <tbody>
                 {% for s in semaines %}
                     <tr>
-                        <td><a href="{{ path('app_presence_voir', {id: s.id}) }}">du {{ s.lundi|date('d/m/Y') }} au {{ s.samedi|date('d/m/Y') }}</a></td>
-                        <td>{{ s.equipeAffichee }}</td>
-                        <td>{{ s.presences|length }}</td>
+                        <td class="principal"><a href="{{ path('app_presence_voir', {id: s.id}) }}">du {{ s.lundi|date('d/m/Y') }} au {{ s.samedi|date('d/m/Y') }}</a></td>
+                        <td class="fort">{{ s.equipeAffichee }}</td>
+                        <td data-label="joueurs">{{ s.presences|length }}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="3" class="vide">Aucune semaine pour ces critères.</td></tr>
