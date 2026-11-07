@@ -1,0 +1,117 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Dossier médical – {{ joueur.nomComplet }}{% endblock %}
+
+{% block body %}
+    {% set inf_voir, inf_modif = is_granted('ROLE_INFIRMERIE_LECTURE'), is_granted('ROLE_INFIRMERIE') %}
+    {% set vm_voir, vm_modif = is_granted('ROLE_VISITE_MEDICALE_LECTURE'), is_granted('ROLE_VISITE_MEDICALE') %}
+
+    <p><a href="{{ path('app_dossier_medical_index') }}">← Dossiers médicaux</a></p>
+
+    <div class="titre-page">
+        <div class="identite">
+            {{ m.avatar(joueur, 'grand') }}
+            <div>
+                <h1>{{ joueur.prenom }} <strong>{{ joueur.nom }}</strong> <span class="pastille">confidentiel</span></h1>
+                <p class="discret">
+                    {{ joueur.categorie ?? 'Sans catégorie' }}
+                    {% if joueur.age %} · {{ joueur.age }} ans{% endif %}
+                    {% if joueur.dateNaissance %} · né(e) le {{ joueur.dateNaissance|date('d/m/Y') }}{% endif %}
+                    {% if joueur.poste %} · {{ joueur.poste }}{% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grille-fiches">
+        {% if inf_voir %}
+            <section class="carte medical">
+                <div class="titre-page">
+                    <h2>Renseignements médicaux</h2>
+                    {% if inf_modif %}<a class="bouton petit" href="{{ path('app_dossier_medical_renseignements', {id: joueur.id}) }}">Modifier</a>{% endif %}
+                </div>
+                <dl>
+                    {{ m.ligne("Nom de l'assuré", joueur.nomAssure) }}
+                    {{ m.ligne('N° de sécurité sociale', joueur.numeroSecu) }}
+                    {{ m.ligne('Médecin traitant', joueur.medecin) }}
+                    {{ m.ligne('Tél. médecin', joueur.telMedecin) }}
+                    {{ m.ligne('Renseignements', joueur.renseignementsMedicaux) }}
+                </dl>
+                {% if not (joueur.nomAssure or joueur.numeroSecu or joueur.medecin or joueur.telMedecin or joueur.renseignementsMedicaux) %}
+                    <p class="discret">Aucun renseignement.</p>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        <section class="carte">
+            <h2>Contacts de la famille</h2>
+            <dl>
+                {{ m.ligne('Tél. parent 1', joueur.telPortable1) }}
+                {{ m.ligne('Tél. parent 2', joueur.telPortable2) }}
+                {{ m.ligne('Tél. joueur', joueur.telJoueur) }}
+            </dl>
+        </section>
+    </div>
+
+    {% if inf_voir %}
+        <section class="bloc" id="infirmerie">
+            <div class="titre-page">
+                <h2 class="titre-bloc">Blessures</h2>
+                {% if inf_modif %}<a class="bouton" href="{{ path('app_blessure_nouvelle', {joueur: joueur.id}) }}">+ Blessure</a>{% endif %}
+            </div>
+            {% if blessures %}
+                <div class="table-defile">
+                    <table class="liste liste-fiches">
+                        <thead><tr><th>Date</th><th>Blessure</th><th>Circonstances</th><th>Reprise</th><th>Durée</th>{% if inf_modif %}<th></th>{% endif %}</tr></thead>
+                        <tbody>
+                            {% for b in blessures %}
+                                <tr>
+                                    <td class="nowrap">{{ b.date ? b.date|date('d/m/Y') : '?' }}</td>
+                                    <td class="principal etroit">{{ b.libelle }}{% if b.enCours %} <span class="pastille alerte">en cours</span>{% endif %}</td>
+                                    <td>{{ b.lieu }}{% if b.avecArret is not null %} · {{ b.avecArret ? 'avec arrêt' : 'sans arrêt' }}{% endif %}</td>
+                                    <td class="nowrap" data-label="reprise">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') }}</td>
+                                    <td data-label="durée">{{ b.duree is not null ? b.duree ~ ' j' }}</td>
+                                    {% if inf_modif %}<td class="a-cote"><a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a></td>{% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="discret">Aucune blessure enregistrée.</p>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {% if vm_voir %}
+        <section class="bloc" id="visite-medicale">
+            <div class="titre-page">
+                <h2 class="titre-bloc">Visite médicale</h2>
+                {% if vm_modif %}<a class="bouton" href="{{ path('app_mesure_nouvelle', {id: joueur.id}) }}">+ Visite</a>{% endif %}
+            </div>
+            {% if mesures %}
+                <div class="table-defile">
+                    <table class="liste chiffres liste-fiches">
+                        <thead><tr><th>Date</th><th>Poids</th><th>Taille</th><th>IMC</th><th>Taille assis</th><th>Pointure</th>{% if vm_modif %}<th></th>{% endif %}</tr></thead>
+                        <tbody>
+                            {% for x in mesures %}
+                                <tr>
+                                    <td class="principal etroit">{{ x.date|date('d/m/Y') }}</td>
+                                    <td data-label="poids">{{ x.poids ? x.poids|number_format(1, ',') ~ ' kg' }}</td>
+                                    <td data-label="taille">{{ x.taille ? x.taille|number_format(2, ',') ~ ' m' }}</td>
+                                    <td data-label="IMC">{{ x.imc ? x.imc|number_format(1, ',') }}</td>
+                                    <td data-label="taille assis">{{ x.tailleAssis ? x.tailleAssis|number_format(2, ',') ~ ' m' }}</td>
+                                    <td data-label="pointure">{{ x.pointure }}</td>
+                                    {% if vm_modif %}<td class="a-cote">{{ m.supprimer(path('app_mesure_supprimer', {id: x.id}), 'supprimer-mesure' ~ x.id, 'Supprimer cette visite ?', '×') }}</td>{% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="discret">Aucune visite médicale enregistrée.</p>
+            {% endif %}
+        </section>
+    {% endif %}
+{% endblock %}

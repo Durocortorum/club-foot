@@ -28,7 +28,13 @@
                     <span aria-hidden="true">☰</span> Menu
                 </button>
                 {% set route = app.request.attributes.get('_route') %}
-                {% if not is_granted('ROLE_ENCADREMENT') %}
+                {% if is_granted('ROLE_MEDICAL_SEUL') %}
+                {# Compte médical seul (médecin, kiné...) : l'Infirmerie et les dossiers médicaux, rien d'autre. #}
+                <nav class="menu" id="navigation">
+                    {% if is_granted('ROLE_INFIRMERIE_LECTURE') %}<a href="{{ path('app_infirmerie_index') }}" class="{{ route starts with 'app_infirmerie' or route starts with 'app_blessure' or route starts with 'app_contact' ? 'actif' }}">Infirmerie</a>{% endif %}
+                    <a href="{{ path('app_dossier_medical_index') }}" class="{{ route starts with 'app_dossier_medical' ? 'actif' }}">Dossiers médicaux</a>
+                </nav>
+                {% elseif not is_granted('ROLE_ENCADREMENT') %}
                 <nav class="menu" id="navigation">
                     <a href="{{ path('app_espace') }}" class="{{ route == 'app_espace' ? 'actif' }}">Mon espace</a>
                 </nav>

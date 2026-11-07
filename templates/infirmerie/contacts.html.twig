@@ -4,10 +4,7 @@
 {% block title %}Contacts médicaux{% endblock %}
 
 {% block body %}
-    <nav class="onglets">
-        <a href="{{ path('app_infirmerie_index') }}">Blessures</a>
-        <a href="{{ path('app_contact_index') }}" class="actif">Contacts médicaux</a>
-    </nav>
+    {% include 'infirmerie/_onglets.html.twig' with {actif: 'contacts'} %}
 
     <div class="titre-page">
         <h1>Contacts médicaux <span class="compteur">{{ contacts|length }}</span></h1>

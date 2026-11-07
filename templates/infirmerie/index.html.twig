@@ -4,10 +4,7 @@
 {% block title %}Infirmerie{% endblock %}
 
 {% block body %}
-    <nav class="onglets">
-        <a href="{{ path('app_infirmerie_index') }}" class="actif">Blessures</a>
-        <a href="{{ path('app_contact_index') }}">Contacts médicaux</a>
-    </nav>
+    {% include 'infirmerie/_onglets.html.twig' with {actif: 'blessures'} %}
 
     <div class="titre-page">
         <h1>{{ filtres.statut == 'en_cours' ? 'Joueurs indisponibles' : 'Toutes les blessures' }} <span class="compteur">{{ total }}</span></h1>
@@ -35,7 +32,7 @@
             <tbody>
                 {% for b in blessures %}
                     <tr>
-                        <td class="avec-vignette nowrap principal etroit">{{ m.avatar(b.joueur, 'mini') }} <a href="{{ path('app_joueur_voir', {id: b.joueur.id, _fragment: 'infirmerie'}) }}"><strong>{{ b.joueur.nom }}</strong> {{ b.joueur.prenom }}</a></td>
+                        <td class="avec-vignette nowrap principal etroit">{{ m.avatar(b.joueur, 'mini') }} <a href="{{ path('app_dossier_medical', {id: b.joueur.id}) }}"><strong>{{ b.joueur.nom }}</strong> {{ b.joueur.prenom }}</a></td>
                         <td class="fort">{{ b.joueur.categorie }}</td>
                         <td class="nowrap">{{ b.date ? b.date|date('d/m/Y') : '?' }}</td>
                         <td class="large">{{ b.libelle }}</td>

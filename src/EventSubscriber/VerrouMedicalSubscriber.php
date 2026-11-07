@@ -16,7 +16,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 class VerrouMedicalSubscriber implements EventSubscriberInterface
 {
-    private const ROUTES = ['app_infirmerie', 'app_blessure', 'app_contact', 'app_mesure'];
+    private const ROUTES = ['app_infirmerie', 'app_dossier_medical', 'app_blessure', 'app_contact', 'app_mesure'];
 
     public function __construct(
         private readonly AccesMedical $acces,

@@ -1,0 +1,6 @@
+{# Onglets de l'Infirmerie ; « actif » : blessures, dossiers ou contacts. #}
+<nav class="onglets">
+    {% if is_granted('ROLE_INFIRMERIE_LECTURE') %}<a href="{{ path('app_infirmerie_index') }}" class="{{ actif == 'blessures' ? 'actif' }}">Blessures</a>{% endif %}
+    <a href="{{ path('app_dossier_medical_index') }}" class="{{ actif == 'dossiers' ? 'actif' }}">Dossiers médicaux</a>
+    {% if is_granted('ROLE_INFIRMERIE_LECTURE') %}<a href="{{ path('app_contact_index') }}" class="{{ actif == 'contacts' ? 'actif' }}">Contacts médicaux</a>{% endif %}
+</nav>

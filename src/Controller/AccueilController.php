@@ -16,6 +16,9 @@ class AccueilController extends AbstractController
     #[Route('/', name: 'app_accueil')]
     public function index(JoueurRepository $joueurs, CategorieRepository $categories, JoueurVoter $voter, PremiersPas $premiersPas): Response
     {
+        if ($this->isGranted('ROLE_MEDICAL_SEUL')) {
+            return $this->redirectToRoute($this->isGranted('ROLE_INFIRMERIE_LECTURE') ? 'app_infirmerie_index' : 'app_dossier_medical_index');
+        }
         if (!$this->isGranted('ROLE_ENCADREMENT')) {
             return $this->redirectToRoute('app_espace');
         }

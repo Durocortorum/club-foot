@@ -96,7 +96,7 @@ class InfirmerieController extends AbstractController
             $this->addFlash('succes', 'Blessure supprimée.');
         }
 
-        return $this->redirectToRoute('app_joueur_voir', ['id' => $joueur->getId(), '_fragment' => 'infirmerie']);
+        return $this->redirectToRoute('app_dossier_medical', ['id' => $joueur->getId(), '_fragment' => 'infirmerie']);
     }
 
     #[Route('/contacts', name: 'app_contact_index', methods: ['GET'])]
@@ -236,7 +236,7 @@ class InfirmerieController extends AbstractController
             $em->flush();
             $this->addFlash('succes', 'Blessure enregistrée.');
 
-            return $this->redirectToRoute('app_joueur_voir', ['id' => $blessure->getJoueur()->getId(), '_fragment' => 'infirmerie']);
+            return $this->redirectToRoute('app_dossier_medical', ['id' => $blessure->getJoueur()->getId(), '_fragment' => 'infirmerie']);
         }
 
         $vue = [
@@ -244,7 +244,7 @@ class InfirmerieController extends AbstractController
             'titre' => $titre,
             'planches' => $this->anatomie->planches(),
             'retour' => $blessure->getJoueur()
-                ? $this->generateUrl('app_joueur_voir', ['id' => $blessure->getJoueur()->getId()])
+                ? $this->generateUrl('app_dossier_medical', ['id' => $blessure->getJoueur()->getId()])
                 : $this->generateUrl('app_infirmerie_index'),
         ];
         if ($blessure->getId()) {

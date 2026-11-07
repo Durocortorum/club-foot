@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Dossiers médicaux{% endblock %}
+
+{% block body %}
+    {% include 'infirmerie/_onglets.html.twig' with {actif: 'dossiers'} %}
+
+    <div class="titre-page">
+        <h1>Dossiers médicaux <span class="compteur">{{ joueurs|length }}</span></h1>
+    </div>
+
+    <form method="get" class="filtres">
+        <input type="search" name="q" value="{{ filtres.q }}" placeholder="Nom ou prénom" aria-label="Rechercher un joueur">
+        <select name="categorie" aria-label="Catégorie">
+            <option value="">Toutes les catégories</option>
+            {% for c in categories %}<option value="{{ c.id }}" {{ filtres.categorie == c.id ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="bouton">Filtrer</button>
+    </form>
+
+    <div class="table-defile">
+        <table class="liste liste-fiches">
+            <thead><tr><th>Joueur</th><th>Catégorie</th><th>Né le</th></tr></thead>
+            <tbody>
+                {% for j in joueurs %}
+                    <tr>
+                        <td class="avec-vignette principal">{{ m.avatar(j, 'mini') }} <a href="{{ path('app_dossier_medical', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a></td>
+                        <td class="fort">{{ j.categorie }}</td>
+                        <td data-label="né le">{{ j.dateNaissance ? j.dateNaissance|date('d/m/Y') }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="3" class="vide">Aucun joueur pour ces critères.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

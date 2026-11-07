@@ -197,7 +197,12 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
     {
         // Un compte famille n'a jamais de droit de l'encadrement, même s'il en restait en base.
         // Un droit médical arrivé à échéance ne compte plus.
-        $roles = $this->famille ? ['ROLE_FAMILLE'] : [...$this->rolesEnVigueur(), 'ROLE_ENCADREMENT'];
+        // Compte qui n'a que du médical (médecin, kiné...) : seulement l'Infirmerie, pas les pages de l'encadrement.
+        $roles = match (true) {
+            $this->famille => ['ROLE_FAMILLE'],
+            $this->isMedicalSeul() => [...$this->rolesEnVigueur(), 'ROLE_MEDICAL_SEUL'],
+            default => [...$this->rolesEnVigueur(), 'ROLE_ENCADREMENT'],
+        };
         $roles[] = 'ROLE_USER';
 
         return array_values(array_unique($roles));
@@ -349,6 +354,17 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         }
 
         return array_values(array_diff($this->roles, $echus));
+    }
+
+    /**
+     * Compte de l'encadrement dont tous les droits en vigueur sont médicaux (médecin, Infirmerie, Visite médicale) :
+     * il ne voit que l'Infirmerie et les dossiers médicaux.
+     */
+    public function isMedicalSeul(): bool
+    {
+        $roles = $this->rolesEnVigueur();
+
+        return !$this->famille && [] !== $roles && [] === array_diff($roles, ['ROLE_MEDECIN', ...self::rolesMedicaux()]);
     }
 
     public function isMedecin(): bool

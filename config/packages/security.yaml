@@ -54,6 +54,12 @@ security:
         # Pages ouvertes aux comptes famille (joueurs, parents). L'accueil les renvoie vers leur espace.
         - { path: ^/(espace|mon-compte|deconnexion)(/|$), roles: ROLE_USER }
         - { path: ^/$, roles: ROLE_USER }
+        # Comptes qui n'ont que du médical (médecin, kiné...) : Infirmerie et dossiers médicaux seulement
+        # (plus, pour un médecin, le tableau des droits médicaux et les demandes d'accès).
+        - { path: ^/(infirmerie|medical|photos)(/|$), roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
+        - { path: ^/(joueurs/\d+/mesures/nouvelle|mesures/\d+/supprimer)$, roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
+        - { path: ^/utilisateurs/(droits|\d+/droit)$, roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
+        - { path: ^/acces-medical/demande/\d+/(accorder|refuser)$, roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
         # Tout le reste est réservé à l'encadrement du club.
         - { path: ^/, roles: ROLE_ENCADREMENT }
 

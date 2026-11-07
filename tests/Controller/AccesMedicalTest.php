@@ -83,9 +83,11 @@ class AccesMedicalTest extends WebTestCase
         $this->client->loginUser($this->compte($kine));
         $this->client->request('GET', '/infirmerie');
         self::assertResponseRedirects('/medical/code?retour=/infirmerie');
-        $crawler = $this->client->request('GET', '/joueurs/' . $joueur->getId());
-        self::assertSelectorExists('#medical-verrou');
-        self::assertSelectorTextNotContains('main', 'Entorse');
+        // Compte « médical seul » : pas de fiche joueur, son dossier médical demande aussi le code.
+        $this->client->request('GET', '/joueurs/' . $joueur->getId());
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('GET', '/infirmerie/dossiers/' . $joueur->getId());
+        self::assertResponseRedirects('/medical/code?retour=/infirmerie/dossiers/' . $joueur->getId());
 
         $crawler = $this->client->request('GET', '/medical/code?retour=/infirmerie');
         $this->client->submit($crawler->selectButton('Recevoir un code par e-mail')->form());
@@ -100,8 +102,7 @@ class AccesMedicalTest extends WebTestCase
         $this->client->followRedirect();
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.medical-ouvert', 'Médical jusqu');
-        $this->client->request('GET', '/joueurs/' . $joueur->getId());
-        self::assertSelectorNotExists('#medical-verrou');
+        $this->client->request('GET', '/infirmerie/dossiers/' . $joueur->getId());
         self::assertSelectorTextContains('#infirmerie', 'Entorse');
 
         // Il referme : nouveau code nécessaire.
@@ -222,8 +223,59 @@ class AccesMedicalTest extends WebTestCase
 
         // Un compte sans droit de traitement ne peut pas accorder.
         $this->client->loginUser($this->compte($coach));
-        $this->client->request('POST', '/acces-medical/demande/1/accorder', ['_token' => 'x']);
+        $autre = $this->em()->getRepository(\App\Entity\DemandeAccesMedical::class)->findOneBy([], ['id' => 'DESC']);
+        $this->client->request('POST', '/acces-medical/demande/' . $autre->getId() . '/accorder', ['_token' => 'x']);
         self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testCompteMedicalSeul(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Admin');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $categorie = $this->em()->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+        $joueur = (new Joueur())->setClub($club)->setCategorie($categorie)->setNom('Martin')->setPrenom('Léo');
+        $this->em()->persist($joueur);
+        $this->em()->persist((new Blessure())->setClub($club)->setJoueur($joueur)->setDate(new \DateTimeImmutable('-3 days'))->setType('Entorse')->setLocalisation('Cheville'));
+        $medecin = $this->compteEncadrement($club, "medecin-$id@exemple.test", 'Docteur', ['ROLE_MEDECIN']);
+        $coach = $this->compteEncadrement($club, "coach-$id@exemple.test", 'Coach', [Categorie::SECTEURS[$categorie->getSecteur()]['role'], 'ROLE_INFIRMERIE']);
+        $coach->setEcheance('infirmerie', new \DateTimeImmutable('+30 days'));
+        $this->em()->flush();
+        self::assertTrue($medecin->isMedicalSeul());
+        self::assertFalse($coach->isMedicalSeul());
+
+        // Le médecin : l'accueil mène à l'Infirmerie ; les pages de l'encadrement lui sont fermées.
+        $this->client->loginUser($medecin);
+        $this->client->request('GET', '/');
+        self::assertResponseRedirects('/infirmerie');
+        foreach (['/joueurs', '/joueurs/' . $joueur->getId(), '/matchs', '/statistiques', '/presences', '/scolarite', '/utilisateurs'] as $page) {
+            $this->client->request('GET', $page);
+            self::assertResponseStatusCodeSame(403, $page);
+        }
+
+        // Après le code : Infirmerie et dossiers médicaux, avec un menu réduit.
+        $this->ouvrirMedical($this->client);
+        $crawler = $this->client->request('GET', '/infirmerie/dossiers');
+        self::assertResponseIsSuccessful();
+        self::assertSame(['Infirmerie', 'Dossiers médicaux'], $crawler->filter('nav.menu a')->each(fn ($a) => trim($a->text())));
+        $crawler = $this->client->click($crawler->selectLink('Martin')->link());
+        self::assertSelectorTextContains('#infirmerie', 'Entorse');
+        self::assertSelectorExists('#visite-medicale');
+        $this->client->click($crawler->selectLink('Modifier')->link());
+        $this->client->submitForm('Enregistrer', ['renseignements_medicaux[medecin]' => 'Dr Durand']);
+        self::assertResponseRedirects('/infirmerie/dossiers/' . $joueur->getId());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Dr Durand');
+        $this->client->request('GET', '/utilisateurs/droits');
+        self::assertResponseIsSuccessful();
+
+        // Un éducateur qui a aussi l'Infirmerie garde le menu complet et sa fiche joueur.
+        $this->client->loginUser($this->compte($coach));
+        $this->client->request('GET', '/joueurs/' . $joueur->getId());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('nav.menu a[href="/matchs"]');
     }
 
     /** @param list<string> $roles */

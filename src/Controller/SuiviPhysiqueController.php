@@ -27,7 +27,7 @@ class SuiviPhysiqueController extends AbstractController
         $this->verifierInfirmerie();
         $mesure = (new Mesure())->setJoueur($joueur)->setDate(new \DateTimeImmutable('today'));
 
-        return $this->formulaire($request, $em, MesureType::class, $mesure, $joueur, 'Visite médicale – ' . $joueur->getNomComplet(), 'visite-medicale');
+        return $this->formulaire($request, $em, MesureType::class, $mesure, $joueur, 'Visite médicale – ' . $joueur->getNomComplet(), 'visite-medicale', 'app_dossier_medical');
     }
 
     #[Route('/joueurs/{id}/tests/nouveau', name: 'app_test_nouveau', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
@@ -44,7 +44,7 @@ class SuiviPhysiqueController extends AbstractController
     {
         $this->verifierInfirmerie();
 
-        return $this->supprimer($request, $em, $mesure, $mesure->getJoueur(), 'mesure', 'visite-medicale');
+        return $this->supprimer($request, $em, $mesure, $mesure->getJoueur(), 'mesure', 'visite-medicale', 'app_dossier_medical');
     }
 
     #[Route('/tests/{id}/supprimer', name: 'app_test_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -55,7 +55,7 @@ class SuiviPhysiqueController extends AbstractController
         return $this->supprimer($request, $em, $test, $test->getJoueur(), 'test', 'physique');
     }
 
-    private function formulaire(Request $request, EntityManagerInterface $em, string $type, Mesure|TestPhysique $objet, Joueur $joueur, string $titre, string $bloc): Response
+    private function formulaire(Request $request, EntityManagerInterface $em, string $type, Mesure|TestPhysique $objet, Joueur $joueur, string $titre, string $bloc, string $page = 'app_joueur_voir'): Response
     {
         $form = $this->createForm($type, $objet);
         $form->handleRequest($request);
@@ -65,17 +65,17 @@ class SuiviPhysiqueController extends AbstractController
             $em->flush();
             $this->addFlash('succes', 'Enregistré.');
 
-            return $this->redirectToRoute('app_joueur_voir', ['id' => $joueur->getId(), '_fragment' => $bloc]);
+            return $this->redirectToRoute($page, ['id' => $joueur->getId(), '_fragment' => $bloc]);
         }
 
         return $this->render('commun/formulaire.html.twig', [
             'form' => $form,
             'titre' => $titre,
-            'retour' => $this->generateUrl('app_joueur_voir', ['id' => $joueur->getId()]),
+            'retour' => $this->generateUrl($page, ['id' => $joueur->getId()]),
         ]);
     }
 
-    private function supprimer(Request $request, EntityManagerInterface $em, Mesure|TestPhysique $objet, Joueur $joueur, string $nom, string $bloc): Response
+    private function supprimer(Request $request, EntityManagerInterface $em, Mesure|TestPhysique $objet, Joueur $joueur, string $nom, string $bloc, string $page = 'app_joueur_voir'): Response
     {
         if ($this->isCsrfTokenValid('supprimer-' . $nom . $objet->getId(), $request->getPayload()->getString('_token'))) {
             $em->remove($objet);
@@ -83,7 +83,7 @@ class SuiviPhysiqueController extends AbstractController
             $this->addFlash('succes', 'Supprimé.');
         }
 
-        return $this->redirectToRoute('app_joueur_voir', ['id' => $joueur->getId(), '_fragment' => $bloc]);
+        return $this->redirectToRoute($page, ['id' => $joueur->getId(), '_fragment' => $bloc]);
     }
 
     /** Visite médicale : données de santé, droit « Visite médicale (modifier) ». */
