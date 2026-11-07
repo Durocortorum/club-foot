@@ -15,18 +15,19 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Mesures (poids, taille) et tests physiques d'un joueur. Saisis par l'infirmerie
- * ou par les éducateurs qui peuvent modifier la fiche du joueur.
+ * Visite médicale (mesures : poids, taille...) et tests physiques d'un joueur.
+ * Les mesures sont confidentielles : réservées à l'infirmerie. Les tests physiques sont aussi
+ * saisis par les éducateurs qui peuvent modifier la fiche du joueur.
  */
 class SuiviPhysiqueController extends AbstractController
 {
     #[Route('/joueurs/{id}/mesures/nouvelle', name: 'app_mesure_nouvelle', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function nouvelleMesure(Request $request, Joueur $joueur, EntityManagerInterface $em): Response
     {
-        $this->verifier($joueur);
+        $this->verifierInfirmerie();
         $mesure = (new Mesure())->setJoueur($joueur)->setDate(new \DateTimeImmutable('today'));
 
-        return $this->formulaire($request, $em, MesureType::class, $mesure, $joueur, 'Nouvelle mesure – ' . $joueur->getNomComplet());
+        return $this->formulaire($request, $em, MesureType::class, $mesure, $joueur, 'Visite médicale – ' . $joueur->getNomComplet(), 'visite-medicale');
     }
 
     #[Route('/joueurs/{id}/tests/nouveau', name: 'app_test_nouveau', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
@@ -35,22 +36,26 @@ class SuiviPhysiqueController extends AbstractController
         $this->verifier($joueur);
         $test = (new TestPhysique())->setJoueur($joueur)->setDate(new \DateTimeImmutable('today'));
 
-        return $this->formulaire($request, $em, TestPhysiqueType::class, $test, $joueur, 'Nouveau test physique – ' . $joueur->getNomComplet());
+        return $this->formulaire($request, $em, TestPhysiqueType::class, $test, $joueur, 'Nouveau test physique – ' . $joueur->getNomComplet(), 'physique');
     }
 
     #[Route('/mesures/{id}/supprimer', name: 'app_mesure_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimerMesure(Request $request, Mesure $mesure, EntityManagerInterface $em): Response
     {
-        return $this->supprimer($request, $em, $mesure, $mesure->getJoueur(), 'mesure');
+        $this->verifierInfirmerie();
+
+        return $this->supprimer($request, $em, $mesure, $mesure->getJoueur(), 'mesure', 'visite-medicale');
     }
 
     #[Route('/tests/{id}/supprimer', name: 'app_test_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimerTest(Request $request, TestPhysique $test, EntityManagerInterface $em): Response
     {
-        return $this->supprimer($request, $em, $test, $test->getJoueur(), 'test');
+        $this->verifier($test->getJoueur());
+
+        return $this->supprimer($request, $em, $test, $test->getJoueur(), 'test', 'physique');
     }
 
-    private function formulaire(Request $request, EntityManagerInterface $em, string $type, Mesure|TestPhysique $objet, Joueur $joueur, string $titre): Response
+    private function formulaire(Request $request, EntityManagerInterface $em, string $type, Mesure|TestPhysique $objet, Joueur $joueur, string $titre, string $bloc): Response
     {
         $form = $this->createForm($type, $objet);
         $form->handleRequest($request);
@@ -60,7 +65,7 @@ class SuiviPhysiqueController extends AbstractController
             $em->flush();
             $this->addFlash('succes', 'Enregistré.');
 
-            return $this->redirectToRoute('app_joueur_voir', ['id' => $joueur->getId(), '_fragment' => 'physique']);
+            return $this->redirectToRoute('app_joueur_voir', ['id' => $joueur->getId(), '_fragment' => $bloc]);
         }
 
         return $this->render('commun/formulaire.html.twig', [
@@ -70,16 +75,23 @@ class SuiviPhysiqueController extends AbstractController
         ]);
     }
 
-    private function supprimer(Request $request, EntityManagerInterface $em, Mesure|TestPhysique $objet, Joueur $joueur, string $nom): Response
+    private function supprimer(Request $request, EntityManagerInterface $em, Mesure|TestPhysique $objet, Joueur $joueur, string $nom, string $bloc): Response
     {
-        $this->verifier($joueur);
         if ($this->isCsrfTokenValid('supprimer-' . $nom . $objet->getId(), $request->getPayload()->getString('_token'))) {
             $em->remove($objet);
             $em->flush();
             $this->addFlash('succes', 'Supprimé.');
         }
 
-        return $this->redirectToRoute('app_joueur_voir', ['id' => $joueur->getId(), '_fragment' => 'physique']);
+        return $this->redirectToRoute('app_joueur_voir', ['id' => $joueur->getId(), '_fragment' => $bloc]);
+    }
+
+    /** Visite médicale : données de santé, réservées au droit Infirmerie. */
+    private function verifierInfirmerie(): void
+    {
+        if (!$this->isGranted('ROLE_INFIRMERIE')) {
+            throw $this->createAccessDeniedException();
+        }
     }
 
     private function verifier(Joueur $joueur): void

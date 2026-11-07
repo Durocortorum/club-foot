@@ -138,7 +138,8 @@ class JoueurController extends AbstractController
             'bilan' => $bilan->parSaison($joueur, $matchs),
             'presences' => $presences->bilanParSaison($joueur),
             'blessures' => $this->isGranted('ROLE_INFIRMERIE') ? $blessures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
-            'mesures' => $mesures->findBy(['joueur' => $joueur], ['date' => 'DESC']),
+            // Visite médicale (poids, taille...) : données de santé, réservées à l'infirmerie.
+            'mesures' => $this->isGranted('ROLE_INFIRMERIE') ? $mesures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
             'tests' => $tests->findBy(['joueur' => $joueur], ['date' => 'DESC']),
             'bulletins' => $scolaire ? $bulletins->findBy(['joueur' => $joueur], ['saison' => 'DESC', 'id' => 'DESC']) : [],
             // Les sanctions sont utiles aux éducateurs du joueur (suspensions), pas seulement au suivi scolaire.

@@ -64,8 +64,8 @@
         <a href="#presences">Présences</a>
         {% if famille %}<a href="#famille">Accès famille</a>{% endif %}
         {% if is_granted('ROLE_SCOLAIRE') or sanctions %}<a href="#scolarite">Scolarité et discipline</a>{% endif %}
-        {% if is_granted('ROLE_INFIRMERIE') %}<a href="#infirmerie">Infirmerie</a>{% endif %}
-        <a href="#physique">Mesures et tests</a>
+        {% if is_granted('ROLE_INFIRMERIE') %}<a href="#infirmerie">Infirmerie</a><a href="#visite-medicale">Visite médicale</a>{% endif %}
+        <a href="#physique">Tests physiques</a>
     </nav>
 
     <div class="grille-fiches" id="fiche">
@@ -391,38 +391,39 @@
             {% else %}
                 <p class="discret">Aucune blessure enregistrée.</p>
             {% endif %}
+
+            {# Visite médicale : poids, taille... Données de santé, réservées à l'infirmerie. #}
+            <div class="titre-page" id="visite-medicale">
+                <h2 class="titre-bloc">Visite médicale <span class="pastille">confidentiel</span></h2>
+                <a class="bouton" href="{{ path('app_mesure_nouvelle', {id: joueur.id}) }}">+ Visite</a>
+            </div>
+            {% if mesures %}
+                <div class="table-defile">
+                    <table class="liste chiffres liste-fiches">
+                        <thead><tr><th>Date</th><th>Poids</th><th>Taille</th><th>IMC</th><th>Taille assis</th><th>Pointure</th><th></th></tr></thead>
+                        <tbody>
+                            {% for x in mesures %}
+                                <tr>
+                                    <td class="principal etroit">{{ x.date|date('d/m/Y') }}</td>
+                                    <td data-label="poids">{{ x.poids ? x.poids|number_format(1, ',') ~ ' kg' }}</td>
+                                    <td data-label="taille">{{ x.taille ? x.taille|number_format(2, ',') ~ ' m' }}</td>
+                                    <td data-label="IMC">{{ x.imc ? x.imc|number_format(1, ',') }}</td>
+                                    <td data-label="taille assis">{{ x.tailleAssis ? x.tailleAssis|number_format(2, ',') ~ ' m' }}</td>
+                                    <td data-label="pointure">{{ x.pointure }}</td>
+                                    <td class="a-cote">{{ m.supprimer(path('app_mesure_supprimer', {id: x.id}), 'supprimer-mesure' ~ x.id, 'Supprimer cette visite ?', '×') }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="discret">Aucune visite médicale enregistrée.</p>
+            {% endif %}
         </section>
     {% endif %}
 
-    {# ---------- Mesures et tests ---------- #}
+    {# ---------- Tests physiques ---------- #}
     <section class="bloc" id="physique">
-        <div class="titre-page">
-            <h2 class="titre-bloc">Mesures</h2>
-            {% if peut_suivre %}<a class="bouton" href="{{ path('app_mesure_nouvelle', {id: joueur.id}) }}">+ Mesure</a>{% endif %}
-        </div>
-        {% if mesures %}
-            <div class="table-defile">
-                <table class="liste chiffres liste-fiches">
-                    <thead><tr><th>Date</th><th>Poids</th><th>Taille</th><th>IMC</th><th>Taille assis</th><th>Pointure</th>{% if peut_suivre %}<th></th>{% endif %}</tr></thead>
-                    <tbody>
-                        {% for x in mesures %}
-                            <tr>
-                                <td class="principal etroit">{{ x.date|date('d/m/Y') }}</td>
-                                <td data-label="poids">{{ x.poids ? x.poids|number_format(1, ',') ~ ' kg' }}</td>
-                                <td data-label="taille">{{ x.taille ? x.taille|number_format(2, ',') ~ ' m' }}</td>
-                                <td data-label="IMC">{{ x.imc ? x.imc|number_format(1, ',') }}</td>
-                                <td data-label="taille assis">{{ x.tailleAssis ? x.tailleAssis|number_format(2, ',') ~ ' m' }}</td>
-                                <td data-label="pointure">{{ x.pointure }}</td>
-                                {% if peut_suivre %}<td class="a-cote">{{ m.supprimer(path('app_mesure_supprimer', {id: x.id}), 'supprimer-mesure' ~ x.id, 'Supprimer cette mesure ?', '×') }}</td>{% endif %}
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="discret">Aucune mesure enregistrée.</p>
-        {% endif %}
-
         <div class="titre-page">
             <h2 class="titre-bloc">Tests physiques</h2>
             {% if peut_suivre %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Test</a>{% endif %}
