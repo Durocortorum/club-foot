@@ -65,7 +65,7 @@
     {% endif %}
 
     <div class="table-defile">
-        <table class="liste">
+        <table class="liste liste-joueurs">
             <thead>
                 <tr>
                     <th>Nom</th>
@@ -85,12 +85,13 @@
                             <a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a>
                             {% if j.ancien %}<span class="pastille">ancien</span>{% endif %}
                         </td>
-                        <td>{{ j.categorie }}</td>
-                        <td>{{ j.dateNaissance ? j.dateNaissance|date('d/m/Y') }}</td>
+                        {# data-label : intitulé affiché devant la valeur sur téléphone (fiche au lieu du tableau). #}
+                        <td class="categorie">{{ j.categorie }}</td>
+                        <td data-label="né le">{{ j.dateNaissance ? j.dateNaissance|date('d/m/Y') }}</td>
                         <td>{{ j.poste }}</td>
-                        <td>{{ j.pied }}</td>
-                        <td>{{ j.educateur }}</td>
-                        <td>{{ j.licence }}</td>
+                        <td data-label="pied">{{ j.pied }}</td>
+                        <td data-label="éduc.">{{ j.educateur }}</td>
+                        <td data-label="lic.">{{ j.licence }}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="7" class="vide">Aucun joueur ne correspond à ces critères.</td></tr>

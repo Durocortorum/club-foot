@@ -625,3 +625,18 @@ table.droits .droits-nom { position: sticky; left: 0; background: #fff; z-index:
     .droits-legende { grid-template-columns: 1fr; }
     .droits-legende dd { margin-bottom: .4rem; }
 }
+
+/* Liste des joueurs sur téléphone : une fiche par joueur au lieu d'un tableau à faire défiler. */
+@media (max-width: 600px) {
+    .liste-joueurs thead { display: none; }
+    .liste-joueurs, .liste-joueurs tbody { display: block; }
+    .liste-joueurs tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .9rem; padding: .65rem .8rem; border-bottom: 1px solid var(--bordure); }
+    .liste-joueurs tr:last-child { border-bottom: 0; }
+    .liste-joueurs td { display: block; padding: 0; border: 0; font-size: .85rem; color: var(--gris); }
+    .liste-joueurs td:empty { display: none; }
+    .liste-joueurs td[data-label]::before { content: attr(data-label) " "; font-size: .78rem; opacity: .8; }
+    .liste-joueurs td.categorie { font-weight: 600; color: var(--encre); }
+    .liste-joueurs td.avec-vignette { display: flex; align-items: center; width: 100%; font-size: .98rem; color: inherit; margin-bottom: .1rem; }
+    .liste-joueurs td.avec-vignette .avatar { margin-right: 0; flex: none; }
+    .liste-joueurs td.vide { width: 100%; }
+}
