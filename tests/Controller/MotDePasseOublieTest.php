@@ -58,6 +58,7 @@ class MotDePasseOublieTest extends WebTestCase
         $this->client->submitForm('Recevoir le lien', ['email' => '  ' . strtoupper($email) . ' ']);
         self::assertEmailCount(1);
         $message = self::getMailerMessage();
+        self::assertInstanceOf(\Symfony\Component\Mime\Email::class, $message);
         self::assertEmailAddressContains($message, 'to', $email);
         self::assertSame(1, preg_match('#https?://\S+/mot-de-passe/[0-9a-f]{48}#', $message->getTextBody(), $m));
         $lien = $m[0];
@@ -80,5 +81,12 @@ class MotDePasseOublieTest extends WebTestCase
         self::assertResponseRedirects('/');
         $this->client->followRedirect();
         self::assertResponseIsSuccessful();
+
+        // Déjà connecté : la demande pour un autre compte fonctionne quand même.
+        $this->client->request('GET', '/mot-de-passe-oublie');
+        self::assertResponseIsSuccessful();
+        $this->client->submitForm('Recevoir le lien', ['email' => $email]);
+        self::assertSelectorTextContains('h1', 'Vérifiez vos e-mails');
+        self::assertEmailCount(1);
     }
 }

@@ -43,9 +43,8 @@ class MotDePasseController extends AbstractController
         RateLimiterFactory $motDePasseOublieLimiter,
         #[Autowire('%env(MAILER_EXPEDITEUR)%')] string $expediteur,
     ): Response {
-        if ($this->getUser()) {
-            return $this->redirectToRoute('app_mon_compte');
-        }
+        // Pas de renvoi si l'on est déjà connecté : on peut avoir oublié le mot de passe d'un autre compte
+        // (un autre club, par exemple). Le nouveau lien connecte alors au compte concerné.
         $email = mb_strtolower(trim($request->getPayload()->getString('email', $request->query->getString('email'))));
 
         if ($request->isMethod('POST')) {
