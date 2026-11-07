@@ -26,10 +26,11 @@ class UtilisateurType extends AbstractType
             ->add('email', EmailType::class, ['label' => 'Adresse e-mail', 'help' => 'Utilisée pour se connecter.'])
             ->add('rolesAttribues', ChoiceType::class, [
                 'label' => 'Droits',
-                'choices' => array_flip(Utilisateur::ROLES),
+                // Les droits médicaux (avec échéance) se donnent dans le tableau des droits d'accès.
+                'choices' => array_flip(array_diff_key(Utilisateur::ROLES, array_flip(Utilisateur::rolesMedicaux()))),
                 'expanded' => true,
                 'multiple' => true,
-                'help' => 'Un secteur (École de foot, Formation...) donne accès à ses joueurs, matchs et présences. « Administration » donne tous les droits.',
+                'help' => 'Un secteur (École de foot, Formation...) donne accès à ses joueurs, matchs et présences. « Administration » donne tous les droits. Les droits Infirmerie et Visite médicale se donnent, pour une durée limitée, dans le tableau des droits d\'accès.',
                 // Un administrateur ne peut pas se retirer ses propres droits d'administration.
                 'choice_attr' => fn (string $role) => $options['soi_meme'] && 'ROLE_ADMIN' === $role ? ['disabled' => 'disabled'] : [],
             ])

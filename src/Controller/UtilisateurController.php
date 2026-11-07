@@ -36,14 +36,24 @@ class UtilisateurController extends AbstractController
         ]);
     }
 
-    /** Tableau des droits d'accès : une ligne par compte, une case à cliquer par section. */
+    /**
+     * Tableau des droits d'accès : une ligne par compte, une case à cliquer par section.
+     * Administrateur : toutes les colonnes. Médecin du club : seulement les droits médicaux.
+     */
     #[Route('/utilisateurs/droits', name: 'app_utilisateur_droits', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
     public function droits(UtilisateurRepository $utilisateurs): Response
     {
+        $modifiables = $this->colonnesModifiables();
+        if (!$modifiables) {
+            throw $this->createAccessDeniedException();
+        }
+
         return $this->render('utilisateur/droits.html.twig', [
             'utilisateurs' => $utilisateurs->findBy(['famille' => false], ['nom' => 'ASC', 'prenom' => 'ASC']),
             'colonnes' => Utilisateur::colonnesDroits(),
+            'modifiables' => $modifiables,
+            'medicales' => Utilisateur::SECTIONS_MEDICALES,
+            'durees' => Utilisateur::DUREES_MEDICALES,
         ]);
     }
 
@@ -52,21 +62,27 @@ class UtilisateurController extends AbstractController
      * ou par une redirection si le navigateur envoie le formulaire classique.
      */
     #[Route('/utilisateurs/{id}/droit', name: 'app_utilisateur_droit', requirements: ['id' => '\d+'], methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
     public function basculerDroit(Request $request, Utilisateur $utilisateur): Response
     {
         $donnees = $request->getPayload();
         // « droit » : un rôle simple (ROLE_...) ou une section à deux niveaux (infirmerie, scolarite...).
         // « niveau » : 0 aucun, 1 oui (ou « voir » pour une section), 2 « modifier » (sections seulement).
+        // « duree » : pour un droit médical, durée avant échéance (voir Utilisateur::DUREES_MEDICALES).
         $droit = $donnees->getString('droit');
         $niveau = $donnees->getInt('niveau');
         $colonnes = array_column(Utilisateur::colonnesDroits(), null, 'cle');
         $colonne = $colonnes[$droit] ?? null;
+        $medical = \in_array($droit, Utilisateur::SECTIONS_MEDICALES, true);
+        $echeance = $medical && $niveau > 0 ? $this->echeance($donnees->getString('duree', '30')) : null;
         $json = \in_array('application/json', $request->getAcceptableContentTypes(), true);
 
         $erreur = match (true) {
             !$this->isCsrfTokenValid('droits-utilisateurs', $donnees->getString('_token')) => 'La page a expiré : rechargez-la.',
             $utilisateur->isFamille() || null === $colonne || $niveau < 0 || $niveau > (null === $colonne['niveaux'] ? 1 : 2) => 'Droit inconnu.',
+            !\in_array($droit, $this->colonnesModifiables(), true) => $medical
+                ? 'Seuls un médecin du club ou l\'administrateur donnent les droits médicaux.'
+                : 'Ce droit ne peut être changé que par l\'administrateur.',
+            $medical && $niveau > 0 && null === $echeance => 'Durée inconnue.',
             0 === $niveau && 'ROLE_ADMIN' === $droit && $utilisateur === $this->getUser() => 'Vous ne pouvez pas retirer votre propre accès à l\'administration.',
             default => null,
         };
@@ -76,17 +92,17 @@ class UtilisateurController extends AbstractController
                 $utilisateur->basculerRole($droit, 1 === $niveau);
                 $etat = $niveau ? 'accordé' : 'retiré';
             } else {
-                $utilisateur->setNiveau($droit, $niveau);
+                $utilisateur->setNiveau($droit, $niveau, $echeance);
                 $etat = ['retiré', 'en consultation (voir)', 'en modification'][$niveau];
             }
             $this->em->flush();
-            $message = sprintf('%s : « %s » %s.', $utilisateur, $colonne['libelle'], $etat);
+            $message = sprintf('%s : « %s » %s%s.', $utilisateur, $colonne['libelle'], $etat, $echeance ? ' jusqu\'au ' . $echeance->format('d/m/Y') : '');
         }
 
         if ($json) {
             return $this->json(
                 null === $erreur
-                    ? ['roles' => $utilisateur->getRolesAttribues(), 'message' => $message]
+                    ? ['roles' => $utilisateur->getRolesAttribues(), 'echeances' => $this->echeances($utilisateur), 'message' => $message]
                     : ['erreur' => $erreur],
                 null === $erreur ? 200 : 422,
             );
@@ -94,6 +110,46 @@ class UtilisateurController extends AbstractController
         $this->addFlash(null === $erreur ? 'succes' : 'erreur', $erreur ?? $message);
 
         return $this->redirectToRoute('app_utilisateur_droits', [], 303);
+    }
+
+    /**
+     * Colonnes du tableau que le compte connecté peut changer : tout pour l'administrateur,
+     * les droits médicaux pour un médecin du club.
+     *
+     * @return list<string>
+     */
+    private function colonnesModifiables(): array
+    {
+        if ($this->isGranted('ROLE_ADMIN')) {
+            return array_column(Utilisateur::colonnesDroits(), 'cle');
+        }
+
+        return $this->isGranted('ROLE_MEDECIN') ? Utilisateur::SECTIONS_MEDICALES : [];
+    }
+
+    /** Échéance d'un droit médical d'après la durée choisie ; null si la durée est inconnue. */
+    private function echeance(string $duree): ?\DateTimeImmutable
+    {
+        $aujourdhui = new \DateTimeImmutable('today');
+        if ('saison' === $duree) {
+            // Fin de saison : le 30 juin qui suit (ou aujourd'hui si c'est le 30 juin).
+            $fin = $aujourdhui->setDate((int) $aujourdhui->format('Y'), 6, 30);
+
+            return $fin < $aujourdhui ? $fin->modify('+1 year') : $fin;
+        }
+
+        return isset(Utilisateur::DUREES_MEDICALES[$duree]) ? $aujourdhui->modify('+' . (int) $duree . ' days') : null;
+    }
+
+    /** @return array<string, ?string> section médicale => échéance (jj/mm/aaaa) */
+    private function echeances(Utilisateur $u): array
+    {
+        $echeances = [];
+        foreach (Utilisateur::SECTIONS_MEDICALES as $section) {
+            $echeances[$section] = $u->getEcheance($section)?->format('d/m/Y');
+        }
+
+        return $echeances;
     }
 
     #[Route('/utilisateurs/nouveau',name: 'app_utilisateur_nouveau', methods: ['GET', 'POST'])]
@@ -151,6 +207,8 @@ class UtilisateurController extends AbstractController
     private function formulaire(Request $request, Utilisateur $utilisateur, string $titre): Response
     {
         $soiMeme = $utilisateur === $this->getUser();
+        // Droits médicaux : absents du formulaire, ils sont conservés tels quels (tableau des droits d'accès).
+        $medicaux = array_values(array_intersect($utilisateur->getRolesAttribues(), Utilisateur::rolesMedicaux()));
         $form = $this->createForm(UtilisateurType::class, $utilisateur, [
             'mot_de_passe_obligatoire' => null === $utilisateur->getId(),
             'soi_meme' => $soiMeme,
@@ -162,6 +220,7 @@ class UtilisateurController extends AbstractController
                 // La case est désactivée pour soi-même et n'est donc pas envoyée : on la rétablit.
                 $utilisateur->setRolesAttribues([...$utilisateur->getRolesAttribues(), 'ROLE_ADMIN']);
             }
+            $utilisateur->setRolesAttribues(array_values(array_unique([...$utilisateur->getRolesAttribues(), ...$medicaux])));
             if ($motDePasse = $form->get('motDePasse')->getData()) {
                 $utilisateur->setPassword($this->hasher->hashPassword($utilisateur, $motDePasse));
             }

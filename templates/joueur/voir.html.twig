@@ -32,12 +32,16 @@
 {% block body %}
     {% set peut_modifier = is_granted('JOUEUR_MODIFIER', joueur) %}
     {# Sections à deux niveaux (voir / modifier), réglées dans le tableau des droits d'accès. #}
-    {% set inf_voir, inf_modif = is_granted('ROLE_INFIRMERIE_LECTURE'), is_granted('ROLE_INFIRMERIE') %}
-    {% set vm_voir, vm_modif = is_granted('ROLE_VISITE_MEDICALE_LECTURE'), is_granted('ROLE_VISITE_MEDICALE') %}
+    {# Médical (Infirmerie, Visite médicale) : en plus du droit, accès ouvert par code e-mail (voir AccesMedical). #}
+    {% set medical = medical_ouvert() %}
+    {% set inf_droit, vm_droit = is_granted('ROLE_INFIRMERIE_LECTURE'), is_granted('ROLE_VISITE_MEDICALE_LECTURE') %}
+    {% set inf_voir, inf_modif = inf_droit and medical, is_granted('ROLE_INFIRMERIE') and medical %}
+    {% set vm_voir, vm_modif = vm_droit and medical, is_granted('ROLE_VISITE_MEDICALE') and medical %}
+    {% set medical_verrouille = (inf_droit or vm_droit) and not medical %}
     {% set scol_voir, scol_modif = is_granted('ROLE_SCOLAIRE_LECTURE'), is_granted('ROLE_SCOLAIRE') %}
     {# Tests physiques : modifier seulement pour les joueurs de ses secteurs, ou tous avec l'infirmerie. #}
     {% set tests_voir = is_granted('ROLE_TESTS_PHYSIQUES_LECTURE') %}
-    {% set tests_modif = is_granted('ROLE_TESTS_PHYSIQUES') and (peut_modifier or inf_modif) %}
+    {% set tests_modif = is_granted('ROLE_TESTS_PHYSIQUES') and (peut_modifier or is_granted('ROLE_INFIRMERIE')) %}
 
     <p><a href="{{ path('app_joueur_index') }}">← Retour à la liste</a></p>
 
@@ -70,6 +74,7 @@
         <a href="#presences">Présences</a>
         {% if famille %}<a href="#famille">Accès famille</a>{% endif %}
         {% if scol_voir or sanctions %}<a href="#scolarite">Scolarité et discipline</a>{% endif %}
+        {% if medical_verrouille %}<a href="#medical-verrou">🔒 Médical</a>{% endif %}
         {% if inf_voir %}<a href="#infirmerie">Infirmerie</a>{% endif %}
         {% if vm_voir %}<a href="#visite-medicale">Visite médicale</a>{% endif %}
         {% if tests_voir %}<a href="#physique">Tests physiques</a>{% endif %}
@@ -368,6 +373,14 @@
             {% else %}
                 <p class="discret">Aucun incident.</p>
             {% endif %}
+        </section>
+    {% endif %}
+
+    {# ---------- Médical verrouillé : droit présent, code e-mail pas encore saisi ---------- #}
+    {% if medical_verrouille %}
+        <section class="bloc carte verrou-medical" id="medical-verrou">
+            <p><strong>🔒 Données médicales</strong><br><span class="discret petit">{{ [inf_droit ? 'renseignements médicaux et blessures', vm_droit ? 'visite médicale']|filter(v => v)|join(', ')|capitalize }} : confidentiel, accès par code reçu par e-mail.</span></p>
+            <a class="bouton principal" href="{{ path('app_medical_code', {retour: path('app_joueur_voir', {id: joueur.id}) ~ '#' ~ (inf_droit ? 'infirmerie' : 'visite-medicale')}) }}">Ouvrir avec un code</a>
         </section>
     {% endif %}
 

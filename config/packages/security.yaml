@@ -11,6 +11,8 @@ security:
 
     role_hierarchy:
         ROLE_ADMIN: [ROLE_ECOLE_FOOT, ROLE_PREFORMATION, ROLE_FORMATION, ROLE_ELITE, ROLE_PRO, ROLE_INFIRMERIE, ROLE_VISITE_MEDICALE, ROLE_RAPPORT_MATCH, ROLE_SCOLAIRE, ROLE_TESTS_PHYSIQUES]
+        # Médecin du club : tout le médical (accès ouvert ensuite par code e-mail, voir AccesMedical).
+        ROLE_MEDECIN: [ROLE_INFIRMERIE, ROLE_VISITE_MEDICALE]
         # Sections à deux niveaux : « modifier » inclut « voir ».
         ROLE_INFIRMERIE: [ROLE_INFIRMERIE_LECTURE]
         ROLE_VISITE_MEDICALE: [ROLE_VISITE_MEDICALE_LECTURE]

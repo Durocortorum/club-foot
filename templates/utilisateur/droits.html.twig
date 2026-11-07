@@ -7,20 +7,32 @@
     {% set textes_simples = ['—', '✓'] %}
     {% set textes_niveaux = ['—', 'voir', 'modifier'] %}
     {% set classes = ['non', 'lecture', 'oui'] %}
+    {% set admin_connecte = is_granted('ROLE_ADMIN') %}
+    {% set medical_modifiable = medicales|filter(m => m in modifiables)|length > 0 %}
 
     <div class="titre-page">
-        <h1>Droits d'accès <span class="compteur">{{ utilisateurs|length }}</span></h1>
-        <a class="bouton" href="{{ path('app_utilisateur_index') }}">← Liste des comptes</a>
+        <h1>{{ admin_connecte ? 'Droits d\'accès' : 'Droits médicaux' }} <span class="compteur">{{ utilisateurs|length }}</span></h1>
+        {% if admin_connecte %}<a class="bouton" href="{{ path('app_utilisateur_index') }}">← Liste des comptes</a>{% endif %}
     </div>
 
     <p class="discret petit">
         Cliquez sur une case pour changer l'accès : c'est enregistré tout de suite.
         Pour Infirmerie, Visite médicale, Scolarité et Tests physiques, chaque clic passe à l'étape suivante :
         <strong>—</strong> (aucun accès) → <strong>voir</strong> (consultation seule) → <strong>modifier</strong> (consultation et saisie) → <strong>—</strong>.
-        Un administrateur a automatiquement tous les accès. Le détail de chaque colonne est sous le tableau.
+        Un administrateur a automatiquement tous les accès ; un médecin, tout le médical.
+        {% if not admin_connecte %}En tant que médecin du club, vous donnez les droits médicaux ; les autres colonnes sont gérées par l'administrateur.{% endif %}
     </p>
 
     <div data-controller="droits">
+    {% if medical_modifiable %}
+        <p class="droits-duree flash flash-info petit">
+            <span>🔒 <strong>Droits médicaux</strong> (Infirmerie, Visite médicale) : très confidentiels, donnés pour</span>
+            <select data-droits-target="duree" aria-label="Durée des droits médicaux accordés">
+                {% for cle, libelle in durees %}<option value="{{ cle }}" {{ cle == '30' ? 'selected' }}>{{ libelle }}</option>{% endfor %}
+            </select>
+            <span>À l'échéance, le droit tombe tout seul. Pour les consulter, chacun saisit en plus un code reçu par e-mail.</span>
+        </p>
+    {% endif %}
     <p class="droits-statut" data-droits-target="statut" aria-live="polite"></p>
     {# Le tableau défile dans son cadre (hauteur de l'écran) : la ligne des titres reste visible en haut. #}
     <div class="table-defile droits-defile">
@@ -29,7 +41,7 @@
                 <tr>
                     <th class="droits-nom">Compte</th>
                     {% for c in colonnes %}
-                        <th title="{{ c.description }}">{{ c.libelle }}</th>
+                        <th title="{{ c.description }}">{{ c.cle in medicales ? '🔒 ' }}{{ c.libelle }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -44,8 +56,10 @@
                         {% for c in colonnes %}
                             {% set n = c.niveaux ? u.niveau(c.cle) : (c.cle in u.rolesAttribues ? 1 : 0) %}
                             {% set max = c.niveaux ? 2 : 1 %}
-                            {% set inclus = admin and c.cle != 'ROLE_ADMIN' %}
+                            {# « inclus » : l'administrateur a tout (sauf Médecin) ; un médecin a tout le médical. #}
+                            {% set inclus = (admin and c.cle not in ['ROLE_ADMIN', 'ROLE_MEDECIN']) or (u.medecin and c.cle in medicales) %}
                             {% set verrou = c.cle == 'ROLE_ADMIN' and u == app.user %}
+                            {% set fige = c.cle not in modifiables %}
                             {% set texte = c.niveaux ? textes_niveaux[n] : textes_simples[n] %}
                             <td class="droits-case">
                                 <form method="post" action="{{ path('app_utilisateur_droit', {id: u.id}) }}" data-action="droits#basculer">
@@ -53,15 +67,20 @@
                                     <input type="hidden" name="droit" value="{{ c.cle }}">
                                     {# Niveau suivant, envoyé au clic : 0 → 1 (→ 2) → 0. #}
                                     <input type="hidden" name="niveau" value="{{ n >= max ? 0 : n + 1 }}">
+                                    {% if c.cle in medicales %}<input type="hidden" name="duree" value="30">{% endif %}
                                     <button type="submit" class="interrupteur {{ inclus ? 'inclus' : (n == max ? 'oui' : classes[n]) }}"
                                             data-cle="{{ c.cle }}"
                                             {% if c.niveaux %}data-lecture="{{ c.niveaux.lecture }}" data-modif="{{ c.niveaux.modif }}"{% endif %}
-                                            {% if verrou %}data-verrou{% endif %}
-                                            {% if inclus or verrou %}disabled{% endif %}
+                                            {% if verrou or fige %}data-verrou{% endif %}
+                                            {% if inclus or verrou or fige %}disabled{% endif %}
                                             aria-label="{{ c.libelle }} pour {{ u }}"
-                                            title="{{ verrou ? 'Vous ne pouvez pas retirer votre propre administration' : (inclus ? 'Inclus dans l\'administration' : c.libelle) }}">
-                                        {{ inclus ? 'inclus' : texte }}
+                                            title="{{ verrou ? 'Vous ne pouvez pas retirer votre propre administration' : (inclus ? (admin ? 'Inclus dans l\'administration' : 'Inclus : médecin du club') : (fige ? 'Géré par l\'administrateur' : c.libelle)) }}">
+                                        {{ inclus ? (admin ? 'inclus' : 'médecin') : texte }}
                                     </button>
+                                    {% if c.cle in medicales %}
+                                        {% set fin = u.echeance(c.cle) %}
+                                        <span class="echeance{{ fin and u.echu(c.cle) ? ' proche' }}" data-echeance="{{ c.cle }}">{% if fin and not inclus %}{{ u.echu(c.cle) ? 'échu le' : 'jusqu\'au' }} {{ fin|date('d/m/y') }}{% endif %}</span>
+                                    {% endif %}
                                 </form>
                             </td>
                         {% endfor %}
@@ -76,7 +95,10 @@
     <dl class="droits-legende">
         {% for c in colonnes %}
             <dt>{{ c.libelle }}</dt>
-            <dd>{{ c.description }}{% if c.niveaux %} <em>« voir » : consultation seule ; « modifier » : consultation et saisie.</em>{% endif %}</dd>
+            <dd>
+                {{ c.description }}{% if c.niveaux %} <em>« voir » : consultation seule ; « modifier » : consultation et saisie.</em>{% endif %}
+                {% if c.cle in medicales %}<em>Donné par un médecin du club ou l'administrateur, pour une durée limitée ; consultation après un code reçu par e-mail ({{ constant('App\\Service\\AccesMedical::OUVERTURE_MINUTES') }} minutes).</em>{% endif %}
+            </dd>
         {% endfor %}
         <dt>Tous les comptes</dt>
         <dd>Accueil, joueurs, encadrement, matchs, statistiques, présences, entraînements et archives ; chacun ne modifie que ce que ses accès lui permettent.</dd>

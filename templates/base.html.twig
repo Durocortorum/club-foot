@@ -58,6 +58,16 @@
                         <a href="{{ path('app_utilisateur_index') }}" class="{{ route starts with 'app_utilisateur' ? 'actif' }}">Utilisateurs</a>
                         <a href="{{ path('app_categorie_index') }}" class="{{ route starts with 'app_categorie' ? 'actif' }}">Catégories</a>
                         <a href="{{ path('app_club') }}" class="{{ route == 'app_club' ? 'actif' }}" title="Logo et couleurs du club">Apparence</a>
+                    {% elseif is_granted('ROLE_MEDECIN') %}
+                        <a href="{{ path('app_utilisateur_droits') }}" class="{{ route starts with 'app_utilisateur' ? 'actif' }}" title="Donner les droits médicaux">Droits médicaux</a>
+                    {% endif %}
+                    {% set medical_fin = medical_jusqu_a() %}
+                    {% if medical_fin %}
+                        <form method="post" action="{{ path('app_medical_fermer') }}" class="en-ligne medical-ouvert" title="Accès aux données médicales ouvert par code e-mail">
+                            <input type="hidden" name="_token" value="{{ csrf_token('fermer-medical') }}">
+                            <span>🔓 Médical jusqu'à {{ medical_fin|date('H:i', 'Europe/Paris') }}</span>
+                            <button type="submit" class="lien-bouton">Fermer</button>
+                        </form>
                     {% endif %}
                     <a href="{{ path('app_mon_compte') }}" title="Mon compte : changer mon mot de passe">{{ app.user }}</a>
                     <a href="{{ path('app_deconnexion') }}">Déconnexion</a>

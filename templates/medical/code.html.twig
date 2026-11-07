@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Accès aux données médicales{% endblock %}
+
+{% block body %}
+    <div class="connexion">
+        <div class="carte">
+            <h1>🔒 Données médicales</h1>
+            <p>
+                Ces informations sont confidentielles. Pour les consulter, saisissez le code à 6 chiffres
+                envoyé à <strong>{{ moi.email }}</strong>. L'accès reste ensuite ouvert
+                {{ constant('App\\Service\\AccesMedical::OUVERTURE_MINUTES') }} minutes.
+            </p>
+
+            <form method="post" action="{{ path('app_medical_code', {retour: retour}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('code-medical') }}">
+                <input type="hidden" name="action" value="envoyer">
+                <button type="submit" class="bouton plein">Recevoir un code par e-mail</button>
+            </form>
+
+            <form method="post" action="{{ path('app_medical_code', {retour: retour}) }}" class="code-medical">
+                <input type="hidden" name="_token" value="{{ csrf_token('code-medical') }}">
+                <input type="hidden" name="action" value="verifier">
+                <label for="code">Code reçu</label>
+                <input type="text" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" placeholder="123456" required autofocus>
+                <button type="submit" class="bouton principal plein">Ouvrir l'accès</button>
+            </form>
+
+            <p class="connexion-lien"><a href="{{ path('app_accueil') }}">← Retour à l'accueil</a></p>
+        </div>
+    </div>
+{% endblock %}

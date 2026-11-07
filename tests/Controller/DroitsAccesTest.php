@@ -15,6 +15,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 class DroitsAccesTest extends WebTestCase
 {
+    use OuvertureMedicaleTrait;
+
     private KernelBrowser $client;
     private ?int $clubId = null;
 
@@ -95,10 +97,13 @@ class DroitsAccesTest extends WebTestCase
         }
         self::assertSame(['ROLE_INFIRMERIE'], $this->compte($coach)->getRolesAttribues());
 
-        // « Voir » seulement : la page Infirmerie s'ouvre, sans bouton d'ajout ; la saisie est refusée.
+        // « Voir » seulement : la page Infirmerie s'ouvre (après le code e-mail), sans bouton d'ajout ; la saisie est refusée.
         $this->client->request('POST', '/utilisateurs/' . $coach->getId() . '/droit',
             ['droit' => 'infirmerie', 'niveau' => '1', '_token' => $jeton], [], ['HTTP_ACCEPT' => 'application/json']);
         $this->client->loginUser($this->compte($coach));
+        $this->client->request('GET', '/infirmerie');
+        self::assertResponseRedirects('/medical/code?retour=/infirmerie');
+        $this->ouvrirMedical($this->client);
         $this->client->request('GET', '/infirmerie');
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('a[href="/infirmerie/blessures/nouvelle"]');

@@ -19,6 +19,7 @@ use App\Repository\SemainePresenceRepository;
 use App\Repository\TestPhysiqueRepository;
 use App\Security\JoueurVoter;
 use App\Service\AccesFamille;
+use App\Service\AccesMedical;
 use App\Service\BilanJoueur;
 use App\Service\Photos;
 use Symfony\Component\Form\FormInterface;
@@ -35,6 +36,7 @@ class JoueurController extends AbstractController
     public function __construct(
         private readonly JoueurVoter $voter,
         private readonly Photos $photos,
+        private readonly AccesMedical $medical,
     ) {
     }
 
@@ -94,7 +96,7 @@ class JoueurController extends AbstractController
         $joueur = new Joueur();
         $form = $this->createForm(JoueurType::class, $joueur, [
             'secteurs' => $secteurs,
-            'avec_medical' => $this->isGranted('ROLE_INFIRMERIE'),
+            'avec_medical' => $this->avecMedical(),
         ]);
         $form->handleRequest($request);
 
@@ -137,9 +139,9 @@ class JoueurController extends AbstractController
             'matchs' => \array_slice($matchs, 0, 10),
             'bilan' => $bilan->parSaison($joueur, $matchs),
             'presences' => $presences->bilanParSaison($joueur),
-            'blessures' => $this->isGranted('ROLE_INFIRMERIE_LECTURE') ? $blessures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
+            'blessures' => $this->isGranted('ROLE_INFIRMERIE_LECTURE') && $this->medical->estOuvert() ? $blessures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
             // Visite médicale (poids, taille...) : données de santé, droit « Visite médicale ».
-            'mesures' => $this->isGranted('ROLE_VISITE_MEDICALE_LECTURE') ? $mesures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
+            'mesures' => $this->isGranted('ROLE_VISITE_MEDICALE_LECTURE') && $this->medical->estOuvert() ? $mesures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
             'tests' => $this->isGranted('ROLE_TESTS_PHYSIQUES_LECTURE') ? $tests->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
             'bulletins' => $scolaire ? $bulletins->findBy(['joueur' => $joueur], ['saison' => 'DESC', 'id' => 'DESC']) : [],
             // Les sanctions sont utiles aux éducateurs du joueur (suspensions), pas seulement au suivi scolaire.
@@ -155,7 +157,7 @@ class JoueurController extends AbstractController
     {
         $form = $this->createForm(JoueurType::class, $joueur, [
             'secteurs' => $this->voter->secteursModifiables(),
-            'avec_medical' => $this->isGranted('ROLE_INFIRMERIE'),
+            'avec_medical' => $this->avecMedical(),
         ]);
         $form->handleRequest($request);
 
@@ -194,5 +196,11 @@ class JoueurController extends AbstractController
         if ($fichier = $form->get('photo')->getData()) {
             $joueur->setPhoto($this->photos->enregistrer($fichier, 'joueur', $joueur->getPhoto()));
         }
+    }
+
+    /** Champs médicaux du formulaire : droit Infirmerie (modifier) et accès ouvert par code e-mail. */
+    private function avecMedical(): bool
+    {
+        return $this->isGranted('ROLE_INFIRMERIE') && $this->medical->estOuvert();
     }
 }

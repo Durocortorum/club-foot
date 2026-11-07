@@ -18,6 +18,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 class VisiteMedicaleTest extends WebTestCase
 {
+    use OuvertureMedicaleTrait;
+
     private KernelBrowser $client;
     private ?int $clubId = null;
 
@@ -56,8 +58,9 @@ class VisiteMedicaleTest extends WebTestCase
         $em->flush();
         $mesure = $em->getRepository(Mesure::class)->findOneBy(['joueur' => $joueur]);
 
-        // Infirmerie (l'administrateur a tous les droits) : bloc visible, avec la mesure.
+        // Infirmerie (l'administrateur a tous les droits) : bloc visible, avec la mesure, après le code e-mail.
         $this->client->loginUser($admin);
+        $this->ouvrirMedical($this->client);
         $crawler = $this->client->request('GET', '/joueurs/' . $joueur->getId());
         self::assertSelectorTextContains('#visite-medicale', 'Visite médicale');
         self::assertSelectorTextContains('main', '41,5 kg');

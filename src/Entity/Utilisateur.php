@@ -28,6 +28,7 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
      */
     public const ROLES = [
         'ROLE_ADMIN' => 'Administration (paramètres)',
+        'ROLE_MEDECIN' => 'Médecin du club',
         'ROLE_ECOLE_FOOT' => 'École de foot',
         'ROLE_PREFORMATION' => 'Préformation',
         'ROLE_FORMATION' => 'Formation',
@@ -44,6 +45,15 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         'ROLE_RAPPORT_MATCH' => 'Rapports de match',
     ];
 
+    /**
+     * Sections médicales, très confidentielles : droits donnés par un médecin du club (ou l'administrateur)
+     * pour une durée limitée, et consultation ouverte par un code reçu par e-mail (voir AccesMedical).
+     */
+    public const SECTIONS_MEDICALES = ['infirmerie', 'visite_medicale'];
+
+    /** Durées proposées en donnant un droit médical : clé => libellé. « saison » : jusqu'au 30 juin. */
+    public const DUREES_MEDICALES = ['7' => '1 semaine', '30' => '1 mois', '90' => '3 mois', 'saison' => 'fin de saison (30 juin)'];
+
     /** Sections à deux niveaux d'accès : rôle « voir » et rôle « modifier ». */
     public const SECTIONS = [
         'infirmerie' => ['libelle' => 'Infirmerie', 'lecture' => 'ROLE_INFIRMERIE_LECTURE', 'modif' => 'ROLE_INFIRMERIE'],
@@ -54,7 +64,8 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
 
     /** Ce que chaque droit (ou section) ouvre, affiché sur le tableau des droits d'accès. */
     public const DESCRIPTIONS_ROLES = [
-        'ROLE_ADMIN' => 'Utilisateurs, catégories, apparence du club. Donne aussi tous les autres droits.',
+        'ROLE_ADMIN' => 'Utilisateurs, catégories, apparence du club. Donne aussi tous les autres droits, sauf « Médecin ».',
+        'ROLE_MEDECIN' => 'Médecin du club : tout le médical (Infirmerie, Visite médicale), et donne ces droits aux autres pour une durée limitée.',
         'ROLE_ECOLE_FOOT' => 'Modifier joueurs, matchs et présences de l\'École de foot ; Recrutement.',
         'ROLE_PREFORMATION' => 'Modifier joueurs, matchs et présences de la Préformation ; Recrutement.',
         'ROLE_FORMATION' => 'Modifier joueurs, matchs et présences de la Formation ; Recrutement.',
@@ -123,6 +134,14 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $inviteLe = null;
 
+    /** Échéance du droit Infirmerie donné par un médecin (null : pas d'échéance, ex. administrateur). */
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $infirmerieJusquAu = null;
+
+    /** Échéance du droit Visite médicale donné par un médecin. */
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $visiteMedicaleJusquAu = null;
+
     public function __construct()
     {
         $this->joueurs = new ArrayCollection();
@@ -177,7 +196,8 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
     public function getRoles(): array
     {
         // Un compte famille n'a jamais de droit de l'encadrement, même s'il en restait en base.
-        $roles = $this->famille ? ['ROLE_FAMILLE'] : [...$this->roles, 'ROLE_ENCADREMENT'];
+        // Un droit médical arrivé à échéance ne compte plus.
+        $roles = $this->famille ? ['ROLE_FAMILLE'] : [...$this->rolesEnVigueur(), 'ROLE_ENCADREMENT'];
         $roles[] = 'ROLE_USER';
 
         return array_values(array_unique($roles));
@@ -221,8 +241,8 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
     public static function colonnesDroits(): array
     {
         $colonnes = [];
-        foreach (['ROLE_ADMIN', 'ROLE_ECOLE_FOOT', 'ROLE_PREFORMATION', 'ROLE_FORMATION', 'ROLE_ELITE', 'ROLE_PRO'] as $role) {
-            $colonnes[] = ['cle' => $role, 'libelle' => 'ROLE_ADMIN' === $role ? 'Administration' : self::ROLES[$role], 'description' => self::DESCRIPTIONS_ROLES[$role], 'niveaux' => null];
+        foreach (['ROLE_ADMIN', 'ROLE_MEDECIN', 'ROLE_ECOLE_FOOT', 'ROLE_PREFORMATION', 'ROLE_FORMATION', 'ROLE_ELITE', 'ROLE_PRO'] as $role) {
+            $colonnes[] = ['cle' => $role, 'libelle' => ['ROLE_ADMIN' => 'Administration', 'ROLE_MEDECIN' => 'Médecin'][$role] ?? self::ROLES[$role], 'description' => self::DESCRIPTIONS_ROLES[$role], 'niveaux' => null];
         }
         foreach (self::SECTIONS as $cle => $s) {
             $colonnes[] = ['cle' => $cle, 'libelle' => $s['libelle'], 'description' => self::DESCRIPTIONS_ROLES[$cle], 'niveaux' => ['lecture' => $s['lecture'], 'modif' => $s['modif']]];
@@ -232,23 +252,94 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         return $colonnes;
     }
 
-    /** Niveau d'accès à une section (voir SECTIONS) : 0 aucun, 1 voir, 2 modifier. */
+    /** @return list<string> rôles des sections médicales (voir et modifier) */
+    public static function rolesMedicaux(): array
+    {
+        $roles = [];
+        foreach (self::SECTIONS_MEDICALES as $section) {
+            $roles[] = self::SECTIONS[$section]['lecture'];
+            $roles[] = self::SECTIONS[$section]['modif'];
+        }
+
+        return $roles;
+    }
+
+    /** Niveau d'accès en vigueur à une section (voir SECTIONS) : 0 aucun (ou échu), 1 voir, 2 modifier. */
     public function getNiveau(string $section): int
     {
         $s = self::SECTIONS[$section];
+        $roles = $this->rolesEnVigueur();
 
-        return \in_array($s['modif'], $this->roles, true) ? 2 : (\in_array($s['lecture'], $this->roles, true) ? 1 : 0);
+        return \in_array($s['modif'], $roles, true) ? 2 : (\in_array($s['lecture'], $roles, true) ? 1 : 0);
     }
 
-    public function setNiveau(string $section, int $niveau): static
+    /**
+     * Change le niveau d'accès à une section. Section médicale : $jusquAu est l'échéance du droit
+     * (obligatoire pour donner un droit médical, effacée quand on le retire).
+     */
+    public function setNiveau(string $section, int $niveau, ?\DateTimeImmutable $jusquAu = null): static
     {
         $s = self::SECTIONS[$section];
         $roles = array_diff($this->getRolesAttribues(), [$s['lecture'], $s['modif']]);
         if ($niveau > 0) {
             $roles[] = 2 === $niveau ? $s['modif'] : $s['lecture'];
         }
+        if (\in_array($section, self::SECTIONS_MEDICALES, true)) {
+            $this->setEcheance($section, $niveau > 0 ? $jusquAu : null);
+        }
 
         return $this->setRolesAttribues(array_values($roles));
+    }
+
+    /** Échéance d'un droit médical (dernier jour inclus), ou null. */
+    public function getEcheance(string $section): ?\DateTimeImmutable
+    {
+        return match ($section) {
+            'infirmerie' => $this->infirmerieJusquAu,
+            'visite_medicale' => $this->visiteMedicaleJusquAu,
+            default => null,
+        };
+    }
+
+    public function setEcheance(string $section, ?\DateTimeImmutable $jusquAu): static
+    {
+        match ($section) {
+            'infirmerie' => $this->infirmerieJusquAu = $jusquAu,
+            'visite_medicale' => $this->visiteMedicaleJusquAu = $jusquAu,
+        };
+
+        return $this;
+    }
+
+    /** Droit médical donné mais arrivé à échéance (le dernier jour compte encore). */
+    public function isEchu(string $section): bool
+    {
+        $fin = $this->getEcheance($section);
+
+        return null !== $fin && $fin < new \DateTimeImmutable('today');
+    }
+
+    /**
+     * Rôles enregistrés, sans les droits médicaux échus.
+     *
+     * @return list<string>
+     */
+    private function rolesEnVigueur(): array
+    {
+        $echus = [];
+        foreach (self::SECTIONS_MEDICALES as $section) {
+            if ($this->isEchu($section)) {
+                $echus[] = self::SECTIONS[$section]['lecture'];
+                $echus[] = self::SECTIONS[$section]['modif'];
+            }
+        }
+
+        return array_values(array_diff($this->roles, $echus));
+    }
+
+    public function isMedecin(): bool
+    {
+        return \in_array('ROLE_MEDECIN', $this->roles, true);
     }
 
     /** Donne ou retire un seul droit (tableau des droits d'accès). */

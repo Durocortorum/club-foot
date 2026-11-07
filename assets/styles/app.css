@@ -662,3 +662,15 @@ table.droits thead th.droits-nom { z-index: 3; }
 
 /* Fiche joueur : information essentielle encore vide. */
 .non-renseigne { color: var(--gris); font-style: italic; font-size: .9em; }
+
+/* Accès médical ouvert par code e-mail : indicateur dans l'en-tête, page du code, blocs verrouillés. */
+.medical-ouvert { display: inline-flex; align-items: center; gap: .4rem; background: rgba(255, 255, 255, .18); border-radius: 99px; padding: .1rem .3rem .1rem .7rem; }
+.lien-bouton { background: none; border: 0; padding: .1rem .4rem; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+.code-medical { margin-top: 1.2rem; }
+.code-medical input[name="code"] { font-size: 1.4rem; letter-spacing: .3em; text-align: center; }
+.verrou-medical { display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; border-left: 4px solid var(--rouge); }
+.verrou-medical p { margin: 0; }
+.echeance { display: block; font-size: .7rem; color: var(--gris); margin-top: .2rem; white-space: nowrap; }
+.echeance.proche { color: var(--danger-fonce); }
+.droits-duree { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .8rem; }
+.droits-duree select { width: auto; }
