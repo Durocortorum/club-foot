@@ -1,0 +1,14 @@
+{{ contenu.titre }}
+
+{% if contenu.salutation %}{{ contenu.salutation }}
+
+{% endif %}{% for p in contenu.paragraphes %}{{ p }}
+
+{% endfor %}{% if contenu.encadre %}    {{ contenu.encadre }}
+
+{% endif %}{% for libelle, valeur in contenu.details %}{{ libelle }} : {{ valeur }}
+{% endfor %}{% if contenu.details %}
+{% endif %}{% if contenu.bouton %}{{ contenu.bouton.libelle }} : {{ contenu.bouton.url }}
+
+{% endif %}{% if contenu.note %}{{ contenu.note }}
+{% endif %}{% include 'emails/_pied.txt.twig' %}

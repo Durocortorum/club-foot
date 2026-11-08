@@ -31,6 +31,7 @@ class EnvoiConvocations
         private readonly JoueurRepository $joueurs,
         #[Autowire('%env(MAILER_EXPEDITEUR)%')]
         private readonly string $expediteur,
+        private readonly CourrielClub $courriel,
     ) {
     }
 
@@ -55,13 +56,12 @@ class EnvoiConvocations
                 continue;
             }
             foreach ($comptes as $compte) {
-                $message = (new TemplatedEmail())
-                    ->from(new Address($this->expediteur, $club->getNom()))
+                $message = $this->courriel->habiller((new TemplatedEmail())
                     ->to($compte->getEmail())
                     ->subject(\sprintf('%s%s : %s convoqué(e) le %s', $relance ? 'Rappel – ' : '', $club->getNom(), $c->getJoueur()->getPrenom(), $convocation->getRencontre()->getDate()->format('d/m')))
                     ->htmlTemplate('emails/convocation.html.twig')
                     ->textTemplate('emails/convocation.txt.twig')
-                    ->context(['club' => $club, 'convocation' => $convocation, 'convoque' => $c, 'espace' => $espace, 'relance' => $relance]);
+                    ->context(['convocation' => $convocation, 'convoque' => $c, 'espace' => $espace, 'relance' => $relance]), $club);
                 try {
                     $this->mailer->send($message);
                     ++$resultat['emails'];
@@ -117,11 +117,14 @@ class EnvoiConvocations
                 }
                 $deja[$compte->getId()] = true;
                 try {
-                    $this->mailer->send((new TemplatedEmail())
-                        ->from(new Address($this->expediteur, $club->getNom()))
-                        ->to($compte->getEmail())
-                        ->subject(\sprintf('%s : entraînement %s %s', $club->getNom(), $this->quand($entrainement), $etat))
-                        ->text($texte));
+                    // Première ligne du message (« ENTRAÎNEMENT ANNULÉ – U13 ») : titre ; la suite : le détail.
+                    $lignes = explode("\n", $texte);
+                    $this->mailer->send($this->courriel->message($club, (string) $compte->getEmail(),
+                        \sprintf('%s : entraînement %s %s', $club->getNom(), $this->quand($entrainement), $etat), [
+                            'titre' => \sprintf('Entraînement %s – %s', $etat, $entrainement->getCategorie()),
+                            'paragraphes' => \array_slice($lignes, 1),
+                            'bouton' => ['libelle' => 'Voir mon espace', 'url' => $this->urls->generate('app_espace', [], UrlGeneratorInterface::ABSOLUTE_URL)],
+                        ]));
                     ++$envoyes;
                 } catch (TransportExceptionInterface $e) {
                     $this->logger->error('Annulation non envoyée à {email} : {erreur}', ['email' => $compte->getEmail(), 'erreur' => $e->getMessage()]);

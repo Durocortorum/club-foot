@@ -30,6 +30,7 @@ class DemandesMedicales
         private readonly LoggerInterface $logger,
         #[Autowire('%env(MAILER_EXPEDITEUR)%')]
         private readonly string $expediteur,
+        private readonly CourrielClub $courriel,
     ) {
     }
 
@@ -52,17 +53,19 @@ class DemandesMedicales
     public function prevenirNouvelle(DemandeAccesMedical $d): int
     {
         $lien = $this->urls->generate('app_utilisateur_droits', [], UrlGeneratorInterface::ABSOLUTE_URL) . '#demandes';
-        $texte = \sprintf(
-            "Bonjour,\n\n%s demande l'accès « %s » (%s) aux données médicales du club.\n%s\nPour accorder (avec une durée) ou refuser :\n%s\n",
-            $d->getDemandeur(), $d->getSectionLibelle(), $d->getNiveauLibelle(),
-            $d->getMotif() ? 'Motif : ' . $d->getMotif() . "\n" : '', $lien,
-        );
+        $contenu = [
+            'titre' => '🔒 Demande d\'accès médical',
+            'paragraphes' => [\sprintf('%s demande l\'accès aux données médicales du club.', $d->getDemandeur())],
+            'details' => ['Accès' => $d->getSectionLibelle(), 'Niveau' => $d->getNiveauLibelle(), 'Motif' => $d->getMotif()],
+            'bouton' => ['libelle' => 'Accorder ou refuser', 'url' => $lien],
+            'note' => 'Vous choisissez la durée de l\'accès en l\'accordant.',
+        ];
         $envoyes = 0;
         foreach ($this->destinataires() as $u) {
             if ($u === $d->getDemandeur()) {
                 continue;
             }
-            $envoyes += (int) $this->envoyer($u, 'Demande d\'accès médical : ' . $d->getDemandeur(), $texte);
+            $envoyes += (int) $this->envoyer($u, 'Demande d\'accès médical : ' . $d->getDemandeur(), $contenu);
         }
 
         return $envoyes;
@@ -75,30 +78,33 @@ class DemandesMedicales
             $d->getDemandeur(),
             \sprintf('Accès médical %s', $accordee ? 'accordé' : 'refusé'),
             $accordee
-                ? \sprintf(
-                    "Bonjour %s,\n\nVotre demande d'accès « %s » (%s) aux données médicales est accordée%s.\n\nPour les consulter, un code vous sera envoyé par e-mail à chaque fois :\n%s\n",
-                    $d->getDemandeur()->getPrenom(), $d->getSectionLibelle(), $d->getNiveauLibelle(),
-                    $echeance ? ' jusqu\'au ' . $echeance->format('d/m/Y') : '',
-                    $this->urls->generate('app_medical_code', [], UrlGeneratorInterface::ABSOLUTE_URL),
-                )
-                : \sprintf(
-                    "Bonjour %s,\n\nVotre demande d'accès « %s » (%s) aux données médicales n'a pas été accordée.\nPour en savoir plus, rapprochez-vous du club.\n",
-                    $d->getDemandeur()->getPrenom(), $d->getSectionLibelle(), $d->getNiveauLibelle(),
-                ),
+                ? [
+                    'titre' => '🔓 Accès médical accordé',
+                    'salutation' => \sprintf('Bonjour %s,', $d->getDemandeur()->getPrenom()),
+                    'paragraphes' => [\sprintf('Votre demande d\'accès « %s » (%s) aux données médicales est accordée%s.',
+                        $d->getSectionLibelle(), $d->getNiveauLibelle(), $echeance ? ' jusqu\'au ' . $echeance->format('d/m/Y') : '')],
+                    'bouton' => ['libelle' => 'Consulter', 'url' => $this->urls->generate('app_medical_code', [], UrlGeneratorInterface::ABSOLUTE_URL)],
+                    'note' => 'Pour consulter les données médicales, un code vous sera envoyé par e-mail à chaque fois.',
+                ]
+                : [
+                    'titre' => 'Accès médical non accordé',
+                    'salutation' => \sprintf('Bonjour %s,', $d->getDemandeur()->getPrenom()),
+                    'paragraphes' => [
+                        \sprintf('Votre demande d\'accès « %s » (%s) aux données médicales n\'a pas été accordée.', $d->getSectionLibelle(), $d->getNiveauLibelle()),
+                        'Pour en savoir plus, rapprochez-vous du club.',
+                    ],
+                ],
         );
     }
 
-    private function envoyer(Utilisateur $a, string $sujet, string $texte): bool
+    /** @param array<string, mixed> $contenu voir CourrielClub::message() */
+    private function envoyer(Utilisateur $a, string $sujet, array $contenu): bool
     {
         if (!$this->acces->emailActif() || str_ends_with((string) $a->getEmail(), '.invalid')) {
             return false;
         }
         try {
-            $this->mailer->send((new Email())
-                ->from(new Address($this->expediteur, (string) $a->getClub()?->getNom()))
-                ->to((string) $a->getEmail())
-                ->subject($sujet)
-                ->text($texte));
+            $this->mailer->send($this->courriel->message($a->getClub(), (string) $a->getEmail(), $sujet, $contenu));
 
             return true;
         } catch (TransportExceptionInterface $e) {

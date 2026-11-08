@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\Club;
 use App\Entity\Utilisateur;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -26,6 +27,7 @@ class InvitationCompte
         private readonly LoggerInterface $logger,
         #[Autowire('%env(MAILER_EXPEDITEUR)%')]
         private readonly string $expediteur,
+        private readonly CourrielClub $courriel,
     ) {
     }
 
@@ -36,21 +38,19 @@ class InvitationCompte
      *
      * @return array{lien: string, envoye: bool}
      */
-    public function inviter(Utilisateur $compte, string $club, string $sujet, string $presentation): array
+    public function inviter(Utilisateur $compte, Club $club, string $sujet, string $presentation): array
     {
         $lien = $this->urls->generate('app_mot_de_passe_nouveau', ['jeton' => $compte->nouveauJeton(self::DUREE_JOURS)], UrlGeneratorInterface::ABSOLUTE_URL);
         if (!$this->acces->emailActif()) {
             return ['lien' => $lien, 'envoye' => false];
         }
         try {
-            $this->mailer->send((new Email())
-                ->from(new Address($this->expediteur, $club))
-                ->to((string) $compte->getEmail())
-                ->subject($club . ' : ' . $sujet)
-                ->text(\sprintf(
-                    "Bonjour,\n\n%s %s\n\nChoisissez votre mot de passe en ouvrant ce lien (personnel, valable %d jours) :\n%s\n\nEnsuite, connectez-vous avec cette adresse e-mail. Pour consulter les données médicales, un code vous sera envoyé par e-mail à chaque fois.\n",
-                    $club, $presentation, self::DUREE_JOURS, $lien,
-                )));
+            $this->mailer->send($this->courriel->message($club, (string) $compte->getEmail(), $club->getNom() . ' : ' . $sujet, [
+                'titre' => mb_strtoupper(mb_substr($sujet, 0, 1)) . mb_substr($sujet, 1),
+                'paragraphes' => [$club->getNom() . ' ' . $presentation, 'Pour commencer, choisissez votre mot de passe :'],
+                'bouton' => ['libelle' => 'Choisir mon mot de passe', 'url' => $lien],
+                'note' => \sprintf("Ce lien est personnel et valable %d jours. Ensuite, connectez-vous avec cette adresse e-mail.\nPour consulter les données médicales, un code vous sera envoyé par e-mail à chaque fois.", self::DUREE_JOURS),
+            ]));
 
             return ['lien' => $lien, 'envoye' => true];
         } catch (TransportExceptionInterface $e) {

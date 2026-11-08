@@ -111,7 +111,7 @@ class UtilisateurController extends AbstractController
                 /** @var Utilisateur $moi */
                 $moi = $this->getUser();
                 $club = (string) $moi->getClub()?->getNom();
-                $resultat = $invitation->inviter($compte, $club, 'votre accès aux données médicales',
+                $resultat = $invitation->inviter($compte, $moi->getClub(), 'votre accès aux données médicales',
                     \sprintf('vous ouvre un accès aux données médicales du club (%s), jusqu\'au %s.',
                         implode(', ', array_map(fn ($s) => Utilisateur::SECTIONS[$s]['libelle'], array_filter(Utilisateur::SECTIONS_MEDICALES, fn ($s) => $donnees[$s] > 0))),
                         $echeance->format('d/m/Y')));

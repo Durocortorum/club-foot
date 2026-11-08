@@ -6,7 +6,10 @@ use App\Entity\Club;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ColorType;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\TelType;
+use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Image;
@@ -46,7 +49,16 @@ class ClubType extends AbstractType
                 'label' => 'Revenir au logo d\'origine',
                 'mapped' => false,
                 'required' => false,
-            ]);
+            ])
+            // Coordonnées : en bas de chaque e-mail du club (convocations, invitations, codes...).
+            ->add('adresse', null, ['label' => 'Adresse', 'required' => false, 'attr' => ['placeholder' => 'Stade, rue, code postal, ville']])
+            ->add('telephone', TelType::class, ['label' => 'Téléphone', 'required' => false])
+            ->add('emailContact', EmailType::class, [
+                'label' => 'E-mail de contact',
+                'required' => false,
+                'help' => 'Quand une famille répond à un e-mail du club, sa réponse arrive à cette adresse.',
+            ])
+            ->add('siteWeb', UrlType::class, ['label' => 'Site internet', 'required' => false, 'default_protocol' => 'https', 'attr' => ['placeholder' => 'https://…']]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

@@ -36,6 +36,7 @@ class AccesMedical
         private readonly string $expediteur,
         #[Autowire('%kernel.secret%')]
         private readonly string $secret,
+        private readonly CourrielClub $courriel,
     ) {
     }
 
@@ -77,14 +78,13 @@ class AccesMedical
 
         $code = str_pad((string) random_int(0, 999999), 6, '0', \STR_PAD_LEFT);
         try {
-            $this->mailer->send((new Email())
-                ->from(new Address($this->expediteur, (string) $moi->getClub()?->getNom()))
-                ->to((string) $moi->getEmail())
-                ->subject(\sprintf('Code d\'accès aux données médicales : %s', $code))
-                ->text(\sprintf(
-                    "Bonjour %s,\n\nVotre code d'accès aux données médicales est : %s\n\nIl est valable %d minutes. Une fois saisi, l'accès reste ouvert %d minutes.\n\nVous n'avez rien demandé ? Quelqu'un connaît peut-être votre mot de passe : changez-le et prévenez l'administrateur du club.\n",
-                    $moi->getPrenom(), $code, self::CODE_MINUTES, self::OUVERTURE_MINUTES,
-                )));
+            $this->mailer->send($this->courriel->message($moi->getClub(), (string) $moi->getEmail(), \sprintf('Code d\'accès aux données médicales : %s', $code), [
+                'titre' => '🔒 Code d\'accès aux données médicales',
+                'salutation' => \sprintf('Bonjour %s,', $moi->getPrenom()),
+                'paragraphes' => ['Voici votre code d\'accès aux données médicales :'],
+                'encadre' => $code,
+                'note' => \sprintf("Il est valable %d minutes. Une fois saisi, l'accès reste ouvert %d minutes.\nVous n'avez rien demandé ? Quelqu'un connaît peut-être votre mot de passe : changez-le et prévenez l'administrateur du club.", self::CODE_MINUTES, self::OUVERTURE_MINUTES),
+            ]));
         } catch (TransportExceptionInterface $e) {
             $this->logger->error('Code médical non envoyé à {email} : {erreur}', ['email' => $moi->getEmail(), 'erreur' => $e->getMessage()]);
 

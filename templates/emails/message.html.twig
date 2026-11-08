@@ -1,0 +1,37 @@
+{% extends 'emails/_mise_en_page.html.twig' %}
+{# E-mail simple du club (CourrielClub::message) : titre, paragraphes, encadré, détails, bouton, note. #}
+
+{% block titre %}{{ contenu.titre }}{% endblock %}
+
+{% block corps %}
+    {% if contenu.salutation %}<p style="margin: 0 0 12px;">{{ contenu.salutation }}</p>{% endif %}
+    {% for p in contenu.paragraphes %}
+        <p style="margin: 0 0 12px;">{{ p|nl2br }}</p>
+    {% endfor %}
+
+    {% if contenu.encadre %}
+        <div style="margin: 18px 0; padding: 16px; background: #f5f5f7; border-radius: 10px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 6px; color: {{ club.couleur }};">{{ contenu.encadre }}</div>
+    {% endif %}
+
+    {% if contenu.details %}
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin: 14px 0; border-left: 4px solid {{ club.couleur }}; background: #f8f8fa; border-radius: 0 8px 8px 0;">
+            {% for libelle, valeur in contenu.details %}
+                <tr>
+                    <td style="padding: 6px 12px; color: #6b6b72; font-size: 13px; white-space: nowrap; vertical-align: top;">{{ libelle }}</td>
+                    <td style="padding: 6px 12px; font-size: 14px;">{{ valeur|nl2br }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    {% if contenu.bouton %}
+        <p style="margin: 22px 0 8px;">
+            <a href="{{ contenu.bouton.url }}" style="display: inline-block; padding: 12px 22px; background: {{ club.couleur }}; color: {{ club.couleurTexte }}; border-radius: 8px; text-decoration: none; font-weight: bold;">{{ contenu.bouton.libelle }}</a>
+        </p>
+        <p style="margin: 0 0 12px; color: #6b6b72; font-size: 12px; word-break: break-all;">Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :<br>{{ contenu.bouton.url }}</p>
+    {% endif %}
+
+    {% if contenu.note %}
+        <p style="margin: 16px 0 0; color: #6b6b72; font-size: 13px;">{{ contenu.note|nl2br }}</p>
+    {% endif %}
+{% endblock %}

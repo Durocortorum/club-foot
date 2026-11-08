@@ -46,6 +46,74 @@ class Club
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $modifieLe;
 
+    /** Coordonnées du club, affichées en bas des e-mails envoyés aux familles et à l'encadrement. */
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255)]
+    private ?string $adresse = null;
+
+    #[ORM\Column(length: 30, nullable: true)]
+    #[Assert\Length(max: 30)]
+    private ?string $telephone = null;
+
+    /** Adresse de contact : aussi adresse de réponse des e-mails (les envois partent d'une adresse technique). */
+    #[ORM\Column(length: 180, nullable: true)]
+    #[Assert\Email(message: 'Adresse e-mail invalide.')]
+    #[Assert\Length(max: 180)]
+    private ?string $emailContact = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: 'Adresse de site invalide (commencez par https://).', requireTld: true)]
+    #[Assert\Length(max: 255)]
+    private ?string $siteWeb = null;
+
+    public function getAdresse(): ?string
+    {
+        return $this->adresse;
+    }
+
+    public function setAdresse(?string $adresse): static
+    {
+        $this->adresse = $adresse ? trim($adresse) : null;
+
+        return $this;
+    }
+
+    public function getTelephone(): ?string
+    {
+        return $this->telephone;
+    }
+
+    public function setTelephone(?string $telephone): static
+    {
+        $this->telephone = $telephone ? trim($telephone) : null;
+
+        return $this;
+    }
+
+    public function getEmailContact(): ?string
+    {
+        return $this->emailContact;
+    }
+
+    public function setEmailContact(?string $email): static
+    {
+        $this->emailContact = $email ? mb_strtolower(trim($email)) : null;
+
+        return $this;
+    }
+
+    public function getSiteWeb(): ?string
+    {
+        return $this->siteWeb;
+    }
+
+    public function setSiteWeb(?string $site): static
+    {
+        $this->siteWeb = $site ? trim($site) : null;
+
+        return $this;
+    }
+
     public function __construct()
     {
         $this->modifieLe = new \DateTimeImmutable();

@@ -13,6 +13,7 @@ use App\Repository\ContactMedicalRepository;
 use App\Repository\JoueurRepository;
 use App\Security\JoueurVoter;
 use App\Service\Anatomie;
+use App\Service\InvitationCompte;
 use App\Entity\Utilisateur;
 use App\Repository\UtilisateurRepository;
 use App\Service\AccesFamille;
@@ -152,10 +153,7 @@ class InfirmerieController extends AbstractController
         ContactMedical $contact,
         EntityManagerInterface $em,
         UtilisateurRepository $utilisateurs,
-        AccesFamille $acces,
-        MailerInterface $mailer,
-        LoggerInterface $logger,
-        #[Autowire('%env(MAILER_EXPEDITEUR)%')] string $expediteur,
+        InvitationCompte $invitation,
     ): Response {
         $form = $this->createFormBuilder()
             ->add('email', EmailType::class, [
@@ -186,28 +184,11 @@ class InfirmerieController extends AbstractController
                     ->setNom((string) $contact->getNom())
                     ->setPrenom($contact->getPrenom() ?: 'Docteur')
                     ->setRolesAttribues(['ROLE_MEDECIN']);
-                $jeton = $compte->nouveauJeton(14);
+                $resultat = $invitation->inviter($compte, $moi->getClub(), 'votre compte de médecin du club',
+                    'vous ouvre un compte de médecin du club sur son application : infirmerie, blessures, visites médicales, et les droits médicaux que vous donnez aux autres membres.');
                 $em->persist($compte);
                 $em->flush();
-                $lien = $this->generateUrl('app_mot_de_passe_nouveau', ['jeton' => $jeton], UrlGeneratorInterface::ABSOLUTE_URL);
-
-                $envoye = false;
-                if ($acces->emailActif()) {
-                    $club = (string) $moi->getClub()?->getNom();
-                    try {
-                        $mailer->send((new MimeEmail())
-                            ->from(new Address($expediteur, $club))
-                            ->to($email)
-                            ->subject($club . ' : votre compte de médecin du club')
-                            ->text(\sprintf(
-                                "Bonjour,\n\n%s vous ouvre un compte de médecin du club sur l'application du club : infirmerie, blessures, visites médicales, et les droits médicaux que vous donnez aux autres membres.\n\nChoisissez votre mot de passe en ouvrant ce lien (personnel, valable 14 jours) :\n%s\n\nEnsuite, connectez-vous avec cette adresse e-mail. Pour consulter les données médicales, un code vous sera envoyé par e-mail à chaque fois.\n",
-                                $club, $lien,
-                            )));
-                        $envoye = true;
-                    } catch (TransportExceptionInterface $e) {
-                        $logger->error('Invitation médecin non envoyée à {email} : {erreur}', ['email' => $email, 'erreur' => $e->getMessage()]);
-                    }
-                }
+                [$lien, $envoye] = [$resultat['lien'], $resultat['envoye']];
                 $this->addFlash('succes', $envoye
                     ? \sprintf('Compte médecin créé pour %s : un e-mail lui permet de choisir son mot de passe.', $email)
                     : \sprintf('Compte médecin créé pour %s, mais l\'e-mail n\'est pas parti. Transmettez-lui ce lien (14 jours) : %s', $email, $lien));

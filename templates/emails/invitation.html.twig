@@ -1,16 +1,19 @@
-<div style="font-family: Arial, sans-serif; color: #222; max-width: 520px;">
-    <p>Bonjour,</p>
-    <p>
+{% extends 'emails/_mise_en_page.html.twig' %}
+
+{% block titre %}Votre espace famille{% endblock %}
+
+{% block corps %}
+    <p style="margin: 0 0 12px;">Bonjour,</p>
+    <p style="margin: 0 0 12px;">
         {{ club.nom }} vous ouvre l'espace famille de <strong>{{ joueur.prenom }} {{ joueur.nom }}</strong>{% if joueur.categorie %} ({{ joueur.categorie }}){% endif %} :
-        prochains matchs et convocations, auxquelles vous répondrez en un clic.
+        prochains matchs, entraînements et convocations, auxquelles vous répondez en un clic.
     </p>
-    <p>Pour activer votre compte, choisissez votre mot de passe :</p>
-    <p>
-        <a href="{{ lien }}" style="display: inline-block; padding: 10px 18px; background: {{ club.couleur }}; color: {{ club.couleurTexte }}; border-radius: 6px; text-decoration: none; font-weight: bold;">Activer mon compte</a>
+    <p style="margin: 0 0 12px;">Pour activer votre compte, choisissez votre mot de passe :</p>
+    <p style="margin: 22px 0 8px;">
+        <a href="{{ lien }}" style="display: inline-block; padding: 12px 22px; background: {{ club.couleur }}; color: {{ club.couleurTexte }}; border-radius: 8px; text-decoration: none; font-weight: bold;">Activer mon compte</a>
     </p>
-    <p style="color: #666; font-size: 13px;">
-        Ce lien est personnel et valable {{ jours }} jours. Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :<br>
-        {{ lien }}
+    <p style="margin: 0 0 12px; color: #6b6b72; font-size: 12px; word-break: break-all;">
+        Ce lien est personnel et valable {{ jours }} jours. Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :<br>{{ lien }}
     </p>
-    <p style="color: #666; font-size: 13px;">Vous n'êtes pas concerné ? Ignorez simplement ce message.</p>
-</div>
+    <p style="margin: 16px 0 0; color: #6b6b72; font-size: 13px;">Vous n'êtes pas concerné ? Ignorez simplement ce message.</p>
+{% endblock %}

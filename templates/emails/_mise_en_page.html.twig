@@ -1,0 +1,63 @@
+{#
+   Mise en page commune des e-mails du club (CourrielClub::habiller fournit club, logo_cid, initiales).
+   Tableaux et styles en ligne : seule façon d'être bien affiché par Gmail, Outlook, AOL, les téléphones…
+   Les gabarits remplissent les blocs « titre » et « corps ».
+#}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ club.nom }}</title>
+</head>
+<body style="margin: 0; padding: 0; background: #f2f3f5;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #f2f3f5;">
+    <tr>
+        <td align="center" style="padding: 24px 12px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; font-family: Arial, Helvetica, sans-serif; color: #1d1d1f;">
+                {# En-tête : logo et nom du club, sur sa couleur. #}
+                <tr>
+                    <td style="background: {{ club.couleur }}; border-radius: 12px 12px 0 0; padding: 20px 24px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="padding-right: 14px; vertical-align: middle;">
+                                    {% if logo_cid %}
+                                        <img src="{{ logo_cid }}" alt="{{ club.nom }}" width="56" height="56" style="display: block; width: 56px; height: 56px; border-radius: 50%; background: #ffffff; object-fit: contain;">
+                                    {% else %}
+                                        <div style="width: 56px; height: 56px; line-height: 56px; border-radius: 50%; background: #ffffff; color: {{ club.couleur }}; font-size: 22px; font-weight: bold; text-align: center;">{{ initiales }}</div>
+                                    {% endif %}
+                                </td>
+                                <td style="vertical-align: middle; color: {{ club.couleurTexte }}; font-size: 20px; font-weight: bold;">{{ club.nom }}</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                {# Corps du message. #}
+                <tr>
+                    <td style="background: #ffffff; padding: 26px 24px 22px; border-radius: 0 0 12px 12px; font-size: 15px; line-height: 1.55;">
+                        {% set titre_email = block('titre') is defined ? block('titre')|trim : '' %}
+                        {% if titre_email %}
+                            <h1 style="margin: 0 0 16px; font-size: 20px; line-height: 1.3; color: #1d1d1f;">{{ titre_email|raw }}</h1>
+                        {% endif %}
+                        {% block corps %}{% endblock %}
+                    </td>
+                </tr>
+                {# Pied : coordonnées du club. #}
+                <tr>
+                    <td style="padding: 18px 24px; text-align: center; font-size: 12px; line-height: 1.6; color: #6b6b72;">
+                        <strong style="color: #1d1d1f;">{{ club.nom }}</strong><br>
+                        {% if club.adresse %}{{ club.adresse }}<br>{% endif %}
+                        {% set liens = [] %}
+                        {% if club.telephone %}{% set liens = liens|merge(['Tél. <a href="tel:' ~ club.telephone|replace({' ': ''})|e('html_attr') ~ '" style="color: #6b6b72;">' ~ club.telephone|e ~ '</a>']) %}{% endif %}
+                        {% if club.emailContact %}{% set liens = liens|merge(['<a href="mailto:' ~ club.emailContact|e('html_attr') ~ '" style="color: #6b6b72;">' ~ club.emailContact|e ~ '</a>']) %}{% endif %}
+                        {% if club.siteWeb %}{% set liens = liens|merge(['<a href="' ~ club.siteWeb|e('html_attr') ~ '" style="color: #6b6b72;">' ~ club.siteWeb|replace({'https://': '', 'http://': ''})|trim('/')|e ~ '</a>']) %}{% endif %}
+                        {% if liens %}{{ liens|join(' · ')|raw }}<br>{% endif %}
+                        <span style="color: #9a9aa1;">Message envoyé par l'application du club.</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

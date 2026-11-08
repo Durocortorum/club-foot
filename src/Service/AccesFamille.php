@@ -33,6 +33,7 @@ class AccesFamille
         private readonly string $mailerDsn,
         #[Autowire('%env(MAILER_EXPEDITEUR)%')]
         private readonly string $expediteur,
+        private readonly CourrielClub $courriel,
     ) {
     }
 
@@ -166,13 +167,12 @@ class AccesFamille
             return false;
         }
         $club = $joueur->getClub();
-        $message = (new TemplatedEmail())
-            ->from(new Address($this->expediteur, $club->getNom()))
+        $message = $this->courriel->habiller((new TemplatedEmail())
             ->to($compte->getEmail())
             ->subject(\sprintf('%s : votre accès à l\'espace famille', $club->getNom()))
             ->htmlTemplate('emails/invitation.html.twig')
             ->textTemplate('emails/invitation.txt.twig')
-            ->context(['club' => $club, 'joueur' => $joueur, 'lien' => $lien, 'jours' => self::DUREE_LIEN]);
+            ->context(['joueur' => $joueur, 'lien' => $lien, 'jours' => self::DUREE_LIEN]), $club);
         try {
             $this->mailer->send($message);
 

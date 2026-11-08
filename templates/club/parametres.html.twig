@@ -6,7 +6,7 @@
     <div class="titre-page">
         <div>
             <h1>Apparence du club</h1>
-            <p class="discret">Nom, logo et couleurs de l'application, pour tous les utilisateurs. L'aperçu change en direct : rien n'est appliqué avant « Enregistrer ».</p>
+            <p class="discret">Nom, logo, couleurs et coordonnées du club, pour l'application et ses e-mails. L'aperçu change en direct : rien n'est appliqué avant « Enregistrer ».</p>
         </div>
     </div>
 
@@ -42,6 +42,12 @@
                 {% else %}
                     {% do form.logoOrigine.setRendered %}
                 {% endif %}
+
+                <h2 class="bloc">Coordonnées</h2>
+                <p class="discret petit">Affichées en bas de tous les e-mails du club (convocations, invitations, codes d'accès…), avec le logo et les couleurs.</p>
+                {% for champ in ['adresse', 'telephone', 'emailContact', 'siteWeb'] %}
+                    <div class="champ">{{ form_label(form[champ]) }}{{ form_widget(form[champ]) }}{{ form_help(form[champ]) }}{{ form_errors(form[champ]) }}</div>
+                {% endfor %}
             </div>
 
             <div class="carte apercu-club" aria-label="Aperçu">

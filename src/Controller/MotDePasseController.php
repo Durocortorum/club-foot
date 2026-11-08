@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Utilisateur;
 use App\Repository\UtilisateurRepository;
 use App\Service\AccesFamille;
+use App\Service\CourrielClub;
 use App\Service\ClubCourant;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -41,7 +42,7 @@ class MotDePasseController extends AbstractController
         EntityManagerInterface $em,
         LoggerInterface $logger,
         RateLimiterFactory $motDePasseOublieLimiter,
-        #[Autowire('%env(MAILER_EXPEDITEUR)%')] string $expediteur,
+        CourrielClub $courriel,
     ): Response {
         // Pas de renvoi si l'on est déjà connecté : on peut avoir oublié le mot de passe d'un autre compte
         // (un autre club, par exemple). Le nouveau lien connecte alors au compte concerné.
@@ -63,16 +64,14 @@ class MotDePasseController extends AbstractController
             if ($compte && $acces->emailActif() && !str_ends_with($email, '.invalid')) {
                 $lien = $this->generateUrl('app_mot_de_passe_nouveau', ['jeton' => $compte->jetonReinitialisation()], UrlGeneratorInterface::ABSOLUTE_URL);
                 $em->flush();
-                $club = $compte->getClub()->getNom();
+                $club = $compte->getClub();
                 try {
-                    $mailer->send((new Email())
-                        ->from(new Address($expediteur, $club))
-                        ->to($compte->getEmail())
-                        ->subject($club . ' : nouveau mot de passe')
-                        ->text(\sprintf(
-                            "Bonjour,\n\nVous avez demandé à changer le mot de passe de votre compte %s (%s).\n\nOuvrez ce lien, valable une heure, pour en choisir un nouveau :\n%s\n\nVous n'avez rien demandé ? Ignorez ce message : votre mot de passe actuel reste valable.\n",
-                            $compte->getEmail(), $club, $lien,
-                        )));
+                    $mailer->send($courriel->message($club, (string) $compte->getEmail(), $club->getNom() . ' : nouveau mot de passe', [
+                        'titre' => 'Choisir un nouveau mot de passe',
+                        'paragraphes' => [\sprintf('Vous avez demandé à changer le mot de passe de votre compte %s.', $compte->getEmail())],
+                        'bouton' => ['libelle' => 'Choisir mon mot de passe', 'url' => $lien],
+                        'note' => "Ce lien est valable une heure.\nVous n'avez rien demandé ? Ignorez ce message : votre mot de passe actuel reste valable.",
+                    ]));
                 } catch (TransportExceptionInterface $e) {
                     $logger->error('Lien « mot de passe oublié » non envoyé à {email} : {erreur}', ['email' => $compte->getEmail(), 'erreur' => $e->getMessage()]);
                 }
