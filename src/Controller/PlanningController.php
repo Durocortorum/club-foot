@@ -158,6 +158,19 @@ class PlanningController extends AbstractController
         return $this->retour($entrainement->getCategorie());
     }
 
+    /** Entraînement supprimé (sans prévenir les familles) : il disparaît du planning et de l'espace famille. */
+    #[Route('/entrainement/{id}/supprimer', name: 'app_planning_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted(ActiviteVoter::GERER, 'entrainement')]
+    public function supprimer(Request $request, Entrainement $entrainement): Response
+    {
+        if ($this->isCsrfTokenValid('supprimer-entrainement' . $entrainement->getId(), $request->getPayload()->getString('_token'))) {
+            $this->planning->supprimerEntrainement($entrainement);
+            $this->addFlash('succes', \sprintf('Entraînement du %s supprimé.', $entrainement->getDate()->format('d/m')));
+        }
+
+        return $this->retour($entrainement->getCategorie());
+    }
+
     /** Feuille d'appel enregistrée : présents et absents reportés dans la grille des présences. */
     #[Route('/entrainement/{id}/appel', name: 'app_planning_appel', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[IsGranted(ActiviteVoter::GERER, 'entrainement')]

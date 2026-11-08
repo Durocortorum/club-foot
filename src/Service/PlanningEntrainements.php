@@ -66,7 +66,8 @@ class PlanningEntrainements
             $existants = $this->entrainements->entre($categories, $debut, $fin);
         }
 
-        return $existants;
+        // Supprimés par l'éducateur : masqués, mais gardés pour ne pas être recréés ci-dessus.
+        return array_values(array_filter($existants, fn (Entrainement $e) => !$e->isSupprime()));
     }
 
     /**
@@ -77,7 +78,7 @@ class PlanningEntrainements
     {
         $this->em->persist($creneau);
         foreach ($this->futurs($creneau) as $e) {
-            if ($e->getAbsences() || $e->isAnnule()) {
+            if ($e->getAbsences() || $e->isAnnule() || $e->isSupprime()) {
                 $e->appliquer($creneau);
             } else {
                 $this->em->remove($e);
@@ -95,21 +96,49 @@ class PlanningEntrainements
     {
         $semaines = [];
         foreach ($this->futurs($creneau) as $e) {
-            foreach ($e->getAbsences() as $a) {
-                $this->reporter($e, $a->getJoueur(), null, $a->getCodeGrille());
-            }
-            if ($semaine = $this->semaine($e, false)) {
+            if ($semaine = $this->retirerAbsencesDeLaGrille($e)) {
                 $semaines[spl_object_id($semaine)] = $semaine;
             }
             $this->em->remove($e);
         }
-        foreach ($semaines as $semaine) {
-            if ($semaine->getPresences()->forAll(fn ($k, Presence $p) => [] === array_filter($p->getCreneaux(), fn ($v) => null !== $v && '' !== $v))) {
-                $this->em->remove($semaine);
-            }
-        }
+        array_map($this->supprimerSiVide(...), $semaines);
         $this->em->remove($creneau);
         $this->em->flush();
+    }
+
+    /**
+     * Un seul entraînement supprimé par l'éducateur (sans prévenir les familles) : il disparaît du planning
+     * et de l'espace famille ; ses absences signalées sont retirées, de la grille des présences aussi.
+     */
+    public function supprimerEntrainement(Entrainement $e): void
+    {
+        $semaine = $this->retirerAbsencesDeLaGrille($e);
+        foreach ($e->getAbsences() as $a) {
+            $e->retirerAbsence($a);
+        }
+        $e->supprimer();
+        if ($semaine) {
+            $this->supprimerSiVide($semaine);
+        }
+        $this->em->flush();
+    }
+
+    /** Vide de la grille les cases venues des absences signalées sur cet entraînement ; renvoie sa semaine. */
+    private function retirerAbsencesDeLaGrille(Entrainement $e): ?SemainePresence
+    {
+        foreach ($e->getAbsences() as $a) {
+            $this->reporter($e, $a->getJoueur(), null, $a->getCodeGrille());
+        }
+
+        return $this->semaine($e, false);
+    }
+
+    /** Semaine de présences sans aucune case remplie : supprimée. */
+    private function supprimerSiVide(SemainePresence $semaine): void
+    {
+        if ($semaine->getPresences()->forAll(fn ($k, Presence $p) => [] === array_filter($p->getCreneaux(), fn ($v) => null !== $v && '' !== $v))) {
+            $this->em->remove($semaine);
+        }
     }
 
     /** Signale (ou modifie) une absence et la reporte dans la grille des présences. */

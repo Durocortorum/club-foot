@@ -83,6 +83,10 @@
                             <button class="bouton petit danger">Annuler l'entraînement</button>
                         {% endif %}
                     </form>
+                    {# Supprimer : disparaît du planning et de l'espace famille, sans prévenir les familles. #}
+                    {{ m.supprimer(path('app_planning_supprimer', {id: e.id}), 'supprimer-entrainement' ~ e.id,
+                        'Supprimer l\'entraînement du ' ~ e.date|date('d/m') ~ ' ? Il disparaîtra du planning et de l\'espace des familles, sans les prévenir (pour les prévenir, utilisez plutôt « Annuler l\'entraînement »).'
+                        ~ (absences ? ' Les ' ~ absences|length ~ ' absence(s) signalée(s) seront retirées.' : ''), 'Supprimer') }}
                 </div>
 
                 {# Séance préparée (menu Entraînements) à cette date pour cette catégorie. #}

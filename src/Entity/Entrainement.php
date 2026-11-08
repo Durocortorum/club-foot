@@ -48,6 +48,25 @@ class Entrainement implements AppartientAuClub
     #[ORM\Column(options: ['default' => false])]
     private bool $annule = false;
 
+    /**
+     * Supprimé par l'éducateur (sans prévenir les familles) : masqué partout. L'entraînement est gardé
+     * ainsi, plutôt qu'effacé, pour que le planning ne le recrée pas à partir de son créneau.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $supprime = false;
+
+    public function isSupprime(): bool
+    {
+        return $this->supprime;
+    }
+
+    public function supprimer(): static
+    {
+        $this->supprime = true;
+
+        return $this;
+    }
+
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $motifAnnulation = null;
 

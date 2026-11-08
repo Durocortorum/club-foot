@@ -176,6 +176,26 @@ class EntrainementTest extends WebTestCase
         self::assertTrue($this->em()->find(Entrainement::class, $deuxieme->getId())?->isAnnule(), 'entraînement annulé conservé');
         self::assertSame((string) $categorie, $this->grille($categorie, $premier, 'Tom'), 'l\'appel reste dans la grille');
 
+        // --- Un seul entraînement supprimé (sans prévenir) : il disparaît, son absence quitte la grille,
+        // et le planning ne le recrée pas.
+        $autre = $this->em()->find(Entrainement::class, $apres[\count($apres) - 2]->getId());
+        static::getContainer()->get(\App\Service\PlanningEntrainements::class)
+            ->signalerAbsence($autre, $this->em()->find(Joueur::class, $tom->getId()), 'Malade', null, 'test');
+        $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
+        $avant = $crawler->filter('article.entrainement')->count();
+        $this->client->submit($crawler->filter('form[action$="/entrainement/' . $autre->getId() . '/supprimer"]')->form());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'supprimé');
+        $this->em()->clear();
+        $autre = $this->em()->find(Entrainement::class, $autre->getId());
+        self::assertTrue($autre->isSupprime());
+        self::assertCount(0, $autre->getAbsences());
+        $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
+        self::assertSame($avant - 1, $crawler->filter('article.entrainement')->count(), 'pas recréé');
+        $semaineAutre = $this->em()->getRepository(SemainePresence::class)->findOneBy(['categorie' => $categorie->getId(), 'lundi' => $autre->getDate()->modify('monday this week')]);
+        self::assertTrue(null === $semaineAutre || !array_filter(array_map(fn (Presence $p) => $p->getCreneau('mer_a'), $semaineAutre->getPresences()->toArray())), 'absence retirée de la grille');
+        $apres = array_values(array_filter($apres, fn (Entrainement $e) => $e->getId() !== $autre->getId()));
+
         // Absence signalée sur un entraînement d'une autre semaine : reportée dans la grille de cette semaine.
         $dernier = $this->em()->find(Entrainement::class, end($apres)->getId());
         $lundiDernier = $dernier->getDate()->modify('monday this week');
