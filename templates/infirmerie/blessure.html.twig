@@ -1,14 +1,23 @@
 {% extends 'commun/formulaire.html.twig' %}
 
-{# Formulaire de blessure. La localisation précise se choisit avant, sur l'atlas anatomique du dossier
-   médical du joueur (« Localiser une blessure »), qui ouvre ce formulaire déjà rempli. #}
+{# Formulaire de blessure. Pour une nouvelle blessure, « Localiser sur le corps » ouvre l'atlas anatomique
+   du joueur (corps entier → région → structure), qui revient ici avec localisation, membre et zone remplis. #}
 
 {% block complement %}
-    {% set joueur = form.vars.value.joueur %}
-    {% if joueur and joueur.id and not form.vars.value.id %}
-        <p class="discret">
-            <a href="{{ path('app_dossier_medical_localiser', {id: joueur.id}) }}">Localiser la blessure sur le corps</a>
-            pour remplir la localisation et la zone touchée.
-        </p>
+    {% set blessure = form.vars.value %}
+    {% if not blessure.id %}
+        {% if blessure.joueur and blessure.joueur.id and form.joueur.vars.disabled %}
+            <p class="atlas-acces">
+                <a class="bouton" href="{{ path('app_dossier_medical_localiser', {id: blessure.joueur.id}) }}">Localiser sur le corps</a>
+                <span class="discret petit">pour remplir la localisation et la zone touchée à partir des schémas anatomiques.</span>
+            </p>
+        {% else %}
+            <p class="atlas-acces" data-controller="localiser"
+               data-localiser-select-value="{{ form.joueur.vars.id }}"
+               data-localiser-url-value="{{ path('app_dossier_medical_localiser', {id: 0}) }}">
+                <button type="button" class="bouton" data-localiser-target="bouton" data-action="localiser#ouvrir">Localiser sur le corps</button>
+                <span class="discret petit">pour remplir la localisation et la zone touchée à partir des schémas anatomiques<span data-localiser-target="aide"> (choisissez d'abord le joueur)</span>.</span>
+            </p>
+        {% endif %}
     {% endif %}
 {% endblock %}

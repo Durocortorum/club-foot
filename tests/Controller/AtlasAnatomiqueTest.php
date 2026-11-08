@@ -96,6 +96,12 @@ class AtlasAnatomiqueTest extends WebTestCase
         self::assertSame('Genou gauche', $blessure->getLocalisation());
         self::assertSame('Membre inférieur', $blessure->getMembre());
 
+        // Nouvelle blessure depuis l'Infirmerie (joueur à choisir) : bouton qui ouvre l'atlas du joueur choisi.
+        $this->client->request('GET', '/infirmerie/blessures/nouvelle');
+        self::assertSelectorExists('[data-controller="localiser"][data-localiser-url-value="/infirmerie/dossiers/0/localiser"] button');
+        $this->client->request('GET', '/infirmerie/blessures/nouvelle?joueur=' . $joueur->getId());
+        self::assertSelectorExists(".atlas-acces a[href=\"$dossier/localiser\"]");
+
         // « Autre » : structure libre ; un membre inconnu est ignoré.
         $this->client->request('GET', '/infirmerie/blessures/nouvelle?joueur=' . $joueur->getId() . '&localisation=Abdomen&membre=Inconnu&zone=Hernie');
         self::assertInputValueSame('blessure[zone]', 'Hernie');

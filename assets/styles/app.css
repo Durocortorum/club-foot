@@ -401,6 +401,8 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .atlas-choix .bouton { text-align: left; }
 .atlas-autre { display: flex; gap: .4rem; }
 .atlas-autre input { flex: 1; }
+.atlas-acces { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .8rem; margin: 1rem 0 0; }
+.atlas-acces .bouton:disabled { opacity: .5; cursor: not-allowed; }
 .atlas-credits { margin-top: 1rem; font-size: .75rem; color: var(--gris); }
 .atlas-credits a { color: inherit; text-decoration: underline; }
 .atlas-region .atlas-structures { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
