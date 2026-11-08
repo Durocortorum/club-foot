@@ -46,26 +46,29 @@
                 <tbody>
                     {% for p in presences %}
                         {% set j = p.joueur %}
-                        {% set present = p.creneaux|filter(v => v not in motifs|keys)|length %}
+                        {% set present = p.creneaux|filter(v => v not in motifs|keys and v not in motifs_anciens|keys)|length %}
                         <tr>
                             <td class="avec-vignette nowrap">{{ m.avatar(j, 'mini') }} <a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a></td>
                             {% for cle, libelle in creneaux %}
                                 {% set valeur = p.creneau(cle) %}
                                 <td>
                                     <select name="creneaux[{{ j.id }}][{{ cle }}]" data-creneau="{{ cle }}" title="{{ libelle }}"
-                                            class="creneau {{ valeur is null ? 'vide' : (valeur in motifs|keys ? 'absence' : 'present') }}">
+                                            class="creneau {{ valeur is null ? 'vide' : (valeur in motifs|keys or valeur in motifs_anciens|keys ? 'absence' : 'present') }}">
                                         <option value=""></option>
                                         <option value="{{ equipe }}" {{ valeur == equipe ? 'selected' }}>✓ {{ equipe }}</option>
                                         <optgroup label="Absence">
                                             {% for code, motif in motifs %}
                                                 <option value="{{ code }}" {{ valeur == code ? 'selected' }}>{{ motif }}</option>
                                             {% endfor %}
+                                            {% for code, motif in motifs_anciens|filter((m, code) => code == valeur) %}
+                                                <option value="{{ code }}" selected>{{ motif }}</option>
+                                            {% endfor %}
                                         </optgroup>
                                         <optgroup label="Avec une autre équipe">
                                             {% for e in equipes|filter(e => e != equipe) %}
                                                 <option value="{{ e }}" {{ valeur == e ? 'selected' }}>{{ e }}</option>
                                             {% endfor %}
-                                            {% if valeur and valeur != equipe and valeur not in motifs|keys and valeur not in equipes %}
+                                            {% if valeur and valeur != equipe and valeur not in motifs|keys and valeur not in motifs_anciens|keys and valeur not in equipes %}
                                                 <option value="{{ valeur }}" selected>{{ valeur }}</option>
                                             {% endif %}
                                         </optgroup>

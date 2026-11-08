@@ -41,10 +41,24 @@ class SemainePresence implements AppartientAuClub
         'Dis' => 'Dispensé',
         'Absent' => 'Absent',
         'Collé' => 'Collé (retenue scolaire)',
-        'VA' => 'VA',
-        'AT' => 'AT',
+        'Discipline' => 'Discipline',
         'Divers' => 'Divers',
     ];
+
+    /**
+     * Anciens codes d'Access, plus proposés mais encore présents dans d'anciennes grilles (VA en 2013,
+     * AT en 2012) : ils restent comptés comme absences, pour que les taux de présence ne changent pas.
+     */
+    public const MOTIFS_ANCIENS = [
+        'VA' => 'VA (ancien code)',
+        'AT' => 'AT (ancien code)',
+    ];
+
+    /** @return array<string, string> motifs proposés et anciens codes encore reconnus */
+    public static function tousMotifs(): array
+    {
+        return self::MOTIFS + self::MOTIFS_ANCIENS;
+    }
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -148,6 +162,6 @@ class SemainePresence implements AppartientAuClub
 
     public static function estAbsence(?string $valeur): bool
     {
-        return null !== $valeur && isset(self::MOTIFS[$valeur]);
+        return null !== $valeur && isset(self::tousMotifs()[$valeur]);
     }
 }

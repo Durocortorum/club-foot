@@ -121,6 +121,8 @@ class PresenceController extends AbstractController
             'presences' => $presences,
             'creneaux' => SemainePresence::CRENEAUX,
             'motifs' => SemainePresence::MOTIFS,
+            // Anciens codes (VA, AT) : affichés seulement là où ils sont déjà saisis.
+            'motifs_anciens' => SemainePresence::MOTIFS_ANCIENS,
             'equipes' => array_map('strval', $categories->findBy([], ['ordre' => 'ASC'])),
             'a_ajouter' => array_filter(
                 $joueurs->findBy(['categorie' => $semaine->getCategorie(), 'ancien' => false], ['nom' => 'ASC']),

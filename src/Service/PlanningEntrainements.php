@@ -154,7 +154,7 @@ class PlanningEntrainements
             $absence = $e->absenceDe($j);
             $choix = match (true) {
                 null === $valeur || '' === $valeur => $absence?->getCodeGrille() ?? '',
-                isset(SemainePresence::MOTIFS[$valeur]) => $valeur,
+                SemainePresence::estAbsence($valeur) => $valeur,
                 default => 'present',
             };
             $lignes[] = ['joueur' => $j, 'choix' => $choix, 'absence' => $absence];
@@ -179,7 +179,7 @@ class PlanningEntrainements
         $notes = 0;
         foreach ($this->appel($e) as ['joueur' => $j, 'absence' => $absence]) {
             $c = (string) ($choix[$j->getId()] ?? '');
-            if ('present' !== $c && '' !== $c && !isset(SemainePresence::MOTIFS[$c])) {
+            if ('present' !== $c && '' !== $c && !SemainePresence::estAbsence($c)) {
                 continue;
             }
             $presence = $this->presence($semaine, $j, $e);
@@ -248,7 +248,7 @@ class PlanningEntrainements
 
         $actuel = $presence->getCreneau($cle);
         $creneaux = $presence->getCreneaux();
-        if (null !== $code && (null === $actuel || '' === $actuel || isset(SemainePresence::MOTIFS[$actuel]))) {
+        if (null !== $code && (null === $actuel || '' === $actuel || SemainePresence::estAbsence($actuel))) {
             $creneaux[$cle] = $code;
         } elseif (null === $code && null !== $ancienCode && $actuel === $ancienCode) {
             unset($creneaux[$cle]);
