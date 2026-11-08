@@ -2,9 +2,9 @@
 {% set avec_parts = filtres.categorie is not null %}
 
 <div class="tuiles bilan">
-    <div class="tuile"><span class="tuile-valeur">{{ stats.convoques }}</span><span class="tuile-libelle">joueurs convoqués</span></div>
-    <div class="tuile"><span class="tuile-valeur">{{ stats.utilises }}</span><span class="tuile-libelle">joueurs ayant joué</span></div>
-    <div class="tuile"><span class="tuile-valeur">{{ stats.matchs }}</span><span class="tuile-libelle">matchs joués</span></div>
+    <div class="tuile"><span class="tuile-valeur">{{ stats.convoques }}</span><span class="tuile-libelle">{{ accord(stats.convoques, 'joueur convoqué', 'joueurs convoqués') }}</span></div>
+    <div class="tuile"><span class="tuile-valeur">{{ stats.utilises }}</span><span class="tuile-libelle">{{ accord(stats.utilises, 'joueur ayant joué', 'joueurs ayant joué') }}</span></div>
+    <div class="tuile"><span class="tuile-valeur">{{ stats.matchs }}</span><span class="tuile-libelle">{{ accord(stats.matchs, 'match joué', 'matchs joués') }}</span></div>
 </div>
 
 <div class="table-defile">
@@ -64,7 +64,7 @@
 <p class="discret petit">
     « Joués » : au moins une minute de jeu. « Complets » : temps de jeu égal à la durée du match (le plus grand temps noté sur la feuille).
     {% if avec_parts %}
-        Les pourcentages comparent le joueur aux {{ stats.matchs }} matchs de l'équipe, de {{ stats.dureeReference }} minutes ({{ stats.minutesPossibles }} minutes en tout).
+        Les pourcentages comparent le joueur {{ stats.matchs > 1 ? 'aux' : 'au' }} {{ stats.matchs }} {{ accord(stats.matchs, 'match') }} de l'équipe, de {{ stats.dureeReference }} {{ accord(stats.dureeReference, 'minute') }} ({{ stats.minutesPossibles }} {{ accord(stats.minutesPossibles, 'minute') }} en tout).
         Seuls les matchs de l'équipe choisie sont comptés.
     {% else %}
         Choisissez une catégorie pour voir les pourcentages de convocations et de temps de jeu.

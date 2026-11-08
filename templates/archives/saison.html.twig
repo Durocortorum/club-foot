@@ -7,7 +7,7 @@
     {% set filtres = {saison: saison, categorie: categorie.id} %}
     <p class="discret"><a href="{{ path('app_archives') }}">← Archives</a></p>
     <div class="titre-page">
-        <h1>{{ categorie.nom }} · Saison {{ saison }} <span class="compteur">{{ effectif|length }} joueurs</span></h1>
+        <h1>{{ categorie.nom }} · Saison {{ saison }} <span class="compteur">{{ effectif|length }} {{ accord(effectif|length, 'joueur') }}</span></h1>
         <div class="actions">
             <a class="bouton" href="{{ path('app_rencontre_index', filtres) }}">Matchs</a>
             <a class="bouton" href="{{ path('app_statistiques', filtres|merge({vue: 'joueurs'})) }}">Statistiques</a>

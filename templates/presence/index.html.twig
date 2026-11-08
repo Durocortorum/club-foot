@@ -5,7 +5,7 @@
 
 {% block body %}
     <div class="titre-page">
-        <h1>Présences <span class="compteur">{{ total }} semaines</span></h1>
+        <h1>Présences <span class="compteur">{{ total }} {{ accord(total, 'semaine') }}</span></h1>
         {% if peut_creer %}
             <span class="actions">
                 <a class="bouton" href="{{ path('app_planning') }}">Planning et absences</a>

@@ -214,7 +214,7 @@
                     <h3>Détail des matchs</h3>
                     <select data-periode-target="choix" data-action="periode#afficher" aria-label="Saison des matchs">
                         {% for s in saisons_matchs %}<option value="{{ s }}">Saison {{ s }}</option>{% endfor %}
-                        <option value="toutes">Toutes les saisons ({{ matchs|length }} matchs)</option>
+                        <option value="toutes">Toutes les saisons ({{ matchs|length }} {{ accord(matchs|length, 'match') }})</option>
                     </select>
                 </div>
                 <div class="table-defile">

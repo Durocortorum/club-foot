@@ -43,8 +43,8 @@
         {% set doublons = analyse.lignes|filter(l => not l.erreurs and l.doublon)|length %}
         <div class="tuiles bilan">
             <div class="tuile"><span class="tuile-valeur">{{ a_importer }}</span><span class="tuile-libelle">à importer</span></div>
-            <div class="tuile"><span class="tuile-valeur">{{ doublons }}</span><span class="tuile-libelle">déjà présents (ignorés)</span></div>
-            <div class="tuile"><span class="tuile-valeur {{ erreurs ? 'resultat-D' }}">{{ erreurs }}</span><span class="tuile-libelle">en erreur (ignorés)</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ doublons }}</span><span class="tuile-libelle">{{ accord(doublons, 'déjà présent (ignoré)', 'déjà présents (ignorés)') }}</span></div>
+            <div class="tuile"><span class="tuile-valeur {{ erreurs ? 'resultat-D' }}">{{ erreurs }}</span><span class="tuile-libelle">{{ accord(erreurs, 'en erreur (ignoré)', 'en erreur (ignorés)') }}</span></div>
         </div>
         <p class="discret petit">
             Colonnes reconnues : {{ analyse.colonnes|join(', ') }}.

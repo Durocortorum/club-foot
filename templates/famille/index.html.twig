@@ -13,7 +13,7 @@
                   data-confirmation-bouton="Inviter">
                 <input type="hidden" name="_token" value="{{ csrf_token('inviter-familles' ~ categorie.id) }}">
                 <input type="hidden" name="categorie" value="{{ categorie.id }}">
-                <button class="bouton principal">Inviter les {{ a_inviter }} adresse{{ a_inviter > 1 ? 's' }} sans compte</button>
+                <button class="bouton principal">{{ a_inviter > 1 ? 'Inviter les ' ~ a_inviter ~ ' adresses sans compte' : 'Inviter l\'adresse sans compte' }}</button>
             </form>
         {% endif %}
     </div>

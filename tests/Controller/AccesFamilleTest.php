@@ -109,7 +109,7 @@ class AccesFamilleTest extends WebTestCase
         // Page « Accès familles » : il reste l'autre adresse de Léa, invitée d'un coup pour toute la catégorie.
         $crawler = $this->client->request('GET', '/familles?categorie=' . $categorie->getId());
         self::assertResponseIsSuccessful();
-        $this->client->submit($crawler->selectButton('Inviter les 1 adresse sans compte')->form());
+        $this->client->submit($crawler->selectButton('Inviter l\'adresse sans compte')->form());
         $this->client->followRedirect();
         self::assertSelectorTextContains('.liens-famille', "autre-$id@exemple.test");
         self::assertSelectorNotExists('form[action="/familles/inviter"]');

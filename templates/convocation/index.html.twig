@@ -41,7 +41,7 @@
                         <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
                             <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
                             <input type="hidden" name="relance" value="1">
-                            <button class="bouton">Relancer les {{ attente|length }} sans réponse</button>
+                            <button class="bouton">{{ attente|length > 1 ? 'Relancer les ' ~ attente|length ~ ' joueurs sans réponse' : 'Relancer le joueur sans réponse' }}</button>
                         </form>
                     {% endif %}
                 </div>
