@@ -52,6 +52,18 @@
                 </div>
                 {% do form.joueurs.setRendered %}
             </div>
+            <div data-message-target="bloc" data-cible="encadrement" {{ form.cible.vars.value != 'encadrement' ? 'hidden' }}>
+                {{ form_errors(form.personnes) }}
+                <p class="discret petit">Éducateurs, dirigeants, médecin, kiné... Chacun lit le message dans sa page « Messages » et vous répond en privé.</p>
+                <div class="joueurs-choix">
+                    <fieldset>
+                        <legend>Encadrement du club</legend>
+                        {% for case in form.personnes %}
+                            <label class="case-joueur" data-nom="{{ case.vars.label|lower }}">{{ form_widget(case) }} {{ case.vars.label }}</label>
+                        {% endfor %}
+                    </fieldset>
+                </div>
+            </div>
             <p class="discret petit" data-message-target="bloc" data-cible="club" {{ form.cible.vars.value != 'club' ? 'hidden' }}>Tous les joueurs actifs du club (leurs familles).</p>
         </section>
 

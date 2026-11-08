@@ -4,9 +4,30 @@
 
 {% block body %}
     <div class="titre-page">
-        <h1>Messages aux familles</h1>
+        <h1>Messages</h1>
         <a class="bouton principal" href="{{ path('app_message_nouveau') }}">+ Nouveau message</a>
     </div>
+
+    {% if recus %}
+        <h2 class="titre-bloc">Reçus de collègues</h2>
+        <ul class="boite-reception bloc">
+            {% for l in recus %}
+                {% set msg = l.message %}
+                <li class="{{ not l.lu or l.nouvelles_reponses ? 'non-lu' }}">
+                    <a href="{{ path('app_message_voir', {id: msg.id}) }}">
+                        <span class="boite-sujet">
+                            {% if not l.lu %}<span class="point-non-lu" aria-label="non lu"></span>{% endif %}
+                            {{ msg.sujet }}
+                            {% if msg.important %} <span class="pastille alerte">important</span>{% endif %}
+                            {% if l.nouvelles_reponses %} <span class="pastille succes">{{ l.nouvelles_reponses }} {{ accord(l.nouvelles_reponses, 'réponse') }}</span>{% endif %}
+                        </span>
+                        <span class="boite-info discret petit">{{ msg.auteurNom }} · {{ msg.creeLe|date('d/m/Y H:i') }}</span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+        <h2 class="titre-bloc">Envoyés</h2>
+    {% endif %}
 
     {% if messages %}
         <div class="table-defile">
@@ -14,7 +35,7 @@
                 <thead><tr><th>Date</th><th>Objet</th><th>Destinataires</th><th>De</th><th>Lu</th><th>Réponses</th></tr></thead>
                 <tbody>
                     {% for msg in messages %}
-                        {% set nb = msg.joueurs|length %}
+                        {% set nb = msg.nombreDestinataires %}
                         {% set nouvelles = msg.reponsesNonLues %}
                         <tr>
                             <td class="nowrap">{{ msg.creeLe|date('d/m/Y H:i') }}</td>

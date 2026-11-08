@@ -56,6 +56,8 @@ class MessageController extends AbstractController
         $page = max(1, $request->query->getInt('page', 1));
 
         return $this->render('message/index.html.twig', [
+            // Messages reçus de collègues (première page seulement).
+            'recus' => 1 === $page ? $this->messages->recus($this->moi()) : [],
             'messages' => $this->messages->pourEncadrement($this->moi(), $this->secteurs(), $page),
             'page' => $page,
             'par_page' => MessageRepository::PAR_PAGE,
@@ -63,8 +65,13 @@ class MessageController extends AbstractController
     }
 
     #[Route('/nouveau', name: 'app_message_nouveau', methods: ['GET', 'POST'])]
-    public function nouveau(Request $request, CategorieRepository $categories, ConvocationRepository $convocations, JoueurRepository $joueurs, Messagerie $messagerie, AccesFamille $acces): Response
+    public function nouveau(Request $request, CategorieRepository $categories, ConvocationRepository $convocations, JoueurRepository $joueurs, Messagerie $messagerie, AccesFamille $acces, UtilisateurRepository $utilisateurs): Response
     {
+        // Collègues : tous les comptes de l'encadrement du club (éducateurs, dirigeants, médecin, kiné...), sauf soi.
+        $collegues = array_values(array_filter(
+            $utilisateurs->findBy(['famille' => false], ['nom' => 'ASC', 'prenom' => 'ASC']),
+            fn (Utilisateur $u) => $u !== $this->moi(),
+        ));
         $mesCategories = $this->categoriesGerees($categories);
         $mesConvocations = $this->convocationsRecentes($convocations);
         $mesJoueurs = $mesCategories ? $joueurs->createQueryBuilder('j')->join('j.categorie', 'c')
@@ -76,6 +83,9 @@ class MessageController extends AbstractController
         }
         if (!$mesConvocations) {
             unset($cibles['convocation']);
+        }
+        if (!$collegues) {
+            unset($cibles['encadrement']);
         }
 
         // Préremplissage depuis un match (« Écrire aux convoqués »), une catégorie ou la fiche d'un joueur.
@@ -89,7 +99,10 @@ class MessageController extends AbstractController
             }
         } elseif ($q->getInt('joueur')) {
             $donnees = ['cible' => 'joueurs', 'joueurs' => array_values(array_filter($mesJoueurs, fn (Joueur $j) => $j->getId() === $q->getInt('joueur')))] + $donnees;
+        } elseif ($q->getInt('personne')) {
+            $donnees = ['cible' => 'encadrement', 'personnes' => array_values(array_filter($collegues, fn (Utilisateur $u) => $u->getId() === $q->getInt('personne')))] + $donnees;
         }
+        $donnees['personnes'] ??= [];
         $donnees['categorie'] ??= current(array_filter($mesCategories, fn (Categorie $c) => $c->getId() === $q->getInt('categorie'))) ?: null;
 
         $form = $this->createFormBuilder($donnees)
@@ -105,6 +118,10 @@ class MessageController extends AbstractController
                 'choice_label' => fn (Joueur $j) => $j->getNom() . ' ' . $j->getPrenom(),
                 'group_by' => fn (Joueur $j) => (string) $j->getCategorie(),
             ])
+            ->add('personnes', EntityType::class, [
+                'class' => Utilisateur::class, 'choices' => $collegues, 'multiple' => true, 'expanded' => true, 'label' => 'Membres de l\'encadrement', 'required' => false,
+                'choice_label' => fn (Utilisateur $u) => trim($u->getPrenom() . ' ' . $u->getNom()),
+            ])
             ->add('sujet', TextType::class, ['label' => 'Objet', 'attr' => ['maxlength' => 120, 'placeholder' => 'ex. Tournoi de samedi : covoiturage'], 'constraints' => [new Length(max: 120)]])
             ->add('corps', TextareaType::class, ['label' => 'Message', 'attr' => ['rows' => 8], 'constraints' => [new Length(max: 5000)]])
             ->add('important', CheckboxType::class, ['label' => 'Information importante (affichée en tête de l\'espace famille tant qu\'elle n\'est pas lue)', 'required' => false])
@@ -114,7 +131,7 @@ class MessageController extends AbstractController
 
         if ($form->isSubmitted()) {
             $d = $form->getData();
-            [$destinataires, $libelle, $categorie, $rencontre] = $this->destinataires($d, $form, $joueurs);
+            [$destinataires, $libelle, $categorie, $rencontre, $personnes] = $this->destinataires($d, $form, $joueurs) + [4 => []];
             $message = (new Message())->setAuteur($this->moi())->setSujet($d['sujet'])->setCorps($d['corps'])
                 ->setImportant((bool) $d['important'])->setCible($d['cible'])->setCibleLibelle($libelle)
                 ->setCategorie($categorie)->setRencontre($rencontre);
@@ -125,8 +142,10 @@ class MessageController extends AbstractController
                 $form->get('corps')->addError(new FormError('Le message est vide.'));
             }
             if ($form->isValid()) {
-                $r = $messagerie->envoyer($message, $destinataires, (bool) $d['email']);
-                $this->addFlash('succes', \sprintf('Message envoyé à %d %s%s.', \count($destinataires), \count($destinataires) > 1 ? 'joueurs' : 'joueur',
+                $r = $messagerie->envoyer($message, $destinataires, (bool) $d['email'], $personnes);
+                $nb = \count($destinataires) ?: \count($personnes);
+                $qui = $destinataires ? ($nb > 1 ? 'joueurs' : 'joueur') : ($nb > 1 ? 'personnes' : 'personne');
+                $this->addFlash('succes', \sprintf('Message envoyé à %d %s%s.', $nb, $qui,
                     $r['emails'] ? \sprintf(' (%d e-mail%s)', $r['emails'], $r['emails'] > 1 ? 's' : '') : ''));
                 if ($r['echecs']) {
                     $this->addFlash('erreur', 'E-mail impossible vers : ' . implode(', ', $r['echecs']) . '.');
@@ -146,6 +165,10 @@ class MessageController extends AbstractController
     public function voir(Message $message, Messagerie $messagerie, AccesFamille $acces): Response
     {
         $this->verifier($message);
+        // Message reçu d'un collègue : sa conversation avec l'expéditeur seulement.
+        if ($message->estDestinataire($this->moi()) && $message->getAuteur() !== $this->moi()) {
+            return $this->voirRecu($message);
+        }
         // Fils de réponse : un par compte famille qui a écrit (ou à qui l'encadrement a répondu).
         $fils = [];
         foreach ($message->getReponses() as $r) {
@@ -182,12 +205,35 @@ class MessageController extends AbstractController
         return $html;
     }
 
+    /** Message d'un collègue, vu par son destinataire : lu en l'ouvrant, réponse dans son fil privé. */
+    private function voirRecu(Message $message): Response
+    {
+        $moi = $this->moi();
+        $fil = $message->fil($moi);
+        $html = $this->render('message/recu.html.twig', ['message' => $message, 'fil' => $fil]);
+        foreach ($message->getDestinataires() as $d) {
+            if ($d->getCompte() === $moi) {
+                $d->marquerLu();
+            }
+        }
+        foreach ($fil as $r) {
+            if ($r->isDeLEncadrement()) {
+                $r->marquerLue();
+            }
+        }
+        $this->em->flush();
+
+        return $html;
+    }
+
     #[Route('/{id}/repondre/{famille}', name: 'app_message_repondre', requirements: ['id' => '\d+', 'famille' => '\d+'], methods: ['POST'])]
     public function repondre(Request $request, Message $message, int $famille, UtilisateurRepository $utilisateurs, Messagerie $messagerie): Response
     {
         $this->verifier($message);
         $compte = $utilisateurs->find($famille);
-        if (!$compte || !$message->estDestinataire($compte) || !$this->isCsrfTokenValid('repondre-message' . $message->getId() . '-' . $famille, $request->getPayload()->getString('_token'))) {
+        // Un destinataire ne répond que dans son propre fil ; l'expéditeur (ou un collègue qui voit le message), dans tous.
+        $voitTout = $this->messages->estVisible($message, $this->moi(), $this->secteurs());
+        if (!$compte || !$message->estDestinataire($compte) || (!$voitTout && $compte !== $this->moi()) || !$this->isCsrfTokenValid('repondre-message' . $message->getId() . '-' . $famille, $request->getPayload()->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
         $texte = trim($request->getPayload()->getString('corps'));
@@ -196,7 +242,7 @@ class MessageController extends AbstractController
             $this->em->persist($reponse);
             $this->em->flush();
             $messagerie->avertir($reponse);
-            $this->addFlash('succes', 'Réponse envoyée à ' . $compte->getEmail() . '.');
+            $this->addFlash('succes', 'Réponse envoyée à ' . ($compte === $this->moi() ? $message->getAuteurNom() : ($compte->isFamille() ? $compte->getEmail() : trim($compte->getPrenom() . ' ' . $compte->getNom()))) . '.');
         }
 
         return $this->redirect($this->generateUrl('app_message_voir', ['id' => $message->getId()]) . '#fil-' . $famille);
@@ -267,6 +313,16 @@ class MessageController extends AbstractController
                 $libelle = 1 === \count($liste) ? $liste[0]->getNomComplet() : \sprintf('%d joueurs : %s', \count($liste), implode(', ', array_map(fn (Joueur $j) => $j->getPrenom() . ' ' . $j->getNom(), $liste)));
 
                 return [$liste, $libelle, 1 === \count($cats) ? $liste[0]->getCategorie() : null, null];
+            case 'encadrement':
+                $personnes = array_values($d['personnes'] instanceof \Traversable ? iterator_to_array($d['personnes']) : (array) $d['personnes']);
+                if (!$personnes) {
+                    $form->get('personnes')->addError(new FormError('Cochez au moins une personne.'));
+
+                    return [[], '', null, null, []];
+                }
+                $libelle = implode(', ', array_map(fn (Utilisateur $u) => trim($u->getPrenom() . ' ' . $u->getNom()), $personnes));
+
+                return [[], $libelle, null, null, $personnes];
             case 'club':
                 if ($this->isGranted('ROLE_ADMIN')) {
                     return [$joueurs->findBy(['ancien' => false], ['nom' => 'ASC']), 'Tout le club', null, null];
@@ -306,7 +362,7 @@ class MessageController extends AbstractController
 
     private function verifier(Message $message): void
     {
-        if (!$this->messages->estVisible($message, $this->moi(), $this->secteurs())) {
+        if (!$this->messages->estVisible($message, $this->moi(), $this->secteurs()) && !$message->estDestinataire($this->moi())) {
             throw $this->createAccessDeniedException();
         }
     }

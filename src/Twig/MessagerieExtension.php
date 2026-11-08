@@ -40,7 +40,9 @@ class MessagerieExtension extends AbstractExtension
             return $this->messages->nonLusFamille($u);
         }
 
-        return $this->messages->reponsesNonLues($u, $this->security->isGranted('ROLE_ADMIN') ? null : $this->joueurs->secteursModifiables());
+        // Encadrement : réponses des familles (et des collègues) non lues, plus les messages reçus de collègues.
+        return $this->messages->reponsesNonLues($u, $this->security->isGranted('ROLE_ADMIN') ? null : $this->joueurs->secteursModifiables())
+            + $this->messages->nonLusRecus($u);
     }
 
     private function utilisateur(): ?Utilisateur

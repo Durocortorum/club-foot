@@ -759,3 +759,7 @@ table.droits thead th.droits-nom { z-index: 3; }
     .repondre { flex-direction: column; align-items: stretch; }
 }
 [data-message-target="bloc"][hidden] { display: none; }
+.liste-simple { list-style: none; margin: 0; padding: 0; background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--rayon); }
+.liste-simple li { padding: .6rem 1rem; }
+.liste-simple li + li { border-top: 1px solid var(--bordure); }
+.repondre-premier summary { cursor: pointer; color: var(--rouge); font-size: .9rem; margin-top: .3rem; }

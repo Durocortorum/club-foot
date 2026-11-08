@@ -24,6 +24,7 @@ class Message implements AppartientAuClub
         'categorie' => 'Une catégorie',
         'convocation' => 'Les convoqués d\'un match',
         'joueurs' => 'Des joueurs choisis',
+        'encadrement' => 'Des membres de l\'encadrement',
         'club' => 'Tout le club',
     ];
 
@@ -208,7 +209,7 @@ class Message implements AppartientAuClub
         return $this->destinataires;
     }
 
-    public function ajouterDestinataire(Joueur $joueur, ?Utilisateur $compte): static
+    public function ajouterDestinataire(?Joueur $joueur, ?Utilisateur $compte): static
     {
         $this->destinataires->add(new MessageDestinataire($this, $joueur, $compte));
 
@@ -236,7 +237,9 @@ class Message implements AppartientAuClub
     {
         $joueurs = [];
         foreach ($this->destinataires as $d) {
-            $joueurs[$d->getJoueur()->getId()] = $d->getJoueur();
+            if ($j = $d->getJoueur()) {
+                $joueurs[$j->getId()] = $j;
+            }
         }
         usort($joueurs, fn (Joueur $a, Joueur $b) => [$a->getNom(), $a->getPrenom()] <=> [$b->getNom(), $b->getPrenom()]);
 
@@ -255,10 +258,23 @@ class Message implements AppartientAuClub
         return $this->destinataires->exists(fn ($i, MessageDestinataire $d) => $d->getCompte() === $compte);
     }
 
-    /** Joueurs dont au moins un compte famille a lu le message. */
+    /** Destinataires membres de l'encadrement (message à des collègues). @return list<MessageDestinataire> */
+    public function destinatairesEncadrement(): array
+    {
+        return array_values($this->destinataires->filter(fn (MessageDestinataire $d) => null === $d->getJoueur())->toArray());
+    }
+
+    /** Nombre de destinataires : joueurs (familles) ou membres de l'encadrement. */
+    public function nombreDestinataires(): int
+    {
+        return \count($this->getJoueurs()) + \count($this->destinatairesEncadrement());
+    }
+
+    /** Joueurs dont au moins un compte famille a lu le message, plus les membres de l'encadrement qui l'ont lu. */
     public function nombreLus(): int
     {
-        return \count(array_filter($this->getJoueurs(), fn (Joueur $j) => array_filter($this->destinatairesDe($j), fn (MessageDestinataire $d) => null !== $d->getLuLe())));
+        return \count(array_filter($this->getJoueurs(), fn (Joueur $j) => array_filter($this->destinatairesDe($j), fn (MessageDestinataire $d) => null !== $d->getLuLe())))
+            + \count(array_filter($this->destinatairesEncadrement(), fn (MessageDestinataire $d) => null !== $d->getLuLe()));
     }
 
     /** Réponses des familles pas encore lues par l'encadrement. */

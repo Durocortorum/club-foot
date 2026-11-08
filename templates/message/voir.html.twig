@@ -20,19 +20,19 @@
     <section class="carte message-corps">{{ message.corps|nl2br }}</section>
 
     <section class="bloc" id="reponses">
-        <h2 class="titre-bloc">Réponses des familles</h2>
+        <h2 class="titre-bloc">{{ message.cible == 'encadrement' ? 'Réponses' : 'Réponses des familles' }}</h2>
         {% for id, f in fils %}
             <div class="carte fil" id="fil-{{ id }}">
-                <h3>{{ f.famille.email }}{% if f.joueurs %} <span class="discret petit">({{ f.joueurs|map(j => j.prenom ~ ' ' ~ j.nom)|join(', ') }})</span>{% endif %}</h3>
+                <h3>{{ f.famille.famille ? f.famille.email : f.famille.prenom ~ ' ' ~ f.famille.nom }}{% if f.joueurs %} <span class="discret petit">({{ f.joueurs|map(j => j.prenom ~ ' ' ~ j.nom)|join(', ') }})</span>{% endif %}</h3>
                 {% for r in f.reponses %}
                     <div class="bulle {{ r.deLEncadrement ? 'encadrement' : 'famille' }}">
-                        <div class="bulle-entete">{{ r.deLEncadrement ? r.auteurNom : 'Famille' }} · {{ r.creeLe|date('d/m à H:i') }}</div>
+                        <div class="bulle-entete">{{ r.deLEncadrement or not f.famille.famille ? r.auteurNom : 'Famille' }} · {{ r.creeLe|date('d/m à H:i') }}</div>
                         {{ r.corps|nl2br }}
                     </div>
                 {% endfor %}
                 <form method="post" action="{{ path('app_message_repondre', {id: message.id, famille: id}) }}" class="repondre">
                     <input type="hidden" name="_token" value="{{ csrf_token('repondre-message' ~ message.id ~ '-' ~ id) }}">
-                    <textarea name="corps" rows="2" maxlength="3000" required placeholder="Répondre à cette famille" aria-label="Réponse à {{ f.famille.email }}"></textarea>
+                    <textarea name="corps" rows="2" maxlength="3000" required placeholder="Répondre" aria-label="Réponse à {{ f.famille.email }}"></textarea>
                     <button class="bouton principal">Répondre</button>
                 </form>
             </div>
@@ -41,6 +41,32 @@
         {% endfor %}
     </section>
 
+    {% set collegues = message.destinatairesEncadrement %}
+    {% if collegues %}
+        <section class="bloc">
+            <h2 class="titre-bloc">Destinataires <span class="compteur">{{ collegues|length }}</span></h2>
+            <ul class="liste-simple">
+                {% for d in collegues %}
+                    <li>
+                        {{ d.compte.prenom }} {{ d.compte.nom }}
+                        {% if d.luLe %}<span class="pastille succes" title="Lu le {{ d.luLe|date('d/m/Y à H:i') }}">lu</span>{% else %}<span class="pastille">non lu</span>{% endif %}
+                        {% if not fils[d.compte.id] is defined %}
+                            <details class="repondre-premier">
+                                <summary>Écrire à {{ d.compte.prenom }}</summary>
+                                <form method="post" action="{{ path('app_message_repondre', {id: message.id, famille: d.compte.id}) }}" class="repondre">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('repondre-message' ~ message.id ~ '-' ~ d.compte.id) }}">
+                                    <textarea name="corps" rows="2" maxlength="3000" required aria-label="Message à {{ d.compte.prenom }}"></textarea>
+                                    <button class="bouton principal">Envoyer</button>
+                                </form>
+                            </details>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {% if lignes %}
     <section class="bloc">
         <h2 class="titre-bloc">Destinataires <span class="compteur">{{ lignes|length }}</span></h2>
         <p class="discret petit">{{ message.nombreLus }} {{ accord(message.nombreLus, 'joueur') }} sur {{ lignes|length }} : message lu par au moins un compte de la famille.</p>
@@ -69,8 +95,9 @@
             </table>
         </div>
     </section>
+    {% endif %}
 
-    {% if sans_compte or not email_actif %}
+    {% if lignes and (sans_compte or not email_actif) %}
         <section class="carte bloc" data-controller="copier" data-copier-texte-value="{{ texte_a_copier }}">
             <h2>À prévenir autrement</h2>
             {% if sans_compte %}

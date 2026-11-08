@@ -46,6 +46,14 @@ class MessageRepository extends ServiceEntityRepository
     }
 
     /**
+     * Messages reçus par un membre de l'encadrement (d'un collègue), non lus ou avec une réponse non lue.
+     */
+    public function nonLusRecus(Utilisateur $moi): int
+    {
+        return $this->nonLusFamille($moi);
+    }
+
+    /**
      * Réponses des familles pas encore lues par l'encadrement, dans les messages visibles.
      *
      * @param list<string>|null $secteurs
@@ -56,6 +64,8 @@ class MessageRepository extends ServiceEntityRepository
             ->select('COUNT(r.id)')
             ->join('m.reponses', 'r')
             ->andWhere('r.deLEncadrement = false')->andWhere('r.lu = false')
+            // Ses propres réponses (collègue destinataire qui voit aussi le message) ne comptent pas.
+            ->andWhere('r.auteur IS NULL OR r.auteur != :moi_r')->setParameter('moi_r', $moi)
             ->getQuery()->getSingleScalarResult();
     }
 

@@ -7,6 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * Destinataire d'un message : un joueur et l'un des comptes famille qui le suivent (parent, joueur majeur).
  * Compte null : le joueur n'a pas de compte famille, l'encadrement le prévient autrement (WhatsApp, SMS).
+ * Joueur null : message à un membre de l'encadrement (compte de l'encadrement).
  */
 #[ORM\Entity]
 #[ORM\Index(columns: ['compte_id', 'lu_le'])]
@@ -24,8 +25,8 @@ class MessageDestinataire implements AppartientAuClub
     private Message $message;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private Joueur $joueur;
+    #[ORM\JoinColumn(onDelete: 'CASCADE')]
+    private ?Joueur $joueur;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(onDelete: 'CASCADE')]
@@ -34,7 +35,7 @@ class MessageDestinataire implements AppartientAuClub
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $luLe = null;
 
-    public function __construct(Message $message, Joueur $joueur, ?Utilisateur $compte)
+    public function __construct(Message $message, ?Joueur $joueur, ?Utilisateur $compte)
     {
         $this->message = $message;
         $this->joueur = $joueur;
@@ -51,7 +52,7 @@ class MessageDestinataire implements AppartientAuClub
         return $this->message;
     }
 
-    public function getJoueur(): Joueur
+    public function getJoueur(): ?Joueur
     {
         return $this->joueur;
     }

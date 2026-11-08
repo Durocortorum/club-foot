@@ -7,8 +7,9 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Réponse dans le fil privé entre une famille (compte famille) et l'encadrement, sous un message.
- * Les autres familles ne la voient pas.
+ * Réponse dans le fil privé entre un destinataire (compte famille, ou collègue de l'encadrement pour un message
+ * entre membres de l'encadrement) et l'expéditeur, sous un message. Les autres destinataires ne la voient pas.
+ * « famille » : le compte destinataire du fil ; « deLEncadrement » : écrite côté expéditeur.
  */
 #[ORM\Entity]
 class MessageReponse implements AppartientAuClub
@@ -58,7 +59,8 @@ class MessageReponse implements AppartientAuClub
         $this->famille = $famille;
         $this->auteur = $auteur;
         $this->auteurNom = mb_substr($auteur->isFamille() ? (string) $auteur->getEmail() : (string) $auteur, 0, 120);
-        $this->deLEncadrement = !$auteur->isFamille();
+        // Côté de l'expéditeur du message (sinon : l'interlocuteur du fil, famille ou collègue destinataire).
+        $this->deLEncadrement = $auteur !== $famille;
         $this->corps = trim($corps);
         $this->creeLe = new \DateTimeImmutable();
         $message->getReponses()->add($this);

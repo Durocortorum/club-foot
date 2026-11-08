@@ -174,6 +174,76 @@ class MessagerieTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    /** Le coach écrit à un collègue : lecture, réponse privée, et un tiers de l'encadrement n'y a pas accès. */
+    public function testEntreMembresDeLEncadrement(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Dupont')->setPrenom('Admin');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = $this->em();
+        $coach = (new Utilisateur())->setClub($club)->setEmail("coach-$id@exemple.test")->setNom('Bernard')->setPrenom('Coach')->setRolesAttribues(['ROLE_ECOLE_FOOT'])->setPassword('x');
+        $kine = (new Utilisateur())->setClub($club)->setEmail("kine-$id@exemple.test")->setNom('Petit')->setPrenom('Julie')->setRolesAttribues(['ROLE_PRO'])->setPassword('x');
+        $tiers = (new Utilisateur())->setClub($club)->setEmail("tiers-$id@exemple.test")->setNom('Roux')->setPrenom('Paul')->setRolesAttribues(['ROLE_PRO'])->setPassword('x');
+        foreach ([$coach, $kine, $tiers] as $u) {
+            $em->persist($u);
+        }
+        $em->flush();
+
+        $this->client->loginUser($coach);
+        $crawler = $this->client->request('GET', '/messages/nouveau');
+        self::assertSelectorExists('input[name="form[cible]"][value="encadrement"]');
+        self::assertSelectorNotExists('input[name="form[cible]"][value="club"]');
+        $form = $crawler->selectButton('Envoyer')->form();
+        $form['form[cible]']->select('encadrement');
+        foreach ($form['form[personnes]'] as $case) {
+            if ($case->availableOptionValues() === [(string) $kine->getId()]) {
+                $case->tick();
+            }
+        }
+        $this->client->submit($form, ['form[sujet]' => 'Léa : reprise ?', 'form[corps]' => 'Peut-elle reprendre samedi ?']);
+        self::assertResponseRedirects();
+        self::assertCount(1, $this->emails("kine-$id@exemple.test"));
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'Message envoyé à 1 personne');
+        self::assertSelectorTextContains('main', 'Julie Petit');
+        $message = $this->dernierMessage();
+
+        // La kiné : pastille, « Reçus de collègues », lecture et réponse privée.
+        $this->client->loginUser($kine);
+        $this->client->request('GET', '/messages');
+        self::assertSelectorTextContains('nav.menu', 'Messages 1');
+        self::assertSelectorTextContains('.boite-reception .non-lu', 'Léa : reprise ?');
+        $crawler = $this->client->request('GET', '/messages/' . $message->getId());
+        self::assertSelectorTextContains('main', 'Votre conversation avec Coach Bernard');
+        $this->client->submit($crawler->selectButton('Envoyer')->form(), ['corps' => 'Oui, sans contact.']);
+        self::assertResponseRedirects('/messages/' . $message->getId() . '#fil-' . $kine->getId());
+        self::assertCount(1, $this->emails("coach-$id@exemple.test"));
+        $this->client->request('GET', '/messages');
+        self::assertSelectorNotExists('nav.menu .pastille.alerte');
+
+        // Un autre membre de l'encadrement : ni lecture, ni réponse.
+        $this->client->loginUser($tiers);
+        $this->client->request('GET', '/messages/' . $message->getId());
+        self::assertResponseStatusCodeSame(403);
+
+        // Le coach voit la réponse et répond ; la kiné la reçoit.
+        $this->client->loginUser($coach);
+        $this->client->request('GET', '/messages');
+        self::assertSelectorTextContains('nav.menu', 'Messages 1');
+        $crawler = $this->client->request('GET', '/messages/' . $message->getId());
+        self::assertSelectorTextContains('#fil-' . $kine->getId(), 'Oui, sans contact.');
+        self::assertSelectorTextContains('#fil-' . $kine->getId() . ' .bulle', 'Julie Petit');
+        $this->client->submit($crawler->filter('#fil-' . $kine->getId() . ' form')->form(), ['corps' => 'Merci !']);
+        self::assertCount(1, $this->emails("kine-$id@exemple.test"));
+        $this->client->loginUser($kine);
+        $this->client->request('GET', '/messages');
+        self::assertSelectorTextContains('nav.menu', 'Messages 1');
+        $this->client->request('GET', '/messages/' . $message->getId());
+        self::assertSelectorTextContains('#fil-' . $kine->getId(), 'Merci !');
+    }
+
     private function dernierMessage(): Message
     {
         $this->em()->clear();

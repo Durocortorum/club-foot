@@ -29,14 +29,19 @@ class Messagerie
     }
 
     /**
-     * @param iterable<Joueur> $joueurs
+     * @param iterable<Joueur>      $joueurs familles destinataires
+     * @param iterable<Utilisateur> $collegues membres de l'encadrement destinataires
      *
      * @return array{emails: int, sans_compte: list<Joueur>, echecs: list<string>}
      */
-    public function envoyer(Message $message, iterable $joueurs, bool $parEmail): array
+    public function envoyer(Message $message, iterable $joueurs, bool $parEmail, iterable $collegues = []): array
     {
         $resultat = ['emails' => 0, 'sans_compte' => [], 'echecs' => []];
         $prevenus = [];
+        foreach ($collegues as $compte) {
+            $message->ajouterDestinataire(null, $compte);
+            $prevenus[$compte->getId()] = $compte;
+        }
         foreach ($joueurs as $joueur) {
             $comptes = $this->acces->comptes($joueur);
             foreach ($comptes as $compte) {
@@ -63,8 +68,8 @@ class Messagerie
                     'titre' => $message->getSujet(),
                     'paragraphes' => preg_split('/\R{2,}/', (string) $message->getCorps()),
                     'details' => ['De' => $message->getAuteurNom(), 'Pour' => $message->getCibleLibelle()],
-                    'bouton' => ['libelle' => 'Lire et répondre', 'url' => $this->urls->generate('app_espace_message', ['id' => $message->getId()], UrlGeneratorInterface::ABSOLUTE_URL)],
-                    'note' => 'Pour répondre, utilisez le bouton ci-dessus : votre réponse arrive directement à l\'encadrement.',
+                    'bouton' => ['libelle' => 'Lire et répondre', 'url' => $this->lien($message, $compte)],
+                    'note' => 'Pour répondre, utilisez le bouton ci-dessus : votre réponse arrive directement à ' . ($compte->isFamille() ? 'l\'encadrement.' : $message->getAuteurNom() . '.'),
                 ], $resultat);
             }
         }
@@ -85,7 +90,7 @@ class Messagerie
             $this->envoyerEmail($message, $reponse->getFamille(), \sprintf('%s : réponse à « %s »', $club, $message->getSujet()), [
                 'titre' => 'Réponse de ' . $reponse->getAuteurNom(),
                 'paragraphes' => preg_split('/\R{2,}/', $reponse->getCorps()),
-                'bouton' => ['libelle' => 'Voir la conversation', 'url' => $this->urls->generate('app_espace_message', ['id' => $message->getId()], UrlGeneratorInterface::ABSOLUTE_URL)],
+                'bouton' => ['libelle' => 'Voir la conversation', 'url' => $this->lien($message, $reponse->getFamille())],
             ], $sansSuite);
         } elseif ($message->getAuteur() && !$message->getAuteur()->isFamille()) {
             $this->envoyerEmail($message, $message->getAuteur(), \sprintf('%s : une famille a répondu à « %s »', $club, $message->getSujet()), [
@@ -94,6 +99,12 @@ class Messagerie
                 'bouton' => ['libelle' => 'Voir et répondre', 'url' => $this->urls->generate('app_message_voir', ['id' => $message->getId()], UrlGeneratorInterface::ABSOLUTE_URL) . '#fil-' . $reponse->getFamille()->getId()],
             ], $sansSuite);
         }
+    }
+
+    /** Lien du message pour son destinataire : espace famille, ou page « Messages » de l'encadrement. */
+    private function lien(Message $message, Utilisateur $destinataire): string
+    {
+        return $this->urls->generate($destinataire->isFamille() ? 'app_espace_message' : 'app_message_voir', ['id' => $message->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
     }
 
     /**
