@@ -691,3 +691,14 @@ table.droits thead th.droits-nom { z-index: 3; }
 /* Choix de période à droite d'un titre (détail des matchs, statistiques). */
 .titre-page > select { width: auto; flex: 0 1 auto; }
 .titre-page > h3 { margin: 0; }
+
+/* Grille des présences : bouton ✓ d'un créneau, coché quand toute la colonne est remplie. */
+.coche-creneau.coche { background: var(--succes); border-color: var(--succes); color: #fff; }
+/* Nom du joueur toujours visible quand on fait défiler la grille vers la droite (téléphone). */
+.grille-presence th:first-child, .grille-presence td:first-child { position: sticky; left: 0; z-index: 1; background: #fff; box-shadow: 1px 0 0 var(--bordure); }
+.grille-presence tbody tr:hover td:first-child { background: #fafafb; }
+@media (max-width: 700px) {
+    .grille-presence td:first-child { white-space: normal; min-width: 6.5rem; max-width: 8rem; font-size: .85rem; line-height: 1.2; }
+    .grille-presence td:first-child .avatar { display: none; }
+    select.creneau { width: 5.4rem; }
+}

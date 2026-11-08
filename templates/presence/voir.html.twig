@@ -19,7 +19,7 @@
 
     <p class="discret petit">
         Pour chaque demi-journée : l'équipe avec laquelle le joueur s'est entraîné, ou le motif d'absence.
-        Laissez vide s'il n'y avait pas de séance. Le bouton ✓ sous un créneau marque présents tous les joueurs encore vides.
+        Laissez vide s'il n'y avait pas de séance. Le bouton ✓ sous un créneau marque présents tous les joueurs encore vides ; un second clic le décoche et vide les présents de la colonne (les absences restent).
     </p>
 
     <form method="post" data-controller="presence" data-presence-equipe-value="{{ equipe }}">
@@ -38,7 +38,7 @@
                     <tr class="remplir">
                         <th></th>
                         {% for cle, libelle in creneaux %}
-                            <th><button type="button" class="bouton petit" data-action="presence#remplir" data-presence-creneau-param="{{ cle }}" title="Tous présents – {{ libelle }}">✓</button></th>
+                            <th><button type="button" class="bouton petit coche-creneau" data-action="presence#remplir" data-presence-creneau-param="{{ cle }}" data-libelle="{{ libelle }}" aria-pressed="false" title="Cocher : tous présents – {{ libelle }}">✓</button></th>
                         {% endfor %}
                         <th></th><th></th>
                     </tr>
