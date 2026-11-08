@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ message.sujet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_espace_messages') }}">← Messages</a></p>
+
+    <h1>{{ message.sujet }}</h1>
+    <p class="discret">Envoyé le {{ message.creeLe|date('d/m/Y à H:i') }} à {{ message.cibleLibelle }}</p>
+
+    <section class="carte message-corps">{{ message.corps|nl2br }}</section>
+
+    <section class="bloc" id="reponses">
+        <h2 class="titre-bloc">Réponses</h2>
+        {% for f in fils %}
+            {% set dest = f.destinataire %}
+            <div class="carte fil" id="fil-{{ dest.compte.id }}">
+                <h3>{{ dest.compte }} {% if dest.luLe %}<span class="pastille succes">lu</span>{% else %}<span class="pastille">pas encore lu</span>{% endif %}</h3>
+                {% for r in f.reponses %}
+                    <div class="bulle {{ r.auteur == app.user ? 'encadrement' : 'famille' }}">
+                        <div class="bulle-entete">{{ r.auteur == app.user ? 'Vous' : r.auteurNom }} · {{ r.creeLe|date('d/m à H:i') }}</div>
+                        {{ r.corps|nl2br }}
+                    </div>
+                {% endfor %}
+                {% if f.reponses %}
+                    <form method="post" action="{{ path('app_espace_message_repondre', {id: message.id, a: dest.compte.id}) }}" class="repondre">
+                        <input type="hidden" name="_token" value="{{ csrf_token('repondre-message' ~ message.id ~ '-' ~ dest.compte.id) }}">
+                        <textarea name="corps" rows="2" maxlength="3000" required placeholder="Répondre" aria-label="Réponse à {{ dest.compte }}"></textarea>
+                        <button class="bouton principal">Répondre</button>
+                    </form>
+                {% else %}
+                    <p class="discret petit">Pas encore de réponse.</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </section>
+{% endblock %}

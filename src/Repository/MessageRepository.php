@@ -41,8 +41,26 @@ class MessageRepository extends ServiceEntityRepository
     /** @param list<string>|null $secteurs */
     public function estVisible(Message $message, Utilisateur $moi, ?array $secteurs): bool
     {
+        // Message écrit par une famille : privé, seulement ses destinataires (voir MessageController::verifier).
+        if ($message->getAuteur()?->isFamille()) {
+            return false;
+        }
+
         return null === $secteurs || $message->getAuteur() === $moi
             || \in_array($message->getCategorie()?->getSecteur(), $secteurs, true);
+    }
+
+    /**
+     * Messages écrits par un compte famille à l'encadrement, avec les réponses non lues.
+     *
+     * @return list<array{message: Message, nouvelles_reponses: int}>
+     */
+    public function envoyesPar(Utilisateur $famille): array
+    {
+        return array_map(fn (Message $m) => ['message' => $m, 'nouvelles_reponses' => $m->reponsesNonLues()], $this->createQueryBuilder('m')
+            ->andWhere('m.auteur = :moi')->setParameter('moi', $famille)
+            ->orderBy('m.creeLe', 'DESC')
+            ->getQuery()->getResult());
     }
 
     /**
@@ -50,7 +68,8 @@ class MessageRepository extends ServiceEntityRepository
      */
     public function nonLusRecus(Utilisateur $moi): int
     {
-        return $this->nonLusFamille($moi);
+        // Les réponses à ses propres messages sont déjà comptées par reponsesNonLues().
+        return $this->nonLusFamille($moi, false);
     }
 
     /**
@@ -96,14 +115,21 @@ class MessageRepository extends ServiceEntityRepository
     }
 
     /** Messages non lus et réponses de l'encadrement non lues, pour un compte famille. */
-    public function nonLusFamille(Utilisateur $famille): int
+    public function nonLusFamille(Utilisateur $famille, bool $avecEnvoyes = true): int
     {
         $messages = (int) $this->getEntityManager()->createQueryBuilder()
             ->select('COUNT(DISTINCT IDENTITY(d.message))')->from(MessageDestinataire::class, 'd')
             ->andWhere('d.compte = :moi')->andWhere('d.luLe IS NULL')->setParameter('moi', $famille)
             ->getQuery()->getSingleScalarResult();
 
-        return $messages + \count($this->reponsesEncadrementNonLues($famille));
+        // Réponses de l'encadrement aux messages que ce compte a lui-même écrits.
+        $reponses = !$avecEnvoyes ? 0 : (int) $this->getEntityManager()->createQueryBuilder()
+            ->select('COUNT(r.id)')->from(MessageReponse::class, 'r')->join('r.message', 'm')
+            ->andWhere('m.auteur = :moi')->andWhere('r.deLEncadrement = false')->andWhere('r.lu = false')
+            ->setParameter('moi', $famille)
+            ->getQuery()->getSingleScalarResult();
+
+        return $messages + \count($this->reponsesEncadrementNonLues($famille)) + $reponses;
     }
 
     /**
@@ -134,7 +160,9 @@ class MessageRepository extends ServiceEntityRepository
     /** @param list<string>|null $secteurs */
     private function visibles(Utilisateur $moi, ?array $secteurs): QueryBuilder
     {
-        $qb = $this->createQueryBuilder('m');
+        // Les messages écrits par les familles sont privés : seulement dans « Reçus » de leurs destinataires.
+        $qb = $this->createQueryBuilder('m')
+            ->leftJoin('m.auteur', 'au')->andWhere('au.id IS NULL OR au.famille = false');
         if (null !== $secteurs) {
             $qb->leftJoin('m.categorie', 'c')
                 ->andWhere('m.auteur = :moi OR c.secteur IN (:secteurs)')

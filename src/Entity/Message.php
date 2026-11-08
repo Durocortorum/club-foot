@@ -114,6 +114,13 @@ class Message implements AppartientAuClub
         return $this->auteurNom;
     }
 
+    public function setAuteurNom(string $nom): static
+    {
+        $this->auteurNom = mb_substr($nom, 0, 120);
+
+        return $this;
+    }
+
     public function getSujet(): ?string
     {
         return $this->sujet;

@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Écrire à l'encadrement{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_espace_messages') }}">← Messages</a></p>
+    <h1>Écrire à l'encadrement</h1>
+
+    {% if groupes %}
+        <form method="post" class="formulaire" novalidate>
+            <input type="hidden" name="_token" value="{{ csrf_token('message-famille') }}">
+            <section class="carte etape">
+                <h2>À qui ?</h2>
+                {% if erreurs.a is defined %}<p class="erreur-champ">{{ erreurs.a }}</p>{% endif %}
+                <div class="joueurs-choix">
+                    {% for groupe, comptes in groupes %}
+                        <fieldset>
+                            <legend>{{ groupe }}</legend>
+                            {% for u in comptes %}
+                                <label class="case-joueur"><input type="checkbox" name="a[]" value="{{ u.id }}" {{ u.id in choisis or (groupes|length == 1 and comptes|length == 1) ? 'checked' }}> {{ u }}</label>
+                            {% endfor %}
+                        </fieldset>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="carte etape">
+                <h2>Message</h2>
+                <div class="champs une-colonne">
+                    <div class="champ">
+                        <label for="sujet">Objet</label>
+                        <input type="text" id="sujet" name="sujet" maxlength="120" value="{{ saisie.sujet }}" placeholder="ex. Absence samedi">
+                        {% if erreurs.sujet is defined %}<p class="erreur-champ">{{ erreurs.sujet }}</p>{% endif %}
+                    </div>
+                    <div class="champ">
+                        <label for="corps">Message</label>
+                        <textarea id="corps" name="corps" rows="8" maxlength="5000">{{ saisie.corps }}</textarea>
+                        {% if erreurs.corps is defined %}<p class="erreur-champ">{{ erreurs.corps }}</p>{% endif %}
+                    </div>
+                </div>
+                <p class="discret petit">Seules les personnes choisies lisent votre message ; elles vous répondent ici.</p>
+            </section>
+
+            <div class="barre-actions">
+                <button type="submit" class="bouton principal">Envoyer</button>
+            </div>
+        </form>
+    {% else %}
+        <p class="discret">Personne à qui écrire pour l'instant : le club n'a pas encore d'éducateur avec un compte pour votre catégorie.</p>
+    {% endif %}
+{% endblock %}

@@ -763,3 +763,4 @@ table.droits thead th.droits-nom { z-index: 3; }
 .liste-simple li { padding: .6rem 1rem; }
 .liste-simple li + li { border-top: 1px solid var(--bordure); }
 .repondre-premier summary { cursor: pointer; color: var(--rouge); font-size: .9rem; margin-top: .3rem; }
+.erreur-champ { color: var(--danger-fonce); margin: .3rem 0 0; font-size: .85rem; }

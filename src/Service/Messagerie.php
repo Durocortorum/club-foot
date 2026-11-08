@@ -92,13 +92,61 @@ class Messagerie
                 'paragraphes' => preg_split('/\R{2,}/', $reponse->getCorps()),
                 'bouton' => ['libelle' => 'Voir la conversation', 'url' => $this->lien($message, $reponse->getFamille())],
             ], $sansSuite);
-        } elseif ($message->getAuteur() && !$message->getAuteur()->isFamille()) {
-            $this->envoyerEmail($message, $message->getAuteur(), \sprintf('%s : une famille a répondu à « %s »', $club, $message->getSujet()), [
+        } elseif ($auteur = $message->getAuteur()) {
+            $this->envoyerEmail($message, $auteur, \sprintf('%s : %s a répondu à « %s »', $club, $reponse->getAuteurNom(), $message->getSujet()), [
                 'titre' => 'Réponse de ' . $reponse->getAuteurNom(),
                 'paragraphes' => preg_split('/\R{2,}/', $reponse->getCorps()),
-                'bouton' => ['libelle' => 'Voir et répondre', 'url' => $this->urls->generate('app_message_voir', ['id' => $message->getId()], UrlGeneratorInterface::ABSOLUTE_URL) . '#fil-' . $reponse->getFamille()->getId()],
+                'bouton' => ['libelle' => 'Voir et répondre', 'url' => $this->lien($message, $auteur) . '#fil-' . $reponse->getFamille()->getId()],
             ], $sansSuite);
         }
+    }
+
+    /**
+     * Nom d'un compte famille pour l'encadrement : « Nicolas Descotes (joueur) » (compte du joueur lui-même)
+     * ou « Parent de Léa, Tom ».
+     */
+    public function nomFamille(Utilisateur $compte): string
+    {
+        foreach ($compte->getJoueurs() as $j) {
+            if ($this->acces->estLeJoueur($compte, $j)) {
+                return $j->getPrenom() . ' ' . $j->getNom() . ' (joueur)';
+            }
+        }
+        $prenoms = array_map(fn (Joueur $j) => $j->getPrenom(), $compte->getJoueurs()->toArray());
+
+        return $prenoms ? 'Parent de ' . implode(', ', $prenoms) : (string) $compte->getEmail();
+    }
+
+    /**
+     * Membres de l'encadrement à qui un compte famille peut écrire : ceux qui gèrent la catégorie de l'un de
+     * ses joueurs (droit du secteur), et les administrateurs. Groupés pour l'affichage.
+     *
+     * @param list<Utilisateur> $encadrement comptes de l'encadrement du club
+     *
+     * @return array<string, list<Utilisateur>> libellé du groupe => comptes
+     */
+    public function interlocuteurs(Utilisateur $famille, array $encadrement): array
+    {
+        $groupes = [];
+        foreach ($famille->getJoueurs() as $j) {
+            $categorie = $j->getCategorie();
+            $role = \App\Entity\Categorie::SECTEURS[$categorie?->getSecteur()]['role'] ?? null;
+            if (!$categorie || !$role) {
+                continue;
+            }
+            foreach ($encadrement as $u) {
+                if (\in_array($role, $u->getRolesAttribues(), true) && !$u->isAdmin()) {
+                    $groupes['Éducateurs ' . $categorie->getNom()][$u->getId()] = $u;
+                }
+            }
+        }
+        foreach ($encadrement as $u) {
+            if ($u->isAdmin()) {
+                $groupes['Direction du club'][$u->getId()] = $u;
+            }
+        }
+
+        return array_map('array_values', $groupes);
     }
 
     /** Lien du message pour son destinataire : espace famille, ou page « Messages » de l'encadrement. */

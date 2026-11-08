@@ -165,7 +165,7 @@ class MessagerieTest extends WebTestCase
         $this->client->request('GET', '/espace');
         self::assertSelectorTextContains('nav.menu', 'Messages 1');
         $this->client->request('GET', '/espace/messages/' . $important->getId());
-        self::assertSelectorTextContains('#reponses', 'Parfait, bonne journée.');
+        self::assertSelectorTextContains('#fil-' . $parent->getId(), 'Parfait, bonne journée.');
 
         // Suppression par l'auteur : la famille ne le voit plus.
         $this->client->loginUser($admin);
@@ -249,6 +249,77 @@ class MessagerieTest extends WebTestCase
         self::assertSelectorTextContains('nav.menu', 'Messages 1');
         $this->client->request('GET', '/messages/' . $message->getId());
         self::assertSelectorTextContains('#fil-' . $kine->getId(), 'Merci !');
+    }
+
+    /** Un joueur (ou un parent) écrit à l'éducateur de sa catégorie : message privé, réponse dans son espace. */
+    public function testFamilleEcritALEncadrement(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Dupont')->setPrenom('Admin');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = $this->em();
+        $categorie = $em->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+        // Joueur majeur avec son propre compte (adresse « joueur » de sa fiche).
+        $nico = (new Joueur())->setClub($club)->setCategorie($categorie)->setNom('Descotes')->setPrenom('Nicolas')->setEmailJoueur("nico-$id@exemple.test");
+        $em->persist($nico);
+        $compte = (new Utilisateur())->setClub($club)->setFamille(true)->setEmail("nico-$id@exemple.test")->setNom('Descotes')->setPrenom('Nicolas')->setPassword('x')->addJoueur($nico);
+        $coach = (new Utilisateur())->setClub($club)->setEmail("coach-$id@exemple.test")->setNom('Bernard')->setPrenom('Coach')->setRolesAttribues(['ROLE_ECOLE_FOOT'])->setPassword('x');
+        $autre = (new Utilisateur())->setClub($club)->setEmail("pro-$id@exemple.test")->setNom('Roux')->setPrenom('Paul')->setRolesAttribues(['ROLE_PRO'])->setPassword('x');
+        foreach ([$compte, $coach, $autre] as $u) {
+            $em->persist($u);
+        }
+        $em->flush();
+
+        // Le joueur : éducateurs de sa catégorie et direction, pas les autres secteurs.
+        $this->client->loginUser($compte);
+        $crawler = $this->client->request('GET', '/espace/messages');
+        $crawler = $this->client->click($crawler->selectLink('+ Écrire à l\'encadrement')->link());
+        self::assertSelectorExists('input[name="a[]"][value="' . $coach->getId() . '"]');
+        self::assertSelectorExists('input[name="a[]"][value="' . $admin->getId() . '"]');
+        self::assertSelectorNotExists('input[name="a[]"][value="' . $autre->getId() . '"]');
+        self::assertSelectorTextContains('main', 'Éducateurs ' . $categorie->getNom());
+        // Destinataire hors liste : refusé.
+        $jeton = $crawler->filter('input[name="_token"]')->attr('value');
+        $this->client->request('POST', '/espace/messages/nouveau', ['_token' => $jeton, 'a' => [$autre->getId()], 'sujet' => 'x', 'corps' => 'y']);
+        self::assertResponseStatusCodeSame(422);
+        $this->client->request('POST', '/espace/messages/nouveau', ['_token' => $jeton, 'a' => [$coach->getId()], 'sujet' => 'Absent samedi', 'corps' => 'Je serai absent samedi.']);
+        self::assertResponseRedirects();
+        self::assertCount(1, $this->emails("coach-$id@exemple.test"));
+        $message = $this->dernierMessage();
+        self::assertSame('Nicolas Descotes (joueur)', $message->getAuteurNom());
+
+        // Le coach le reçoit (pastille, « Reçus de collègues »... de la famille), et répond.
+        $this->client->loginUser($coach);
+        $this->client->request('GET', '/messages');
+        self::assertSelectorTextContains('nav.menu', 'Messages 1');
+        self::assertSelectorTextContains('.boite-reception', 'Absent samedi');
+        $crawler = $this->client->request('GET', '/messages/' . $message->getId());
+        self::assertSelectorTextContains('main', 'Votre conversation avec Nicolas Descotes (joueur)');
+        $this->client->submit($crawler->selectButton('Envoyer')->form(), ['corps' => 'Merci de prévenir.']);
+        self::assertCount(1, $this->emails("nico-$id@exemple.test"));
+
+        // Privé : ni l'administrateur (non destinataire), ni un autre éducateur.
+        foreach ([$admin, $autre] as $u) {
+            $this->client->loginUser($u);
+            $this->client->request('GET', '/messages/' . $message->getId());
+            self::assertResponseStatusCodeSame(403);
+            $this->client->request('GET', '/messages');
+            self::assertSelectorTextNotContains('main', 'Absent samedi');
+        }
+
+        // Le joueur voit la réponse, et peut répondre encore.
+        $this->client->loginUser($compte);
+        $this->client->request('GET', '/espace/messages');
+        self::assertSelectorTextContains('nav.menu', 'Messages 1');
+        self::assertSelectorTextContains('.boite-reception', '1 réponse');
+        $crawler = $this->client->request('GET', '/espace/messages/' . $message->getId());
+        self::assertSelectorTextContains('#fil-' . $coach->getId(), 'Merci de prévenir.');
+        $this->client->submit($crawler->filter('#fil-' . $coach->getId() . ' form')->form(), ['corps' => 'Avec plaisir.']);
+        self::assertResponseRedirects('/espace/messages/' . $message->getId() . '#fil-' . $coach->getId());
+        $this->client->request('GET', '/espace/messages');
+        self::assertSelectorNotExists('nav.menu .pastille');
     }
 
     private function dernierMessage(): Message

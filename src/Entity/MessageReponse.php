@@ -53,12 +53,12 @@ class MessageReponse implements AppartientAuClub
     #[ORM\Column]
     private bool $lu = false;
 
-    public function __construct(Message $message, Utilisateur $famille, Utilisateur $auteur, string $corps)
+    public function __construct(Message $message, Utilisateur $famille, Utilisateur $auteur, string $corps, ?string $auteurNom = null)
     {
         $this->message = $message;
         $this->famille = $famille;
         $this->auteur = $auteur;
-        $this->auteurNom = mb_substr($auteur->isFamille() ? (string) $auteur->getEmail() : (string) $auteur, 0, 120);
+        $this->auteurNom = mb_substr($auteurNom ?? ($auteur->isFamille() ? (string) $auteur->getEmail() : (string) $auteur), 0, 120);
         // Côté de l'expéditeur du message (sinon : l'interlocuteur du fil, famille ou collègue destinataire).
         $this->deLEncadrement = $auteur !== $famille;
         $this->corps = trim($corps);

@@ -2,28 +2,44 @@
 
 {% block title %}Messages{% endblock %}
 
+{% macro ligne(msg, lu, nouvelles, info) %}
+    <li class="{{ not lu or nouvelles ? 'non-lu' }}">
+        <a href="{{ path('app_espace_message', {id: msg.id}) }}">
+            <span class="boite-sujet">
+                {% if not lu %}<span class="point-non-lu" aria-label="non lu"></span>{% endif %}
+                {{ msg.sujet }}
+                {% if msg.important %} <span class="pastille alerte">important</span>{% endif %}
+                {% if nouvelles %} <span class="pastille succes">{{ nouvelles }} {{ accord(nouvelles, 'réponse') }}</span>{% endif %}
+            </span>
+            <span class="boite-info discret petit">{{ info }} · {{ msg.creeLe|date('d/m/Y') }}</span>
+        </a>
+    </li>
+{% endmacro %}
+
 {% block body %}
     <p><a href="{{ path('app_espace') }}">← Mon espace</a></p>
-    <h1>Messages du club</h1>
+    <div class="titre-page">
+        <h1>Messages du club</h1>
+        <a class="bouton principal" href="{{ path('app_espace_message_nouveau') }}">+ Écrire à l'encadrement</a>
+    </div>
 
     {% if lignes %}
-        <ul class="boite-reception">
+        {% if envoyes %}<h2 class="titre-bloc">Reçus</h2>{% endif %}
+        <ul class="boite-reception bloc">
             {% for l in lignes %}
-                {% set msg = l.message %}
-                <li class="{{ not l.lu or l.nouvelles_reponses ? 'non-lu' }}">
-                    <a href="{{ path('app_espace_message', {id: msg.id}) }}">
-                        <span class="boite-sujet">
-                            {% if not l.lu %}<span class="point-non-lu" aria-label="non lu"></span>{% endif %}
-                            {{ msg.sujet }}
-                            {% if msg.important %} <span class="pastille alerte">important</span>{% endif %}
-                            {% if l.nouvelles_reponses %} <span class="pastille succes">{{ l.nouvelles_reponses }} {{ accord(l.nouvelles_reponses, 'réponse') }}</span>{% endif %}
-                        </span>
-                        <span class="boite-info discret petit">{{ msg.auteurNom }} · {{ msg.creeLe|date('d/m/Y') }}</span>
-                    </a>
-                </li>
+                {{ _self.ligne(l.message, l.lu, l.nouvelles_reponses, l.message.auteurNom) }}
             {% endfor %}
         </ul>
-    {% else %}
-        <p class="discret">Aucun message pour l'instant. Les messages de l'encadrement (éducateurs, dirigeants) apparaîtront ici.</p>
+    {% elseif not envoyes %}
+        <p class="discret">Aucun message pour l'instant. Les messages de l'encadrement (éducateurs, dirigeants) apparaîtront ici ; vous pouvez aussi leur écrire.</p>
+    {% endif %}
+
+    {% if envoyes %}
+        <h2 class="titre-bloc">Envoyés</h2>
+        <ul class="boite-reception bloc">
+            {% for l in envoyes %}
+                {{ _self.ligne(l.message, true, l.nouvelles_reponses, 'à ' ~ l.message.cibleLibelle) }}
+            {% endfor %}
+        </ul>
     {% endif %}
 {% endblock %}
