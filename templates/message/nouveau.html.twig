@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau message{% endblock %}
+
+{% macro champ(c) %}
+    <div class="champ">
+        {{ form_label(c) }}
+        {{ form_widget(c) }}
+        {{ form_errors(c) }}
+    </div>
+{% endmacro %}
+
+{% block body %}
+    <p><a href="{{ path('app_message_index') }}">← Messages</a></p>
+    <h1>Nouveau message aux familles</h1>
+
+    {% if not email_actif %}
+        <p class="flash flash-info">L'envoi d'e-mails n'est pas réglé sur ce site : les familles verront le message dans leur espace, sans en être prévenues par e-mail.</p>
+    {% endif %}
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire', 'data-controller': 'message'}}) }}
+        {{ form_errors(form) }}
+        <section class="carte etape">
+            <h2>À qui ?</h2>
+            <div class="choix-cible">
+                {% for choix in form.cible %}
+                    <label class="choix-carte">{{ form_widget(choix, {attr: {'data-action': 'message#cible'}}) }} {{ choix.vars.label }}</label>
+                {% endfor %}
+            </div>
+            {{ form_errors(form.cible) }}
+
+            <div class="champs" data-message-target="bloc" data-cible="categorie" {{ form.cible.vars.value != 'categorie' ? 'hidden' }}>
+                {{ _self.champ(form.categorie) }}
+            </div>
+            <div class="champs" data-message-target="bloc" data-cible="convocation" {{ form.cible.vars.value != 'convocation' ? 'hidden' }}>
+                {{ _self.champ(form.convocation) }}
+                {{ _self.champ(form.filtre) }}
+            </div>
+            <div data-message-target="bloc" data-cible="joueurs" {{ form.cible.vars.value != 'joueurs' ? 'hidden' }}>
+                {{ form_errors(form.joueurs) }}
+                <input type="search" class="recherche-joueurs" placeholder="Rechercher un joueur" aria-label="Rechercher un joueur" data-action="message#chercher">
+                <div class="joueurs-choix">
+                    {% for groupe, choix in form.joueurs.vars.choices %}
+                        <fieldset>
+                            <legend>{{ groupe }}</legend>
+                            {% for c in choix %}
+                                {% set case = form.joueurs[c.value] %}
+                                <label class="case-joueur" data-nom="{{ c.label|lower }}">{{ form_widget(case) }} {{ c.label }}</label>
+                            {% endfor %}
+                        </fieldset>
+                    {% endfor %}
+                </div>
+                {% do form.joueurs.setRendered %}
+            </div>
+            <p class="discret petit" data-message-target="bloc" data-cible="club" {{ form.cible.vars.value != 'club' ? 'hidden' }}>Tous les joueurs actifs du club (leurs familles).</p>
+        </section>
+
+        <section class="carte etape">
+            <h2>Message</h2>
+            <div class="champs une-colonne">
+                {{ _self.champ(form.sujet) }}
+                {{ _self.champ(form.corps) }}
+            </div>
+            <div class="cases">
+                <label>{{ form_widget(form.important) }} {{ form.important.vars.label }}</label>
+                <label>{{ form_widget(form.email) }} {{ form.email.vars.label }}</label>
+            </div>
+        </section>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Envoyer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

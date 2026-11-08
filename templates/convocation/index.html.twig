@@ -14,6 +14,7 @@
         </div>
         {% if convocation %}
             <div class="actions">
+                <a class="bouton" href="{{ path('app_message_nouveau', {rencontre: rencontre.id}) }}" title="Message aux familles des convoqués (tous, présents, sans réponse...)">Écrire aux convoqués</a>
                 {{ m.supprimer(path('app_convocation_supprimer', {id: rencontre.id}), 'supprimer-convocation' ~ convocation.id, 'Supprimer la convocation et les réponses des familles ? Les convoqués encore vierges sur la feuille de match (sans numéro, poste, note…) en seront aussi retirés. Les familles ne sont pas prévenues.') }}
             </div>
         {% endif %}

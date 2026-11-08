@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Messages{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Messages aux familles</h1>
+        <a class="bouton principal" href="{{ path('app_message_nouveau') }}">+ Nouveau message</a>
+    </div>
+
+    {% if messages %}
+        <div class="table-defile">
+            <table class="liste liste-fiches">
+                <thead><tr><th>Date</th><th>Objet</th><th>Destinataires</th><th>De</th><th>Lu</th><th>Réponses</th></tr></thead>
+                <tbody>
+                    {% for msg in messages %}
+                        {% set nb = msg.joueurs|length %}
+                        {% set nouvelles = msg.reponsesNonLues %}
+                        <tr>
+                            <td class="nowrap">{{ msg.creeLe|date('d/m/Y H:i') }}</td>
+                            <td class="principal large">
+                                <a href="{{ path('app_message_voir', {id: msg.id}) }}"><strong>{{ msg.sujet }}</strong></a>
+                                {% if msg.important %} <span class="pastille alerte">important</span>{% endif %}
+                            </td>
+                            <td class="petit" data-label="pour :">{{ msg.cibleLibelle }}</td>
+                            <td class="petit nowrap" data-label="de :">{{ msg.auteurNom }}</td>
+                            <td class="nowrap" data-label="lu :">{{ msg.nombreLus }} / {{ nb }}</td>
+                            <td class="nowrap" data-label="réponses :">
+                                {{ msg.reponses|length ?: '' }}
+                                {% if nouvelles %} <span class="pastille alerte">{{ nouvelles }} {{ accord(nouvelles, 'nouvelle') }}</span>{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <nav class="pagination">
+            {% if page > 1 %}<a class="bouton" href="{{ path('app_message_index', {page: page - 1}) }}">← Plus récents</a>{% endif %}
+            {% if messages|length == par_page %}<a class="bouton" href="{{ path('app_message_index', {page: page + 1}) }}">Plus anciens →</a>{% endif %}
+        </nav>
+    {% else %}
+        <p class="discret">Aucun message pour l'instant. Écrivez aux familles d'une catégorie, aux convoqués d'un match ou à quelques joueurs : elles lisent le message dans leur espace et peuvent vous répondre.</p>
+    {% endif %}
+{% endblock %}

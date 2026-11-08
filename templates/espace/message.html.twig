@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ message.sujet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_espace_messages') }}">← Messages</a></p>
+
+    <h1>{{ message.sujet }}{% if message.important %} <span class="pastille alerte">important</span>{% endif %}</h1>
+    <p class="discret">{{ message.auteurNom }} · {{ message.creeLe|date('d/m/Y à H:i') }}{% if joueurs %} · pour {{ joueurs|join(', ', ' et ') }}{% endif %}</p>
+
+    <section class="carte message-corps">{{ message.corps|nl2br }}</section>
+
+    <section class="bloc" id="reponses">
+        <h2 class="titre-bloc">Votre conversation avec l'encadrement</h2>
+        <p class="discret petit">Seuls vous et l'encadrement du club voyez ces échanges.</p>
+        <div class="carte fil">
+            {% for r in fil %}
+                <div class="bulle {{ r.deLEncadrement ? 'encadrement' : 'famille' }}">
+                    <div class="bulle-entete">{{ r.deLEncadrement ? r.auteurNom : 'Vous' }} · {{ r.creeLe|date('d/m à H:i') }}</div>
+                    {{ r.corps|nl2br }}
+                </div>
+            {% endfor %}
+            <form method="post" action="{{ path('app_espace_message_repondre', {id: message.id}) }}" class="repondre">
+                <input type="hidden" name="_token" value="{{ csrf_token('repondre-message' ~ message.id) }}">
+                <textarea name="corps" rows="3" maxlength="3000" required placeholder="Votre réponse" aria-label="Votre réponse"></textarea>
+                <button class="bouton principal">Envoyer</button>
+            </form>
+        </div>
+    </section>
+{% endblock %}

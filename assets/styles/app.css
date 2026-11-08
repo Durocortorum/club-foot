@@ -721,3 +721,41 @@ table.droits thead th.droits-nom { z-index: 3; }
     .grille-presence td:first-child .avatar { display: none; }
     select.creneau { width: 5.4rem; }
 }
+
+/* Messagerie interne (encadrement ↔ familles) */
+.choix-cible { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.choix-carte { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem .8rem; border: 1px solid var(--bordure); border-radius: 8px; background: #fff; cursor: pointer; }
+.choix-carte:has(input:checked) { border-color: var(--rouge); background: var(--rouge-clair); font-weight: 600; }
+.recherche-joueurs { max-width: 22rem; margin-bottom: .6rem; }
+.joueurs-choix { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: .6rem 1rem; max-height: 26rem; overflow-y: auto; }
+.joueurs-choix fieldset { border: 1px solid var(--bordure); border-radius: 8px; padding: .3rem .6rem .5rem; }
+.case-joueur { display: flex; align-items: center; gap: .4rem; padding: .1rem 0; font-size: .9rem; }
+.case-joueur[hidden], .joueurs-choix fieldset[hidden] { display: none; }
+.champs.une-colonne { grid-template-columns: 1fr; }
+.cases { display: flex; flex-direction: column; gap: .4rem; margin-top: .9rem; }
+.cases label { display: flex; align-items: center; gap: .5rem; }
+.message-corps { white-space: normal; line-height: 1.55; margin: 1rem 0; }
+.fil { margin-bottom: 1rem; }
+.fil h3 { margin: 0 0 .6rem; font-size: 1rem; }
+.bulle { max-width: 42rem; padding: .5rem .8rem; border-radius: 10px; margin-bottom: .5rem; line-height: 1.45; }
+.bulle.famille { background: var(--fond); border: 1px solid var(--bordure); }
+.bulle.encadrement { background: var(--rouge-clair); margin-left: auto; }
+.bulle-entete { font-size: .75rem; color: var(--gris); margin-bottom: .2rem; }
+.repondre { display: flex; gap: .5rem; align-items: flex-end; margin-top: .6rem; }
+.repondre textarea { flex: 1; }
+.boite-reception { list-style: none; margin: 0; padding: 0; background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--rayon); }
+.boite-reception li + li { border-top: 1px solid var(--bordure); }
+.boite-reception a { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .2rem 1rem; padding: .8rem 1rem; color: inherit; }
+.boite-reception a:hover { background: var(--fond); text-decoration: none; }
+.boite-reception li.non-lu .boite-sujet { font-weight: 700; }
+.point-non-lu { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; background: var(--rouge); margin-right: .3rem; vertical-align: middle; }
+.info-importante {
+    display: flex; flex-direction: column; gap: .2rem; margin: 0 0 1rem; padding: .8rem 1rem;
+    border-left: 4px solid var(--rouge); border-radius: var(--rayon); background: var(--rouge-clair); color: var(--encre);
+}
+.info-importante:hover { text-decoration: none; filter: brightness(.98); }
+.info-importante strong { color: var(--rouge); }
+@media (max-width: 600px) {
+    .repondre { flex-direction: column; align-items: stretch; }
+}
+[data-message-target="bloc"][hidden] { display: none; }

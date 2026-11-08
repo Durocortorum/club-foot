@@ -6,6 +6,19 @@
 {% block body %}
     <h1>Bonjour {{ app.user.prenom != 'Famille' ? app.user.prenom : '' }}</h1>
 
+    {# Informations importantes du club, en tête tant qu'elles ne sont pas lues. #}
+    {% for msg in messages_importants() %}
+        <a class="info-importante" href="{{ path('app_espace_message', {id: msg.id}) }}">
+            <strong>Important · {{ msg.sujet }}</strong>
+            <span>{{ msg.corps|length > 140 ? msg.corps|slice(0, 140) ~ '…' : msg.corps }}</span>
+            <span class="petit">Lire le message →</span>
+        </a>
+    {% endfor %}
+    {% set non_lus = messages_non_lus() %}
+    {% if non_lus %}
+        <p><a class="bouton" href="{{ path('app_espace_messages') }}">{{ non_lus }} {{ accord(non_lus, 'message') }} non {{ accord(non_lus, 'lu') }}</a></p>
+    {% endif %}
+
     {% for e in enfants %}
         {% set j = e.joueur %}
         <section class="carte bloc">

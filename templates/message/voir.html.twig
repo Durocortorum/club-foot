@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ message.sujet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_message_index') }}">← Messages</a></p>
+
+    <div class="titre-page">
+        <h1>{{ message.sujet }}{% if message.important %} <span class="pastille alerte">important</span>{% endif %}</h1>
+        {% if peut_supprimer %}
+            {{ m.supprimer(path('app_message_supprimer', {id: message.id}), 'supprimer-message' ~ message.id, 'Supprimer ce message ? Les familles ne le verront plus, ni les réponses.') }}
+        {% endif %}
+    </div>
+    <p class="discret">
+        {{ message.creeLe|date('d/m/Y à H:i') }} · de {{ message.auteurNom }} · pour {{ message.cibleLibelle }}
+        {% if message.rencontre %} · <a href="{{ path('app_convocation', {id: message.rencontre.id}) }}">convocation du match</a>{% endif %}
+    </p>
+
+    <section class="carte message-corps">{{ message.corps|nl2br }}</section>
+
+    <section class="bloc" id="reponses">
+        <h2 class="titre-bloc">Réponses des familles</h2>
+        {% for id, f in fils %}
+            <div class="carte fil" id="fil-{{ id }}">
+                <h3>{{ f.famille.email }}{% if f.joueurs %} <span class="discret petit">({{ f.joueurs|map(j => j.prenom ~ ' ' ~ j.nom)|join(', ') }})</span>{% endif %}</h3>
+                {% for r in f.reponses %}
+                    <div class="bulle {{ r.deLEncadrement ? 'encadrement' : 'famille' }}">
+                        <div class="bulle-entete">{{ r.deLEncadrement ? r.auteurNom : 'Famille' }} · {{ r.creeLe|date('d/m à H:i') }}</div>
+                        {{ r.corps|nl2br }}
+                    </div>
+                {% endfor %}
+                <form method="post" action="{{ path('app_message_repondre', {id: message.id, famille: id}) }}" class="repondre">
+                    <input type="hidden" name="_token" value="{{ csrf_token('repondre-message' ~ message.id ~ '-' ~ id) }}">
+                    <textarea name="corps" rows="2" maxlength="3000" required placeholder="Répondre à cette famille" aria-label="Réponse à {{ f.famille.email }}"></textarea>
+                    <button class="bouton principal">Répondre</button>
+                </form>
+            </div>
+        {% else %}
+            <p class="discret">Aucune réponse pour l'instant.</p>
+        {% endfor %}
+    </section>
+
+    <section class="bloc">
+        <h2 class="titre-bloc">Destinataires <span class="compteur">{{ lignes|length }}</span></h2>
+        <p class="discret petit">{{ message.nombreLus }} {{ accord(message.nombreLus, 'joueur') }} sur {{ lignes|length }} : message lu par au moins un compte de la famille.</p>
+        <div class="table-defile">
+            <table class="liste liste-fiches">
+                <thead><tr><th>Joueur</th><th>Comptes famille</th></tr></thead>
+                <tbody>
+                    {% for l in lignes %}
+                        <tr>
+                            <td class="nowrap principal"><strong>{{ l.joueur.nom }}</strong> {{ l.joueur.prenom }}</td>
+                            <td class="petit large">
+                                {% for d in l.destinataires %}
+                                    <div>
+                                        {{ d.compte.email }}
+                                        {% if d.luLe %}<span class="pastille succes" title="Lu le {{ d.luLe|date('d/m/Y à H:i') }}">lu</span>
+                                        {% elseif d.compte.password is null %}<span class="pastille">compte pas encore activé</span>
+                                        {% else %}<span class="pastille">non lu</span>{% endif %}
+                                    </div>
+                                {% else %}
+                                    <span class="pastille alerte">aucun compte famille</span>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {% if sans_compte or not email_actif %}
+        <section class="carte bloc" data-controller="copier" data-copier-texte-value="{{ texte_a_copier }}">
+            <h2>À prévenir autrement</h2>
+            {% if sans_compte %}
+                <p>Sans compte famille actif, ces familles ne voient pas le message :
+                    <strong>{{ sans_compte|map(l => l.joueur.prenom ~ ' ' ~ l.joueur.nom)|join(', ') }}</strong>.
+                    Copiez-le pour WhatsApp ou un SMS, ou invitez-les depuis la page « Accès familles ».</p>
+            {% else %}
+                <p>Les e-mails ne partent pas de ce site : copiez le message pour le groupe WhatsApp, si besoin.</p>
+            {% endif %}
+            <button type="button" class="bouton" data-action="copier#copier" data-copier-target="bouton">Copier le message</button>
+        </section>
+    {% endif %}
+{% endblock %}
