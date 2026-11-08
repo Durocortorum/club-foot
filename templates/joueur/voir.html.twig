@@ -270,13 +270,13 @@
                 {% endif %}
             </div>
             <p class="discret petit">
-                Le joueur et ses parents reçoivent un lien pour choisir leur mot de passe. Ils accèdent ensuite à leur espace
+                Le joueur et {{ famille.majeur ? 'ses contacts' : 'ses parents' }} reçoivent un lien pour choisir leur mot de passe. Ils accèdent ensuite à leur espace
                 (prochains matchs, réponse aux convocations), sans jamais voir les autres pages de l'application.
             </p>
             {% if famille.majeur %}
                 <p class="flash flash-info petit">
                     {{ joueur.prenom }} est majeur(e) : le club n'invite que lui ou elle. C'est {{ joueur.prenom }} qui décide
-                    de l'accès de ses parents, depuis son espace (rubrique « Accès de mes parents »).
+                    de l'accès de ses contacts, depuis son espace (rubrique « Personnes à contacter »).
                     {% if not joueur.emailJoueur %}Ajoutez d'abord son adresse e-mail sur la fiche (bouton « Modifier »).{% endif %}
                 </p>
             {% endif %}

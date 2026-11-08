@@ -85,7 +85,7 @@ class FamilleController extends AbstractController
             $choisies = '' === $email ? $this->etat($joueur)['a_inviter'] : [$email => $adresses[$email] ?? 'parent1'];
             foreach ($choisies as $e => $qui) {
                 if ('joueur' !== $qui && !$joueur->isMineur()) {
-                    $this->addFlash('erreur', \sprintf('%s est majeur(e) : c\'est lui ou elle qui ouvre l\'accès à ses parents, depuis son espace.', $joueur->getPrenom()));
+                    $this->addFlash('erreur', \sprintf('%s est majeur(e) : c\'est lui ou elle qui ouvre l\'accès à ses contacts, depuis son espace.', $joueur->getPrenom()));
                     continue;
                 }
                 $this->inviterUne($joueur, $e, $qui);

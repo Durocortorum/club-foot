@@ -100,7 +100,7 @@ class AccesFamille
         return 'joueur' === ($this->adresses($joueur)[$compte->getEmail()] ?? null);
     }
 
-    /** Le joueur connecté est majeur et décide lui-même de l'accès de ses parents. */
+    /** Le joueur connecté est majeur et décide lui-même de l'accès de ses contacts (voir ProchesJoueur). */
     public function decideAccesParents(Utilisateur $compte, Joueur $joueur): bool
     {
         return $compte->isFamille() && $compte->suit($joueur) && !$joueur->isMineur() && $this->estLeJoueur($compte, $joueur);
