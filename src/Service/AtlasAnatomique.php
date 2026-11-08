@@ -273,7 +273,7 @@ class AtlasAnatomique
             'structures' => [
                 'Mollet (arrière)' => ['Gastrocnémien médial (jumeau interne)', 'Gastrocnémien latéral (jumeau externe)', 'Soléaire', 'Plantaire', 'Tibial postérieur', 'Long fléchisseur des orteils', 'Long fléchisseur de l\'hallux'],
                 'Avant et côté' => ['Tibial antérieur', 'Long extenseur des orteils', 'Long extenseur de l\'hallux', 'Long fibulaire', 'Court fibulaire'],
-                'Os' => ['Tibia', 'Fibula (péroné)', 'Périoste du tibia (périostite)'],
+                'Os' => ['Tibia', 'Fibula (péroné)', 'Tibia et fibula (les deux os)', 'Périoste du tibia (périostite)'],
             ],
         ],
         'cheville-pied' => [
