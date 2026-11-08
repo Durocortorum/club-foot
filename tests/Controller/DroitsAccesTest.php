@@ -50,8 +50,21 @@ class DroitsAccesTest extends WebTestCase
         $this->em()->persist($coach);
         $this->em()->flush();
 
-        // Le tableau montre le coach avec son seul droit, et l'administrateur « inclus » partout.
+        // Page Apparence : coordonnées du club (bas des e-mails) ; une adresse de site invalide est refusée.
         $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', '/club');
+        self::assertResponseIsSuccessful();
+        $form = $crawler->selectButton('Enregistrer')->form();
+        $this->client->submit($form, ['club[telephone]' => '03 26 00 00 00', 'club[emailContact]' => 'contact@exemple.test', 'club[siteWeb]' => 'pas une adresse']);
+        self::assertResponseStatusCodeSame(422);
+        $this->client->submit($form, ['club[telephone]' => '03 26 00 00 00', 'club[emailContact]' => 'contact@exemple.test', 'club[siteWeb]' => 'https://www.exemple.test']);
+        self::assertResponseRedirects('/club');
+        $this->em()->clear();
+        $club = $this->em()->find(\App\Entity\Club::class, $this->clubId);
+        self::assertSame('contact@exemple.test', $club->getEmailContact());
+        self::assertSame('https://www.exemple.test', $club->getSiteWeb());
+
+        // Le tableau montre le coach avec son seul droit, et l'administrateur « inclus » partout.
         $crawler = $this->client->request('GET', '/utilisateurs/droits');
         self::assertResponseIsSuccessful();
         $ligne = $this->ligne($crawler);

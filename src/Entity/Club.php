@@ -62,7 +62,7 @@ class Club
     private ?string $emailContact = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Url(message: 'Adresse de site invalide (commencez par https://).', requireTld: true)]
+    #[Assert\Url(message: 'Adresse de site invalide (commencez par https://).')]
     #[Assert\Length(max: 255)]
     private ?string $siteWeb = null;
 
