@@ -764,3 +764,8 @@ table.droits thead th.droits-nom { z-index: 3; }
 .liste-simple li + li { border-top: 1px solid var(--bordure); }
 .repondre-premier summary { cursor: pointer; color: var(--rouge); font-size: .9rem; margin-top: .3rem; }
 .erreur-champ { color: var(--danger-fonce); margin: .3rem 0 0; font-size: .85rem; }
+.pastille[hidden] { display: none; }
+.bandeau-nouvelle {
+    display: block; width: 100%; margin: 0 0 1rem; padding: .7rem 1rem; border: 0; border-radius: var(--rayon);
+    background: var(--rouge); color: var(--sur-rouge); font: inherit; font-weight: 600; cursor: pointer; text-align: left;
+}

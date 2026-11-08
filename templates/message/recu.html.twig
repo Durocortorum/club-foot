@@ -8,7 +8,7 @@
     <h1>{{ message.sujet }}{% if message.important %} <span class="pastille alerte">important</span>{% endif %}</h1>
     <p class="discret">De {{ message.auteurNom }} · {{ message.creeLe|date('d/m/Y à H:i') }} · pour {{ message.cibleLibelle }}</p>
 
-    <section class="carte message-corps">{{ message.corps|nl2br }}</section>
+    <section class="carte message-corps" data-fil-message="{{ message.id }}" data-fil-signature="{{ fil|length }}">{{ message.corps|nl2br }}</section>
 
     <section class="bloc" id="fil-{{ app.user.id }}">
         <h2 class="titre-bloc">Votre conversation avec {{ message.auteurNom }}</h2>

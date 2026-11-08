@@ -8,7 +8,7 @@
     <h1>{{ message.sujet }}</h1>
     <p class="discret">Envoyé le {{ message.creeLe|date('d/m/Y à H:i') }} à {{ message.cibleLibelle }}</p>
 
-    <section class="carte message-corps">{{ message.corps|nl2br }}</section>
+    <section class="carte message-corps" data-fil-message="{{ message.id }}" data-fil-signature="{{ message.reponses|length }}">{{ message.corps|nl2br }}</section>
 
     <section class="bloc" id="reponses">
         <h2 class="titre-bloc">Réponses</h2>

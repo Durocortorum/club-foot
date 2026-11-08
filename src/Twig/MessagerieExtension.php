@@ -30,7 +30,7 @@ class MessagerieExtension extends AbstractExtension
         ];
     }
 
-    private function nonLus(): int
+    public function nonLus(): int
     {
         $u = $this->utilisateur();
         if (!$u) {

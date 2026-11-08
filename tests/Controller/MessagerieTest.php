@@ -158,7 +158,7 @@ class MessagerieTest extends WebTestCase
         self::assertCount(1, $emails);
         self::assertStringContainsString('réponse à « Tournoi annulé »', $emails[0]->getSubject());
         $this->client->request('GET', '/messages');
-        self::assertSelectorNotExists('nav.menu .pastille.alerte[title^="Réponses"]');
+        self::assertSelectorNotExists('nav.menu .pastille.alerte:not([hidden])');
 
         // La famille voit la réponse ; personne d'autre.
         $this->client->loginUser($parent);
@@ -224,7 +224,7 @@ class MessagerieTest extends WebTestCase
         self::assertResponseRedirects('/messages/' . $message->getId() . '#fil-' . $kine->getId());
         self::assertCount(1, $this->emails("coach-$id@exemple.test"));
         $this->client->request('GET', '/messages');
-        self::assertSelectorNotExists('nav.menu .pastille.alerte');
+        self::assertSelectorNotExists('nav.menu .pastille.alerte:not([hidden])');
         // Sans catégorie : elle n'écrit qu'aux collègues.
         $this->client->request('GET', '/messages/nouveau');
         self::assertSelectorExists('input[name="form[cible]"][value="encadrement"][checked]');
@@ -309,8 +309,14 @@ class MessagerieTest extends WebTestCase
             self::assertSelectorTextNotContains('main', 'Absent samedi');
         }
 
+        // État demandé par la page (mise à jour sans recharger) : rien sur un message qu'on ne voit pas.
+        $this->client->request('GET', '/espace/messages/etat?message=' . $message->getId());
+        self::assertSame(['nonLus' => 0], json_decode($this->client->getResponse()->getContent(), true));
+
         // Le joueur voit la réponse, et peut répondre encore.
         $this->client->loginUser($compte);
+        $this->client->request('GET', '/espace/messages/etat?message=' . $message->getId());
+        self::assertSame(['nonLus' => 1, 'fil' => 1], json_decode($this->client->getResponse()->getContent(), true));
         $this->client->request('GET', '/espace/messages');
         self::assertSelectorTextContains('nav.menu', 'Messages 1');
         self::assertSelectorTextContains('.boite-reception', '1 réponse');
@@ -319,7 +325,7 @@ class MessagerieTest extends WebTestCase
         $this->client->submit($crawler->filter('#fil-' . $coach->getId() . ' form')->form(), ['corps' => 'Avec plaisir.']);
         self::assertResponseRedirects('/espace/messages/' . $message->getId() . '#fil-' . $coach->getId());
         $this->client->request('GET', '/espace/messages');
-        self::assertSelectorNotExists('nav.menu .pastille');
+        self::assertSelectorNotExists('nav.menu .pastille:not([hidden])');
     }
 
     private function dernierMessage(): Message

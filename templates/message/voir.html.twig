@@ -17,7 +17,7 @@
         {% if message.rencontre %} · <a href="{{ path('app_convocation', {id: message.rencontre.id}) }}">convocation du match</a>{% endif %}
     </p>
 
-    <section class="carte message-corps">{{ message.corps|nl2br }}</section>
+    <section class="carte message-corps" data-fil-message="{{ message.id }}" data-fil-signature="{{ message.reponses|length }}">{{ message.corps|nl2br }}</section>
 
     <section class="bloc" id="reponses">
         <h2 class="titre-bloc">Réponses</h2>
