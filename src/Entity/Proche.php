@@ -47,6 +47,22 @@ class Proche implements AppartientAuClub
     #[Assert\Length(max: 180)]
     private ?string $email = null;
 
+    /** Le joueur autorise cette personne (si elle a accès à son espace) à voir ses statistiques. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $voitStatistiques = false;
+
+    public function isVoitStatistiques(): bool
+    {
+        return $this->voitStatistiques;
+    }
+
+    public function setVoitStatistiques(bool $voit): static
+    {
+        $this->voitStatistiques = $voit;
+
+        return $this;
+    }
+
     public function __construct(?Joueur $joueur = null)
     {
         $this->joueur = $joueur;

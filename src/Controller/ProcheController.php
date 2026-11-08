@@ -93,6 +93,22 @@ class ProcheController extends AbstractController
         return $this->retour($joueur);
     }
 
+    /** Le joueur autorise (ou non) cette personne à voir ses statistiques dans son espace. */
+    #[Route('/{id}/statistiques', name: 'app_proche_statistiques', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function statistiques(Request $request, Proche $proche): Response
+    {
+        $joueur = $proche->getJoueur();
+        if (!$this->proches->peutDonnerAcces($joueur)
+            || !$this->isCsrfTokenValid('proche' . $proche->getId(), $request->getPayload()->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        $proche->setVoitStatistiques($request->getPayload()->getBoolean('voit'));
+        $this->em->flush();
+        $this->addFlash('succes', \sprintf('%s %s vos statistiques.', $proche, $proche->isVoitStatistiques() ? 'peut maintenant voir' : 'ne voit plus'));
+
+        return $this->retour($joueur);
+    }
+
     private function formulaire(Request $request, Proche $proche, string $titre): Response
     {
         $joueur = $proche->getJoueur();

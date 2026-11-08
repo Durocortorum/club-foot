@@ -72,6 +72,27 @@ class ProchesJoueur
         return $moi instanceof Utilisateur && $this->acces->decideAccesParents($moi, $joueur);
     }
 
+    /**
+     * Ce compte famille voit-il les statistiques du joueur ? Joueur mineur : oui (lui et ses parents).
+     * Joueur majeur : lui-même, et les personnes à contacter qu'il a autorisées.
+     */
+    public function voitStatistiques(Utilisateur $compte, Joueur $joueur): bool
+    {
+        if (!$compte->suit($joueur)) {
+            return false;
+        }
+        if ($joueur->isMineur() || $this->acces->estLeJoueur($compte, $joueur)) {
+            return true;
+        }
+        foreach ($this->proches->duJoueur($joueur) as $p) {
+            if ($p->getEmail() === $compte->getEmail() && $p->isVoitStatistiques()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** Compte famille qui suit le joueur avec l'adresse de cette personne, s'il y en a un. */
     public function compte(Proche $proche): ?Utilisateur
     {

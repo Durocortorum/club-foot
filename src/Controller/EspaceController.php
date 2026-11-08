@@ -10,6 +10,9 @@ use App\Entity\Utilisateur;
 use App\Service\AccesFamille;
 use App\Service\ProchesJoueur;
 use App\Repository\ConvoqueRepository;
+use App\Repository\ParticipationRepository;
+use App\Repository\PresenceRepository;
+use App\Service\BilanJoueur;
 use App\Repository\JoueurRepository;
 use App\Service\PlanningEntrainements;
 use App\Repository\RencontreRepository;
@@ -36,7 +39,16 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 class EspaceController extends AbstractController
 {
     #[Route('/espace', name: 'app_espace', methods: ['GET'])]
-    public function index(RencontreRepository $rencontres, ConvoqueRepository $convoques, PlanningEntrainements $planning, AccesFamille $acces, ProchesJoueur $proches): Response
+    public function index(
+        RencontreRepository $rencontres,
+        ConvoqueRepository $convoques,
+        PlanningEntrainements $planning,
+        AccesFamille $acces,
+        ProchesJoueur $proches,
+        ParticipationRepository $participations,
+        PresenceRepository $presences,
+        BilanJoueur $bilan,
+    ): Response
     {
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
@@ -75,6 +87,10 @@ class EspaceController extends AbstractController
                 'matchs' => $j->getCategorie() ? array_values(array_filter($rencontres->aVenir($j->getCategorie(), 5), fn ($r) => !\in_array($r, $convoquesA, true))) : [],
                 // Joueur majeur connecté avec son propre compte : ses personnes à contacter, et l'accès qu'il leur donne.
                 'proches' => $acces->decideAccesParents($moi, $j) ? $proches->avecAcces($j) : null,
+                // Statistiques : joueur mineur et ses parents ; joueur majeur et les contacts qu'il autorise.
+                'stats' => $proches->voitStatistiques($moi, $j)
+                    ? ['bilan' => $bilan->parSaison($j, $participations->parJoueur($j)), 'presences' => $presences->bilanParSaison($j)]
+                    : null,
             ];
         }
 

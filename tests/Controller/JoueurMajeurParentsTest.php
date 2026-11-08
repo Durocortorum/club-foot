@@ -128,10 +128,29 @@ class JoueurMajeurParentsTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
         $this->client->request('GET', '/espace/proches/joueur/' . $joueur->getId() . '/ajouter');
         self::assertResponseStatusCodeSame(403);
+        $this->client->request('POST', '/espace/proches/' . $proche->getId() . '/statistiques', ['voit' => '1', '_token' => 'x']);
+        self::assertResponseStatusCodeSame(403);
 
-        // Joueur mineur : rien ne change, le club invite les parents.
+        // --- Statistiques : le joueur majeur les voit ; son contact seulement s'il l'autorise.
+        $this->client->request('GET', '/espace');
+        self::assertSelectorNotExists('#statistiques-' . $joueur->getId());
+        $this->client->loginUser($this->compte($moi));
+        $crawler = $this->client->request('GET', '/espace');
+        self::assertSelectorExists('#statistiques-' . $joueur->getId());
+        $this->client->submit($crawler->selectButton('Statistiques : non')->form());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'peut maintenant voir');
+        $this->client->loginUser($this->compte($parent));
+        $this->client->request('GET', '/espace');
+        self::assertSelectorExists('#statistiques-' . $joueur->getId());
+
+        // Joueur mineur : rien ne change, le club invite les parents ; les parents voient les statistiques.
         $this->em()->find(Joueur::class, $joueur->getId())->setDateNaissance(new \DateTimeImmutable('-15 years'));
+        $this->em()->getRepository(Proche::class)->find($proche->getId())->setVoitStatistiques(false);
         $this->em()->flush();
+        $this->client->loginUser($this->compte($parent));
+        $this->client->request('GET', '/espace');
+        self::assertSelectorExists('#statistiques-' . $joueur->getId());
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', '/joueurs/' . $joueur->getId());
         self::assertSelectorTextNotContains('#famille', 'majeur');

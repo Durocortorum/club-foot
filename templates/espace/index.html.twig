@@ -104,6 +104,39 @@
                 <p class="discret">Aucun match programmé pour le moment.</p>
             {% endif %}
 
+            {% if e.stats %}
+                {% set bilan, presences = e.stats.bilan, e.stats.presences %}
+                <h3 id="statistiques-{{ j.id }}">Statistiques</h3>
+                {% if bilan %}
+                    <div class="table-defile">
+                        <table class="liste chiffres liste-fiches">
+                            <thead><tr><th>Saison</th><th>Matchs</th><th>Titulaire</th><th>Minutes</th><th>Buts</th><th>Passes D.</th><th>Cartons J / R</th></tr></thead>
+                            <tbody>
+                                {% for saison, b in bilan %}
+                                    <tr>
+                                        <td class="principal">{% if saison == 'Total' %}<strong>Total</strong>{% else %}{{ saison }}{% endif %}</td>
+                                        <td data-label="matchs">{{ b.matchs }}</td>
+                                        <td data-label="titulaire">{{ b.titularisations }}</td>
+                                        <td data-label="min.">{{ b.minutes }}</td>
+                                        <td data-label="buts">{{ b.buts ?: '' }}</td>
+                                        <td data-label="passes D.">{{ b.passes ?: '' }}</td>
+                                        <td data-label="cartons J/R">{{ b.jaunes or b.rouges ? b.jaunes ~ ' / ' ~ b.rouges }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="discret">Aucun match enregistré.</p>
+                {% endif %}
+                {% if presences %}
+                    <p class="petit">
+                        Présence à l'entraînement :
+                        {% for saison, p in presences %}{{ saison }} : <strong>{{ p.taux ?? '—' }} %</strong> ({{ p.presences }}/{{ p.seances }}){{ not loop.last ? ' · ' }}{% endfor %}
+                    </p>
+                {% endif %}
+            {% endif %}
+
             {% if e.proches is not null %}
                 <h3>Personnes à contacter</h3>
                 <p class="discret petit">

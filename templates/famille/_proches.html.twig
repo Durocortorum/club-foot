@@ -13,6 +13,7 @@
                     <span>
                         <strong>{{ p.nom }}</strong>{% if p.lien %} <span class="discret petit">· {{ p.lien }}</span>{% endif %}
                         {% if compte %}<span class="pastille succes">{{ compte.password ? 'a accès à l\'espace' : 'invité(e)' }}</span>{% endif %}
+                        {% if p.voitStatistiques %}<span class="pastille">voit les statistiques</span>{% endif %}
                         <br>
                         <span class="petit">
                             {% if p.telephone %}<a href="tel:{{ p.telephone|replace({' ': ''}) }}">{{ p.telephone }}</a>{% endif %}
@@ -23,6 +24,12 @@
                     </span>
                     <span class="nowrap">
                         {% if peut_acces and p.email %}
+                            {# Statistiques : oui / non, au choix du joueur (utile une fois l'accès donné). #}
+                            <form method="post" action="{{ path('app_proche_statistiques', {id: p.id}) }}" class="en-ligne">
+                                <input type="hidden" name="_token" value="{{ jeton }}">
+                                <input type="hidden" name="voit" value="{{ p.voitStatistiques ? '0' : '1' }}">
+                                <button class="bouton petit" title="Autoriser ou non cette personne à voir vos statistiques">Statistiques : {{ p.voitStatistiques ? 'oui' : 'non' }}</button>
+                            </form>
                             {% if compte %}
                                 <form method="post" action="{{ path('app_proche_retirer_acces', {id: p.id}) }}" class="en-ligne">
                                     <input type="hidden" name="_token" value="{{ jeton }}">
