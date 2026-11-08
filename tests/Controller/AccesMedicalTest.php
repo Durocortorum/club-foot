@@ -255,11 +255,11 @@ class AccesMedicalTest extends WebTestCase
             self::assertResponseStatusCodeSame(403, $page);
         }
 
-        // Après le code : Infirmerie et dossiers médicaux, avec un menu réduit.
+        // Après le code : Infirmerie, dossiers médicaux et messagerie, avec un menu réduit.
         $this->ouvrirMedical($this->client);
         $crawler = $this->client->request('GET', '/infirmerie/dossiers');
         self::assertResponseIsSuccessful();
-        self::assertSame(['Infirmerie', 'Dossiers médicaux'], $crawler->filter('nav.menu a')->each(fn ($a) => trim($a->text())));
+        self::assertSame(['Infirmerie', 'Dossiers médicaux', 'Messages'], $crawler->filter('nav.menu a')->each(fn ($a) => trim($a->text())));
         $crawler = $this->client->click($crawler->selectLink('Martin')->link());
         self::assertSelectorTextContains('#infirmerie', 'Entorse');
         self::assertSelectorExists('#visite-medicale');

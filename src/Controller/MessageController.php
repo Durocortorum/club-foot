@@ -87,9 +87,16 @@ class MessageController extends AbstractController
         if (!$collegues) {
             unset($cibles['encadrement']);
         }
+        // Sans catégorie gérée (compte médical, scolarité seule...) : seulement les collègues.
+        if (!$mesCategories) {
+            unset($cibles['categorie'], $cibles['joueurs']);
+        }
+        if (!$cibles) {
+            throw $this->createAccessDeniedException('Aucun destinataire possible.');
+        }
 
         // Préremplissage depuis un match (« Écrire aux convoqués »), une catégorie ou la fiche d'un joueur.
-        $donnees = ['cible' => 'categorie', 'filtre' => 'tous', 'email' => true, 'important' => false, 'joueurs' => []];
+        $donnees = ['cible' => array_key_first($cibles), 'filtre' => 'tous', 'email' => true, 'important' => false, 'joueurs' => []];
         $q = $request->query;
         if ($q->getInt('rencontre')) {
             foreach ($mesConvocations as $c) {

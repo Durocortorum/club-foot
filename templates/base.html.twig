@@ -33,6 +33,8 @@
                 <nav class="menu" id="navigation">
                     {% if is_granted('ROLE_INFIRMERIE_LECTURE') %}<a href="{{ path('app_infirmerie_index') }}" class="{{ route starts with 'app_infirmerie' or route starts with 'app_blessure' or route starts with 'app_contact' ? 'actif' }}">Infirmerie</a>{% endif %}
                     <a href="{{ path('app_dossier_medical_index') }}" class="{{ route starts with 'app_dossier_medical' ? 'actif' }}">Dossiers médicaux</a>
+                    {% set non_lus = messages_non_lus() %}
+                    <a href="{{ path('app_message_index') }}" class="{{ route starts with 'app_message' ? 'actif' }}">Messages{% if non_lus %} <span class="pastille alerte">{{ non_lus }}</span>{% endif %}</a>
                 </nav>
                 {% elseif not is_granted('ROLE_ENCADREMENT') %}
                 <nav class="menu" id="navigation">
@@ -49,10 +51,8 @@
                     <a href="{{ path('app_statistiques') }}" class="{{ route == 'app_statistiques' ? 'actif' }}">Statistiques</a>
                     <a href="{{ path('app_presence_index') }}" class="{{ route starts with 'app_presence' ? 'actif' }}">Présences</a>
                     <a href="{{ path('app_seance_index') }}" class="{{ route starts with 'app_seance' or route starts with 'app_exercice' or route starts with 'app_planning' ? 'actif' }}">Entraînements</a>
-                    {% if is_granted('ROLE_ECOLE_FOOT') or is_granted('ROLE_PREFORMATION') or is_granted('ROLE_FORMATION') or is_granted('ROLE_ELITE') or is_granted('ROLE_PRO') %}
-                        {% set non_lus = messages_non_lus() %}
-                        <a href="{{ path('app_message_index') }}" class="{{ route starts with 'app_message' ? 'actif' }}" title="Messagerie avec les familles">Messages{% if non_lus %} <span class="pastille alerte" title="Réponses des familles non lues">{{ non_lus }}</span>{% endif %}</a>
-                    {% endif %}
+                    {% set non_lus = messages_non_lus() %}
+                    <a href="{{ path('app_message_index') }}" class="{{ route starts with 'app_message' ? 'actif' }}" title="Messagerie avec les familles et les collègues">Messages{% if non_lus %} <span class="pastille alerte" title="Messages et réponses non lus">{{ non_lus }}</span>{% endif %}</a>
                     <a href="{{ path('app_archives') }}" class="{{ route starts with 'app_archives' ? 'actif' }}">Archives</a>
                     {% if is_granted('ROLE_ECOLE_FOOT') or is_granted('ROLE_PREFORMATION') or is_granted('ROLE_FORMATION') or is_granted('ROLE_ELITE') or is_granted('ROLE_PRO') %}
                         <a href="{{ path('app_detection_index') }}" class="{{ route starts with 'app_detection' or route starts with 'app_observe' ? 'actif' }}">Recrutement</a>

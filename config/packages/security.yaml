@@ -57,6 +57,8 @@ security:
         # Comptes qui n'ont que du médical (médecin, kiné...) : Infirmerie et dossiers médicaux seulement
         # (plus, pour un médecin, le tableau des droits médicaux et les demandes d'accès).
         - { path: ^/(infirmerie|medical|photos)(/|$), roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
+        # Messagerie : les comptes médicaux échangent aussi avec leurs collègues de l'encadrement.
+        - { path: ^/messages(/|$), roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
         - { path: ^/(joueurs/\d+/mesures/nouvelle|mesures/\d+/supprimer)$, roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
         - { path: ^/utilisateurs/(droits(/nouvelle-personne)?|\d+/droit)$, roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }
         - { path: ^/acces-medical/demande/\d+/(accorder|refuser)$, roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }

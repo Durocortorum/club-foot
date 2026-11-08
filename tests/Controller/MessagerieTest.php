@@ -184,7 +184,8 @@ class MessagerieTest extends WebTestCase
         $this->clubId = $club->getId();
         $em = $this->em();
         $coach = (new Utilisateur())->setClub($club)->setEmail("coach-$id@exemple.test")->setNom('Bernard')->setPrenom('Coach')->setRolesAttribues(['ROLE_ECOLE_FOOT'])->setPassword('x');
-        $kine = (new Utilisateur())->setClub($club)->setEmail("kine-$id@exemple.test")->setNom('Petit')->setPrenom('Julie')->setRolesAttribues(['ROLE_PRO'])->setPassword('x');
+        // Kiné : compte « médical seul » (Infirmerie), qui a aussi sa page Messages.
+        $kine = (new Utilisateur())->setClub($club)->setEmail("kine-$id@exemple.test")->setNom('Petit')->setPrenom('Julie')->setRolesAttribues(['ROLE_INFIRMERIE'])->setPassword('x');
         $tiers = (new Utilisateur())->setClub($club)->setEmail("tiers-$id@exemple.test")->setNom('Roux')->setPrenom('Paul')->setRolesAttribues(['ROLE_PRO'])->setPassword('x');
         foreach ([$coach, $kine, $tiers] as $u) {
             $em->persist($u);
@@ -222,6 +223,10 @@ class MessagerieTest extends WebTestCase
         self::assertCount(1, $this->emails("coach-$id@exemple.test"));
         $this->client->request('GET', '/messages');
         self::assertSelectorNotExists('nav.menu .pastille.alerte');
+        // Sans catégorie : elle n'écrit qu'aux collègues.
+        $this->client->request('GET', '/messages/nouveau');
+        self::assertSelectorExists('input[name="form[cible]"][value="encadrement"][checked]');
+        self::assertSelectorNotExists('input[name="form[cible]"][value="categorie"]');
 
         // Un autre membre de l'encadrement : ni lecture, ni réponse.
         $this->client->loginUser($tiers);
