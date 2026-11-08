@@ -60,8 +60,14 @@ class EntrainementTest extends WebTestCase
         $em->persist($parent);
         $em->flush();
 
-        // --- L'éducateur ajoute le créneau du mercredi 18:00-19:30.
+        // Catégorie choisie dans les présences : reprise par le planning (catégorie mémorisée).
         $this->client->loginUser($admin);
+        $autreCategorie = $em->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'DESC']);
+        $this->client->request('GET', '/presences?categorie=' . $autreCategorie->getId());
+        $this->client->request('GET', '/planning');
+        self::assertSelectorExists('select[name="categorie"] option[value="' . $autreCategorie->getId() . '"][selected]');
+
+        // --- L'éducateur ajoute le créneau du mercredi 18:00-19:30.
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
         self::assertResponseIsSuccessful();
         $this->client->submit($crawler->selectButton('+ Ajouter le créneau')->form([

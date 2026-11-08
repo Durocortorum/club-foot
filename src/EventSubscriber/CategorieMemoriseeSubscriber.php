@@ -24,6 +24,9 @@ class CategorieMemoriseeSubscriber implements EventSubscriberInterface
         'app_infirmerie_index',
         'app_scolarite_index',
         'app_seance_index',
+        'app_planning',
+        'app_famille_index',
+        'app_dossier_medical_index',
     ];
 
     public static function getSubscribedEvents(): array
