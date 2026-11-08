@@ -192,6 +192,19 @@ class MessageController extends AbstractController
             }
             $lignes[] = ['joueur' => $j, 'destinataires' => array_filter($dest, fn ($d) => null !== $d->getCompte())];
         }
+        // Qui écrit dans chaque fil : un parent, le joueur lui-même (compte du joueur majeur) ou un collègue.
+        foreach ($fils as &$f) {
+            $compte = $f['famille'];
+            if (!$compte->isFamille()) {
+                $f['qui'] = trim($compte->getPrenom() . ' ' . $compte->getNom());
+                continue;
+            }
+            $joueur = array_values(array_filter($f['joueurs'], fn (Joueur $j) => $acces->estLeJoueur($compte, $j)))[0] ?? null;
+            $f['qui'] = $joueur
+                ? $joueur->getPrenom() . ' ' . $joueur->getNom() . ' (le joueur)'
+                : 'Parent de ' . (implode(', ', array_map(fn (Joueur $j) => $j->getPrenom(), $f['joueurs'])) ?: 'joueur');
+        }
+        unset($f);
         $html = $this->render('message/voir.html.twig', [
             'message' => $message,
             'lignes' => $lignes,

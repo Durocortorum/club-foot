@@ -149,6 +149,8 @@ class MessagerieTest extends WebTestCase
         self::assertSelectorTextContains('table', '1 nouvelle');
         $crawler = $this->client->request('GET', '/messages/' . $important->getId());
         self::assertSelectorTextContains('#fil-' . $parent->getId(), 'Bien reçu, merci.');
+        self::assertSelectorTextContains('#fil-' . $parent->getId() . ' h3', 'Parent de Léa');
+        self::assertSelectorTextNotContains('#fil-' . $parent->getId(), 'Famille ·');
         self::assertSelectorTextContains('main', 'lu');
         $this->client->submit($crawler->filter('#fil-' . $parent->getId() . ' form')->form(), ['corps' => 'Parfait, bonne journée.']);
         self::assertResponseRedirects();

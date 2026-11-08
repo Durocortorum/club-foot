@@ -20,13 +20,13 @@
     <section class="carte message-corps">{{ message.corps|nl2br }}</section>
 
     <section class="bloc" id="reponses">
-        <h2 class="titre-bloc">{{ message.cible == 'encadrement' ? 'Réponses' : 'Réponses des familles' }}</h2>
+        <h2 class="titre-bloc">Réponses</h2>
         {% for id, f in fils %}
             <div class="carte fil" id="fil-{{ id }}">
-                <h3>{{ f.famille.famille ? f.famille.email : f.famille.prenom ~ ' ' ~ f.famille.nom }}{% if f.joueurs %} <span class="discret petit">({{ f.joueurs|map(j => j.prenom ~ ' ' ~ j.nom)|join(', ') }})</span>{% endif %}</h3>
+                <h3>{{ f.qui }}{% if f.famille.famille %} <span class="discret petit">{{ f.famille.email }}</span>{% endif %}</h3>
                 {% for r in f.reponses %}
                     <div class="bulle {{ r.deLEncadrement ? 'encadrement' : 'famille' }}">
-                        <div class="bulle-entete">{{ r.deLEncadrement or not f.famille.famille ? r.auteurNom : 'Famille' }} · {{ r.creeLe|date('d/m à H:i') }}</div>
+                        <div class="bulle-entete">{{ r.deLEncadrement ? r.auteurNom : f.qui }} · {{ r.creeLe|date('d/m à H:i') }}</div>
                         {{ r.corps|nl2br }}
                     </div>
                 {% endfor %}
