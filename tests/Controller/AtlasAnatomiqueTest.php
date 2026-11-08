@@ -90,11 +90,26 @@ class AtlasAnatomiqueTest extends WebTestCase
         self::assertInputValueSame('blessure[localisation]', 'Genou gauche');
         self::assertSelectorExists('select[name="blessure[membre]"] option[value="Membre inférieur"][selected]');
 
-        $this->client->submit($crawler->selectButton('Enregistrer')->form());
+        // Arrêt envisagé : 6 semaines → reprise prévue affichée dans le dossier tant que la reprise n'est pas saisie.
+        $this->client->submit($crawler->selectButton('Enregistrer')->form(), [
+            'blessure[date]' => '2026-01-31', 'blessure[arretPrevu]' => '6', 'blessure[uniteArret]' => 'semaines',
+        ]);
         self::assertResponseRedirects($dossier . '#infirmerie');
         $blessure = $this->em()->getRepository(Blessure::class)->findOneBy(['joueur' => $joueur]);
         self::assertSame('Genou gauche', $blessure->getLocalisation());
         self::assertSame('Membre inférieur', $blessure->getMembre());
+        self::assertSame('6 semaines', $blessure->getArretPrevuLibelle());
+        self::assertSame('2026-03-14', $blessure->getRepriseEnvisagee()->format('Y-m-d'));
+        $this->client->request('GET', $dossier);
+        self::assertSelectorTextContains('#infirmerie', 'prévue vers le 14/03/2026');
+        self::assertSelectorTextContains('#infirmerie', '≈ 6 semaines');
+        // Mois : 31 janvier + 1 mois = fin février ; 1 jour au singulier.
+        $blessure->setArretPrevu(1)->setUniteArret('mois');
+        self::assertSame('2026-02-28', $blessure->getRepriseEnvisagee()->format('Y-m-d'));
+        self::assertSame('1 mois', $blessure->getArretPrevuLibelle());
+        $blessure->setUniteArret('jours');
+        self::assertSame('1 jour', $blessure->getArretPrevuLibelle());
+        $this->em()->clear();
 
         // Nouvelle blessure depuis l'Infirmerie (joueur à choisir) : bouton qui ouvre l'atlas du joueur choisi.
         // Ordre : date, catégorie, joueur, puis localisation ; chaque joueur porte sa catégorie (filtre).

@@ -62,6 +62,18 @@
                 {{ _self.champ(form.type) }}
                 {{ _self.champ(form.lieu) }}
                 {{ _self.champ(form.avecArret) }}
+                <div class="champ">
+                    {{ form_label(form.arretPrevu) }}
+                    <div class="arret-prevu">
+                        {{ form_widget(form.arretPrevu) }}
+                        {{ form_widget(form.uniteArret, {attr: {'aria-label': 'Unité'}}) }}
+                    </div>
+                    <p class="help-text" data-blessure-target="reprise" {{ blessure.repriseEnvisagee ? '' : 'hidden' }}>
+                        Reprise envisagée vers le <strong>{{ blessure.repriseEnvisagee ? blessure.repriseEnvisagee|date('d/m/Y') }}</strong>.
+                    </p>
+                    {{ form_errors(form.arretPrevu) }}
+                    {{ form_errors(form.uniteArret) }}
+                </div>
                 {{ _self.champ(form.dateReprise) }}
                 {{ _self.champ(form.equipe) }}
             </div>

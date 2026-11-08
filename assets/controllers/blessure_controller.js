@@ -8,10 +8,13 @@ import { Controller } from '@hotwired/stimulus';
  *    (valeur atlas : adresse de l'atlas avec « 0 » à la place de l'id du joueur ; vide en modification).
  */
 export default class extends Controller {
-    static targets = ['atlas', 'aide'];
+    static targets = ['atlas', 'aide', 'reprise'];
     static values = { atlas: String };
 
     connect() {
+        // Reprise envisagée = date de la blessure + arrêt envisagé, recalculée à chaque saisie.
+        this.surArret = () => this.majReprise();
+        ['date', 'arretPrevu', 'uniteArret'].forEach((n) => this.champ(n)?.addEventListener('input', this.surArret));
         this.categorie = this.champ('categorie');
         this.joueur = this.champ('joueur');
         if (!this.joueur) return;
@@ -25,7 +28,29 @@ export default class extends Controller {
         this.majAtlas();
     }
 
+    majReprise() {
+        if (!this.hasRepriseTarget) return;
+        const date = this.champ('date')?.value;
+        const n = parseInt(this.champ('arretPrevu')?.value, 10);
+        if (!date || !(n > 0)) {
+            this.repriseTarget.hidden = true;
+            return;
+        }
+        const [a, m, j] = date.split('-').map(Number);
+        const d = new Date(a, m - 1, j);
+        const unite = this.champ('uniteArret')?.value || 'jours';
+        if (unite === 'mois') {
+            d.setMonth(d.getMonth() + n);
+            if (d.getDate() !== j) d.setDate(0); // 31 janvier + 1 mois : fin février, comme le serveur
+        } else {
+            d.setDate(d.getDate() + n * (unite === 'semaines' ? 7 : 1));
+        }
+        this.repriseTarget.querySelector('strong').textContent = d.toLocaleDateString('fr-FR');
+        this.repriseTarget.hidden = false;
+    }
+
     disconnect() {
+        ['date', 'arretPrevu', 'uniteArret'].forEach((n) => this.champ(n)?.removeEventListener('input', this.surArret));
         this.categorie?.removeEventListener('change', this.surCategorie);
         this.joueur?.removeEventListener('change', this.surJoueur);
     }

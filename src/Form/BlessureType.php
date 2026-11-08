@@ -10,6 +10,7 @@ use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -65,6 +66,8 @@ class BlessureType extends AbstractType
             ->add('type', ListeOuverteType::class, ['label' => 'Type de blessure', 'suggestions' => Blessure::TYPES])
             ->add('lieu', ListeOuverteType::class, ['label' => 'Circonstances', 'suggestions' => Blessure::LIEUX])
             ->add('avecArret', ChoiceType::class, ['label' => 'Arrêt', 'choices' => ['Avec arrêt' => true, 'Sans arrêt' => false], 'required' => false, 'placeholder' => '—'])
+            ->add('arretPrevu', IntegerType::class, ['label' => 'Arrêt envisagé', 'required' => false, 'attr' => ['min' => 1, 'max' => 365, 'placeholder' => 'ex. : 6']])
+            ->add('uniteArret', ChoiceType::class, ['label' => 'Unité de l\'arrêt envisagé', 'choices' => ['jours' => 'jours', 'semaines' => 'semaines', 'mois' => 'mois'], 'required' => false, 'placeholder' => false])
             ->add('dateReprise', DateType::class, ['label' => 'Date de reprise', 'help' => 'Laisser vide tant que le joueur est indisponible.'] + $date)
             ->add('equipe', null, ['label' => 'Équipe au moment de la blessure', 'required' => false])
             ->add('commentaire', TextareaType::class, ['required' => false]);

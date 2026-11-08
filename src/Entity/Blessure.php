@@ -17,7 +17,8 @@ class Blessure implements AppartientAuClub
     use ClubTrait;
 
     public const LIEUX = ['Entrainement', 'Match', 'Hors foot'];
-    public const MEMBRES = ['Membre inférieur', 'Membre supérieur', 'Tronc', 'Tête'];
+    public const UNITES_ARRET = ['jours', 'semaines', 'mois'];
+    public const MEMBRES =['Membre inférieur', 'Membre supérieur', 'Tronc', 'Tête'];
     public const TYPES = [
         'Contracture', 'Contusion', 'Courbatures', 'Déchirure', 'Douleurs', 'Elongation', 'Entorse', 'Entorse bénigne',
         'Fracture', 'Inflammation', 'Luxation', 'Périostite', 'Pubalgie', 'Tendinite',
@@ -58,6 +59,15 @@ class Blessure implements AppartientAuClub
 
     #[ORM\Column(nullable: true)]
     private ?bool $avecArret = null;
+
+    /** Arrêt envisagé à la blessure : nombre de jours, semaines ou mois (voir uniteArret). */
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    #[Assert\Range(min: 1, max: 365, notInRangeMessage: 'Entre {{ min }} et {{ max }}.')]
+    private ?int $arretPrevu = null;
+
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Assert\Choice(choices: self::UNITES_ARRET)]
+    private ?string $uniteArret = 'semaines';
 
     /** Équipe du joueur au moment de la blessure. */
     #[ORM\Column(length: 30, nullable: true)]
@@ -201,6 +211,60 @@ class Blessure implements AppartientAuClub
         $this->commentaire = $commentaire;
 
         return $this;
+    }
+
+    public function getArretPrevu(): ?int
+    {
+        return $this->arretPrevu;
+    }
+
+    public function setArretPrevu(?int $arretPrevu): static
+    {
+        $this->arretPrevu = $arretPrevu;
+
+        return $this;
+    }
+
+    public function getUniteArret(): ?string
+    {
+        return $this->uniteArret;
+    }
+
+    public function setUniteArret(?string $uniteArret): static
+    {
+        $this->uniteArret = $uniteArret;
+
+        return $this;
+    }
+
+    /** « 10 jours », « 1 semaine », « 3 mois » ; null sans arrêt envisagé. */
+    public function getArretPrevuLibelle(): ?string
+    {
+        if (!$this->arretPrevu) {
+            return null;
+        }
+        $unite = $this->uniteArret ?? 'jours';
+        if ('mois' !== $unite && 1 === $this->arretPrevu) {
+            $unite = rtrim($unite, 's');
+        }
+
+        return $this->arretPrevu . ' ' . $unite;
+    }
+
+    /** Reprise envisagée : date de la blessure + arrêt envisagé. */
+    public function getRepriseEnvisagee(): ?\DateTimeImmutable
+    {
+        if (!$this->date || !$this->arretPrevu) {
+            return null;
+        }
+        if ('mois' === $this->uniteArret) {
+            // 31 janvier + 1 mois : 28 (ou 29) février, pas début mars.
+            $d = $this->date->modify(\sprintf('first day of +%d months', $this->arretPrevu));
+
+            return $d->setDate((int) $d->format('Y'), (int) $d->format('m'), min((int) $this->date->format('d'), (int) $d->format('t')));
+        }
+
+        return $this->date->modify(\sprintf('+%d days', $this->arretPrevu * ('semaines' === $this->uniteArret ? 7 : 1)));
     }
 
     /** Joueur toujours indisponible : pas de date de reprise, ou reprise à venir. */

@@ -37,7 +37,7 @@
                         <td class="nowrap">{{ b.date ? b.date|date('d/m/Y') : '?' }}</td>
                         <td class="large">{{ b.libelle }}</td>
                         <td>{{ b.lieu }}</td>
-                        <td class="nowrap" data-label="reprise">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') : '' }}{% if b.enCours %} <span class="pastille alerte">indisponible</span>{% endif %}</td>
+                        <td class="nowrap" data-label="reprise">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') }}{% if not b.dateReprise and b.repriseEnvisagee %}<span class="discret" title="Arrêt envisagé : {{ b.arretPrevuLibelle }}">prévue vers le {{ b.repriseEnvisagee|date('d/m/Y') }}</span>{% endif %}{% if b.enCours %} <span class="pastille alerte">indisponible</span>{% endif %}</td>
                         <td class="a-cote">{% if is_granted('ROLE_INFIRMERIE') %}<a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a>{% endif %}</td>
                     </tr>
                 {% else %}
