@@ -138,7 +138,9 @@ class JoueurController extends AbstractController
 
         return $this->render('joueur/voir.html.twig', [
             'joueur' => $joueur,
-            'matchs' => \array_slice($matchs, 0, 10),
+            // Tous les matchs (le choix de la saison se fait sur la page), avec buts et passes de chacun.
+            'matchs' => $matchs,
+            'buts_par_match' => $bilan->butsParMatch($joueur),
             'bilan' => $bilan->parSaison($joueur, $matchs),
             'presences' => $presences->bilanParSaison($joueur),
             'blessures' => $this->isGranted('ROLE_INFIRMERIE_LECTURE') && $this->medical->estOuvert() ? $blessures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],

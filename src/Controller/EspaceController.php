@@ -88,9 +88,7 @@ class EspaceController extends AbstractController
                 // Joueur majeur connecté avec son propre compte : ses personnes à contacter, et l'accès qu'il leur donne.
                 'proches' => $acces->decideAccesParents($moi, $j) ? $proches->avecAcces($j) : null,
                 // Statistiques : joueur mineur et ses parents ; joueur majeur et les contacts qu'il autorise.
-                'stats' => $proches->voitStatistiques($moi, $j)
-                    ? self::periodes($bilan->parSaison($j, $participations->parJoueur($j)), $presences->bilanParSaison($j))
-                    : null,
+                'stats' => $proches->voitStatistiques($moi, $j) ? self::statistiques($j, $bilan, $participations, $presences) : null,
             ];
         }
 
@@ -199,6 +197,22 @@ class EspaceController extends AbstractController
         }
 
         return $this->render('espace/activation.html.twig', ['form' => $form, 'compte' => $compte]);
+    }
+
+    /**
+     * Statistiques de l'espace : chiffres par période et détail des matchs (sans note ni appréciation du coach).
+     *
+     * @return array{periodes: array<string, array<string, mixed>>, matchs: list<\App\Entity\Participation>, buts: array<int, array{buts: int, passes: int}>}
+     */
+    private static function statistiques(Joueur $j, BilanJoueur $bilan, ParticipationRepository $participations, PresenceRepository $presences): array
+    {
+        $matchs = $participations->parJoueur($j);
+
+        return [
+            'periodes' => self::periodes($bilan->parSaison($j, $matchs), $presences->bilanParSaison($j)),
+            'matchs' => $matchs,
+            'buts' => $bilan->butsParMatch($j),
+        ];
     }
 
     /**

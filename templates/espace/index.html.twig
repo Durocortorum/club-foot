@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
 
 {% block title %}Mon espace{% endblock %}
 
@@ -110,10 +111,10 @@
                     <div class="titre-page">
                         <h3 id="statistiques-{{ j.id }}">Statistiques</h3>
                         <select data-periode-target="choix" data-action="periode#afficher" aria-label="Période des statistiques">
-                            {% for cle, p in e.stats %}<option value="{{ cle }}">{{ p.libelle }}</option>{% endfor %}
+                            {% for cle, p in e.stats.periodes %}<option value="{{ cle }}">{{ p.libelle }}</option>{% endfor %}
                         </select>
                     </div>
-                    {% for cle, p in e.stats %}
+                    {% for cle, p in e.stats.periodes %}
                         <div data-periode-target="periode" data-periode="{{ cle }}" {{ not loop.first ? 'hidden' }}>
                             <div class="tuiles bilan">
                                 <div class="tuile"><span class="tuile-valeur">{{ p.matchs }}</span><span class="tuile-libelle">matchs joués</span></div>
@@ -126,6 +127,33 @@
                             </div>
                         </div>
                     {% endfor %}
+
+                    {# Détail des matchs de la période choisie (sans note ni appréciation du coach). #}
+                    {% if e.stats.matchs %}
+                        <h4>Détail des matchs</h4>
+                        <div class="table-defile">
+                            <table class="liste liste-fiches">
+                                <thead><tr><th>Date</th><th>Match</th><th>Score</th><th>Poste</th><th>Min.</th><th>Buts</th><th>Passes D.</th><th>Carton</th></tr></thead>
+                                <tbody>
+                                    {% for p in e.stats.matchs %}
+                                        {% set r = p.rencontre %}
+                                        {% set bp = e.stats.buts[r.id] ?? {buts: 0, passes: 0} %}
+                                        <tr data-periode-target="ligne" data-saison="{{ r.saison }}">
+                                            <td class="nowrap">{{ r.date ? r.date|date('d/m/Y') }}</td>
+                                            <td class="principal etroit">{{ r.domicile }} – {{ r.exterieur }} <span class="discret">{{ r.equipeAffichee }}</span></td>
+                                            <td class="a-cote">{{ m.score(r) }}</td>
+                                            <td>{{ p.poste }}</td>
+                                            <td data-label="min.">{{ p.tempsJeu }}</td>
+                                            <td data-label="buts">{{ bp.buts ?: '' }}</td>
+                                            <td data-label="passes D.">{{ bp.passes ?: '' }}</td>
+                                            <td>{% if p.carton %}<span class="carton {{ p.couleurCarton }}" title="{{ p.cartonLibelle }}"></span> <span class="petit">{{ p.cartonLibelle }}</span>{% endif %}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="discret" data-periode-target="vide" hidden>Aucun match sur cette période.</p>
+                    {% endif %}
                 </div>
             {% endif %}
 

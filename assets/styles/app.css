@@ -684,3 +684,10 @@ table.droits thead th.droits-nom { z-index: 3; }
 .statistiques-famille .titre-page { margin-bottom: .6rem; }
 .statistiques-famille .titre-page h3 { margin: 0; }
 .statistiques-famille select { width: auto; }
+
+/* Lignes masquées par le choix de la période (les fiches sur téléphone sont en display: flex). */
+.liste tr[hidden] { display: none !important; }
+
+/* Choix de période à droite d'un titre (détail des matchs, statistiques). */
+.titre-page > select { width: auto; flex: 0 1 auto; }
+.titre-page > h3 { margin: 0; }

@@ -206,25 +206,39 @@
             <p class="discret petit">Statistiques des matchs ayant une feuille de match (aucune pour l'école de foot). % minutes : temps de jeu rapporté à la durée des matchs où il figurait sur la feuille.</p>
 
             {% if matchs %}
-                <h3>Derniers matchs</h3>
+                {# Détail de tous les matchs ; choix de la saison (la plus récente par défaut) : periode_controller.js. #}
+                {% set saisons_matchs = [] %}
+                {% for p in matchs %}{% if p.rencontre.saison not in saisons_matchs %}{% set saisons_matchs = saisons_matchs|merge([p.rencontre.saison]) %}{% endif %}{% endfor %}
+                <div data-controller="periode">
+                <div class="titre-page">
+                    <h3>Détail des matchs</h3>
+                    <select data-periode-target="choix" data-action="periode#afficher" aria-label="Saison des matchs">
+                        {% for s in saisons_matchs %}<option value="{{ s }}">Saison {{ s }}</option>{% endfor %}
+                        <option value="toutes">Toutes les saisons ({{ matchs|length }} matchs)</option>
+                    </select>
+                </div>
                 <div class="table-defile">
                     <table class="liste liste-fiches">
-                        <thead><tr><th>Date</th><th>Match</th><th>Score</th><th>Poste</th><th>Min.</th><th>Note</th><th>Appréciation</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Match</th><th>Score</th><th>Poste</th><th>Min.</th><th>Buts</th><th>Passes D.</th><th>Note</th><th>Appréciation</th></tr></thead>
                         <tbody>
                             {% for p in matchs %}
                                 {% set r = p.rencontre %}
-                                <tr>
+                                {% set bp = buts_par_match[r.id] ?? {buts: 0, passes: 0} %}
+                                <tr data-periode-target="ligne" data-saison="{{ r.saison }}" {{ r.saison != saisons_matchs|first ? 'hidden' }}>
                                     <td class="nowrap">{{ r.date ? r.date|date('d/m/Y') }}</td>
                                     <td class="principal etroit"><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a> <span class="discret">{{ r.equipeAffichee }}</span></td>
                                     <td class="a-cote">{{ m.score(r) }}</td>
                                     <td>{{ p.poste }}</td>
                                     <td data-label="min.">{{ p.tempsJeu }}</td>
+                                    <td data-label="buts">{{ bp.buts ?: '' }}</td>
+                                    <td data-label="passes D.">{{ bp.passes ?: '' }}</td>
                                     <td data-label="note">{{ p.note ? p.note|number_format(1, ',') }}</td>
                                     <td class="petit">{{ p.appreciation }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
                 </div>
             {% endif %}
         {% else %}

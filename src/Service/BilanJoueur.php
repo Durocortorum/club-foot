@@ -88,6 +88,30 @@ class BilanJoueur
     }
 
     /**
+     * Buts et passes décisives du joueur, match par match.
+     *
+     * @return array<int, array{buts: int, passes: int}> par identifiant de match
+     */
+    public function butsParMatch(Joueur $joueur): array
+    {
+        $parMatch = [];
+        $buts = $this->buts->createQueryBuilder('b')
+            ->andWhere('b.buteur = :j OR b.passeur = :j')
+            ->setParameter('j', $joueur)
+            ->getQuery()
+            ->getResult();
+        foreach ($buts as $b) {
+            /** @var But $b */
+            $id = $b->getRencontre()->getId();
+            $parMatch[$id] ??= ['buts' => 0, 'passes' => 0];
+            $parMatch[$id]['buts'] += $b->getButeur() === $joueur ? 1 : 0;
+            $parMatch[$id]['passes'] += $b->getPasseur() === $joueur ? 1 : 0;
+        }
+
+        return $parMatch;
+    }
+
+    /**
      * Durée de chaque match de la liste : le plus long temps de jeu de sa feuille de match.
      *
      * @param list<Participation> $participations
