@@ -679,3 +679,8 @@ table.droits thead th.droits-nom { z-index: 3; }
 .champ div[id]:has(> input[type="radio"]) { display: grid; grid-template-columns: auto 1fr; gap: .35rem .5rem; align-items: center; margin-top: .3rem; }
 .champ div[id] > input[type="radio"] { width: auto; margin: 0; }
 .champ div[id] > input[type="radio"] + label { margin: 0; font-size: .92rem; color: var(--encre); }
+
+/* Statistiques de l'espace famille : choix de la période à droite du titre. */
+.statistiques-famille .titre-page { margin-bottom: .6rem; }
+.statistiques-famille .titre-page h3 { margin: 0; }
+.statistiques-famille select { width: auto; }

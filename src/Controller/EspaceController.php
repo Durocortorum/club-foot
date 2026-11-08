@@ -89,7 +89,7 @@ class EspaceController extends AbstractController
                 'proches' => $acces->decideAccesParents($moi, $j) ? $proches->avecAcces($j) : null,
                 // Statistiques : joueur mineur et ses parents ; joueur majeur et les contacts qu'il autorise.
                 'stats' => $proches->voitStatistiques($moi, $j)
-                    ? ['bilan' => $bilan->parSaison($j, $participations->parJoueur($j)), 'presences' => $presences->bilanParSaison($j)]
+                    ? self::periodes($bilan->parSaison($j, $participations->parJoueur($j)), $presences->bilanParSaison($j))
                     : null,
             ];
         }
@@ -199,5 +199,35 @@ class EspaceController extends AbstractController
         }
 
         return $this->render('espace/activation.html.twig', ['form' => $form, 'compte' => $compte]);
+    }
+
+    /**
+     * Statistiques à choisir dans l'espace : toute la carrière, puis chaque saison (la plus récente d'abord),
+     * avec les matchs (feuilles de match) et la présence à l'entraînement.
+     *
+     * @param array<string, array<string, mixed>>                              $bilan     BilanJoueur::parSaison (avec « Total »)
+     * @param array<string, array{seances: int, presences: int, taux: ?float}> $presences PresenceRepository::bilanParSaison
+     *
+     * @return array<string, array<string, mixed>> clé => chiffres (« carriere » en premier)
+     */
+    private static function periodes(array $bilan, array $presences): array
+    {
+        $vide = ['matchs' => 0, 'titularisations' => 0, 'minutes' => 0, 'buts' => 0, 'passes' => 0, 'jaunes' => 0, 'rouges' => 0];
+        $saisons = array_unique([...array_keys(array_diff_key($bilan, ['Total' => true])), ...array_keys($presences)]);
+        rsort($saisons);
+
+        $periodes = ['carriere' => ['libelle' => 'Toute sa carrière'] + array_intersect_key($bilan['Total'] ?? [], $vide) + $vide + ['seances' => 0, 'presences' => 0]];
+        foreach ($saisons as $saison) {
+            $p = $presences[$saison] ?? ['seances' => 0, 'presences' => 0];
+            $periodes[$saison] = ['libelle' => 'Saison ' . $saison] + array_intersect_key($bilan[$saison] ?? [], $vide) + $vide
+                + ['seances' => $p['seances'], 'presences' => $p['presences']];
+            $periodes['carriere']['seances'] += $p['seances'];
+            $periodes['carriere']['presences'] += $p['presences'];
+        }
+        foreach ($periodes as &$periode) {
+            $periode['taux'] = $periode['seances'] ? (int) round(100 * $periode['presences'] / $periode['seances']) : null;
+        }
+
+        return $periodes;
     }
 }

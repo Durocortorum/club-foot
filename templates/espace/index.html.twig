@@ -105,36 +105,28 @@
             {% endif %}
 
             {% if e.stats %}
-                {% set bilan, presences = e.stats.bilan, e.stats.presences %}
-                <h3 id="statistiques-{{ j.id }}">Statistiques</h3>
-                {% if bilan %}
-                    <div class="table-defile">
-                        <table class="liste chiffres liste-fiches">
-                            <thead><tr><th>Saison</th><th>Matchs</th><th>Titulaire</th><th>Minutes</th><th>Buts</th><th>Passes D.</th><th>Cartons J / R</th></tr></thead>
-                            <tbody>
-                                {% for saison, b in bilan %}
-                                    <tr>
-                                        <td class="principal">{% if saison == 'Total' %}<strong>Total</strong>{% else %}{{ saison }}{% endif %}</td>
-                                        <td data-label="matchs">{{ b.matchs }}</td>
-                                        <td data-label="titulaire">{{ b.titularisations }}</td>
-                                        <td data-label="min.">{{ b.minutes }}</td>
-                                        <td data-label="buts">{{ b.buts ?: '' }}</td>
-                                        <td data-label="passes D.">{{ b.passes ?: '' }}</td>
-                                        <td data-label="cartons J/R">{{ b.jaunes or b.rouges ? b.jaunes ~ ' / ' ~ b.rouges }}</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                {# Statistiques : on choisit la période, toute la carrière ou une saison (periode_controller.js). #}
+                <div class="statistiques-famille" data-controller="periode">
+                    <div class="titre-page">
+                        <h3 id="statistiques-{{ j.id }}">Statistiques</h3>
+                        <select data-periode-target="choix" data-action="periode#afficher" aria-label="Période des statistiques">
+                            {% for cle, p in e.stats %}<option value="{{ cle }}">{{ p.libelle }}</option>{% endfor %}
+                        </select>
                     </div>
-                {% else %}
-                    <p class="discret">Aucun match enregistré.</p>
-                {% endif %}
-                {% if presences %}
-                    <p class="petit">
-                        Présence à l'entraînement :
-                        {% for saison, p in presences %}{{ saison }} : <strong>{{ p.taux ?? '—' }} %</strong> ({{ p.presences }}/{{ p.seances }}){{ not loop.last ? ' · ' }}{% endfor %}
-                    </p>
-                {% endif %}
+                    {% for cle, p in e.stats %}
+                        <div data-periode-target="periode" data-periode="{{ cle }}" {{ not loop.first ? 'hidden' }}>
+                            <div class="tuiles bilan">
+                                <div class="tuile"><span class="tuile-valeur">{{ p.matchs }}</span><span class="tuile-libelle">matchs joués</span></div>
+                                <div class="tuile"><span class="tuile-valeur">{{ p.titularisations }}</span><span class="tuile-libelle">titularisations</span></div>
+                                <div class="tuile"><span class="tuile-valeur">{{ p.minutes }}</span><span class="tuile-libelle">minutes</span></div>
+                                <div class="tuile"><span class="tuile-valeur">{{ p.buts }}</span><span class="tuile-libelle">buts</span></div>
+                                <div class="tuile"><span class="tuile-valeur">{{ p.passes }}</span><span class="tuile-libelle">passes décisives</span></div>
+                                <div class="tuile"><span class="tuile-valeur">{{ p.jaunes }} / {{ p.rouges }}</span><span class="tuile-libelle">cartons jaunes / rouges</span></div>
+                                <div class="tuile"><span class="tuile-valeur">{{ p.taux is not null ? p.taux ~ ' %' : '—' }}</span><span class="tuile-libelle">présence à l'entraînement{% if p.seances %} ({{ p.presences }}/{{ p.seances }}){% endif %}</span></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
             {% endif %}
 
             {% if e.proches is not null %}
