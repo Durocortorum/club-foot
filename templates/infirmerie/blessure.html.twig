@@ -1,47 +1,14 @@
 {% extends 'commun/formulaire.html.twig' %}
 
-{# Formulaire de blessure + planches anatomiques : un clic sur le corps renseigne localisation et membre,
-   un clic sur une planche détaillée renseigne la zone touchée. #}
+{# Formulaire de blessure. La localisation précise se choisit avant, sur l'atlas anatomique du dossier
+   médical du joueur (« Localiser une blessure »), qui ouvre ce formulaire déjà rempli. #}
 
 {% block complement %}
-    <div class="carte anatomie" data-controller="anatomie"
-         data-anatomie-zone-value="{{ form.zone.vars.id }}"
-         data-anatomie-localisation-value="{{ form.localisation.vars.id }}"
-         data-anatomie-membre-value="{{ form.membre.vars.id }}">
-        <div class="anatomie-entete">
-            <button type="button" class="bouton" data-anatomie-target="retour" data-action="anatomie#ouvrir" data-anatomie-cible-param="corps" hidden>← Corps entier</button>
-            <h2 data-anatomie-target="titre">{{ planches.corps.titre }}</h2>
-            <span class="discret" data-anatomie-target="choix"></span>
-        </div>
-        {% for id, p in planches %}
-            <section class="planche" data-anatomie-target="planche" data-id="{{ id }}" data-titre="{{ p.titre }}" {{ id != 'corps' ? 'hidden' }}>
-                {% if p.liens %}
-                    <nav class="planche-liens">
-                        {% for l in p.liens %}
-                            <button type="button" class="bouton" data-action="anatomie#ouvrir" data-anatomie-cible-param="{{ l.cible }}">{{ l.texte }}</button>
-                        {% endfor %}
-                    </nav>
-                {% endif %}
-                <div class="planche-cadre" style="--ratio: {{ p.ratio }}">
-                    {% for i in p.images %}
-                        <img src="{{ asset('images/anatomie/' ~ i.fichier) }}" alt="" loading="lazy"
-                             style="left: {{ i.pos[0] }}%; top: {{ i.pos[1] }}%; width: {{ i.pos[2] }}%; height: {{ i.pos[3] }}%">
-                    {% endfor %}
-                    {% for pt in p.points %}
-                        {% set libelle = pt.endroit ?? pt.localisation %}
-                        <button type="button" class="point {{ pt.endroit is defined ? 'etiquette' : 'region' }}" title="{{ libelle }}"
-                                style="left: {{ pt.pos[0] }}%; top: {{ pt.pos[1] }}%; width: {{ pt.pos[2] }}%; height: {{ pt.pos[3] }}%"
-                                data-action="anatomie#choisir"
-                                {% if pt.endroit is defined %}
-                                    data-anatomie-endroit-param="{{ pt.endroit }}"
-                                {% else %}
-                                    data-anatomie-localisation-param="{{ pt.localisation }}"
-                                    data-anatomie-membre-param="{{ pt.membre }}"
-                                    data-anatomie-cible-param="{{ pt.cible }}"
-                                {% endif %}><span>{{ libelle|first|upper ~ libelle|slice(1) }}</span></button>
-                    {% endfor %}
-                </div>
-            </section>
-        {% endfor %}
-    </div>
+    {% set joueur = form.vars.value.joueur %}
+    {% if joueur and joueur.id and not form.vars.value.id %}
+        <p class="discret">
+            <a href="{{ path('app_dossier_medical_localiser', {id: joueur.id}) }}">Localiser la blessure sur le corps</a>
+            pour remplir la localisation et la zone touchée.
+        </p>
+    {% endif %}
 {% endblock %}

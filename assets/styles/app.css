@@ -386,11 +386,29 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .barres-barre { height: 10px; background: var(--rouge); border-radius: 0 4px 4px 0; opacity: .8; }
 .barres-valeur { text-align: right; color: var(--gris); }
 
-/* Planches anatomiques (formulaire de blessure) */
-.anatomie { margin-top: 1rem; }
-.anatomie-entete { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem 1rem; margin-bottom: .8rem; }
-.anatomie-entete h2 { margin: 0; color: var(--rouge); }
-.planche-liens { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .8rem; }
+/* Atlas anatomique (localiser une blessure depuis le dossier médical) */
+.atlas { display: grid; grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr); gap: 1rem; align-items: start; }
+.atlas h2 { margin-top: 0; }
+.atlas h3 { margin: 1rem 0 .4rem; font-size: .95rem; color: var(--rouge); }
+.onglets-atlas { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .6rem; }
+.atlas-liste ul { list-style: none; margin: 0; padding: 0; }
+.atlas-liste li { display: flex; align-items: center; gap: .4rem; padding: .3rem 0; border-bottom: 1px solid var(--bordure); }
+.atlas-liste li span { flex: 1; }
+.atlas-images { display: grid; gap: .6rem; }
+.atlas-images-2 { grid-template-columns: 1fr 1fr; }
+.atlas-images img { display: block; width: 100%; height: auto; max-height: 78vh; object-fit: contain; background: #fff; border-radius: 6px; }
+.atlas-choix { display: flex; flex-wrap: wrap; gap: .35rem; }
+.atlas-choix .bouton { text-align: left; }
+.atlas-autre { display: flex; gap: .4rem; }
+.atlas-autre input { flex: 1; }
+.atlas-credits { margin-top: 1rem; font-size: .75rem; color: var(--gris); }
+.atlas-credits a { color: inherit; text-decoration: underline; }
+.atlas-region .atlas-structures { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+@media (max-width: 800px) {
+    .atlas { grid-template-columns: 1fr; }
+    .atlas-region .atlas-structures { position: static; max-height: none; }
+    .atlas-images-2 { grid-template-columns: 1fr; }
+}
 .planche-cadre {
     position: relative; aspect-ratio: var(--ratio); margin: 0 auto;
     width: min(100%, calc(75vh * var(--ratio)));
@@ -403,18 +421,6 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
     transition: background-color .15s, color .15s, box-shadow .15s, transform .15s;
 }
 .point:focus-visible { outline: 3px solid color-mix(in srgb, var(--rouge) 45%, transparent); outline-offset: 2px; }
-
-/* Planche détaillée : pastille portant le nom, posée sur la légende imprimée */
-.point.etiquette {
-    padding: 0 .4em; border-radius: 999px; text-align: center; line-height: 1.1;
-    font-size: clamp(.55rem, 1.25cqw, .9rem); font-weight: 600; color: var(--encre);
-    background: rgba(255, 255, 255, .94); border: 1px solid color-mix(in srgb, var(--rouge) 40%, transparent);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, .18);
-}
-.point.etiquette span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.point.etiquette:hover { background: var(--rouge); border-color: var(--rouge); color: var(--sur-rouge); transform: scale(1.06); box-shadow: 0 4px 12px color-mix(in srgb, var(--rouge) 35%, transparent); z-index: 1; }
-.point.etiquette.choisi { background: var(--rouge); border-color: var(--rouge); color: var(--sur-rouge); box-shadow: 0 0 0 4px color-mix(in srgb, var(--rouge) 25%, transparent); }
-.point.etiquette.choisi::before { content: "✓"; margin-right: .3em; }
 
 /* Corps entier : région discrète signalée par un point, nom affiché au survol */
 .point.region { border-radius: 14px; }

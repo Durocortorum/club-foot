@@ -12,7 +12,6 @@ use App\Repository\CategorieRepository;
 use App\Repository\ContactMedicalRepository;
 use App\Repository\JoueurRepository;
 use App\Security\JoueurVoter;
-use App\Service\Anatomie;
 use App\Service\InvitationCompte;
 use App\Entity\Utilisateur;
 use App\Repository\UtilisateurRepository;
@@ -43,7 +42,6 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class InfirmerieController extends AbstractController
 {
     public function __construct(
-        private readonly Anatomie $anatomie,
         private readonly JoueurVoter $voter,
     ) {
     }
@@ -81,6 +79,12 @@ class InfirmerieController extends AbstractController
         if ($joueur) {
             $this->verifierPerimetre($joueur);
             $blessure->setJoueur($joueur)->setEquipe($joueur->getCategorie()?->getNom());
+        }
+        // Venue de l'atlas anatomique : localisation, membre et structure touchée déjà choisis.
+        $texte = fn (string $champ, int $longueur) => mb_substr(trim($request->query->getString($champ)), 0, $longueur) ?: null;
+        $blessure->setLocalisation($texte('localisation', 40))->setZone($texte('zone', 80));
+        if (\in_array($request->query->getString('membre'), Blessure::MEMBRES, true)) {
+            $blessure->setMembre($request->query->getString('membre'));
         }
 
         return $this->formulaireBlessure($request, $em, $blessure, 'Nouvelle blessure', null !== $joueur);
@@ -233,7 +237,6 @@ class InfirmerieController extends AbstractController
         $vue = [
             'form' => $form,
             'titre' => $titre,
-            'planches' => $this->anatomie->planches(),
             'retour' => $blessure->getJoueur()
                 ? $this->generateUrl('app_dossier_medical', ['id' => $blessure->getJoueur()->getId()])
                 : $this->generateUrl('app_infirmerie_index'),

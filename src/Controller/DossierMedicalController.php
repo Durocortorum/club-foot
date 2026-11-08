@@ -10,6 +10,7 @@ use App\Repository\JoueurRepository;
 use App\Repository\MesureRepository;
 use App\Security\JoueurVoter;
 use App\Service\AccesMedical;
+use App\Service\AtlasAnatomique;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -91,6 +92,64 @@ class DossierMedicalController extends AbstractController
             'form' => $form,
             'titre' => 'Renseignements médicaux – ' . $joueur->getNomComplet(),
             'retour' => $this->generateUrl('app_dossier_medical', ['id' => $joueur->getId()]),
+        ]);
+    }
+
+    /** Atlas anatomique, étape 1 : le corps entier (face ou dos), on clique sur la région touchée. */
+    #[IsGranted('ROLE_INFIRMERIE')]
+    #[Route('/{id}/localiser', name: 'app_dossier_medical_localiser', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function localiser(Request $request, Joueur $joueur, AtlasAnatomique $atlas): Response
+    {
+        $this->verifier($joueur);
+        $vue = 'dos' === $request->query->getString('vue') ? 'dos' : 'face';
+        $corps = AtlasAnatomique::CORPS[$vue];
+        [$larg, $haut] = getimagesize($this->getParameter('kernel.project_dir') . '/public/images/atlas/' . $corps['image']) ?: [1, 1];
+
+        // Liste des régions (accessible au clavier et sur petit écran), dans l'ordre du corps.
+        $regions = [];
+        foreach (AtlasAnatomique::REGIONS as $code => $r) {
+            $regions[$code] = ['libelle' => $r['libelle'], 'cotes' => ($r['cote'] ?? false) ? ['droite', 'gauche'] : [null]];
+        }
+
+        return $this->render('infirmerie/atlas_corps.html.twig', [
+            'joueur' => $joueur,
+            'vue' => $vue,
+            'corps' => $corps,
+            'ratio' => $larg / $haut,
+            'regions' => $regions,
+            'libelles' => array_map(fn ($r) => $r['libelle'], AtlasAnatomique::REGIONS),
+            'credits' => $atlas->credits([$corps['image']]),
+        ]);
+    }
+
+    /**
+     * Atlas anatomique, étape 2 : planches d'une région (muscles, os, ligaments) et liste des structures ;
+     * le clic sur une structure ouvre « Nouvelle blessure » du joueur, déjà remplie.
+     */
+    #[IsGranted('ROLE_INFIRMERIE')]
+    #[Route('/{id}/localiser/{region}/{cote}', name: 'app_dossier_medical_localiser_region', requirements: ['id' => '\d+', 'region' => '[a-z-]+', 'cote' => 'droite|gauche'], defaults: ['cote' => null], methods: ['GET'])]
+    public function localiserRegion(Request $request, Joueur $joueur, string $region, ?string $cote, AtlasAnatomique $atlas): Response
+    {
+        $this->verifier($joueur);
+        $r = AtlasAnatomique::REGIONS[$region] ?? throw $this->createNotFoundException();
+        if (!($r['cote'] ?? false)) {
+            $cote = null;
+        }
+        $n = $request->query->getInt('planche');
+        $planche = $r['planches'][$n] ?? $r['planches'][$n = 0];
+        $localisation = AtlasAnatomique::localisation($region, $cote);
+
+        return $this->render('infirmerie/atlas_region.html.twig', [
+            'joueur' => $joueur,
+            'code' => $region,
+            'region' => $r,
+            'cote' => $cote,
+            'localisation' => $localisation,
+            'planche' => $planche,
+            'n' => $n,
+            'nouvelle' => ['joueur' => $joueur->getId(), 'localisation' => $localisation, 'membre' => $r['membre']],
+            'vue' => \in_array($region, ['dos', 'lombaires', 'fessier'], true) ? 'dos' : 'face',
+            'credits' => $atlas->credits($planche['images']),
         ]);
     }
 

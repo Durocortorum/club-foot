@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ localisation }} – {{ joueur.nomComplet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_dossier_medical_localiser', {id: joueur.id, vue: vue}) }}">← Corps entier</a></p>
+
+    <div class="titre-page">
+        <h1>{{ localisation }} · {{ joueur.prenom }} <strong>{{ joueur.nom }}</strong></h1>
+        {% if region.cote ?? false %}
+            {% set autre = cote == 'droite' ? 'gauche' : 'droite' %}
+            <a class="bouton" href="{{ path('app_dossier_medical_localiser_region', {id: joueur.id, region: code, cote: autre, planche: n}) }}">Côté {{ autre }}</a>
+        {% endif %}
+    </div>
+
+    <div class="atlas atlas-region">
+        <section class="carte atlas-planche">
+            {% if region.planches|length > 1 %}
+                <nav class="onglets-atlas" aria-label="Planches">
+                    {% for i, p in region.planches %}
+                        <a class="bouton petit {{ i == n ? 'principal' }}" href="{{ path('app_dossier_medical_localiser_region', {id: joueur.id, region: code, cote: cote, planche: i}) }}" {{ i == n ? 'aria-current="page"' }}>{{ p.titre }}</a>
+                    {% endfor %}
+                </nav>
+            {% else %}
+                <h2>{{ planche.titre }}</h2>
+            {% endif %}
+            <div class="atlas-images atlas-images-{{ planche.images|length }}">
+                {% for image in planche.images %}
+                    <a href="{{ asset('images/atlas/' ~ image) }}" target="_blank" rel="noopener" title="Agrandir">
+                        <img src="{{ asset('images/atlas/' ~ image) }}" alt="{{ planche.titre }}">
+                    </a>
+                {% endfor %}
+            </div>
+            <p class="discret petit">Légendes en anglais (planches OpenStax) ; touchez l'image pour l'agrandir.</p>
+        </section>
+
+        <section class="carte atlas-structures">
+            <h2>Structure touchée</h2>
+            <p class="discret petit">Un clic ouvre la nouvelle blessure, avec « {{ localisation }} » et la structure déjà remplies.</p>
+            {% for famille, structures in region.structures %}
+                <h3>{{ famille }}</h3>
+                <div class="atlas-choix">
+                    {% for s in structures %}
+                        <a class="bouton petit" href="{{ path('app_blessure_nouvelle', nouvelle|merge({zone: s})) }}">{{ s }}</a>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+            <h3>Autre</h3>
+            <form method="get" action="{{ path('app_blessure_nouvelle') }}" class="atlas-autre">
+                {% for k, v in nouvelle %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+                <input type="text" name="zone" maxlength="80" placeholder="Structure non listée (facultatif)" aria-label="Structure non listée">
+                <button class="bouton principal">Continuer</button>
+            </form>
+        </section>
+    </div>
+
+    {{ include('infirmerie/_atlas_credits.html.twig') }}
+{% endblock %}

@@ -1,0 +1,8 @@
+{# Mention des auteurs et licences des illustrations (obligatoire pour les licences Creative Commons BY). #}
+<p class="atlas-credits">
+    Illustrations :
+    {% for fichier, c in credits %}
+        <a href="{{ c.source }}" target="_blank" rel="noopener">{{ c.auteur }}</a>{% if c.auteur starts with 'OpenStax' %}, <cite>Anatomy and Physiology</cite> (Rice University){% endif %},
+        <a href="https://creativecommons.org/licenses/{{ c.licence|replace({'CC ': '', ' ': '/'})|lower }}/deed.fr" target="_blank" rel="noopener">{{ c.licence }}</a>{{ not loop.last ? ' ; ' }}
+    {%- endfor %}. Images redimensionnées.
+</p>

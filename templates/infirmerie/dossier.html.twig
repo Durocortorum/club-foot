@@ -58,7 +58,12 @@
         <section class="bloc" id="infirmerie">
             <div class="titre-page">
                 <h2 class="titre-bloc">Blessures</h2>
-                {% if inf_modif %}<a class="bouton" href="{{ path('app_blessure_nouvelle', {joueur: joueur.id}) }}">+ Blessure</a>{% endif %}
+                {% if inf_modif %}
+                    <div class="actions">
+                        <a class="bouton principal" href="{{ path('app_dossier_medical_localiser', {id: joueur.id}) }}">Localiser une blessure</a>
+                        <a class="bouton" href="{{ path('app_blessure_nouvelle', {joueur: joueur.id}) }}">+ Blessure</a>
+                    </div>
+                {% endif %}
             </div>
             {% if blessures %}
                 <div class="table-defile">
