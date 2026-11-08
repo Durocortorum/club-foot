@@ -176,12 +176,23 @@ class EntrainementTest extends WebTestCase
         self::assertTrue($this->em()->find(Entrainement::class, $deuxieme->getId())?->isAnnule(), 'entraînement annulé conservé');
         self::assertSame((string) $categorie, $this->grille($categorie, $premier, 'Tom'), 'l\'appel reste dans la grille');
 
-        // --- Créneau supprimé : plus d'entraînements à venir.
+        // Absence signalée sur un entraînement d'une autre semaine : reportée dans la grille de cette semaine.
+        $dernier = $this->em()->find(Entrainement::class, end($apres)->getId());
+        $lundiDernier = $dernier->getDate()->modify('monday this week');
+        static::getContainer()->get(\App\Service\PlanningEntrainements::class)
+            ->signalerAbsence($dernier, $this->em()->find(Joueur::class, $tom->getId()), 'Malade', null, 'test');
+        self::assertSame('Malade', $this->grille($categorie, $dernier, 'Tom'));
+
+        // --- Créneau supprimé : plus d'entraînements à venir ; l'absence reportée quitte la grille,
+        // et la semaine, devenue vide, disparaît ; l'appel déjà fait reste (historique).
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
         $this->client->submit($crawler->filter('form[action$="/supprimer"]')->first()->form());
         $this->client->followRedirect();
         self::assertSelectorNotExists('article.entrainement');
         self::assertCount(0, $this->em()->getRepository(CreneauEntrainement::class)->findBy(['categorie' => $categorie->getId()]));
+        $this->em()->clear();
+        self::assertNull($this->em()->getRepository(SemainePresence::class)->findOneBy(['categorie' => $categorie->getId(), 'lundi' => $lundiDernier]), 'semaine vide supprimée');
+        self::assertSame((string) $categorie, $this->grille($categorie, $premier, 'Tom'), 'l\'appel reste dans la grille');
     }
 
     private function joueur(Club $club, Categorie $categorie, string $prenom): Joueur

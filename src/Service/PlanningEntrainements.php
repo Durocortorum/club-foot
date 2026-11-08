@@ -86,11 +86,27 @@ class PlanningEntrainements
         $this->em->flush();
     }
 
-    /** Créneau supprimé : ses entraînements à venir disparaissent, les passés restent (historique). */
+    /**
+     * Créneau supprimé : ses entraînements à venir disparaissent, les passés restent (historique).
+     * Les absences signalées par les familles et reportées dans la grille des présences en sont retirées ;
+     * une semaine de présences devenue entièrement vide est supprimée.
+     */
     public function supprimerCreneau(CreneauEntrainement $creneau): void
     {
+        $semaines = [];
         foreach ($this->futurs($creneau) as $e) {
+            foreach ($e->getAbsences() as $a) {
+                $this->reporter($e, $a->getJoueur(), null, $a->getCodeGrille());
+            }
+            if ($semaine = $this->semaine($e, false)) {
+                $semaines[spl_object_id($semaine)] = $semaine;
+            }
             $this->em->remove($e);
+        }
+        foreach ($semaines as $semaine) {
+            if ($semaine->getPresences()->forAll(fn ($k, Presence $p) => [] === array_filter($p->getCreneaux(), fn ($v) => null !== $v && '' !== $v))) {
+                $this->em->remove($semaine);
+            }
         }
         $this->em->remove($creneau);
         $this->em->flush();
