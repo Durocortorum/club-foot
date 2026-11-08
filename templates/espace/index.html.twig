@@ -104,43 +104,13 @@
                 <p class="discret">Aucun match programmé pour le moment.</p>
             {% endif %}
 
-            {% if e.parents is not null %}
-                {% set jeton = csrf_token('parents' ~ j.id) %}
-                <h3 id="parents-{{ j.id }}">Accès de mes parents</h3>
+            {% if e.proches is not null %}
+                <h3>Personnes à contacter</h3>
                 <p class="discret petit">
-                    Vous êtes majeur(e) : c'est vous qui décidez si vos parents peuvent voir cet espace
-                    (convocations, matchs, entraînements) et répondre pour vous.
+                    Vous êtes majeur(e) : vous indiquez ici qui le club peut contacter (parent, conjoint(e), proche…),
+                    et vous décidez qui peut voir cet espace (convocations, matchs, entraînements) et répondre pour vous.
                 </p>
-                {% if e.parents %}
-                    <ul class="liste-simple">
-                        {% for p in e.parents %}
-                            <li class="avec-actions">
-                                <span>
-                                    <strong>{{ p.email }}</strong> <span class="discret petit">· {{ p.qui == 'parent1' ? 'parent 1' : 'parent 2' }}</span>
-                                    {% if p.compte %}
-                                        <span class="pastille succes">{{ p.compte.password ? 'a accès' : 'invité(e)' }}</span>
-                                    {% else %}
-                                        <span class="pastille">pas d'accès</span>
-                                    {% endif %}
-                                </span>
-                                {% if p.compte %}
-                                    <form method="post" action="{{ path('app_espace_parent_retirer', {id: j.id, compte: p.compte.id}) }}" class="en-ligne">
-                                        <input type="hidden" name="_token" value="{{ jeton }}">
-                                        <button class="bouton petit">Retirer l'accès</button>
-                                    </form>
-                                {% else %}
-                                    <form method="post" action="{{ path('app_espace_parent_inviter', {id: j.id}) }}" class="en-ligne">
-                                        <input type="hidden" name="_token" value="{{ jeton }}">
-                                        <input type="hidden" name="qui" value="{{ p.qui }}">
-                                        <button class="bouton petit principal">Donner l'accès</button>
-                                    </form>
-                                {% endif %}
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="discret">Aucune adresse e-mail de parent sur votre fiche : demandez à l'éducateur de l'ajouter.</p>
-                {% endif %}
+                {% include 'famille/_proches.html.twig' with {joueur: j, proches: e.proches, peut_gerer: true, peut_acces: true} %}
             {% endif %}
         </section>
     {% else %}

@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ retour }}">← Retour</a></p>
+    <div class="titre-page">
+        <h1>{{ titre }}</h1>
+    </div>
+    <p class="discret">Personne à contacter pour {{ joueur.prenom }} {{ joueur.nom }} (parent, conjoint(e), proche…).</p>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+        <div class="carte">
+            {{ m.groupe(form, ['nom', 'lien', 'telephone', 'email']) }}
+        </div>
+        {{ form_rest(form) }}
+        <button type="submit" class="bouton principal">Enregistrer</button>
+    {{ form_end(form) }}
+
+    <datalist id="liens-proche">{% for l in constant('App\\Entity\\Proche::LIENS') %}<option value="{{ l }}">{% endfor %}</datalist>
+{% endblock %}

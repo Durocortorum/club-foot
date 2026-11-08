@@ -75,7 +75,7 @@ class AccesFamille
     /**
      * Accès famille d'un joueur : comptes qui le suivent et adresses de la fiche encore sans compte.
      * Un lien expiré se renvoie depuis la fiche, adresse par adresse.
-     * Joueur majeur : le club n'invite que lui ; c'est lui qui ouvre l'accès à ses parents (voir parentsDuJoueur).
+     * Joueur majeur : le club n'invite que lui ; c'est lui qui ouvre l'accès à ses proches (voir ProchesJoueur).
      *
      * @return array{comptes: list<Utilisateur>, a_inviter: array<string, string>, majeur: bool}
      */
@@ -104,27 +104,6 @@ class AccesFamille
     public function decideAccesParents(Utilisateur $compte, Joueur $joueur): bool
     {
         return $compte->isFamille() && $compte->suit($joueur) && !$joueur->isMineur() && $this->estLeJoueur($compte, $joueur);
-    }
-
-    /**
-     * Adresses des parents sur la fiche, avec le compte qui les utilise déjà pour ce joueur (ou null).
-     *
-     * @return list<array{email: string, qui: string, compte: ?Utilisateur}>
-     */
-    public function parentsDuJoueur(Joueur $joueur): array
-    {
-        $comptes = [];
-        foreach ($this->comptes($joueur) as $c) {
-            $comptes[$c->getEmail()] = $c;
-        }
-        $parents = [];
-        foreach ($this->adresses($joueur) as $email => $qui) {
-            if ('joueur' !== $qui) {
-                $parents[] = ['email' => $email, 'qui' => $qui, 'compte' => $comptes[$email] ?? null];
-            }
-        }
-
-        return $parents;
     }
 
     /**

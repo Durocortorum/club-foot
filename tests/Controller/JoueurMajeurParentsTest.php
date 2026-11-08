@@ -5,6 +5,7 @@ namespace App\Tests\Controller;
 use App\Entity\Categorie;
 use App\Entity\Club;
 use App\Entity\Joueur;
+use App\Entity\Proche;
 use App\Entity\Utilisateur;
 use App\Service\CreationClub;
 use Doctrine\ORM\EntityManagerInterface;
@@ -55,12 +56,18 @@ class JoueurMajeurParentsTest extends WebTestCase
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', '/joueurs/' . $joueur->getId());
         self::assertSelectorTextContains('#famille', 'majeur');
-        // Majeur avec un e-mail de parent saisi : il reste visible (fiche et formulaire) pour pouvoir le corriger.
-        self::assertSelectorTextContains('#fiche', $parent);
-        $this->client->request('GET', '/joueurs/' . $joueur->getId() . '/modifier');
-        self::assertSelectorNotExists('.parents[hidden]');
-        self::assertInputValueSame('joueur[emailParent1]', $parent);
-        $crawler = $this->client->request('GET', '/joueurs/' . $joueur->getId());
+        // Majeur : le parent de la fiche est repris dans « Personnes à contacter » (visible, plus en double ni caché).
+        self::assertSelectorTextContains('#proches-' . $joueur->getId(), $parent);
+        $proche = $this->em()->getRepository(Proche::class)->findOneBy(['joueur' => $joueur->getId()]);
+        self::assertSame($parent, $proche->getEmail());
+        self::assertNull($this->em()->find(Joueur::class, $joueur->getId())->getEmailParent1());
+        self::assertSelectorNotExists('#proches-' . $joueur->getId() . ' button:contains("Donner l\'accès")'); // le club ne donne pas l'accès
+
+        // Le club ajoute une personne à contacter (sans e-mail).
+        $crawler = $this->client->click($crawler->selectLink('+ Ajouter une personne')->link());
+        $this->client->submit($crawler->selectButton('Enregistrer')->form(), ['proche[nom]' => 'Julie Martin', 'proche[lien]' => 'Conjoint(e)', 'proche[telephone]' => '06 12 34 56 78']);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('#proches-' . $joueur->getId(), 'Julie Martin');
         self::assertCount(1, $crawler->filter("#famille form input[value=\"$moi\"]"));
         self::assertCount(0, $crawler->filter("#famille form input[value=\"$parent\"]"));
 
@@ -77,11 +84,13 @@ class JoueurMajeurParentsTest extends WebTestCase
         $compte->setPassword('inutile-en-test');
         $this->em()->flush();
 
-        // --- Espace du joueur : rubrique « Accès de mes parents », il donne l'accès.
+        // --- Espace du joueur : « Personnes à contacter », il donne l'accès à la personne qui a un e-mail.
         $this->client->loginUser($this->compte($moi));
         $crawler = $this->client->request('GET', '/espace');
-        self::assertSelectorTextContains('#parents-' . $joueur->getId(), 'Accès de mes parents');
-        self::assertSelectorTextContains('main', $parent);
+        self::assertSelectorTextContains('main', 'Personnes à contacter');
+        self::assertSelectorTextContains('#proches-' . $joueur->getId(), $parent);
+        self::assertSelectorTextContains('#proches-' . $joueur->getId(), 'Julie Martin');
+        self::assertCount(1, $crawler->selectButton('Donner l\'accès')); // seulement la personne avec un e-mail
         $this->client->submit($crawler->selectButton('Donner l\'accès')->form());
         self::assertEmailCount(1);
         self::assertEmailAddressContains(self::getMailerMessage(), 'to', $parent);
@@ -94,6 +103,18 @@ class JoueurMajeurParentsTest extends WebTestCase
         $this->client->submit($crawler->selectButton('Retirer l\'accès')->form());
         self::assertNull($this->compte($parent));
 
+        // Il modifie, puis supprime Julie Martin depuis son espace.
+        $crawler = $this->client->request('GET', '/espace');
+        $lien = $crawler->filter('#proches-' . $joueur->getId() . ' li')->reduce(fn ($li) => str_contains($li->text(), 'Julie'))->selectLink('Modifier')->link();
+        $crawler = $this->client->click($lien);
+        $this->client->submit($crawler->selectButton('Enregistrer')->form(), ['proche[telephone]' => '07 00 00 00 00']);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('#proches-' . $joueur->getId(), '07 00 00 00 00');
+        $form = $crawler->filter('#proches-' . $joueur->getId() . ' li')->reduce(fn ($li) => str_contains($li->text(), 'Julie'))->filter('form[action$="/supprimer"]')->form();
+        $this->client->submit($form);
+        $this->client->followRedirect();
+        self::assertSelectorTextNotContains('#proches-' . $joueur->getId(), 'Julie');
+
         // Un compte parent ne voit pas la rubrique et ne peut pas inviter à la place du joueur.
         $acces = static::getContainer()->get(\App\Service\AccesFamille::class);
         $joueur = $this->em()->find(Joueur::class, $joueur->getId());
@@ -102,8 +123,10 @@ class JoueurMajeurParentsTest extends WebTestCase
         $this->em()->flush();
         $this->client->loginUser($compteParent);
         $this->client->request('GET', '/espace');
-        self::assertSelectorNotExists('#parents-' . $joueur->getId());
-        $this->client->request('POST', '/espace/parents/' . $joueur->getId() . '/inviter', ['qui' => 'parent1', '_token' => 'x']);
+        self::assertSelectorNotExists('#proches-' . $joueur->getId());
+        $this->client->request('POST', '/espace/proches/' . $proche->getId() . '/acces', ['_token' => 'x']);
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('GET', '/espace/proches/joueur/' . $joueur->getId() . '/ajouter');
         self::assertResponseStatusCodeSame(403);
 
         // Joueur mineur : rien ne change, le club invite les parents.

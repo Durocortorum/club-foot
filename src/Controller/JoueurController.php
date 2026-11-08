@@ -20,6 +20,7 @@ use App\Repository\TestPhysiqueRepository;
 use App\Security\JoueurVoter;
 use App\Service\AccesFamille;
 use App\Service\AccesMedical;
+use App\Service\ProchesJoueur;
 use App\Service\BilanJoueur;
 use App\Service\Photos;
 use Symfony\Component\Form\FormInterface;
@@ -130,6 +131,7 @@ class JoueurController extends AbstractController
         DetectionRepository $detections,
         BilanJoueur $bilan,
         AccesFamille $acces,
+        ProchesJoueur $proches,
     ): Response {
         $matchs = $participations->parJoueur($joueur);
         $scolaire = $this->isGranted('ROLE_SCOLAIRE_LECTURE');
@@ -148,6 +150,9 @@ class JoueurController extends AbstractController
             'sanctions' => $scolaire || $this->isGranted(JoueurVoter::MODIFIER, $joueur) ? $sanctions->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
             'detection' => $detections->findOneBy(['joueur' => $joueur]),
             'famille' => $this->isGranted(JoueurVoter::MODIFIER, $joueur) ? $acces->etat($joueur) : null,
+            // Joueur majeur : personnes à contacter (les parents de la fiche y sont repris la première fois).
+            'proches' => $joueur->isMineur() ? null : $proches->avecAcces($joueur),
+            'proches_modifiables' => $proches->peutGerer($joueur),
         ]);
     }
 

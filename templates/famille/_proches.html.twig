@@ -1,0 +1,55 @@
+{#
+   Personnes à contacter d'un joueur majeur (espace du joueur et fiche joueur).
+   Variables : joueur, proches (liste de {proche, compte}), peut_gerer (ajouter, modifier, supprimer),
+   peut_acces (donner / retirer l'accès à l'espace : le joueur lui-même seulement).
+#}
+<div class="proches" id="proches-{{ joueur.id }}">
+    {% if proches %}
+        <ul class="liste-simple">
+            {% for l in proches %}
+                {% set p, compte = l.proche, l.compte %}
+                {% set jeton = csrf_token('proche' ~ p.id) %}
+                <li class="avec-actions">
+                    <span>
+                        <strong>{{ p.nom }}</strong>{% if p.lien %} <span class="discret petit">· {{ p.lien }}</span>{% endif %}
+                        {% if compte %}<span class="pastille succes">{{ compte.password ? 'a accès à l\'espace' : 'invité(e)' }}</span>{% endif %}
+                        <br>
+                        <span class="petit">
+                            {% if p.telephone %}<a href="tel:{{ p.telephone|replace({' ': ''}) }}">{{ p.telephone }}</a>{% endif %}
+                            {% if p.telephone and p.email %} · {% endif %}
+                            {% if p.email %}<a href="mailto:{{ p.email }}">{{ p.email }}</a>{% endif %}
+                            {% if not p.telephone and not p.email %}<span class="discret">ni téléphone ni e-mail</span>{% endif %}
+                        </span>
+                    </span>
+                    <span class="nowrap">
+                        {% if peut_acces and p.email %}
+                            {% if compte %}
+                                <form method="post" action="{{ path('app_proche_retirer_acces', {id: p.id}) }}" class="en-ligne">
+                                    <input type="hidden" name="_token" value="{{ jeton }}">
+                                    <button class="bouton petit">Retirer l'accès</button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="{{ path('app_proche_acces', {id: p.id}) }}" class="en-ligne">
+                                    <input type="hidden" name="_token" value="{{ jeton }}">
+                                    <button class="bouton petit principal">Donner l'accès</button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                        {% if peut_gerer %}
+                            <a class="bouton petit" href="{{ path('app_proche_modifier', {id: p.id}) }}">Modifier</a>
+                            <form method="post" action="{{ path('app_proche_supprimer', {id: p.id}) }}" class="en-ligne" data-confirmation="Retirer {{ p.nom }} des personnes à contacter{{ compte ? ' (son accès à l\'espace sera retiré)' }} ?" data-confirmation-bouton="Retirer">
+                                <input type="hidden" name="_token" value="{{ jeton }}">
+                                <button class="bouton petit danger" title="Supprimer">×</button>
+                            </form>
+                        {% endif %}
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="discret">Aucune personne à contacter.</p>
+    {% endif %}
+    {% if peut_gerer %}
+        <p><a class="bouton petit" href="{{ path('app_proche_ajouter', {id: joueur.id}) }}">+ Ajouter une personne</a></p>
+    {% endif %}
+</div>

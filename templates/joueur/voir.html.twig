@@ -138,6 +138,11 @@
                     {{ f.oui_non('Transport parent', joueur.transportParent) }}
                 {% endif %}
             </dl>
+            {# Joueur majeur : personnes à contacter, gérées par le joueur dans son espace (et par son encadrement ici). #}
+            {% if proches is not null %}
+                <h3 id="proches">Personnes à contacter</h3>
+                {% include 'famille/_proches.html.twig' with {joueur: joueur, proches: proches, peut_gerer: proches_modifiables, peut_acces: false} %}
+            {% endif %}
         </section>
 
         <section class="carte">
