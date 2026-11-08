@@ -226,6 +226,21 @@ class Joueur implements AppartientAuClub
         return $this->getAge() === null || $this->getAge() < 18;
     }
 
+    /** Un renseignement sur les parents est-il saisi (nom, profession, téléphone ou e-mail) ? */
+    public function hasInfosParents(): bool
+    {
+        return (bool) array_filter([
+            $this->nomParent1, $this->professionParent1, $this->telPortable1, $this->emailParent1,
+            $this->nomParent2, $this->professionParent2, $this->telPortable2, $this->emailParent2,
+        ]);
+    }
+
+    /** Afficher les parents : joueur mineur, ou majeur dont des renseignements sur les parents sont saisis. */
+    public function isAvecParents(): bool
+    {
+        return $this->isMineur() || $this->hasInfosParents();
+    }
+
     public function getLieuNaissance(): ?string
     {
         return $this->lieuNaissance;

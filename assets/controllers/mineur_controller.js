@@ -2,7 +2,8 @@ import { Controller } from '@hotwired/stimulus';
 
 /*
  * Fiche joueur : n'affiche les champs des parents que si le joueur est mineur,
- * d'après la date de naissance saisie (sans date, il est considéré mineur).
+ * d'après la date de naissance saisie (sans date, il est considéré mineur),
+ * ou si un champ des parents est déjà rempli (pour pouvoir le voir, le corriger ou l'effacer).
  * Les champs masqués gardent leur valeur.
  */
 export default class extends Controller {
@@ -14,7 +15,11 @@ export default class extends Controller {
 
     basculer() {
         const mineur = this.age() === null || this.age() < 18;
-        this.parentsTargets.forEach((bloc) => { bloc.hidden = !mineur; });
+        this.parentsTargets.forEach((bloc) => {
+            const rempli = [...bloc.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"]')]
+                .some((champ) => champ.value.trim() !== '');
+            bloc.hidden = !mineur && !rempli;
+        });
     }
 
     age() {

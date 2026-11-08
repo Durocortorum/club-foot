@@ -55,6 +55,12 @@ class JoueurMajeurParentsTest extends WebTestCase
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', '/joueurs/' . $joueur->getId());
         self::assertSelectorTextContains('#famille', 'majeur');
+        // Majeur avec un e-mail de parent saisi : il reste visible (fiche et formulaire) pour pouvoir le corriger.
+        self::assertSelectorTextContains('#fiche', $parent);
+        $this->client->request('GET', '/joueurs/' . $joueur->getId() . '/modifier');
+        self::assertSelectorNotExists('.parents[hidden]');
+        self::assertInputValueSame('joueur[emailParent1]', $parent);
+        $crawler = $this->client->request('GET', '/joueurs/' . $joueur->getId());
         self::assertCount(1, $crawler->filter("#famille form input[value=\"$moi\"]"));
         self::assertCount(0, $crawler->filter("#famille form input[value=\"$parent\"]"));
 

@@ -122,7 +122,7 @@
         <section class="carte">
             <h2>Famille</h2>
             <dl>
-                {% if joueur.mineur %}
+                {% if joueur.avecParents %}
                     {{ m.ligne('Parent 1', joueur.nomParent1) }}
                     {{ m.ligne('Profession parent 1', joueur.professionParent1) }}
                     {{ m.ligne('Portable parent 1', joueur.telPortable1) }}
@@ -134,7 +134,7 @@
                 {% endif %}
                 {{ f.oui_non("Droit à l'image", joueur.droitImage) }}
                 {{ f.oui_non('Transport éducateur', joueur.transportEducateur) }}
-                {% if joueur.mineur %}
+                {% if joueur.avecParents %}
                     {{ f.oui_non('Transport parent', joueur.transportParent) }}
                 {% endif %}
             </dl>
