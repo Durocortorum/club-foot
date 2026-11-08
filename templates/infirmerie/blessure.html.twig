@@ -1,23 +1,81 @@
-{% extends 'commun/formulaire.html.twig' %}
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
 
-{# Formulaire de blessure. Pour une nouvelle blessure, « Localiser sur le corps » ouvre l'atlas anatomique
-   du joueur (corps entier → région → structure), qui revient ici avec localisation, membre et zone remplis. #}
+{# Saisie d'une blessure dans l'ordre : 1. qui et quand (date, catégorie, joueur) ; 2. où (atlas anatomique,
+   localisation, zone, membre) ; 3. quoi et comment (type, circonstances, arrêt, reprise) ; 4. commentaire.
+   blessure_controller.js : filtre des joueurs par catégorie, équipe remplie, ouverture de l'atlas du joueur
+   (la date saisie y est transmise et revient avec la localisation). #}
 
-{% block complement %}
+{% block title %}{{ titre }}{% endblock %}
+
+{% macro champ(c) %}
+    <div class="champ {{ 'textarea' in c.vars.block_prefixes ? 'large' }}">
+        {{ form_label(c) }}
+        {{ form_widget(c) }}
+        {{ form_help(c) }}
+        {{ form_errors(c) }}
+    </div>
+{% endmacro %}
+
+{% block body %}
     {% set blessure = form.vars.value %}
-    {% if not blessure.id %}
-        {% if blessure.joueur and blessure.joueur.id and form.joueur.vars.disabled %}
-            <p class="atlas-acces">
-                <a class="bouton" href="{{ path('app_dossier_medical_localiser', {id: blessure.joueur.id}) }}">Localiser sur le corps</a>
-                <span class="discret petit">pour remplir la localisation et la zone touchée à partir des schémas anatomiques.</span>
-            </p>
-        {% else %}
-            <p class="atlas-acces" data-controller="localiser"
-               data-localiser-select-value="{{ form.joueur.vars.id }}"
-               data-localiser-url-value="{{ path('app_dossier_medical_localiser', {id: 0}) }}">
-                <button type="button" class="bouton" data-localiser-target="bouton" data-action="localiser#ouvrir">Localiser sur le corps</button>
-                <span class="discret petit">pour remplir la localisation et la zone touchée à partir des schémas anatomiques<span data-localiser-target="aide"> (choisissez d'abord le joueur)</span>.</span>
-            </p>
+    <p><a href="{{ retour }}">← Retour</a></p>
+    <div class="titre-page">
+        <h1>{{ titre }}</h1>
+        {% if suppression is defined %}
+            {{ m.supprimer(suppression.action, suppression.jeton, suppression.question) }}
         {% endif %}
-    {% endif %}
+    </div>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire saisie-blessure',
+        'data-controller': 'blessure',
+        'data-blessure-atlas-value': blessure.id ? '' : path('app_dossier_medical_localiser', {id: 0})}}) }}
+        {{ form_errors(form) }}
+
+        <section class="carte etape">
+            <h2><span class="etape-num">1</span> Joueur</h2>
+            <div class="champs">
+                {{ _self.champ(form.date) }}
+                {{ _self.champ(form.categorie) }}
+                {{ _self.champ(form.joueur) }}
+            </div>
+        </section>
+
+        <section class="carte etape">
+            <h2><span class="etape-num">2</span> Localisation</h2>
+            {% if not blessure.id %}
+                <p class="atlas-acces">
+                    <button type="button" class="bouton principal" data-blessure-target="atlas" data-action="blessure#atlas">Localiser sur le corps</button>
+                    <span class="discret petit">Schémas anatomiques : un clic sur la structure touchée remplit les trois champs ci-dessous<span data-blessure-target="aide" {{ blessure.joueur ? 'hidden' }}> (choisissez d'abord le joueur)</span>.</span>
+                </p>
+            {% endif %}
+            <div class="champs">
+                {{ _self.champ(form.localisation) }}
+                {{ _self.champ(form.zone) }}
+                {{ _self.champ(form.membre) }}
+            </div>
+        </section>
+
+        <section class="carte etape">
+            <h2><span class="etape-num">3</span> Blessure</h2>
+            <div class="champs">
+                {{ _self.champ(form.type) }}
+                {{ _self.champ(form.lieu) }}
+                {{ _self.champ(form.avecArret) }}
+                {{ _self.champ(form.dateReprise) }}
+                {{ _self.champ(form.equipe) }}
+            </div>
+        </section>
+
+        <section class="carte etape">
+            <h2><span class="etape-num">4</span> Commentaire</h2>
+            {{ form_widget(form.commentaire, {attr: {'aria-label': 'Commentaire', placeholder: 'Soins, examens, avis du médecin...'}}) }}
+            {{ form_errors(form.commentaire) }}
+        </section>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
 {% endblock %}

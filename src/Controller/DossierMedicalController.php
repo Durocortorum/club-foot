@@ -119,6 +119,7 @@ class DossierMedicalController extends AbstractController
             'regions' => $regions,
             'libelles' => array_map(fn ($r) => $r['libelle'], AtlasAnatomique::REGIONS),
             'credits' => $atlas->credits([$corps['image']]),
+            'date' => $this->dateSaisie($request),
         ]);
     }
 
@@ -147,10 +148,19 @@ class DossierMedicalController extends AbstractController
             'localisation' => $localisation,
             'planche' => $planche,
             'n' => $n,
-            'nouvelle' => ['joueur' => $joueur->getId(), 'localisation' => $localisation, 'membre' => $r['membre']],
+            'nouvelle' => array_filter(['joueur' => $joueur->getId(), 'date' => $this->dateSaisie($request), 'localisation' => $localisation, 'membre' => $r['membre']]),
+            'date' => $this->dateSaisie($request),
             'vue' => \in_array($region, ['dos', 'lombaires', 'fessier'], true) ? 'dos' : 'face',
             'credits' => $atlas->credits($planche['images']),
         ]);
+    }
+
+    /** Date de la blessure déjà saisie dans le formulaire, transportée à travers l'atlas (AAAA-MM-JJ). */
+    private function dateSaisie(Request $request): ?string
+    {
+        $date = $request->query->getString('date');
+
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && false !== \DateTimeImmutable::createFromFormat('!Y-m-d', $date) ? $date : null;
     }
 
     /**

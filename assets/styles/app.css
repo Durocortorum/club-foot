@@ -401,7 +401,14 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .atlas-choix .bouton { text-align: left; }
 .atlas-autre { display: flex; gap: .4rem; }
 .atlas-autre input { flex: 1; }
-.atlas-acces { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .8rem; margin: 1rem 0 0; }
+.atlas-acces { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .8rem; margin: 0 0 1rem; }
+/* Saisie d'une blessure en étapes numérotées */
+.saisie-blessure .etape + .etape { margin-top: 1rem; }
+.saisie-blessure .etape h2 { display: flex; align-items: center; gap: .5rem; margin: 0 0 .9rem; font-size: 1.1rem; }
+.etape-num {
+    display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem;
+    border-radius: 50%; background: var(--rouge); color: var(--sur-rouge); font-size: .9rem; font-weight: 700;
+}
 .atlas-acces .bouton:disabled { opacity: .5; cursor: not-allowed; }
 .atlas-credits { margin-top: 1rem; font-size: .75rem; color: var(--gris); }
 .atlas-credits a { color: inherit; text-decoration: underline; }

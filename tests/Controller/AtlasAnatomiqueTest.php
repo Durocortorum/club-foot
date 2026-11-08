@@ -97,10 +97,23 @@ class AtlasAnatomiqueTest extends WebTestCase
         self::assertSame('Membre inférieur', $blessure->getMembre());
 
         // Nouvelle blessure depuis l'Infirmerie (joueur à choisir) : bouton qui ouvre l'atlas du joueur choisi.
-        $this->client->request('GET', '/infirmerie/blessures/nouvelle');
-        self::assertSelectorExists('[data-controller="localiser"][data-localiser-url-value="/infirmerie/dossiers/0/localiser"] button');
+        // Ordre : date, catégorie, joueur, puis localisation ; chaque joueur porte sa catégorie (filtre).
+        $crawler = $this->client->request('GET', '/infirmerie/blessures/nouvelle');
+        self::assertSelectorExists('form[data-controller="blessure"][data-blessure-atlas-value="/infirmerie/dossiers/0/localiser"] .atlas-acces button');
+        $noms = $crawler->filter('form [name^="blessure["]')->each(fn ($c) => $c->attr('name'));
+        self::assertSame(['blessure[date]', 'blessure[categorie]', 'blessure[joueur]', 'blessure[localisation]', 'blessure[zone]', 'blessure[membre]'], \array_slice($noms, 0, 6));
+        self::assertSelectorExists(\sprintf('select[name="blessure[joueur]"] option[value="%d"][data-categorie="%d"]', $joueur->getId(), $categorie->getId()));
+        // Depuis le dossier : catégorie et joueur fixés.
         $this->client->request('GET', '/infirmerie/blessures/nouvelle?joueur=' . $joueur->getId());
-        self::assertSelectorExists(".atlas-acces a[href=\"$dossier/localiser\"]");
+        self::assertSelectorExists(\sprintf('select[name="blessure[categorie]"][disabled] option[value="%d"][selected]', $categorie->getId()));
+
+        // La date saisie traverse l'atlas et revient dans le formulaire.
+        $crawler = $this->client->request('GET', "$dossier/localiser/cuisse/droite?date=2026-10-03");
+        $this->client->click($crawler->selectLink('Biceps fémoral')->link());
+        self::assertInputValueSame('blessure[date]', '2026-10-03');
+        self::assertInputValueSame('blessure[localisation]', 'Cuisse droite');
+        $this->client->request('GET', "$dossier/localiser?date=n'importe-quoi");
+        self::assertSelectorNotExists('a[href*="date="]');
 
         // « Autre » : structure libre ; un membre inconnu est ignoré.
         $this->client->request('GET', '/infirmerie/blessures/nouvelle?joueur=' . $joueur->getId() . '&localisation=Abdomen&membre=Inconnu&zone=Hernie');

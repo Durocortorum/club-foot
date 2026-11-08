@@ -83,6 +83,10 @@ class InfirmerieController extends AbstractController
         // Venue de l'atlas anatomique : localisation, membre et structure touchée déjà choisis.
         $texte = fn (string $champ, int $longueur) => mb_substr(trim($request->query->getString($champ)), 0, $longueur) ?: null;
         $blessure->setLocalisation($texte('localisation', 40))->setZone($texte('zone', 80));
+        $date = $request->query->getString('date');
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && $d = \DateTimeImmutable::createFromFormat('!Y-m-d', $date)) {
+            $blessure->setDate($d);
+        }
         if (\in_array($request->query->getString('membre'), Blessure::MEMBRES, true)) {
             $blessure->setMembre($request->query->getString('membre'));
         }

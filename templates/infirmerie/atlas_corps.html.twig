@@ -7,14 +7,14 @@
 
     <div class="titre-page">
         <h1>Localiser une blessure · {{ joueur.prenom }} <strong>{{ joueur.nom }}</strong></h1>
-        <a class="bouton" href="{{ path('app_blessure_nouvelle', {joueur: joueur.id}) }}">Saisir sans localiser</a>
+        <a class="bouton" href="{{ path('app_blessure_nouvelle', {joueur: joueur.id, date: date}) }}">Saisir sans localiser</a>
     </div>
 
     <div class="atlas">
         <section class="carte atlas-corps">
             <nav class="onglets-atlas" aria-label="Vue du corps">
                 {% for code, c in {face: 'Face', dos: 'Dos'} %}
-                    <a class="bouton {{ code == vue ? 'principal' }}" href="{{ path('app_dossier_medical_localiser', {id: joueur.id, vue: code}) }}" {{ code == vue ? 'aria-current="page"' }}>{{ c }}</a>
+                    <a class="bouton {{ code == vue ? 'principal' }}" href="{{ path('app_dossier_medical_localiser', {id: joueur.id, vue: code, date: date}) }}" {{ code == vue ? 'aria-current="page"' }}>{{ c }}</a>
                 {% endfor %}
             </nav>
             <p class="discret petit">Cliquez sur la région touchée. {{ vue == 'face' ? 'Vu de face, la droite du joueur est à gauche de l\'image.' : 'Vu de dos, la droite du joueur est à droite de l\'image.' }}</p>
@@ -23,7 +23,7 @@
                 {% for z in corps.zones %}
                     {% set libelle = libelles[z.region] ~ (z.cote is defined ? ' ' ~ z.cote : '') %}
                     <a class="point region" title="{{ libelle }}" aria-label="{{ libelle }}"
-                       href="{{ path('app_dossier_medical_localiser_region', {id: joueur.id, region: z.region, cote: z.cote ?? null}) }}"
+                       href="{{ path('app_dossier_medical_localiser_region', {id: joueur.id, region: z.region, cote: z.cote ?? null, date: date}) }}"
                        style="left: {{ z.pos[0] }}%; top: {{ z.pos[1] }}%; width: {{ z.pos[2] }}%; height: {{ z.pos[3] }}%"><span>{{ libelle }}</span></a>
                 {% endfor %}
             </div>
@@ -36,7 +36,7 @@
                     <li>
                         <span>{{ r.libelle }}</span>
                         {% for cote in r.cotes %}
-                            <a class="bouton petit" href="{{ path('app_dossier_medical_localiser_region', {id: joueur.id, region: code, cote: cote}) }}">{{ cote ?? 'Choisir' }}</a>
+                            <a class="bouton petit" href="{{ path('app_dossier_medical_localiser_region', {id: joueur.id, region: code, cote: cote, date: date}) }}">{{ cote ?? 'Choisir' }}</a>
                         {% endfor %}
                     </li>
                 {% endfor %}

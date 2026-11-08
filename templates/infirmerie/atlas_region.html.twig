@@ -3,13 +3,13 @@
 {% block title %}{{ localisation }} – {{ joueur.nomComplet }}{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_dossier_medical_localiser', {id: joueur.id, vue: vue}) }}">← Corps entier</a></p>
+    <p><a href="{{ path('app_dossier_medical_localiser', {id: joueur.id, vue: vue, date: date}) }}">← Corps entier</a></p>
 
     <div class="titre-page">
         <h1>{{ localisation }} · {{ joueur.prenom }} <strong>{{ joueur.nom }}</strong></h1>
         {% if region.cote ?? false %}
             {% set autre = cote == 'droite' ? 'gauche' : 'droite' %}
-            <a class="bouton" href="{{ path('app_dossier_medical_localiser_region', {id: joueur.id, region: code, cote: autre, planche: n}) }}">Côté {{ autre }}</a>
+            <a class="bouton" href="{{ path('app_dossier_medical_localiser_region', {id: joueur.id, region: code, cote: autre, planche: n, date: date}) }}">Côté {{ autre }}</a>
         {% endif %}
     </div>
 
@@ -18,7 +18,7 @@
             {% if region.planches|length > 1 %}
                 <nav class="onglets-atlas" aria-label="Planches">
                     {% for i, p in region.planches %}
-                        <a class="bouton petit {{ i == n ? 'principal' }}" href="{{ path('app_dossier_medical_localiser_region', {id: joueur.id, region: code, cote: cote, planche: i}) }}" {{ i == n ? 'aria-current="page"' }}>{{ p.titre }}</a>
+                        <a class="bouton petit {{ i == n ? 'principal' }}" href="{{ path('app_dossier_medical_localiser_region', {id: joueur.id, region: code, cote: cote, planche: i, date: date}) }}" {{ i == n ? 'aria-current="page"' }}>{{ p.titre }}</a>
                     {% endfor %}
                 </nav>
             {% else %}
