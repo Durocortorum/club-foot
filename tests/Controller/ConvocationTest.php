@@ -67,10 +67,15 @@ class ConvocationTest extends WebTestCase
         $crawler = $this->client->request('GET', '/matchs/' . $rencontre->getId() . '/convocation');
         self::assertResponseIsSuccessful();
         $groupes = $crawler->filter('details.groupe-joueurs summary')->each(fn ($s) => trim(preg_replace('/\s*\(.*$/', '', $s->text())));
-        self::assertSame(['U11', 'U9 · niveau du dessous', 'U13 · niveau du dessus', 'Autres catégories'], $groupes);
-        self::assertSelectorTextContains('details.groupe-joueurs:nth-of-type(3)', 'Zoé');
+        self::assertSame(['U11', 'U13 · niveau du dessus', 'U9 · 1 niveau en dessous', 'Autres catégories'], $groupes);
+        self::assertSelectorTextContains('details.groupe-joueurs:nth-of-type(2)', 'Zoé');
         self::assertSelectorTextContains('details.groupe-joueurs:nth-of-type(4)', 'Ugo');
         self::assertSelectorTextNotContains('form', 'Max'); // U15 : ni voisin, ni du secteur
+
+        // Option « tous les niveaux en dessous » : U9 puis U7, chacun dans son groupe.
+        $tous = $this->client->click($crawler->filter('.niveaux-dessous')->selectLink('tous')->link());
+        $groupesTous = $tous->filter('details.groupe-joueurs summary')->each(fn ($s) => trim(preg_replace('/\s*\(.*$/', '', $s->text())));
+        self::assertSame(['U11', 'U13 · niveau du dessus', 'U9 · 1 niveau en dessous', 'U7 · 2 niveaux en dessous'], $groupesTous);
 
         // Zoé (U13) convoquée : son groupe s'ouvre et le compte apparaît.
         $form = $crawler->selectButton('Enregistrer')->form();
@@ -82,7 +87,7 @@ class ConvocationTest extends WebTestCase
         }
         $this->client->submit($form);
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('details.groupe-joueurs[open]:nth-of-type(3) summary', '1 convoqué');
+        self::assertSelectorTextContains('details.groupe-joueurs[open]:nth-of-type(2) summary', '1 convoqué');
     }
 
     /** Un joueur convoqué le dimanche avec les U13 ne peut pas l'être le samedi avec les U11 (même week-end). */

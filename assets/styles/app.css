@@ -770,3 +770,4 @@ table.droits thead th.droits-nom { z-index: 3; }
     background: var(--rouge); color: var(--sur-rouge); font: inherit; font-weight: 600; cursor: pointer; text-align: left;
 }
 .case-joueur.indisponible { color: var(--gris); }
+.niveaux-dessous { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin: 0 0 .8rem; }

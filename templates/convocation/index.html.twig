@@ -115,6 +115,13 @@
             {{ form_errors(form) }}
             <fieldset class="carte">
                 <legend>Joueurs convoqués</legend>
+                {# Jeunes joueurs appelés (surclassement) : 1, 2, 3 niveaux en dessous, ou tous. #}
+                <nav class="niveaux-dessous petit" aria-label="Niveaux en dessous proposés">
+                    <span class="discret">Niveaux en dessous :</span>
+                    {% for n, libelle in {1: '1', 2: '2', 3: '3', 0: 'tous'} %}
+                        <a class="bouton petit {{ n == niveaux_dessous ? 'principal' }}" href="{{ path('app_convocation', n == 1 ? {id: rencontre.id} : {id: rencontre.id, dessous: n}) }}" {{ n == niveaux_dessous ? 'aria-current="true"' }}>{{ libelle }}</a>
+                    {% endfor %}
+                </nav>
                 {{ form_errors(form.joueurs) }}
                 {% for groupe, choix in form.joueurs.vars.choices %}
                     {# Groupe ouvert : celui du match, ou un groupe où des joueurs sont déjà convoqués. #}
