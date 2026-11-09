@@ -240,7 +240,7 @@ class ConvocationTest extends WebTestCase
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', "$match/convocation");
         $ligneTom = $crawler->filter('#reponses tr')->reduce(fn ($tr) => str_contains($tr->text(), 'Tom'));
-        $this->client->submit($ligneTom->filter('form')->form(), ['reponse' => 'present']);
+        $this->client->submit($ligneTom->filter('form.reponse-convoque')->form(), ['reponse' => 'present']);
         self::assertSame([Convoque::PRESENT, 'Coach Test'], [$this->convoque($rencontre, 'Tom')->getReponse(), $this->convoque($rencontre, 'Tom')->getReponduPar()]);
         $crawler = $this->client->request('GET', "$match/convocation");
         self::assertSelectorTextContains('#reponses', '2 présents');

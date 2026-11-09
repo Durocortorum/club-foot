@@ -68,7 +68,7 @@ class MessageController extends AbstractController
                     $aLire[] = ['message' => $m, 'lu' => true, 'nouvelles_reponses' => $n, 'envoye' => true, 'activite' => $this->activite($m, $m->getReponses()->toArray())];
                 }
             }
-            usort($aLire, fn ($a, $b) => $b['activite'] <=> $a['activite']);
+            usort($aLire, fn ($a, $b) => [$b['activite'], $b['message']->getId()] <=> [$a['activite'], $a['message']->getId()]);
         }
 
         return $this->render('message/index.html.twig', [

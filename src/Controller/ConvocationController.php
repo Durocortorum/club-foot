@@ -43,7 +43,7 @@ class ConvocationController extends AbstractController
     }
 
     #[Route('', name: 'app_convocation', methods: ['GET', 'POST'])]
-    public function convocation(Request $request, Rencontre $rencontre, JoueurRepository $joueurs, ConvoqueRepository $convoques): Response
+    public function convocation(Request $request, Rencontre $rencontre, JoueurRepository $joueurs, ConvoqueRepository $convoques, Messagerie $messagerie): Response
     {
         $convocation = $this->convocations->pour($rencontre) ?? new Convocation($rencontre);
         // Niveaux du dessous proposés : 1, 2, 3 ou tous (0), choisis au-dessus de la liste des joueurs.
@@ -89,12 +89,18 @@ class ConvocationController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $d = $form->getData();
+            $gardes = array_map(fn (Joueur $j) => $j->getId(), [...$d['joueurs']]);
+            $retires = array_values(array_filter($convocation->getJoueurs(), fn (Joueur $j) => !\in_array($j->getId(), $gardes, true)));
             $convocation->setJoueurs($d['joueurs'])->setRdvHeure($d['rdvHeure'])->setRdvLieu($d['rdvLieu'])->setMessage($d['message']);
             $this->em->persist($convocation);
+            if ($retires) {
+                $this->retirerDeLaFeuille($rencontre, $convocation, $retires);
+            }
             $this->em->flush();
             $this->addFlash('succes', $convocation->getEnvoyeeLe()
                 ? 'Convocation modifiée. Pensez à prévenir les joueurs ajoutés (bouton « Envoyer »).'
                 : 'Convocation enregistrée. Vérifiez-la, puis envoyez-la aux familles.');
+            $this->prevenirRetrait($convocation, $retires, $messagerie);
 
             return $this->redirectToRoute('app_convocation', array_filter(['id' => $rencontre->getId(), 'dessous' => 1 === $this->niveauxDessous ? null : $this->niveauxDessous], fn ($v) => null !== $v));
         }
@@ -151,6 +157,57 @@ class ConvocationController extends AbstractController
         return $this->redirectToRoute('app_convocation', ['id' => $rencontre->getId()]);
     }
 
+    /** Retirer un joueur de la convocation (erreur, décision du staff) : sa famille est prévenue si elle était déjà envoyée. */
+    #[Route('/retirer/{convoque}', name: 'app_convocation_retirer', requirements: ['convoque' => '\d+'], methods: ['POST'])]
+    public function retirer(Request $request, Rencontre $rencontre, Convoque $convoque, Messagerie $messagerie): Response
+    {
+        $convocation = $convoque->getConvocation();
+        if ($convocation->getRencontre() !== $rencontre
+            || !$this->isCsrfTokenValid('retirer-convoque' . $convoque->getId(), $request->getPayload()->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        $joueur = $convoque->getJoueur();
+        if (1 === \count($convocation->getConvoques())) {
+            $this->addFlash('erreur', \sprintf('%s est le seul joueur convoqué : pour annuler la convocation, utilisez « Supprimer » en haut de la page.', $joueur->getNomComplet()));
+
+            return $this->redirect($this->generateUrl('app_convocation', ['id' => $rencontre->getId()]) . '#reponses');
+        }
+        $convocation->setJoueurs(array_filter($convocation->getJoueurs(), fn (Joueur $j) => $j !== $joueur));
+        $this->retirerDeLaFeuille($rencontre, $convocation, [$joueur]);
+        $this->em->flush();
+        $this->addFlash('succes', $joueur->getNomComplet() . ' n\'est plus convoqué(e).');
+        $this->prevenirRetrait($convocation, [$joueur], $messagerie);
+
+        return $this->redirect($this->generateUrl('app_convocation', ['id' => $rencontre->getId()]) . '#reponses');
+    }
+
+    /**
+     * Joueurs retirés d'une convocation déjà envoyée : leur famille est prévenue par e-mail et dans la messagerie
+     * interne ; celles sans compte actif sont signalées pour un appel ou un SMS.
+     *
+     * @param list<Joueur> $retires
+     */
+    private function prevenirRetrait(Convocation $convocation, array $retires, Messagerie $messagerie): void
+    {
+        if (!$retires || !$convocation->getEnvoyeeLe()) {
+            return;
+        }
+        $r = $convocation->getRencontre();
+        $quand = \sprintf('%s %s', mb_strtolower(EnvoiConvocations::JOURS[(int) $r->getDate()->format('w')]), $r->getDate()->format('d/m'));
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        $message = (new Message())->setAuteur($moi)
+            ->setSujet(mb_substr(\sprintf('Changement de convocation – %s contre %s, %s', $r->getEquipeAffichee(), $r->getAdversaire(), $quand), 0, 120))
+            ->setCorps(\sprintf("Changement : le joueur n'est finalement plus convoqué pour le match %s – %s du %s.\n\nPour toute question, répondez à ce message.", $r->getDomicile(), $r->getExterieur(), $quand))
+            ->setCible('retrait')->setCibleLibelle(\sprintf('Retirés de la convocation – %s contre %s, %s', $r->getEquipeAffichee(), $r->getAdversaire(), $r->getDate()->format('d/m')))
+            ->setCategorie($r->getCategorie())->setRencontre($r);
+        $resultat = $messagerie->envoyer($message, $retires, true);
+        $this->addFlash('info', \sprintf('Famille%s prévenue%1$s du retrait (e-mail et messagerie).', \count($retires) > 1 ? 's' : ''));
+        if ($resultat['sans_compte']) {
+            $this->addFlash('info', 'Sans compte famille actif, à prévenir par téléphone ou SMS : ' . implode(', ', array_map(fn (Joueur $j) => $j->getNomComplet(), $resultat['sans_compte'])) . '.');
+        }
+    }
+
     /** Réponse saisie par l'éducateur (reçue par téléphone, SMS...), ou effacée. */
     #[Route('/reponse/{convoque}', name: 'app_convocation_reponse', requirements: ['convoque' => '\d+'], methods: ['POST'])]
     public function reponse(Request $request, Rencontre $rencontre, Convoque $convoque): Response
@@ -187,9 +244,10 @@ class ConvocationController extends AbstractController
      * les lignes restées telles que le préremplissage les a créées. Un numéro, un poste, une note,
      * un carton, une appréciation, un but ou un remplacement : la ligne est gardée.
      */
-    private function retirerDeLaFeuille(Rencontre $rencontre, Convocation $convocation): int
+    /** @param list<Joueur>|null $seulement joueurs à retirer (tous les convoqués par défaut) */
+    private function retirerDeLaFeuille(Rencontre $rencontre, Convocation $convocation, ?array $seulement = null): int
     {
-        $convoques = array_map(fn (Joueur $j) => $j->getId(), $convocation->getJoueurs());
+        $convoques = array_map(fn (Joueur $j) => $j->getId(), $seulement ?? $convocation->getJoueurs());
         $utilises = [];
         foreach ($rencontre->getButs() as $b) {
             $utilises[] = $b->getButeur()?->getId();

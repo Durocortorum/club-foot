@@ -772,3 +772,5 @@ table.droits thead th.droits-nom { z-index: 3; }
 .case-joueur.indisponible { color: var(--gris); }
 .niveaux-dessous { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin: 0 0 .8rem; }
 #joueurs-convoques { scroll-margin-top: 1rem; }
+.lien-discret { margin-left: .5rem; padding: 0; border: 0; background: none; font: inherit; color: var(--gris); text-decoration: underline; cursor: pointer; }
+.lien-discret:hover { color: var(--rouge); }

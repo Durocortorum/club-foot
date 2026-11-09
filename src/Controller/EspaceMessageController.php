@@ -43,7 +43,7 @@ class EspaceMessageController extends AbstractController
         foreach ($this->messages->envoyesPar($moi) as $l) {
             $conversations[] = $l + ['lu' => true, 'envoye' => true, 'activite' => $this->activite($l['message'], $l['message']->getReponses()->toArray())];
         }
-        usort($conversations, fn ($a, $b) => $b['activite'] <=> $a['activite']);
+        usort($conversations, fn ($a, $b) => [$b['activite'], $b['message']->getId()] <=> [$a['activite'], $a['message']->getId()]);
 
         return $this->render('espace/messages.html.twig', ['conversations' => $conversations]);
     }
