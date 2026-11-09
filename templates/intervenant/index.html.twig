@@ -7,12 +7,14 @@
     <nav class="onglets">
         <a href="{{ path('app_intervenant_index', {type: 'educateurs'}) }}" class="{{ type == 'educateurs' ? 'actif' }}">Éducateurs</a>
         <a href="{{ path('app_intervenant_index', {type: 'dirigeants'}) }}" class="{{ type == 'dirigeants' ? 'actif' }}">Dirigeants</a>
+        <a href="{{ path('app_intervenant_index', {type: 'administratifs'}) }}" class="{{ type == 'administratifs' ? 'actif' }}">Administratifs</a>
+        <a href="{{ path('app_intervenant_index', {type: 'benevoles'}) }}" class="{{ type == 'benevoles' ? 'actif' }}">Bénévoles</a>
     </nav>
 
     <div class="titre-page">
         <h1>{{ libelles.pluriel }} <span class="compteur">{{ intervenants|length }}</span></h1>
         {% if is_granted('ROLE_ADMIN') %}
-            <a class="bouton principal" href="{{ path('app_intervenant_nouveau', {type: type}) }}">+ Nouvel {{ libelles.singulier }}</a>
+            <a class="bouton principal" href="{{ path('app_intervenant_nouveau', {type: type}) }}">+ {{ libelles.nouveau }} {{ libelles.singulier }}</a>
         {% endif %}
     </div>
 

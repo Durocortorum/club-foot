@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Cahier des charges – version 2</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+  :root { --encre: #1d1d1f; --gris: #5f6368; --trait: #e3e3e8; --rouge: #c8102e; --fait: #1e7f43; --fait-fond: #e3f4e9; --partie: #9a6200; --partie-fond: #fdf1d8; --afaire: #8a8f98; --afaire-fond: #eef0f3; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color: var(--encre); font-size: 10.5pt; line-height: 1.45; margin: 0; background: #fff; }
+  h1 { font-size: 24pt; margin: 0 0 2mm; letter-spacing: -.01em; }
+  h2 { font-size: 14pt; margin: 9mm 0 3mm; padding-bottom: 1.5mm; border-bottom: 2px solid var(--rouge); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 5mm 0 2mm; break-after: avoid; }
+  p { margin: 0 0 2.5mm; }
+  ul { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1mm; }
+  .sous-titre { font-size: 12pt; color: var(--gris); margin: 0 0 1mm; }
+  .meta { color: var(--gris); font-size: 9.5pt; margin-bottom: 6mm; }
+  .encadre { border-left: 3px solid var(--rouge); background: #faf7f7; padding: 3mm 4mm; margin: 3mm 0 4mm; }
+  .chiffres { display: flex; gap: 4mm; margin: 4mm 0 2mm; }
+  .chiffre { flex: 1; border: 1px solid var(--trait); border-radius: 3mm; padding: 3mm 4mm; }
+  .chiffre strong { display: block; font-size: 22pt; line-height: 1.1; }
+  .chiffre span { color: var(--gris); font-size: 9.5pt; }
+  .chiffre small { display: block; color: var(--gris); font-size: 8.5pt; margin-top: 1mm; }
+  .chiffre.fait strong { color: var(--fait); }
+  .chiffre.partie strong { color: var(--partie); }
+  .chiffre.afaire strong { color: var(--afaire); }
+  .note { color: var(--gris); font-size: 9pt; }
+  table { width: 100%; border-collapse: collapse; margin: 1mm 0 3mm; font-size: 9.5pt; }
+  th { text-align: left; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .04em; color: var(--gris); border-bottom: 1.5px solid var(--encre); padding: 1.5mm 2mm; }
+  td { border-bottom: 1px solid var(--trait); padding: 1.6mm 2mm; vertical-align: top; }
+  tr { break-inside: avoid; }
+  td:first-child { font-weight: 600; width: 27%; }
+  td.etat { width: 17%; white-space: nowrap; }
+  tr.formule td { background: #f6f6f8; font-weight: 700; font-size: 10pt; padding-top: 2.2mm; }
+  .etat span { display: inline-block; border-radius: 1.5mm; padding: .3mm 2mm; font-size: 8.5pt; font-weight: 600; }
+  .f { background: var(--fait-fond); color: var(--fait); }
+  .p { background: var(--partie-fond); color: var(--partie); }
+  .a { background: var(--afaire-fond); color: var(--afaire); }
+  .nouveau { color: var(--rouge); font-size: 8pt; font-weight: 700; margin-left: 1mm; }
+  .phase { border: 1px solid var(--trait); border-radius: 3mm; padding: 3mm 4mm; margin: 0 0 3mm; break-inside: avoid; }
+  .phase h3 { margin-top: 0; display: flex; justify-content: space-between; gap: 3mm; }
+  .phase h3 .etat span { font-size: 8.5pt; }
+  .faits { columns: 2; column-gap: 7mm; }
+  .faits div { break-inside: avoid; margin-bottom: 3mm; }
+  .faits h3 { margin-top: 0; }
+  .saut { break-before: page; }
+</style>
+</head>
+<body>
+
+<h1>Cahier des charges</h1>
+<p class="sous-titre">Application de gestion complète d'un club – football d'abord, multisport ensuite</p>
+<p class="meta">Michel Descotes · 9 novembre 2026 · version 2 (remplace la version 1 du 5 novembre 2026)</p>
+
+<h2>1. Le projet</h2>
+<p>Une application en ligne qui gère tout le club, comme un club professionnel : membres, équipes, matchs, convocations, statistiques, infirmerie, scolarité, recrutement, sponsors, finances, transport… Elle prolonge une application conçue sous Access pour un grand club de football, très appréciée de ses utilisateurs. La version web reprend ce savoir-faire et fonctionne sur ordinateur, tablette et téléphone, pour plusieurs clubs à la fois.</p>
+<ul>
+  <li><strong>Michel</strong> : conception et contenu de l'application.</li>
+  <li><strong>Nico</strong> : communication, média, démarchage des clubs.</li>
+  <li><strong>En ligne</strong> : club.descotesmichel.com (version de travail).</li>
+</ul>
+<div class="encadre">
+  <strong>Ce qui nous distingue</strong> : les concurrents (SportEasy, Kalisport, Clupik, MonClubSportif, Sport Managing…) font surtout de la communication et du paiement. Notre application couvre en plus tout ce qui fait vivre un club formateur : rapport de match détaillé, statistiques, infirmerie, scolarité, détection, recrutement, discipline, tests, archives, relation avec les parents, organigramme. Elle est pensée par quelqu'un qui a fait tourner un grand club. Depuis la version 1, elle fait aussi ce que font les concurrents : comptes des familles, convocations avec réponse sur le téléphone, messagerie.
+</div>
+
+<h2>2. Où en est l'application</h2>
+<div class="chiffres">
+  <div class="chiffre fait"><strong>20</strong><span>fonctions faites</span><small>13 dans la version 1</small></div>
+  <div class="chiffre partie"><strong>9</strong><span>en partie</span><small>10 dans la version 1</small></div>
+  <div class="chiffre afaire"><strong>13</strong><span>à faire</span><small>19 dans la version 1</small></div>
+</div>
+<p class="note">Décompte sur les 39 fonctions des formules (section 3) plus les modules Arbitres, Contacts utiles et Info importante.</p>
+<p><strong>En résumé</strong> : la partie sportive était presque terminée ; depuis le 5 novembre, la communication avec les joueurs et les parents l'est aussi (comptes famille, convocations, entraînements, messagerie, information importante). Ce qui manque surtout maintenant : la vie du club (événements, tournois, stages, bénévoles, arbitres) et la gestion (finances, sponsors, transport).</p>
+
+<h2>3. Les formules</h2>
+<p>Forfait mensuel par club. La personnalisation est sur devis. <span class="nouveau">NOUVEAU</span> signale un état qui a changé depuis la version 1.</p>
+<table>
+  <thead><tr><th>Fonction</th><th>État</th><th>Remarque</th></tr></thead>
+  <tbody>
+    <tr class="formule"><td colspan="3">Formule 1 – 20 € par mois</td></tr>
+    <tr><td>Gestion des membres</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Joueurs, éducateurs, dirigeants, administratifs, bénévoles, comptes famille et comptes médicaux (médecin, kiné).</td></tr>
+    <tr><td>Calendrier</td><td class="etat"><span class="p">En partie</span><span class="nouveau">NOUVEAU</span></td><td>Planning des entraînements, prochains matchs et entraînements dans l'espace famille, import du calendrier depuis la FFF ou Transfermarkt ; vue calendrier unique (matchs, entraînements, événements) à faire.</td></tr>
+    <tr><td>Messagerie</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>À tout le club, à une catégorie, aux convoqués d'un match, à des joueurs choisis, aux collègues de l'encadrement, au corps médical ; les familles écrivent à l'encadrement ; réponses en fil privé ; avis par e-mail.</td></tr>
+    <tr><td>Statistiques joueur / note de match</td><td class="etat"><span class="f">Fait</span></td><td>Temps de jeu, buts, passes, cartons, moyenne des notes ; visibles aussi par le joueur et sa famille (sans les notes).</td></tr>
+    <tr><td>Rapport de match</td><td class="etat"><span class="f">Fait</span></td><td>Météo, terrain, scores, compositions, remplacements, buts, cartons.</td></tr>
+    <tr><td>Statistiques équipe</td><td class="etat"><span class="p">En partie</span></td><td>Buts marqués et encaissés par quart d'heure faits ; bilan d'équipe à compléter.</td></tr>
+    <tr><td>Championnat</td><td class="etat"><span class="p">En partie</span><span class="nouveau">NOUVEAU</span></td><td>Calendrier et résultats importés par copier-coller de la page FFF ou Transfermarkt de l'équipe ; classement et forme sur les 5 derniers matchs à faire.</td></tr>
+    <tr><td>Entraînement / convocation</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Créneaux réguliers, entraînements générés, absences signalées par les familles, feuille d'appel reportée dans les présences, annulation et rétablissement avec e-mail aux familles.</td></tr>
+    <tr><td>Événement / extra-sportif</td><td class="etat"><span class="a">À faire</span></td><td>Lieu, dates, quoi.</td></tr>
+    <tr><td>Convocation / match</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Rendez-vous, lieu, message ; envoi par e-mail, messagerie, WhatsApp et SMS ; réponse présent/absent sur le téléphone, relances ; joueurs des niveaux voisins, double convocation le même jour refusée ; feuille de match préremplie. Le transport viendra avec le module Transport.</td></tr>
+    <tr><td>Composition</td><td class="etat"><span class="f">Fait</span></td><td>Système de jeu et postes ; schéma visuel du terrain à ajouter.</td></tr>
+    <tr><td>Présence</td><td class="etat"><span class="f">Fait</span></td><td>Par semaine et par créneau, avec motifs (dont « Discipline ») et pourcentage ; reliée au planning et à la feuille d'appel.</td></tr>
+    <tr><td>Catégories (U5 à séniors)</td><td class="etat"><span class="f">Fait</span></td><td>Durée de match par catégorie ; distinguer les féminines.</td></tr>
+    <tr><td>Archives</td><td class="etat"><span class="p">En partie</span></td><td>Saisons, anciens joueurs, éducateurs, dirigeants, administratifs et bénévoles ; à étendre aux arbitres et sponsors.</td></tr>
+    <tr><td>Organigramme</td><td class="etat"><span class="a">À faire</span></td><td>Les dirigeants existent, pas le schéma.</td></tr>
+    <tr><td>Application joueur</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Espace du joueur et de sa famille, pensé pour le téléphone : matchs, convocations, entraînements, statistiques, messagerie. Le joueur majeur décide lui-même de l'accès de ses contacts. Notifications sur le téléphone à venir.</td></tr>
+    <tr><td>Assigner une tâche</td><td class="etat"><span class="a">À faire</span></td><td>Personne, catégorie, objet.</td></tr>
+    <tr><td>Relation avec les parents</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Comptes famille sur invitation, parent 1 et parent 2, réponses aux convocations, absences, messagerie, information importante.</td></tr>
+
+    <tr class="formule"><td colspan="3">Formule 2 – 40 € par mois (formule 1 +)</td></tr>
+    <tr><td>Fiche d'entraînement</td><td class="etat"><span class="f">Fait</span></td><td>Séances et exercices, avec schéma du terrain ; séance préparée affichée sur le planning.</td></tr>
+    <tr><td>Administratif / finances / compta</td><td class="etat"><span class="a">À faire</span></td><td>Cotisations, prix des places, achats de matériel, contrats.</td></tr>
+    <tr><td>Sponsors</td><td class="etat"><span class="a">À faire</span></td><td>Entreprise ou particulier, adresse, participations, contrat.</td></tr>
+    <tr><td>Tournoi</td><td class="etat"><span class="p">En partie</span></td><td>Un match peut être marqué « Tournoi » ; fiche tournoi à faire.</td></tr>
+    <tr><td>Stage</td><td class="etat"><span class="a">À faire</span></td><td>Date, lieu, catégorie, raison.</td></tr>
+    <tr><td>Rapport de match détaillé</td><td class="etat"><span class="f">Fait</span></td><td>Façon de marquer, phase de jeu, minute des cartons, temps additionnel.</td></tr>
+    <tr><td>Tests</td><td class="etat"><span class="f">Fait</span></td><td>VMA, sprints ; droits « voir » et « modifier » séparés.</td></tr>
+    <tr><td>Détection</td><td class="etat"><span class="f">Fait</span></td><td>Détections et joueurs observés, grilles par poste.</td></tr>
+    <tr><td>Discipline</td><td class="etat"><span class="f">Fait</span></td><td>Foot et hors foot ; montant d'amende à ajouter.</td></tr>
+    <tr><td>Recrutement / CV</td><td class="etat"><span class="p">En partie</span></td><td>Joueurs faits ; à étendre aux éducateurs, dirigeants, bénévoles, médical.</td></tr>
+    <tr><td>Infirmerie</td><td class="etat"><span class="f">Fait</span></td><td>Blessures, diagnostic, lieu, durée, reprise, contacts médicaux ; données médicales très confidentielles (voir section 7).</td></tr>
+
+    <tr class="formule"><td colspan="3">Formule 3 – 50 € par mois (formule 2 +)</td></tr>
+    <tr><td>Infirmerie plus détaillée</td><td class="etat"><span class="p">En partie</span></td><td>Faits : atlas anatomique pour localiser la blessure, arrêt et reprise envisagés calculés, blessures les plus fréquentes, visite médicale (poids, taille…). À faire : séparer reprise sportive et reprise match.</td></tr>
+    <tr><td>Créer ses entraînements</td><td class="etat"><span class="f">Fait</span></td><td>Bibliothèque de 40 exercices types (10 par groupe d'âge), consultable à part ; exercices animés : joueurs et ballons se déplacent d'une étape à l'autre.</td></tr>
+    <tr><td>Transport / frais</td><td class="etat"><span class="a">À faire</span></td><td>Bus, minibus du club, voitures personnelles, frais kilométriques.</td></tr>
+    <tr><td>Paiement en ligne</td><td class="etat"><span class="a">À faire</span></td><td>Proposition : se relier à HelloAsso.</td></tr>
+    <tr><td>Autoévaluation / RPE</td><td class="etat"><span class="a">À faire</span></td><td>Le joueur note l'effort ressenti après la séance ; les comptes joueurs existent désormais.</td></tr>
+    <tr><td>Boutique en ligne</td><td class="etat"><span class="a">À faire</span></td><td>Proposition : boutique HelloAsso.</td></tr>
+    <tr><td>Scolaire</td><td class="etat"><span class="f">Fait</span></td><td>Bulletins, niveau, sanctions scolaires.</td></tr>
+    <tr><td>Suivi de progression</td><td class="etat"><span class="p">En partie</span></td><td>Tests et mesures dans le temps ; vue de progression à construire.</td></tr>
+    <tr><td>Média</td><td class="etat"><span class="a">À faire</span></td><td>À définir avec Nico.</td></tr>
+    <tr><td>Rapport de match en direct (tablette, mobile)</td><td class="etat"><span class="p">En partie</span></td><td>La feuille se remplit sur mobile après le match ; saisie en direct à faire.</td></tr>
+  </tbody>
+</table>
+
+<h2 class="saut">4. Détail des modules – côté Club</h2>
+<table>
+  <thead><tr><th>Module</th><th>Contenu prévu</th><th>État</th></tr></thead>
+  <tbody>
+    <tr><td>Membres</td><td>Joueurs, administratifs, éducateurs, dirigeants, bénévoles, médical, listings</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Effectifs</td><td>Nombres par âge et par catégorie, listings</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Détection joueur</td><td>Nom, prénom, poste, club, appréciation</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Recrutement</td><td>Ville, niveau, discipline, comportement, téléphone</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Scolaire</td><td>Bulletins, niveau, sanctions scolaires</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Médical</td><td>Médecin, hôpital, kiné, podologue ; comptes médicaux et accès confidentiel</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Archives</td><td>Anciens joueurs, dirigeants, bénévoles, éducateurs, arbitres, administratifs, médical, sponsors</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Admin</td><td>Tableau des droits d'accès (un clic par case), couleurs et logo du club, e-mails à l'image du club</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Contact</td><td>Numéros utiles : président, vice-président, comptable, stade…</td><td class="etat"><span class="a">À faire</span></td></tr>
+    <tr><td>Organigramme</td><td>Organigramme du club</td><td class="etat"><span class="a">À faire</span></td></tr>
+    <tr><td>Famille</td><td>Convocation (lieu, horaire), réponses, matchs et statistiques dans l'espace famille ; compte rendu du match envoyé aux familles à faire</td><td class="etat"><span class="p">En partie</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Messagerie</td><td>Pour tous, par catégorie, par match, collègues, corps médical</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Info importante</td><td>Mot du président, mariages, décès, naissances… (bandeau en tête de l'espace famille)</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Calendrier</td><td>Tous les matchs et activités importantes</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Événement</td><td>Lieu, dates, quoi</td><td class="etat"><span class="a">À faire</span></td></tr>
+    <tr><td>Tournoi</td><td>Lieu, date, catégorie, transport</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Stage</td><td>Date, lieu, catégorie, raison</td><td class="etat"><span class="a">À faire</span></td></tr>
+    <tr><td>Sponsors</td><td>Entreprise ou particulier, nom, adresse, participations, contrat</td><td class="etat"><span class="a">À faire</span></td></tr>
+    <tr><td>Finance</td><td>Cotisations, prix des places, achats de matériel, paiement en ligne, contrats</td><td class="etat"><span class="a">À faire</span></td></tr>
+    <tr><td>Transport</td><td>Bus de société ; minibus du club (conducteurs, permis valide, assurance, carte carburant et autoroute, km, révision, contrôle technique) ; voiture personnelle (km €)</td><td class="etat"><span class="a">À faire</span></td></tr>
+    <tr><td>Arbitres</td><td>Nom, prénom, adresse, téléphone, diplôme, niveau, équipement</td><td class="etat"><span class="a">À faire</span></td></tr>
+  </tbody>
+</table>
+
+<h2>5. Détail des modules – côté Équipes</h2>
+<table>
+  <thead><tr><th>Module</th><th>Contenu prévu</th><th>État</th></tr></thead>
+  <tbody>
+    <tr><td>Catégories</td><td>U7 à seniors, féminines</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Joueurs</td><td>Nom, âge, catégorie, poste, pied, statistiques, discipline, scolaire, parents si mineur, droit à l'image, autorisations, adresse, ancien club, infirmerie. Manquent : ancien club, autorisations.</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Éducateurs</td><td>Nom, âge, catégories et équipes, adresse, diplômes avec date, permis de conduire. Manquent : date du diplôme, permis, équipes.</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Dirigeants</td><td>Nom, âge, adresse, permis de conduire, diplômes, équipes</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Entraînement</td><td>Fiche, créer une séance, terrain, date, heure, catégorie ; planning, appel, bibliothèque d'exercices animés</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Rapport de match</td><td>Météo, terrain, score mi-temps et final, titulaires, entrées, sorties, lieu, horaire, niveau, buteurs et façon de marquer, passeurs, cartons, appréciation, note sur 10</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Statistiques</td><td>Titulaire, entré, sorti, buts, passes, pas entré, non convoqué ou repos, buts marqués et encaissés par quart d'heure, arrêts de jeu, cartons, moyenne des notes</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Composition</td><td>Tactique, placement des joueurs sur le terrain. Schéma visuel à faire.</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Infirmerie</td><td>Liste et nombre de blessés, diagnostic, lieu, contexte, durée, reprise sportive, reprise match, statistiques. Deux dates de reprise à faire.</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Discipline</td><td>Foot, hors foot, amende. Montant d'amende à faire.</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Tests</td><td>VMA, etc.</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Listing</td><td>Tous les joueurs ou par catégorie : nom, prénom, âge, adresse, téléphone, n° de licence. Export imprimable / Excel à faire.</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Convocation</td><td>Date, lieu, match, catégorie, message aux parents si mineur, réponse présent/absent. Transport et tactique à venir.</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Messagerie</td><td>Tous, par catégorie, par match</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Championnat</td><td>Calendrier, date, lieu, matchs (import FFF / Transfermarkt faits) ; classement, forme sur les 5 derniers à faire</td><td class="etat"><span class="p">En partie</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Tâches</td><td>Personne, catégorie, objet</td><td class="etat"><span class="a">À faire</span></td></tr>
+  </tbody>
+</table>
+
+<h2 class="saut">6. Fait depuis la version 1 (5 – 9 novembre 2026)</h2>
+<div class="faits">
+  <div>
+    <h3>Joueurs et familles</h3>
+    <ul>
+      <li>Comptes famille sur invitation, coordonnées par parent (parent 1, parent 2).</li>
+      <li>Joueur majeur : il décide lui-même de l'accès de ses parents ou de ses contacts.</li>
+      <li>Espace famille : prochains matchs et entraînements, statistiques par saison ou sur toute la carrière, détail des matchs.</li>
+      <li>Mot de passe oublié : lien par e-mail valable une heure.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Convocations et entraînements</h3>
+    <ul>
+      <li>Convocations aux matchs : e-mail, messagerie, WhatsApp, SMS ; réponses présent/absent, relances, retrait d'un joueur avec famille prévenue.</li>
+      <li>Joueurs des niveaux voisins proposés ; un joueur déjà convoqué le même jour est refusé.</li>
+      <li>Planning des entraînements : créneaux réguliers, absences signalées par les familles, feuille d'appel, annulation et rétablissement avec e-mail.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Messagerie</h3>
+    <ul>
+      <li>Messages à tout le club, une catégorie, les convoqués d'un match, des joueurs choisis, des collègues, le corps médical.</li>
+      <li>Information importante en bandeau dans l'espace famille.</li>
+      <li>Réponses en fil privé, avis par e-mail, pastille mise à jour sans recharger la page.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Médical</h3>
+    <ul>
+      <li>Données médicales très confidentielles : médecin du club, droits à échéance, accès par code envoyé par e-mail (30 minutes).</li>
+      <li>Comptes médecin et kiné limités à l'infirmerie ; demandes d'accès accordées avec une durée.</li>
+      <li>Atlas anatomique pour localiser une blessure ; arrêt et reprise envisagés ; visite médicale séparée.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Entraînement</h3>
+    <ul>
+      <li>Bibliothèque de 40 exercices types (10 par groupe : école de foot, préformation, formation, seniors), avec recherche.</li>
+      <li>Exercices animés : on place joueurs et ballons étape par étape, l'animation les fait glisser.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Matchs et organisation</h3>
+    <ul>
+      <li>Import du calendrier d'une équipe par copier-coller de la page FFF ou Transfermarkt (scores, compétitions, sans doublon), avec annulation.</li>
+      <li>Fiches administratifs et bénévoles, avec leurs anciens dans les archives.</li>
+      <li>Tableau des droits d'accès : un clic par case.</li>
+      <li>Toutes les pages pensées pour le téléphone (fiches au lieu de tableaux).</li>
+      <li>E-mails aux couleurs et au logo du club ; noms de famille et d'équipes toujours en majuscules.</li>
+    </ul>
+  </div>
+</div>
+
+<h2>7. Ordre de construction</h2>
+<p>On construit d'abord ce que tout le club utilise chaque semaine : c'est ce qui fait adopter l'application et ce qui complète la formule à 20 €.</p>
+<div class="phase">
+  <h3>Phase 1 – Le club parle à ses joueurs et à ses parents <span class="etat"><span class="f">Presque terminée</span></span></h3>
+  <ul>
+    <li>Faits : comptes joueurs et parents avec droits limités ; convocations aux matchs et entraînements avec réponse sur le téléphone ; messagerie ; information importante ; notifications par e-mail.</li>
+    <li>Reste : la vue calendrier unique (matchs, entraînements, événements) ; le compte rendu et le score envoyés aux familles après le match ; les notifications sur le téléphone.</li>
+  </ul>
+</div>
+<div class="phase">
+  <h3>Phase 2 – Compléter la partie sportive <span class="etat"><span class="p">Prochaine étape</span></span></h3>
+  <ul>
+    <li>Retouches : catégories féminines, ancien club, autorisations, date du diplôme, permis, montant d'amende, reprise sportive et reprise match.</li>
+    <li>Championnat : classement (saisi à la main au début, ou importé comme le calendrier), forme sur les 5 derniers matchs.</li>
+    <li>Statistiques d'équipe complètes, schéma de composition sur le terrain, listings imprimables et export Excel.</li>
+    <li>Tâches, organigramme, contacts utiles, tableaux d'effectifs.</li>
+  </ul>
+</div>
+<div class="phase">
+  <h3>Phase 3 – La vie du club <span class="etat"><span class="a">À venir</span></span></h3>
+  <ul>
+    <li>Événements, tournois, stages (reliés au calendrier et aux convocations).</li>
+    <li>Recrutement et archives étendus à tous (les fiches bénévoles et administratifs existent).</li>
+    <li>Arbitres : diplôme, niveau, équipement (utile pour les obligations du club envers le district).</li>
+  </ul>
+</div>
+<div class="phase">
+  <h3>Phase 4 – La gestion <span class="etat"><span class="a">À venir</span></span></h3>
+  <ul>
+    <li>Sponsors : fiches, participations, contrats, archives.</li>
+    <li>Finances : cotisations, entrées, achats de matériel, contrats.</li>
+    <li>Transport et frais : bus, minibus du club (échéances : assurance, révision, contrôle technique), voitures personnelles avec frais kilométriques et reçu fiscal pour les bénévoles qui renoncent à leur remboursement.</li>
+    <li>Paiement en ligne et boutique : se relier à HelloAsso (gratuit pour les associations) plutôt que tout construire.</li>
+  </ul>
+</div>
+<div class="phase">
+  <h3>Phase 5 – Les plus <span class="etat"><span class="a">À venir</span></span></h3>
+  <ul>
+    <li>Autoévaluation / RPE et suivi de progression (les comptes joueurs existent désormais).</li>
+    <li>Rapport de match en direct sur tablette et téléphone.</li>
+    <li>SMS automatiques (quelques centimes par SMS), argument pour les formules à 40 € et 50 €.</li>
+    <li>Média, avec Nico.</li>
+    <li>Plus tard : ouverture à d'autres sports (handball, basket…).</li>
+  </ul>
+</div>
+
+<h2>8. Avant de proposer l'application aux clubs</h2>
+<h3>Protection des données (RGPD)</h3>
+<ul>
+  <li>L'application gère des mineurs, des données médicales et scolaires : ce sont des données sensibles.</li>
+  <li>Fait : des droits d'accès précis par rôle (tableau des droits), un accès médical très restreint (médecin, code par e-mail, durée limitée), l'accès des parents décidé par le joueur majeur.</li>
+  <li>À prévoir : le consentement des parents, des conditions d'utilisation, une politique de confidentialité, un contrat avec chaque club.</li>
+  <li>Vérifier si le module infirmerie impose un hébergement certifié pour les données de santé (HDS).</li>
+</ul>
+<h3>Commercialisation (avec Nico)</h3>
+<ul>
+  <li>Choisir le nom : un nom principal décliné par sport (ex. « Tribu Foot »).</li>
+  <li>Un club de démonstration avec des données inventées, jamais les données d'un vrai club.</li>
+  <li>Une plaquette et une page de présentation avec inscription des clubs.</li>
+  <li>Revérifier le tableau comparatif des concurrents avant de le diffuser : leurs fonctions évoluent vite.</li>
+  <li>Atout : le club n'a rien à ressaisir. L'import des joueurs (Excel) et du calendrier des matchs (FFF, Transfermarkt) existe ; reste à étudier l'import des licenciés depuis Footclubs (FFF).</li>
+</ul>
+<h3>Les prix</h3>
+<ul>
+  <li>Les clubs amateurs raisonnent à la saison : envisager un prix annuel (sur 10 mois).</li>
+  <li>Envisager un prix selon la taille du club (nombre d'équipes ou de licenciés).</li>
+  <li>L'écart entre 40 € et 50 € est faible au regard des fonctions ajoutées ; à réétudier.</li>
+  <li>Une version gratuite très limitée, comme chez certains concurrents, peut aider à se faire connaître.</li>
+</ul>
+
+</body>
+</html>

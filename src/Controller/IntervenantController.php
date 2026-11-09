@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\Administratif;
+use App\Entity\Benevole;
 use App\Entity\Dirigeant;
 use App\Entity\Educateur;
 use App\Entity\Intervenant;
@@ -16,14 +18,17 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * Fiches éducateurs et dirigeants. Consultables par tous, modifiables par l'administration.
+ * Fiches éducateurs, dirigeants, administratifs et bénévoles. Consultables par tous, modifiables par l'administration.
  */
-#[Route('/encadrement/{type}', requirements: ['type' => 'educateurs|dirigeants'])]
+#[Route('/encadrement/{type}', requirements: ['type' => 'educateurs|dirigeants|administratifs|benevoles'])]
 class IntervenantController extends AbstractController
 {
+    /** « nouveau » : accord du bouton « + Nouvel éducateur », « + Nouveau bénévole ». */
     private const TYPES = [
-        'educateurs' => ['classe' => Educateur::class, 'singulier' => 'éducateur', 'pluriel' => 'Éducateurs', 'photo' => 'educateur'],
-        'dirigeants' => ['classe' => Dirigeant::class, 'singulier' => 'dirigeant', 'pluriel' => 'Dirigeants', 'photo' => 'dirigeant'],
+        'educateurs' => ['classe' => Educateur::class, 'singulier' => 'éducateur', 'pluriel' => 'Éducateurs', 'photo' => 'educateur', 'nouveau' => 'Nouvel'],
+        'dirigeants' => ['classe' => Dirigeant::class, 'singulier' => 'dirigeant', 'pluriel' => 'Dirigeants', 'photo' => 'dirigeant', 'nouveau' => 'Nouveau'],
+        'administratifs' => ['classe' => Administratif::class, 'singulier' => 'administratif', 'pluriel' => 'Administratifs', 'photo' => 'administratif', 'nouveau' => 'Nouvel'],
+        'benevoles' => ['classe' => Benevole::class, 'singulier' => 'bénévole', 'pluriel' => 'Bénévoles', 'photo' => 'benevole', 'nouveau' => 'Nouveau'],
     ];
 
     public function __construct(
@@ -61,7 +66,7 @@ class IntervenantController extends AbstractController
     {
         $classe = self::TYPES[$type]['classe'];
 
-        return $this->formulaire($request, $type, new $classe(), 'Nouvel ' . self::TYPES[$type]['singulier']);
+        return $this->formulaire($request, $type, new $classe(), self::TYPES[$type]['nouveau'] . ' ' . self::TYPES[$type]['singulier']);
     }
 
     #[Route('/{id}', name: 'app_intervenant_voir', requirements: ['id' => '\d+'], methods: ['GET'])]

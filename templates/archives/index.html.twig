@@ -22,6 +22,14 @@
                 <span class="equipe-niveau">Dirigeants</span>
                 <span class="equipe-effectif">anciens dirigeants</span>
             </a>
+            <a class="tuile equipe" href="{{ path('app_intervenant_index', {type: 'administratifs', statut: 'anciens'}) }}">
+                <span class="equipe-niveau">Administratifs</span>
+                <span class="equipe-effectif">anciens administratifs</span>
+            </a>
+            <a class="tuile equipe" href="{{ path('app_intervenant_index', {type: 'benevoles', statut: 'anciens'}) }}">
+                <span class="equipe-niveau">Bénévoles</span>
+                <span class="equipe-effectif">anciens bénévoles</span>
+            </a>
         </div>
     </section>
 
