@@ -41,6 +41,50 @@ class ConvocationTest extends WebTestCase
         parent::tearDown();
     }
 
+    /** Joueurs proposés : la catégorie du match, le niveau du dessous et celui du dessus (même d'un autre secteur). */
+    public function testJoueursDesNiveauxVoisins(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Coach');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = $this->em();
+        $cat = [];
+        foreach ($em->getRepository(Categorie::class)->findBy(['club' => $club], ['ordre' => 'ASC']) as $c) {
+            $cat[$c->getNom()] = $c;
+        }
+        // U7, U9, U11 (école de foot), U13 (préformation) : match des U11.
+        foreach (['U7' => 'Ugo', 'U9' => 'Paul', 'U11' => 'Léa', 'U13' => 'Zoé', 'U15' => 'Max'] as $nom => $prenom) {
+            $this->joueur($club, $cat[$nom], $prenom);
+        }
+        $rencontre = (new Rencontre())->setClub($club)->setCategorie($cat['U11'])->setDate(new \DateTimeImmutable('+4 days'))
+            ->setDomicile("CLUB TEST $id")->setExterieur('Adversaire FC');
+        $em->persist($rencontre);
+        $em->flush();
+
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', '/matchs/' . $rencontre->getId() . '/convocation');
+        self::assertResponseIsSuccessful();
+        $groupes = $crawler->filter('details.groupe-joueurs summary')->each(fn ($s) => trim(preg_replace('/\s*\(.*$/', '', $s->text())));
+        self::assertSame(['U11', 'U9 · niveau du dessous', 'U13 · niveau du dessus', 'Autres catégories'], $groupes);
+        self::assertSelectorTextContains('details.groupe-joueurs:nth-of-type(3)', 'Zoé');
+        self::assertSelectorTextContains('details.groupe-joueurs:nth-of-type(4)', 'Ugo');
+        self::assertSelectorTextNotContains('form', 'Max'); // U15 : ni voisin, ni du secteur
+
+        // Zoé (U13) convoquée : son groupe s'ouvre et le compte apparaît.
+        $form = $crawler->selectButton('Enregistrer')->form();
+        foreach ($form['form[joueurs]'] as $case) {
+            $label = $crawler->filter('input[value="' . $case->availableOptionValues()[0] . '"]')->closest('label')->text();
+            if (str_contains($label, 'Léa') || str_contains($label, 'Zoé')) {
+                $case->tick();
+            }
+        }
+        $this->client->submit($form);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('details.groupe-joueurs[open]:nth-of-type(3) summary', '1 convoqué');
+    }
+
     public function testConvocationJusquALaFeuilleDeMatch(): void
     {
         $id = bin2hex(random_bytes(4));

@@ -117,8 +117,10 @@
                 <legend>Joueurs convoqués</legend>
                 {{ form_errors(form.joueurs) }}
                 {% for groupe, choix in form.joueurs.vars.choices %}
-                    <details class="groupe-joueurs" {{ loop.first ? 'open' }}>
-                        <summary>{{ groupe }} <span class="discret petit">({{ choix.choices|length }})</span></summary>
+                    {# Groupe ouvert : celui du match, ou un groupe où des joueurs sont déjà convoqués. #}
+                    {% set coches = choix.choices|filter(c => form.joueurs[c.value].vars.checked)|length %}
+                    <details class="groupe-joueurs" {{ loop.first or coches ? 'open' }}>
+                        <summary>{{ groupe }} <span class="discret petit">({{ choix.choices|length }}{{ coches and not loop.first ? ', ' ~ coches ~ ' ' ~ accord(coches, 'convoqué') }})</span></summary>
                         <div class="cases-joueurs">
                             {% for c in choix.choices %}
                                 <label class="case-joueur">{{ form_widget(form.joueurs[c.value]) }} {{ c.label }}</label>

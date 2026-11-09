@@ -52,7 +52,7 @@ class ConvocationController extends AbstractController
                 'class' => Joueur::class,
                 'choices' => $this->joueursProposes($rencontre, $convocation, $joueurs),
                 'choice_label' => fn (Joueur $j) => $j->getNom() . ' ' . $j->getPrenom(),
-                'group_by' => fn (Joueur $j) => $j->getCategorie() === $rencontre->getCategorie() ? (string) $j->getCategorie() : 'Autres catégories',
+                'group_by' => fn (Joueur $j) => $this->groupeJoueur($j, $rencontre),
                 'multiple' => true,
                 'expanded' => true,
                 'label' => 'Joueurs convoqués',
@@ -186,21 +186,68 @@ class ConvocationController extends AbstractController
     private function joueursProposes(Rencontre $rencontre, Convocation $convocation, JoueurRepository $joueurs): array
     {
         $categorie = $rencontre->getCategorie();
-        $liste = $joueurs->createQueryBuilder('j')
+        [$dessous, $dessus] = $this->niveauxVoisins($categorie);
+        $qb = $joueurs->createQueryBuilder('j')
             ->join('j.categorie', 'c')
             ->andWhere('j.ancien = false')
-            ->andWhere('c.secteur = :s')->setParameter('s', $categorie->getSecteur())
-            ->orderBy('c.ordre')->addOrderBy('j.nom')->addOrderBy('j.prenom')
-            ->getQuery()->getResult();
+            ->orderBy('c.ordre')->addOrderBy('j.nom')->addOrderBy('j.prenom');
+        // Le secteur du match, plus les catégories du niveau du dessous et du dessus (même d'un autre secteur).
+        $voisines = array_filter([$dessous, $dessus]);
+        if ($voisines) {
+            $qb->andWhere('c.secteur = :s OR c IN (:voisines)')->setParameter('voisines', $voisines);
+        } else {
+            $qb->andWhere('c.secteur = :s');
+        }
+        $liste = $qb->setParameter('s', $categorie->getSecteur())->getQuery()->getResult();
 
         $parId = [];
         foreach ([...$liste, ...$convocation->getJoueurs()] as $j) {
             $parId[$j->getId()] = $j;
         }
-        // La catégorie du match en premier.
-        uasort($parId, fn (Joueur $a, Joueur $b) => [$a->getCategorie() !== $categorie, $a->getCategorie()?->getOrdre(), $a->getNom(), $a->getPrenom()]
-            <=> [$b->getCategorie() !== $categorie, $b->getCategorie()?->getOrdre(), $b->getNom(), $b->getPrenom()]);
+        // La catégorie du match, puis le niveau du dessous, celui du dessus, et les autres catégories.
+        $rang = fn (Joueur $j) => match (true) {
+            $j->getCategorie() === $categorie => 0,
+            null !== $dessous && $j->getCategorie() === $dessous => 1,
+            null !== $dessus && $j->getCategorie() === $dessus => 2,
+            default => 3,
+        };
+        uasort($parId, fn (Joueur $a, Joueur $b) => [$rang($a), $a->getCategorie()?->getOrdre(), $a->getNom(), $a->getPrenom()]
+            <=> [$rang($b), $b->getCategorie()?->getOrdre(), $b->getNom(), $b->getPrenom()]);
 
         return array_values($parId);
+    }
+
+    /**
+     * Catégories juste au-dessous et au-dessus de celle du match, dans l'ordre des catégories du club
+     * (du plus jeune au plus haut niveau : ... DH, CFA 2, PRO).
+     *
+     * @return array{0: ?\App\Entity\Categorie, 1: ?\App\Entity\Categorie}
+     */
+    private function niveauxVoisins(?\App\Entity\Categorie $categorie): array
+    {
+        if (!$categorie) {
+            return [null, null];
+        }
+        $toutes = $this->em->getRepository(\App\Entity\Categorie::class)->findBy([], ['ordre' => 'ASC', 'nom' => 'ASC']);
+        $i = array_search($categorie, $toutes, true);
+        if (false === $i) {
+            return [null, null];
+        }
+
+        return [$toutes[$i - 1] ?? null, $toutes[$i + 1] ?? null];
+    }
+
+    /** Groupe d'un joueur dans la liste : catégorie du match, niveau du dessous / du dessus, autres catégories du secteur. */
+    private function groupeJoueur(Joueur $j, Rencontre $rencontre): string
+    {
+        $c = $j->getCategorie();
+        [$dessous, $dessus] = $this->niveauxVoisins($rencontre->getCategorie());
+
+        return match (true) {
+            $c === $rencontre->getCategorie() => (string) $c,
+            null !== $c && $c === $dessous => $c . ' · niveau du dessous',
+            null !== $c && $c === $dessus => $c . ' · niveau du dessus',
+            default => 'Autres catégories',
+        };
     }
 }
