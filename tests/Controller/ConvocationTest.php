@@ -85,6 +85,49 @@ class ConvocationTest extends WebTestCase
         self::assertSelectorTextContains('details.groupe-joueurs[open]:nth-of-type(3) summary', '1 convoqué');
     }
 
+    /** Un joueur convoqué le dimanche avec les U13 ne peut pas l'être le samedi avec les U11 (même week-end). */
+    public function testPasDeuxConvocationsLeMemeWeekEnd(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Coach');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = $this->em();
+        $cat = [];
+        foreach ($em->getRepository(Categorie::class)->findBy(['club' => $club], ['ordre' => 'ASC']) as $c) {
+            $cat[$c->getNom()] = $c;
+        }
+        $zoe = $this->joueur($club, $cat['U13'], 'Zoé');
+        $this->joueur($club, $cat['U11'], 'Léa');
+        $samedi = new \DateTimeImmutable('saturday next week');
+        $match = fn (Categorie $c, \DateTimeImmutable $d) => (new Rencontre())->setClub($club)->setCategorie($c)->setDate($d)->setDomicile("CLUB TEST $id")->setExterieur('Adversaire FC');
+        $em->persist($u11Samedi = $match($cat['U11'], $samedi));
+        $em->persist($u13Dimanche = $match($cat['U13'], $samedi->modify('+1 day')));
+        $em->persist($u11Mercredi = $match($cat['U11'], $samedi->modify('+4 days')));
+        $convocation = (new Convocation($u13Dimanche))->setClub($club)->setJoueurs([$zoe]);
+        foreach ($convocation->getConvoques() as $cq) {
+            $cq->setClub($club);
+        }
+        $em->persist($convocation);
+        $em->flush();
+
+        // Samedi (U11) : Zoé (U13, niveau du dessus) est grisée, avec le match du dimanche.
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', '/matchs/' . $u11Samedi->getId() . '/convocation');
+        self::assertSelectorExists('input[value="' . $zoe->getId() . '"][disabled]');
+        self::assertSelectorTextContains('label.indisponible', 'avec ' . $u13Dimanche->getEquipeAffichee() . ' ' . $u13Dimanche->getDate()->format('d/m'));
+        // Forcée malgré tout : refusée.
+        $jeton = $crawler->filter('input[name="form[_token]"]')->attr('value');
+        $this->client->request('POST', '/matchs/' . $u11Samedi->getId() . '/convocation', ['form' => ['joueurs' => [(string) $zoe->getId()], '_token' => $jeton]]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertNull(static::getContainer()->get(\App\Repository\ConvocationRepository::class)->pour($u11Samedi));
+
+        // Mercredi suivant : pas le même week-end, Zoé est libre.
+        $this->client->request('GET', '/matchs/' . $u11Mercredi->getId() . '/convocation');
+        self::assertSelectorNotExists('input[value="' . $zoe->getId() . '"][disabled]');
+    }
+
     public function testConvocationJusquALaFeuilleDeMatch(): void
     {
         $id = bin2hex(random_bytes(4));

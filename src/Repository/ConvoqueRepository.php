@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Convoque;
 use App\Entity\Joueur;
+use App\Entity\Rencontre;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
@@ -43,5 +44,36 @@ class ConvoqueRepository extends ServiceEntityRepository
             ->addOrderBy('r.heure')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Joueurs déjà convoqués à un autre match le même jour, ou le même week-end pour un match du samedi
+     * ou du dimanche : ils ne peuvent pas être convoqués une seconde fois.
+     *
+     * @return array<int, Rencontre> id du joueur => l'autre match
+     */
+    public function dejaConvoques(Rencontre $rencontre): array
+    {
+        $date = $rencontre->getDate();
+        if (!$date) {
+            return [];
+        }
+        $jour = (int) $date->format('N'); // 6 samedi, 7 dimanche
+        $debut = match ($jour) { 6 => $date, 7 => $date->modify('-1 day'), default => $date };
+        $fin = match ($jour) { 6 => $date->modify('+1 day'), default => $date };
+
+        $occupes = [];
+        foreach ($this->createQueryBuilder('cq')
+            ->addSelect('c', 'r')
+            ->join('cq.convocation', 'c')
+            ->join('c.rencontre', 'r')
+            ->andWhere('r != :rencontre')->setParameter('rencontre', $rencontre)
+            ->andWhere('r.date BETWEEN :debut AND :fin')
+            ->setParameter('debut', $debut, Types::DATE_IMMUTABLE)->setParameter('fin', $fin, Types::DATE_IMMUTABLE)
+            ->getQuery()->getResult() as $cq) {
+            $occupes[$cq->getJoueur()->getId()] = $cq->getConvocation()->getRencontre();
+        }
+
+        return $occupes;
     }
 }

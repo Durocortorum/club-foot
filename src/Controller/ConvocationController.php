@@ -8,6 +8,8 @@ use App\Entity\Joueur;
 use App\Entity\Rencontre;
 use App\Entity\Utilisateur;
 use App\Repository\ConvocationRepository;
+use App\Repository\ConvoqueRepository;
+use Symfony\Component\Form\FormError;
 use App\Repository\JoueurRepository;
 use App\Security\ActiviteVoter;
 use App\Service\EnvoiConvocations;
@@ -39,9 +41,15 @@ class ConvocationController extends AbstractController
     }
 
     #[Route('', name: 'app_convocation', methods: ['GET', 'POST'])]
-    public function convocation(Request $request, Rencontre $rencontre, JoueurRepository $joueurs): Response
+    public function convocation(Request $request, Rencontre $rencontre, JoueurRepository $joueurs, ConvoqueRepository $convoques): Response
     {
         $convocation = $this->convocations->pour($rencontre) ?? new Convocation($rencontre);
+        // Joueurs déjà convoqués ailleurs le même jour (ou le même week-end) : grisés, sauf s'ils sont déjà dans celle-ci.
+        $occupes = $convoques->dejaConvoques($rencontre);
+        $dejaIci = array_map(fn (Joueur $j) => $j->getId(), $convocation->getJoueurs());
+        $ailleurs = fn (Joueur $j) => isset($occupes[$j->getId()])
+            ? \sprintf('%s %s', $occupes[$j->getId()]->getEquipeAffichee(), $occupes[$j->getId()]->getDate()->format('d/m'))
+            : null;
         $form = $this->createFormBuilder([
             'joueurs' => $convocation->getJoueurs(),
             'rdvHeure' => $convocation->getRdvHeure(),
@@ -52,6 +60,9 @@ class ConvocationController extends AbstractController
                 'class' => Joueur::class,
                 'choices' => $this->joueursProposes($rencontre, $convocation, $joueurs),
                 'choice_label' => fn (Joueur $j) => $j->getNom() . ' ' . $j->getPrenom(),
+                'choice_attr' => fn (Joueur $j) => $ailleurs($j)
+                    ? ['data-ailleurs' => $ailleurs($j)] + (\in_array($j->getId(), $dejaIci, true) ? [] : ['disabled' => 'disabled'])
+                    : [],
                 'group_by' => fn (Joueur $j) => $this->groupeJoueur($j, $rencontre),
                 'multiple' => true,
                 'expanded' => true,
@@ -63,6 +74,14 @@ class ConvocationController extends AbstractController
             ->add('message', TextareaType::class, ['label' => 'Message aux familles', 'required' => false, 'attr' => ['rows' => 3, 'placeholder' => 'ex. Prévoir la tenue blanche, goûter après le match.']])
             ->getForm();
         $form->handleRequest($request);
+        if ($form->isSubmitted()) {
+            // Garde-fou (case grisée contournée) : pas de nouveau joueur déjà convoqué ailleurs ce jour ou ce week-end.
+            foreach ($form->get('joueurs')->getData() ?? [] as $j) {
+                if ($ailleurs($j) && !\in_array($j->getId(), $dejaIci, true)) {
+                    $form->get('joueurs')->addError(new FormError(\sprintf('%s est déjà convoqué(e) avec %s : un joueur ne peut pas jouer deux matchs le même jour ou le même week-end.', $j->getNomComplet(), $ailleurs($j))));
+                }
+            }
+        }
 
         if ($form->isSubmitted() && $form->isValid()) {
             $d = $form->getData();

@@ -123,7 +123,11 @@
                         <summary>{{ groupe }} <span class="discret petit">({{ choix.choices|length }}{{ coches and not loop.first ? ', ' ~ coches ~ ' ' ~ accord(coches, 'convoqué') }})</span></summary>
                         <div class="cases-joueurs">
                             {% for c in choix.choices %}
-                                <label class="case-joueur">{{ form_widget(form.joueurs[c.value]) }} {{ c.label }}</label>
+                                {% set ailleurs = c.attr['data-ailleurs'] ?? null %}
+                                <label class="case-joueur {{ ailleurs and c.attr.disabled is defined ? 'indisponible' }}" {% if ailleurs %}title="Déjà convoqué(e) avec {{ ailleurs }}"{% endif %}>
+                                    {{ form_widget(form.joueurs[c.value]) }} {{ c.label }}
+                                    {% if ailleurs %}<span class="pastille alerte petit">avec {{ ailleurs }}</span>{% endif %}
+                                </label>
                             {% endfor %}
                         </div>
                     </details>
