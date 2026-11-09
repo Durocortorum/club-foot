@@ -76,6 +76,8 @@ class ConvocationTest extends WebTestCase
         $tous = $this->client->click($crawler->filter('.niveaux-dessous')->selectLink('tous')->link());
         $groupesTous = $tous->filter('details.groupe-joueurs summary')->each(fn ($s) => trim(preg_replace('/\s*\(.*$/', '', $s->text())));
         self::assertSame(['U11', 'U13 · niveau du dessus', 'U9 · 1 niveau en dessous', 'U7 · 2 niveaux en dessous'], $groupesTous);
+        self::assertStringEndsWith('#joueurs-convoques', $tous->filter('.niveaux-dessous a')->first()->attr('href'));
+        self::assertSelectorNotExists('#joueurs-convoques p.discret');
 
         // Zoé (U13) convoquée : son groupe s'ouvre et le compte apparaît.
         $form = $crawler->selectButton('Enregistrer')->form();

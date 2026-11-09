@@ -113,15 +113,18 @@
         <h2 class="titre-bloc">{{ convocation ? 'Modifier la convocation' : 'Préparer la convocation' }}</h2>
         {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
             {{ form_errors(form) }}
-            <fieldset class="carte">
+            <fieldset class="carte" id="joueurs-convoques">
                 <legend>Joueurs convoqués</legend>
                 {# Jeunes joueurs appelés (surclassement) : 1, 2, 3 niveaux en dessous, ou tous. #}
                 <nav class="niveaux-dessous petit" aria-label="Niveaux en dessous proposés">
                     <span class="discret">Niveaux en dessous :</span>
                     {% for n, libelle in {1: '1', 2: '2', 3: '3', 0: 'tous'} %}
-                        <a class="bouton petit {{ n == niveaux_dessous ? 'principal' }}" href="{{ path('app_convocation', n == 1 ? {id: rencontre.id} : {id: rencontre.id, dessous: n}) }}" {{ n == niveaux_dessous ? 'aria-current="true"' }}>{{ libelle }}</a>
+                        <a class="bouton petit {{ n == niveaux_dessous ? 'principal' }}" href="{{ path('app_convocation', n == 1 ? {id: rencontre.id} : {id: rencontre.id, dessous: n}) }}#joueurs-convoques" {{ n == niveaux_dessous ? 'aria-current="true"' }}>{{ libelle }}</a>
                     {% endfor %}
                 </nav>
+                {% if niveaux_vides %}
+                    <p class="discret petit">Aucun joueur actif : {{ niveaux_vides|join(' ; ') }}.</p>
+                {% endif %}
                 {{ form_errors(form.joueurs) }}
                 {% for groupe, choix in form.joueurs.vars.choices %}
                     {# Groupe ouvert : celui du match, ou un groupe où des joueurs sont déjà convoqués. #}

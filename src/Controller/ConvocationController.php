@@ -60,7 +60,7 @@ class ConvocationController extends AbstractController
         ])
             ->add('joueurs', EntityType::class, [
                 'class' => Joueur::class,
-                'choices' => $this->joueursProposes($rencontre, $convocation, $joueurs),
+                'choices' => $proposes = $this->joueursProposes($rencontre, $convocation, $joueurs),
                 'choice_label' => fn (Joueur $j) => $j->getNom() . ' ' . $j->getPrenom(),
                 'choice_attr' => fn (Joueur $j) => $ailleurs($j)
                     ? ['data-ailleurs' => $ailleurs($j)] + (\in_array($j->getId(), $dejaIci, true) ? [] : ['disabled' => 'disabled'])
@@ -108,6 +108,7 @@ class ConvocationController extends AbstractController
             ),
             'motifs' => Convoque::MOTIFS,
             'niveaux_dessous' => $this->niveauxDessous,
+            'niveaux_vides' => $this->niveauxVides($rencontre, $proposes),
         ]);
     }
 
@@ -265,6 +266,28 @@ class ConvocationController extends AbstractController
         $dessous = array_reverse(\array_slice($toutes, 0, $i));
 
         return [$this->niveauxDessous > 0 ? \array_slice($dessous, 0, $this->niveauxDessous) : $dessous, $toutes[$i + 1] ?? null];
+    }
+
+    /**
+     * Niveaux voisins sans aucun joueur à proposer (pas de groupe affiché) : signalés pour ne pas surprendre.
+     *
+     * @param list<Joueur> $proposes
+     *
+     * @return list<string> ex. « DH · 1 niveau en dessous »
+     */
+    private function niveauxVides(Rencontre $rencontre, array $proposes): array
+    {
+        [$dessous, $dessus] = $this->niveauxVoisins($rencontre->getCategorie());
+        $avecJoueurs = array_map(fn (Joueur $j) => $j->getCategorie(), $proposes);
+        $vides = [];
+        foreach (array_filter([$dessus, ...$dessous]) as $c) {
+            if (!\in_array($c, $avecJoueurs, true)) {
+                $n = array_search($c, $dessous, true);
+                $vides[] = $c === $dessus ? $c . ' · niveau du dessus' : \sprintf('%s · %d %s en dessous', $c, $n + 1, $n ? 'niveaux' : 'niveau');
+            }
+        }
+
+        return $vides;
     }
 
     /** Groupe d'un joueur dans la liste : catégorie du match, niveau du dessus / du dessous, autres catégories du secteur. */
