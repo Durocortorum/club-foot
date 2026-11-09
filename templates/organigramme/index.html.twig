@@ -1,0 +1,78 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{# Une case et, dessous, les postes qui en dépendent (récursif). #}
+{% macro branche(poste, fiches, admin) %}
+    {% import 'commun/_macros.html.twig' as m %}
+    {% import _self as o %}
+    {% set fiche = poste.personne ? fiches[poste.personne] ?? null : null %}
+    <li>
+        <div class="poste" id="poste-{{ poste.id }}">
+            <span class="poste-titre">{{ poste.titre }}</span>
+            {% if fiche %}
+                <a class="poste-personne" href="{{ path('app_intervenant_voir', {type: poste.personneType, id: fiche.id}) }}">
+                    {{ m.avatar(fiche) }}
+                    <span>{{ fiche.prenom }} {{ fiche.nom }}</span>
+                </a>
+                {% if fiche.telPortable1 %}<a class="poste-tel" href="tel:{{ fiche.telPortable1|replace({' ': ''}) }}">{{ fiche.telPortable1 }}</a>{% endif %}
+            {% elseif poste.nomLibre %}
+                <span class="poste-personne"><span class="avatar">{{ poste.nomLibre|split(' ')|map(n => n|first|upper)|slice(0, 2)|join }}</span><span>{{ poste.nomLibre }}</span></span>
+            {% else %}
+                <span class="poste-vacant">à pourvoir</span>
+            {% endif %}
+            {% if admin %}
+                <span class="poste-actions">
+                    <a href="{{ path('app_organigramme_modifier', {id: poste.id}) }}" title="Modifier">Modifier</a>
+                    <a href="{{ path('app_organigramme_nouveau', {parent: poste.id}) }}" title="Ajouter un poste dessous">+ Dessous</a>
+                    {% for sens, signe in {avant: '←', apres: '→'} %}
+                        <form method="post" action="{{ path('app_organigramme_deplacer', {id: poste.id, sens: sens}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('deplacer-poste' ~ poste.id) }}">
+                            <button class="lien" title="{{ sens == 'avant' ? 'Avant' : 'Après' }}">{{ signe }}</button>
+                        </form>
+                    {% endfor %}
+                </span>
+            {% endif %}
+        </div>
+        {% if poste.enfants|length %}
+            <ul>
+                {% for enfant in poste.enfants %}{{ o.branche(enfant, fiches, admin) }}{% endfor %}
+            </ul>
+        {% endif %}
+    </li>
+{% endmacro %}
+{% import _self as o %}
+
+{% block title %}Organigramme{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Organigramme du club</h1>
+        {% if is_granted('ROLE_ADMIN') and not vide %}
+            <a class="bouton principal" href="{{ path('app_organigramme_nouveau') }}">+ Nouveau poste</a>
+        {% endif %}
+    </div>
+
+    {% if vide %}
+        <div class="carte bloc">
+            <p>L'organigramme n'est pas encore créé.</p>
+            {% if is_granted('ROLE_ADMIN') %}
+                <p class="discret">Partez d'un organigramme type (président, vice-président, trésorier, secrétaire, responsable technique et responsables des secteurs), puis choisissez la personne de chaque poste et ajoutez ou retirez des postes.</p>
+                <div class="actions">
+                    <form method="post" action="{{ path('app_organigramme_modele') }}" class="en-ligne">
+                        <input type="hidden" name="_token" value="{{ csrf_token('organigramme-modele') }}">
+                        <button class="bouton principal">Créer l'organigramme type</button>
+                    </form>
+                    <a class="bouton" href="{{ path('app_organigramme_nouveau') }}">Partir d'une page blanche</a>
+                </div>
+            {% else %}
+                <p class="discret">Il sera créé par l'administrateur du club.</p>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="organigramme-defile">
+            <ul class="organigramme">
+                {% for racine in racines %}{{ o.branche(racine, fiches, is_granted('ROLE_ADMIN')) }}{% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% endblock %}

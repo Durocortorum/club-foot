@@ -511,6 +511,42 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .meilleurs h3 { margin: 0 0 .4rem; font-size: 1rem; }
 .meilleur { display: flex; justify-content: space-between; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid var(--bordure); }
 
+/* Organigramme : arbre avec traits de liaison (liste en retrait sur téléphone) */
+.organigramme-defile { overflow-x: auto; padding-bottom: .5rem; }
+.organigramme, .organigramme ul { list-style: none; margin: 0; padding: 0; }
+.organigramme { display: flex; justify-content: center; min-width: max-content; }
+.organigramme ul { display: flex; justify-content: center; padding-top: 1.2rem; position: relative; }
+.organigramme li { position: relative; padding: 1.2rem .4rem 0; display: flex; flex-direction: column; align-items: center; }
+.organigramme > li { padding-top: 0; }
+/* Traits : horizontal au-dessus des frères, vertical vers chaque case, vertical sous un parent. */
+.organigramme ul > li::before, .organigramme ul > li::after { content: ''; position: absolute; top: 0; width: 50%; height: 1.2rem; border-top: 2px solid #c9ccd3; }
+.organigramme ul > li::before { right: 50%; }
+.organigramme ul > li::after { left: 50%; border-left: 2px solid #c9ccd3; }
+.organigramme ul > li:first-child::before, .organigramme ul > li:last-child::after { border-top: 0; }
+.organigramme ul > li:only-child::before { display: none; }
+.organigramme ul > li:only-child::after { border-top: 0; }
+.organigramme ul > li:first-child::after { border-radius: 6px 0 0 0; }
+.organigramme ul > li:last-child::before { border-right: 2px solid #c9ccd3; border-radius: 0 6px 0 0; }
+.organigramme ul::before { content: ''; position: absolute; top: 0; left: 50%; height: 1.2rem; border-left: 2px solid #c9ccd3; }
+.poste { background: #fff; border: 1px solid var(--bordure); border-top: 4px solid var(--encre); border-radius: 10px; padding: .55rem .7rem; min-width: 10rem; max-width: 13rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: .3rem; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.organigramme > li > .poste { border-top-color: var(--rouge, #d62839); }
+.poste-titre { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--gris); }
+.poste-personne { display: flex; flex-direction: column; align-items: center; gap: .25rem; color: var(--encre); font-weight: 600; font-size: .92rem; }
+.poste-personne .avatar { width: 2.6rem; height: 2.6rem; font-size: .85rem; margin: 0; }
+.poste-tel { font-size: .8rem; }
+.poste-vacant { font-size: .85rem; color: var(--gris); font-style: italic; }
+.poste-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .15rem .5rem; font-size: .75rem; border-top: 1px solid var(--bordure); padding-top: .3rem; margin-top: .1rem; width: 100%; }
+.poste-actions .lien { background: none; border: 0; padding: 0; color: var(--lien, #c8102e); cursor: pointer; font: inherit; }
+@media (max-width: 760px) {
+    .organigramme, .organigramme ul { display: block; min-width: 0; }
+    .organigramme ul { padding: 0 0 0 1rem; border-left: 2px solid #c9ccd3; margin-left: .8rem; }
+    .organigramme li { display: block; padding: .5rem 0 0; }
+    .organigramme ul > li::before, .organigramme ul > li::after, .organigramme ul::before { display: none; }
+    .poste { max-width: none; flex-direction: row; flex-wrap: wrap; text-align: left; justify-content: flex-start; }
+    .poste-titre { width: 100%; }
+    .poste-personne { flex-direction: row; }
+}
+
 /* Composition sur le terrain */
 .terrain-compo { position: relative; width: 100%; max-width: 30rem; margin: 0 auto; aspect-ratio: 68 / 105; border-radius: 10px; overflow: hidden;
     background: repeating-linear-gradient(0deg, #46a653 0, #46a653 9.52%, #3f9b4a 9.52%, #3f9b4a 19.04%); user-select: none; }
