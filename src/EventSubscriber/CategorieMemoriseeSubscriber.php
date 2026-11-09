@@ -25,6 +25,7 @@ class CategorieMemoriseeSubscriber implements EventSubscriberInterface
         'app_scolarite_index',
         'app_seance_index',
         'app_planning',
+        'app_calendrier',
         'app_famille_index',
         'app_dossier_medical_index',
     ];

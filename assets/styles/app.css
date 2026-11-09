@@ -495,6 +495,61 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .pastille-couleur { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--bordure); cursor: pointer; padding: 0; }
 .pastille-couleur.choisie { border-color: var(--encre); box-shadow: 0 0 0 2px #fff inset; }
 .schema-terrain.anime { cursor: pointer; }
+/* Statistiques : bilan d'équipe */
+.forme { display: flex; flex-wrap: wrap; gap: .5rem; }
+.forme-match { display: flex; align-items: center; gap: .5rem; padding: .45rem .6rem; border: 1px solid var(--bordure); border-radius: 8px; color: var(--encre); min-width: 9.5rem; flex: 1 1 9.5rem; }
+.forme-match:hover { text-decoration: none; background: #f6f6f8; }
+.forme-match .score { width: 2rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; font-weight: 800; flex: none; }
+.forme-detail { display: flex; flex-direction: column; font-size: .82rem; line-height: 1.25; min-width: 0; }
+.forme-detail span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bilan-lignes td.resultat-V, .bilan-equipe ~ .bloc td.resultat-V { color: var(--succes); font-weight: 600; }
+.bilan-lignes td.resultat-D, .bilan-equipe ~ .bloc td.resultat-D { color: var(--danger-fonce); font-weight: 600; }
+.bilan-lignes tr.total td { background: #f6f6f8; font-weight: 600; }
+.reperes { margin: .8rem 0 0; padding-left: 1.1rem; }
+.reperes li { margin-bottom: .3rem; }
+.meilleurs { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1.2rem; }
+.meilleurs h3 { margin: 0 0 .4rem; font-size: 1rem; }
+.meilleur { display: flex; justify-content: space-between; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid var(--bordure); }
+
+/* Calendrier du club (mois) */
+.calendrier-entete { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .4rem 0 .8rem; }
+.calendrier-entete h2 { margin: 0 .3rem; min-width: 10rem; text-align: center; font-size: 1.25rem; }
+.calendrier-legende { margin-left: auto; display: inline-flex; gap: .4rem; }
+.calendrier { border: 1px solid var(--bordure); border-radius: 10px; overflow: hidden; background: #fff; }
+.calendrier-jours, .calendrier-semaine { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendrier-jours div { padding: .45rem .5rem; font-size: .8rem; font-weight: 600; color: var(--gris); background: #f6f6f8; border-bottom: 1px solid var(--bordure); }
+.calendrier-jour { min-height: 6.5rem; padding: .35rem; border-right: 1px solid var(--bordure); border-bottom: 1px solid var(--bordure); display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+.calendrier-jour:nth-child(7) { border-right: 0; }
+.calendrier-semaine:last-child .calendrier-jour { border-bottom: 0; }
+.calendrier-jour.hors-mois { background: #fafafb; }
+.calendrier-jour.hors-mois .calendrier-date { color: #b7b9bf; }
+.calendrier-date { font-size: .85rem; font-weight: 600; color: var(--encre); }
+.calendrier-date .jour-semaine { display: none; }
+.calendrier-jour.aujourdhui .calendrier-date { color: #fff; background: var(--encre); border-radius: 999px; padding: 0 .45rem; align-self: flex-start; }
+.cal-activite { display: block; border-radius: 6px; padding: .2rem .4rem; font-size: .78rem; line-height: 1.25; text-decoration: none; border-left: 3px solid; overflow: hidden; }
+.cal-activite:hover { text-decoration: none; filter: brightness(.97); }
+.cal-activite span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calendrier-legende .cal-activite { display: inline-block; padding: .15rem .5rem; }
+.cal-match { background: #fde8eb; border-color: #d62839; color: #7a1020; }
+.cal-entrainement { background: #e5f4e8; border-color: #2e8b44; color: #1d5a2c; }
+.cal-seance { background: #e6eefb; border-color: #1f5fd1; color: #173f87; }
+.cal-entrainement.annule { background: #f1f1f3; border-color: #a0a3aa; color: #6b6e75; }
+.cal-entrainement.annule .cal-titre { text-decoration: line-through; }
+.cal-heure { font-weight: 600; }
+.cal-titre small { opacity: .75; }
+.cal-score { font-weight: 700; }
+@media (max-width: 760px) {
+    /* Sur téléphone : une liste des seuls jours qui ont une activité. */
+    .calendrier { border: 0; background: transparent; }
+    .calendrier-jours { display: none; }
+    .calendrier-semaine { display: block; }
+    .calendrier-jour { min-height: 0; border: 1px solid var(--bordure); border-radius: 10px; background: #fff; margin-bottom: .5rem; padding: .55rem .7rem; }
+    .calendrier-jour.sans-activite, .calendrier-jour.hors-mois { display: none; }
+    .calendrier-date .jour-semaine { display: inline; font-weight: 400; color: var(--gris); margin-right: .2rem; }
+    .cal-activite { font-size: .9rem; padding: .35rem .55rem; }
+    .cal-activite span { white-space: normal; }
+    .calendrier-legende { margin-left: 0; }
+}
 .effacer-saison { display: flex; justify-content: flex-end; margin: -.4rem 0 .8rem; }
 .annuler-import { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; padding: .7rem 1rem; margin-bottom: 1rem; }
 .schema-animation { margin-top: .6rem; padding: .5rem .7rem; background: #f6f6f8; border-radius: 8px; }

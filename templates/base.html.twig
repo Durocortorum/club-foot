@@ -50,6 +50,7 @@
                     <a href="{{ path('app_accueil') }}" class="{{ route == 'app_accueil' ? 'actif' }}">Accueil</a>
                     <a href="{{ path('app_joueur_index') }}" class="{{ route starts with 'app_joueur' or route starts with 'app_mesure' or route starts with 'app_test' ? 'actif' }}">Joueurs</a>
                     <a href="{{ path('app_intervenant_index', {type: 'educateurs'}) }}" class="{{ route starts with 'app_intervenant' ? 'actif' }}">Encadrement</a>
+                    <a href="{{ path('app_calendrier') }}" class="{{ route == 'app_calendrier' ? 'actif' }}">Calendrier</a>
                     <a href="{{ path('app_rencontre_index') }}" class="{{ route starts with 'app_rencontre' ? 'actif' }}">Matchs</a>
                     <a href="{{ path('app_statistiques') }}" class="{{ route == 'app_statistiques' ? 'actif' }}">Statistiques</a>
                     <a href="{{ path('app_presence_index') }}" class="{{ route starts with 'app_presence' ? 'actif' }}">Présences</a>

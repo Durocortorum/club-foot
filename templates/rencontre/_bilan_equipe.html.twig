@@ -1,0 +1,103 @@
+{# Bilan complet de l'équipe sur les matchs joués : forme, domicile / extérieur, compétitions, repères, mi-temps, buteurs. #}
+{% if bilan_equipe %}
+    {% set b = bilan_equipe %}
+    {% set lettres = {V: 'V', N: 'N', D: 'D'} %}
+
+    <section class="carte bloc bilan-equipe">
+        <div class="titre-page">
+            <h2>Forme</h2>
+            {% if b.serie %}<span class="pastille">En cours : {{ b.serie }}</span>{% endif %}
+        </div>
+        <p class="discret petit">Les {{ b.forme|length }} derniers matchs joués, du plus ancien au plus récent{{ filtres.categorie ? '' : ' (toutes les équipes choisies)' }}.</p>
+        <div class="forme">
+            {% for r in b.forme %}
+                <a class="forme-match" href="{{ path('app_rencontre_voir', {id: r.id}) }}" title="{{ r }} – {{ r.date|date('d/m/Y') }}">
+                    <span class="score resultat-{{ r.resultat }}">{{ lettres[r.resultat] }}</span>
+                    <span class="forme-detail">
+                        <strong>{{ r.butsPour }} – {{ r.butsContre }}</strong>
+                        <span>{{ r.aDomicile ? 'contre' : 'à' }} {{ r.adversaire }}</span>
+                        <span class="discret">{{ r.date|date('d/m') }}</span>
+                    </span>
+                </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="carte bloc">
+        <h2>Bilan à domicile et à l'extérieur</h2>
+        {% include 'rencontre/_bilan_lignes.html.twig' with {lignes: b.lieux, entete: 'Lieu'} %}
+        {% if b.competitions %}
+            <h3>Par compétition</h3>
+            {% include 'rencontre/_bilan_lignes.html.twig' with {lignes: b.competitions, entete: 'Compétition'} %}
+        {% endif %}
+        <p class="discret petit">Points comptés comme en championnat : 3 pour une victoire, 1 pour un nul.</p>
+    </section>
+
+    {% set rp = b.reperes %}
+    <section class="carte bloc">
+        <h2>Repères</h2>
+        <div class="tuiles bilan">
+            <div class="tuile"><span class="tuile-valeur">{{ rp.pour_match|number_format(1, ',') }}</span><span class="tuile-libelle">buts marqués par match</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ rp.contre_match|number_format(1, ',') }}</span><span class="tuile-libelle">buts encaissés par match</span></div>
+            <div class="tuile"><span class="tuile-valeur resultat-V">{{ rp.sans_encaisser }}</span><span class="tuile-libelle">{{ accord(rp.sans_encaisser, 'match') }} sans encaisser</span></div>
+            <div class="tuile"><span class="tuile-valeur resultat-D">{{ rp.sans_marquer }}</span><span class="tuile-libelle">{{ accord(rp.sans_marquer, 'match') }} sans marquer</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ rp.serie_victoires }}</span><span class="tuile-libelle">meilleure série de victoires</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ rp.serie_sans_defaite }}</span><span class="tuile-libelle">meilleure série sans défaite</span></div>
+        </div>
+        <ul class="reperes">
+            {% if rp.plus_large_victoire %}
+                {% set r = rp.plus_large_victoire %}
+                <li>Plus large victoire : <a href="{{ path('app_rencontre_voir', {id: r.id}) }}"><strong>{{ r.butsPour }} – {{ r.butsContre }}</strong> {{ r.aDomicile ? 'contre' : 'à' }} {{ r.adversaire }}</a> <span class="discret">({{ r.date|date('d/m/Y') }})</span></li>
+            {% endif %}
+            {% if rp.plus_lourde_defaite %}
+                {% set r = rp.plus_lourde_defaite %}
+                <li>Plus lourde défaite : <a href="{{ path('app_rencontre_voir', {id: r.id}) }}"><strong>{{ r.butsPour }} – {{ r.butsContre }}</strong> {{ r.aDomicile ? 'contre' : 'à' }} {{ r.adversaire }}</a> <span class="discret">({{ r.date|date('d/m/Y') }})</span></li>
+            {% endif %}
+        </ul>
+    </section>
+
+    {% if b.mi_temps.matchs %}
+        <section class="carte bloc">
+            <h2>Score à la mi-temps et résultat final</h2>
+            <p class="discret petit">Sur les {{ b.mi_temps.matchs }} {{ accord(b.mi_temps.matchs, 'match') }} dont le score de la pause est saisi.</p>
+            <div class="table-defile">
+                <table class="liste">
+                    <thead><tr><th>À la pause</th><th>Matchs</th><th>Victoires</th><th>Nuls</th><th>Défaites</th></tr></thead>
+                    <tbody>
+                        {% for situation, s in b.mi_temps.situations %}
+                            {% set total = s.V + s.N + s.D %}
+                            <tr>
+                                <td class="fort">{{ situation }}</td>
+                                <td>{{ total }}</td>
+                                <td class="resultat-V">{{ s.V }}</td>
+                                <td>{{ s.N }}</td>
+                                <td class="resultat-D">{{ s.D }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+
+    {% if buteurs or passeurs %}
+        <section class="carte bloc">
+            <h2>Meilleurs buteurs et passeurs</h2>
+            <div class="meilleurs">
+                {% for titre, liste in {'Buteurs': buteurs, 'Passeurs décisifs': passeurs} %}
+                    <div>
+                        <h3>{{ titre }}</h3>
+                        {% for j in liste %}
+                            <div class="meilleur">
+                                <a href="{{ path('app_joueur_voir', {id: j.id}) }}">{{ j.prenom }} {{ j.nom }}</a>
+                                <strong>{{ titre == 'Buteurs' ? j.buts : j.passes }}</strong>
+                            </div>
+                        {% else %}
+                            <p class="discret">Aucun pour l'instant.</p>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+{% endif %}

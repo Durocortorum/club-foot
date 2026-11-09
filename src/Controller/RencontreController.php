@@ -17,6 +17,7 @@ use App\Repository\ParticipationRepository;
 use App\Repository\RencontreRepository;
 use App\Security\ActiviteVoter;
 use App\Service\Apparence;
+use App\Service\BilanEquipe;
 use App\Service\ImportMatchs;
 use App\Service\SuiviDisciplinaire;
 use Doctrine\ORM\EntityManagerInterface;
@@ -72,6 +73,7 @@ class RencontreController extends AbstractController
         ButRepository $buts,
         CategorieRepository $categories,
         SuiviDisciplinaire $discipline,
+        BilanEquipe $bilanEquipe,
     ): Response {
         $secteurs = $this->voter->secteursMatchs();
         $filtres = $this->filtres($request, $rencontres, $categories);
@@ -93,7 +95,18 @@ class RencontreController extends AbstractController
             'tris' => $tris,
         ];
         if ('equipe' === $filtres['vue']) {
+            // Meilleurs buteurs et passeurs de la période (5 premiers, au moins un but ou une passe).
+            $joueurs = $participations->statistiques($secteurs, $s, $c)['joueurs'];
+            $meilleurs = function (string $cle) use ($joueurs): array {
+                $liste = array_values(array_filter($joueurs, fn (array $j) => $j[$cle] > 0));
+                usort($liste, fn (array $a, array $b) => [$b[$cle], $a['nom']] <=> [$a[$cle], $b['nom']]);
+
+                return \array_slice($liste, 0, 5);
+            };
             $vue += [
+                'bilan_equipe' => $bilanEquipe->analyser($rencontres->filtrer($rencontres->createQueryBuilder('r'), $secteurs, $s, $c)->getQuery()->getResult()),
+                'buteurs' => $meilleurs('buts'),
+                'passeurs' => $meilleurs('passes'),
                 'analyse' => $buts->analyse($secteurs, $s, $c),
                 'tranches' => ButRepository::TRANCHES,
                 'phases' => But::PHASES + ['inconnue' => 'Non renseignée'],

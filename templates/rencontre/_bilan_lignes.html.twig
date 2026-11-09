@@ -1,0 +1,23 @@
+{# Tableau J / V / N / D / buts / différence / points pour des groupes de matchs (lieu, compétition). #}
+<div class="table-defile">
+    <table class="liste bilan-lignes">
+        <thead>
+            <tr><th>{{ entete }}</th><th title="Matchs joués">J</th><th title="Victoires">V</th><th title="Nuls">N</th><th title="Défaites">D</th><th title="Buts pour – contre">Buts</th><th title="Différence de buts">Diff.</th><th>Points</th><th title="Pourcentage de victoires">% V</th></tr>
+        </thead>
+        <tbody>
+            {% for libelle, l in lignes %}
+                <tr class="{{ libelle == 'Total' ? 'total' }}">
+                    <td class="fort">{{ libelle }}</td>
+                    <td>{{ l.J }}</td>
+                    <td class="resultat-V">{{ l.V }}</td>
+                    <td>{{ l.N }}</td>
+                    <td class="resultat-D">{{ l.D }}</td>
+                    <td class="nowrap">{{ l.pour }} – {{ l.contre }}</td>
+                    <td>{{ l.diff > 0 ? '+' }}{{ l.diff }}</td>
+                    <td><strong>{{ l.points }}</strong> <span class="discret petit">({{ l.points_match|number_format(2, ',') }}/match)</span></td>
+                    <td>{{ l.victoires_pct }} %</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

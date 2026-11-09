@@ -29,6 +29,7 @@
 
     {% if filtres.vue == 'equipe' %}
         {% include 'rencontre/_bilan.html.twig' %}
+        {% include 'rencontre/_bilan_equipe.html.twig' %}
         {% include 'rencontre/_buts_quart_heure.html.twig' %}
         {% include 'rencontre/_buts_situations.html.twig' %}
     {% elseif filtres.vue == 'joueurs' %}

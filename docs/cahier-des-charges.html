@@ -66,8 +66,8 @@
 
 <h2>2. Où en est l'application</h2>
 <div class="chiffres">
-  <div class="chiffre fait"><strong>20</strong><span>fonctions faites</span><small>13 dans la version 1</small></div>
-  <div class="chiffre partie"><strong>9</strong><span>en partie</span><small>10 dans la version 1</small></div>
+  <div class="chiffre fait"><strong>22</strong><span>fonctions faites</span><small>13 dans la version 1</small></div>
+  <div class="chiffre partie"><strong>7</strong><span>en partie</span><small>10 dans la version 1</small></div>
   <div class="chiffre afaire"><strong>13</strong><span>à faire</span><small>19 dans la version 1</small></div>
 </div>
 <p class="note">Décompte sur les 39 fonctions des formules (section 3) plus les modules Arbitres, Contacts utiles et Info importante.</p>
@@ -80,11 +80,11 @@
   <tbody>
     <tr class="formule"><td colspan="3">Formule 1 – 20 € par mois</td></tr>
     <tr><td>Gestion des membres</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Joueurs, éducateurs, dirigeants, administratifs, bénévoles, comptes famille et comptes médicaux (médecin, kiné).</td></tr>
-    <tr><td>Calendrier</td><td class="etat"><span class="p">En partie</span><span class="nouveau">NOUVEAU</span></td><td>Planning des entraînements, prochains matchs et entraînements dans l'espace famille, import du calendrier depuis la FFF ou Transfermarkt ; vue calendrier unique (matchs, entraînements, événements) à faire.</td></tr>
+    <tr><td>Calendrier</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Calendrier du club mois par mois : matchs (adversaire, domicile ou extérieur, score) et entraînements (annulés barrés), toutes les équipes ou une seule ; liste des jours sur téléphone. Import du calendrier des matchs depuis la FFF ou Transfermarkt. Les événements s'y ajouteront avec leur module.</td></tr>
     <tr><td>Messagerie</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>À tout le club, à une catégorie, aux convoqués d'un match, à des joueurs choisis, aux collègues de l'encadrement, au corps médical ; les familles écrivent à l'encadrement ; réponses en fil privé ; avis par e-mail.</td></tr>
     <tr><td>Statistiques joueur / note de match</td><td class="etat"><span class="f">Fait</span></td><td>Temps de jeu, buts, passes, cartons, moyenne des notes ; visibles aussi par le joueur et sa famille (sans les notes).</td></tr>
     <tr><td>Rapport de match</td><td class="etat"><span class="f">Fait</span></td><td>Météo, terrain, scores, compositions, remplacements, buts, cartons.</td></tr>
-    <tr><td>Statistiques équipe</td><td class="etat"><span class="p">En partie</span></td><td>Buts marqués et encaissés par quart d'heure faits ; bilan d'équipe à compléter.</td></tr>
+    <tr><td>Statistiques équipe</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Bilan complet : forme sur les 5 derniers matchs et série en cours, domicile / extérieur et par compétition (points, différence, % de victoires), repères (moyennes, matchs sans encaisser, plus large victoire, meilleures séries), résultat selon le score à la mi-temps, meilleurs buteurs et passeurs ; buts par quart d'heure et par situation.</td></tr>
     <tr><td>Championnat</td><td class="etat"><span class="p">En partie</span><span class="nouveau">NOUVEAU</span></td><td>Calendrier et résultats importés par copier-coller de la page FFF ou Transfermarkt de l'équipe ; classement et forme sur les 5 derniers matchs à faire.</td></tr>
     <tr><td>Entraînement / convocation</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Créneaux réguliers, entraînements générés, absences signalées par les familles, feuille d'appel reportée dans les présences, annulation et rétablissement avec e-mail aux familles.</td></tr>
     <tr><td>Événement / extra-sportif</td><td class="etat"><span class="a">À faire</span></td><td>Lieu, dates, quoi.</td></tr>
@@ -142,7 +142,7 @@
     <tr><td>Famille</td><td>Convocation (lieu, horaire), réponses, matchs et statistiques dans l'espace famille ; compte rendu du match envoyé aux familles à faire</td><td class="etat"><span class="p">En partie</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Messagerie</td><td>Pour tous, par catégorie, par match, collègues, corps médical</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Info importante</td><td>Mot du président, mariages, décès, naissances… (bandeau en tête de l'espace famille)</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
-    <tr><td>Calendrier</td><td>Tous les matchs et activités importantes</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Calendrier</td><td>Tous les matchs et activités importantes</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Événement</td><td>Lieu, dates, quoi</td><td class="etat"><span class="a">À faire</span></td></tr>
     <tr><td>Tournoi</td><td>Lieu, date, catégorie, transport</td><td class="etat"><span class="p">En partie</span></td></tr>
     <tr><td>Stage</td><td>Date, lieu, catégorie, raison</td><td class="etat"><span class="a">À faire</span></td></tr>
@@ -221,6 +221,8 @@
   <div>
     <h3>Matchs et organisation</h3>
     <ul>
+      <li>Calendrier du club mois par mois : matchs, entraînements et séances, par équipe.</li>
+      <li>Statistiques d'équipe complètes : forme, domicile / extérieur, compétitions, repères, mi-temps, meilleurs buteurs.</li>
       <li>Import du calendrier d'une équipe par copier-coller de la page FFF ou Transfermarkt (scores, compétitions, sans doublon), avec annulation.</li>
       <li>Fiches administratifs et bénévoles, avec leurs anciens dans les archives.</li>
       <li>Tableau des droits d'accès : un clic par case.</li>
@@ -235,8 +237,8 @@
 <div class="phase">
   <h3>Phase 1 – Le club parle à ses joueurs et à ses parents <span class="etat"><span class="f">Presque terminée</span></span></h3>
   <ul>
-    <li>Faits : comptes joueurs et parents avec droits limités ; convocations aux matchs et entraînements avec réponse sur le téléphone ; messagerie ; information importante ; notifications par e-mail.</li>
-    <li>Reste : la vue calendrier unique (matchs, entraînements, événements) ; le compte rendu et le score envoyés aux familles après le match ; les notifications sur le téléphone.</li>
+    <li>Faits : comptes joueurs et parents avec droits limités ; calendrier du club (matchs et entraînements) ; convocations aux matchs et entraînements avec réponse sur le téléphone ; messagerie ; information importante ; notifications par e-mail.</li>
+    <li>Reste : le calendrier mois par mois dans l'espace des familles ; le compte rendu et le score envoyés aux familles après le match ; les notifications sur le téléphone.</li>
   </ul>
 </div>
 <div class="phase">
@@ -244,7 +246,7 @@
   <ul>
     <li>Retouches : catégories féminines, ancien club, autorisations, date du diplôme, permis, montant d'amende, reprise sportive et reprise match.</li>
     <li>Championnat : classement (saisi à la main au début, ou importé comme le calendrier), forme sur les 5 derniers matchs.</li>
-    <li>Statistiques d'équipe complètes, schéma de composition sur le terrain, listings imprimables et export Excel.</li>
+    <li>Schéma de composition sur le terrain, listings imprimables et export Excel (statistiques d'équipe complètes : faites).</li>
     <li>Tâches, organigramme, contacts utiles, tableaux d'effectifs.</li>
   </ul>
 </div>

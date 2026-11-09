@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Calendrier{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Calendrier</h1>
+        <span class="actions">
+            <a class="bouton" href="{{ path('app_rencontre_index') }}">Matchs</a>
+            {% if peut_planifier %}<a class="bouton" href="{{ path('app_planning') }}">Planning des entraînements</a>{% endif %}
+        </span>
+    </div>
+
+    <form class="filtres" method="get">
+        <input type="hidden" name="mois" value="{{ mois|date('Y-m') }}">
+        <select name="categorie" onchange="this.form.requestSubmit()" aria-label="Équipe">
+            <option value="">Toutes les équipes</option>
+            {% for c in categories %}
+                <option value="{{ c.id }}" {{ choisie and choisie.id == c.id ? 'selected' }}>{{ c.nom }}</option>
+            {% endfor %}
+        </select>
+        <noscript><button type="submit" class="bouton">Filtrer</button></noscript>
+    </form>
+
+    <div class="calendrier-entete">
+        <a class="bouton petit" href="{{ path('app_calendrier', {mois: precedent}) }}" aria-label="Mois précédent">←</a>
+        <h2>{{ titre }}</h2>
+        <a class="bouton petit" href="{{ path('app_calendrier', {mois: suivant}) }}" aria-label="Mois suivant">→</a>
+        {% if mois|date('Y-m') != aujourdhui|date('Y-m') %}
+            <a class="bouton petit" href="{{ path('app_calendrier') }}">Aujourd'hui</a>
+        {% endif %}
+        <span class="calendrier-legende">
+            <span class="cal-activite cal-match">Match</span>
+            <span class="cal-activite cal-entrainement">Entraînement</span>
+            <span class="cal-activite cal-seance">Séance seule</span>
+        </span>
+    </div>
+
+    <div class="calendrier" role="table" aria-label="Calendrier de {{ titre }}">
+        <div class="calendrier-jours" role="row">
+            {% for j in ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'] %}
+                <div role="columnheader">{{ j }}</div>
+            {% endfor %}
+        </div>
+        {% for semaine in semaines %}
+            <div class="calendrier-semaine" role="row">
+                {% for jour in semaine %}
+                    {% set cle = jour|date('Y-m-d') %}
+                    {% set activites = jours[cle] ?? [] %}
+                    <div role="cell" class="calendrier-jour{{ jour|date('m') != mois|date('m') ? ' hors-mois' }}{{ cle == aujourdhui ? ' aujourdhui' }}{{ activites ? '' : ' sans-activite' }}">
+                        <div class="calendrier-date">
+                            <span class="jour-semaine">{{ ['Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.', 'Dim.'][jour|date('N') - 1] }}</span>
+                            {{ jour|date('j') }}
+                        </div>
+                        {% for a in activites %}
+                            {% set o = a.objet %}
+                            {% if a.type == 'match' %}
+                                <a class="cal-activite cal-match" href="{{ path('app_rencontre_voir', {id: o.id}) }}" title="{{ o }}">
+                                    <span class="cal-heure">{{ a.heure ? a.heure|replace({':': 'h'}) : 'heure ?' }}{% if not choisie %} · {{ o.equipeAffichee }}{% endif %}</span>
+                                    <span class="cal-titre">{{ o.adversaire }} <small>({{ o.aDomicile ? 'dom.' : 'ext.' }})</small></span>
+                                    {% if o.butsDomicile is not null %}<span class="cal-score">{{ o.butsDomicile }} – {{ o.butsExterieur }}</span>{% endif %}
+                                </a>
+                            {% elseif a.type == 'seance' %}
+                                {# Séance préparée un jour sans entraînement prévu de l'équipe. #}
+                                <{{ peut_planifier ? 'a' : 'span' }} class="cal-activite cal-seance" {% if peut_planifier %}href="{{ path('app_seance_voir', {id: o.id}) }}"{% endif %} title="Séance {{ o.categorie }} : {{ o.theme }}">
+                                    <span class="cal-heure">Séance{% if not choisie %} · {{ o.categorie }}{% endif %}</span>
+                                    <span class="cal-titre">{{ o.theme ?: 'sans thème' }}</span>
+                                </{{ peut_planifier ? 'a' : 'span' }}>
+                            {% else %}
+                                {% set lien = peut_planifier ? path('app_planning', {categorie: o.categorie.id} + (o.date > date('+28 days') ? {periode: 'saison'} : {})) ~ '#entrainement-' ~ o.id : null %}
+                                {% set themes = a.seances|map(s => s.theme)|filter(t => t)|join(', ') %}
+                                <{{ lien ? 'a' : 'span' }} class="cal-activite cal-entrainement{{ o.annule ? ' annule' }}" {% if lien %}href="{{ lien }}"{% endif %} title="Entraînement {{ o.categorie }}{{ o.lieu ? ' – ' ~ o.lieu }}{{ themes ? ' – séance : ' ~ themes }}{{ o.annule ? ' (annulé)' }}">
+                                    <span class="cal-heure">{{ a.heure|replace({':': 'h'}) }}{% if not choisie %} · {{ o.categorie }}{% endif %}</span>
+                                    <span class="cal-titre">{{ o.annule ? 'Annulé' : 'Entraînement' }}{% if themes and not o.annule %} · {{ themes }}{% endif %}</span>
+                                </{{ lien ? 'a' : 'span' }}>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+    {% if not jours %}
+        <p class="vide">Aucun match ni entraînement ce mois-ci{{ choisie ? ' pour ' ~ choisie.nom }}.</p>
+    {% endif %}
+{% endblock %}
