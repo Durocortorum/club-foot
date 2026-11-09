@@ -478,7 +478,19 @@ class Rencontre implements AppartientAuClub
         return trim((string) preg_replace('/[^a-z0-9]+/', ' ', $texte));
     }
 
-    private static function estLeClub(?string $equipe): bool
+    /**
+     * Nom d'équipe sans les mots génériques (« FC SOCHAUX MONTB. » → « sochaux montb ») :
+     * pour retrouver un adversaire d'un site à l'autre (classement, calendrier).
+     */
+    public static function coeurDuNom(?string $equipe): string
+    {
+        $mots = array_diff(explode(' ', self::normaliser($equipe)), self::MOTS_GENERIQUES);
+
+        return implode(' ', array_filter($mots, fn (string $m) => !preg_match('/^(u\d{1,2}|nat|\d)$/', $m)));
+    }
+
+    /** L'équipe désigne-t-elle le club de l'utilisateur connecté (« STADE DE REIMS », « REIMS B », « SDR ») ? */
+    public static function estLeClub(?string $equipe): bool
     {
         $equipe = ' ' . self::normaliser($equipe) . ' ';
         foreach (self::$nomsClub as $nom) {

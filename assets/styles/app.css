@@ -511,6 +511,20 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .meilleurs h3 { margin: 0 0 .4rem; font-size: 1rem; }
 .meilleur { display: flex; justify-content: space-between; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid var(--bordure); }
 
+/* Championnat */
+.rappel-classement { background: #fff4d6; color: #7a5300; border-radius: 8px; padding: .55rem .8rem; margin: 0 0 .8rem; font-weight: 600; }
+.classement tr.nous td { background: #fff4d6; font-weight: 600; }
+.classement .rang-classement { font-weight: 700; width: 2.5rem; }
+.tuile-forme .forme-pastilles { display: inline-flex; gap: .25rem; margin-bottom: .2rem; }
+.tuile-forme .score { width: 1.7rem; height: 1.7rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; font-weight: 800; font-size: .85rem; }
+.tuile-forme .score:hover { text-decoration: none; }
+.petit-valeur { font-size: 1.1rem; }
+.maj-classement { margin-top: 1rem; }
+.maj-classement > summary { list-style: none; display: inline-flex; }
+.maj-classement > summary::-webkit-details-marker { display: none; }
+.maj-classement form { margin-top: .8rem; }
+.maj-classement textarea { width: 100%; }
+
 /* Calendrier du club (mois) */
 .calendrier-entete { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .4rem 0 .8rem; }
 .calendrier-entete h2 { margin: 0 .3rem; min-width: 10rem; text-align: center; font-size: 1.25rem; }

@@ -1,0 +1,141 @@
+{% extends 'base.html.twig' %}
+
+{% macro tableau(lignes, classement = null) %}
+    {% set rangs = {} %}
+    <div class="table-defile">
+        <table class="liste classement">
+            <thead>
+                <tr><th>#</th><th>Équipe</th><th title="Points">Pts</th><th title="Matchs joués">J</th><th title="Gagnés">G</th><th title="Nuls">N</th><th title="Perdus">P</th><th title="Buts pour – contre">Buts</th><th title="Différence">Diff.</th></tr>
+            </thead>
+            <tbody>
+                {% for l in lignes %}
+                    <tr class="{{ l.nous ? 'nous' }}">
+                        <td class="rang-classement">{{ l.rang }}</td>
+                        <td class="fort">{{ l.equipe }}</td>
+                        <td><strong>{{ l.points }}</strong></td>
+                        <td>{{ l.joues }}</td>
+                        <td>{{ l.gagnes }}</td>
+                        <td>{{ l.nuls }}</td>
+                        <td>{{ l.perdus }}</td>
+                        <td class="nowrap">{{ l.pour }} – {{ l.contre }}</td>
+                        <td>{{ l.diff > 0 ? '+' }}{{ l.diff }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}
+{% import _self as t %}
+
+{% block title %}Championnat {{ categorie }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_rencontre_index') }}">← Matchs</a></p>
+    <div class="titre-page">
+        <h1>Championnat {{ categorie }} <span class="compteur">{{ saison }}</span></h1>
+    </div>
+
+    <form class="filtres" method="get">
+        <select name="categorie" onchange="this.form.requestSubmit()" aria-label="Équipe">
+            {% for c in categories %}
+                <option value="{{ c.id }}" {{ c.id == categorie.id ? 'selected' }}>{{ c.nom }}</option>
+            {% endfor %}
+        </select>
+        <select name="saison" onchange="this.form.requestSubmit()" aria-label="Saison">
+            {% for s in saisons %}
+                <option value="{{ s }}" {{ s == saison ? 'selected' }}>Saison {{ s }}</option>
+            {% endfor %}
+        </select>
+        <noscript><button type="submit" class="bouton">Afficher</button></noscript>
+    </form>
+
+    {% set nous = lignes|filter(l => l.nous)|first %}
+    {% if prochain or forme or nous %}
+        <div class="tuiles bilan">
+            {% if nous %}
+                <div class="tuile"><span class="tuile-valeur">{{ nous.rang }}<sup>{{ nous.rang == 1 ? 'er' : 'e' }}</sup></span><span class="tuile-libelle">sur {{ lignes|length }} · {{ nous.points }} pts</span></div>
+            {% endif %}
+            {% if forme %}
+                <div class="tuile tuile-forme">
+                    <span class="forme-pastilles">
+                        {% for r in forme %}<a class="score resultat-{{ r.resultat }}" href="{{ path('app_rencontre_voir', {id: r.id}) }}" title="{{ r.butsPour }} – {{ r.butsContre }} {{ r.aDomicile ? 'contre' : 'à' }} {{ r.adversaire }} ({{ r.date|date('d/m') }})">{{ r.resultat }}</a>{% endfor %}
+                    </span>
+                    <span class="tuile-libelle">forme sur les {{ forme|length }} derniers matchs</span>
+                </div>
+            {% endif %}
+            {% if prochain %}
+                {% set adv = classement ? classement.ligneDe(prochain.adversaire) : null %}
+                <a class="tuile" href="{{ path('app_rencontre_voir', {id: prochain.id}) }}">
+                    <span class="tuile-valeur petit-valeur">{{ prochain.adversaire }}</span>
+                    <span class="tuile-libelle">prochain match · {{ prochain.date|date('d/m') }}{{ prochain.heure ? ' à ' ~ prochain.heure }} · {{ prochain.aDomicile ? 'à domicile' : 'à l\'extérieur' }}{{ adv ? ' · ' ~ adv.rang ~ (adv.rang == 1 ? 'er' : 'e') ~ ', ' ~ adv.points ~ ' pts' }}</span>
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <section class="carte bloc">
+        <div class="titre-page">
+            <h2>Classement</h2>
+            {% if classement %}<span class="discret petit">Mis à jour le {{ classement.misAJourLe|date('d/m/Y à H:i') }}</span>{% endif %}
+        </div>
+        {% if joues_depuis %}
+            <p class="rappel-classement">Classement à mettre à jour : {{ joues_depuis }} {{ accord(joues_depuis, 'match') }} de championnat {{ joues_depuis > 1 ? 'ont été joués' : 'a été joué' }} depuis la mise à jour du {{ classement.misAJourLe|date('d/m') }}.</p>
+        {% endif %}
+        {% if lignes %}
+            {{ t.tableau(lignes) }}
+            {% if not nous %}<p class="discret petit">Votre équipe n'a pas été reconnue dans ce classement : vérifiez le nom du club dans « Apparence ».</p>{% endif %}
+        {% else %}
+            <p class="vide">Pas encore de classement pour {{ categorie }} en {{ saison }}. Collez-le ci-dessous depuis la FFF ou Transfermarkt.</p>
+        {% endif %}
+
+        {# Sans Turbo : l'aperçu est une page ordinaire (pas une redirection), que Turbo n'afficherait pas. #}
+        <details class="maj-classement" {{ apercu is not null or not lignes ? 'open' }}>
+            <summary class="bouton">{{ lignes ? 'Mettre à jour le classement' : 'Ajouter le classement' }}</summary>
+            <form method="post" action="{{ path('app_championnat') }}#apercu-classement" data-turbo="false">
+                <input type="hidden" name="_token" value="{{ csrf_token('classement') }}">
+                <input type="hidden" name="categorie" value="{{ categorie.id }}">
+                <input type="hidden" name="saison" value="{{ saison }}">
+                <p class="discret petit">Sur la page « Classement » de l'équipe (FFF) ou le tableau de Transfermarkt : Ctrl+A pour tout sélectionner, Ctrl+C pour copier, puis Ctrl+V ici.</p>
+                <textarea name="texte" rows="8" required placeholder="Collez ici la page du classement">{{ texte }}</textarea>
+                <div class="barre-actions">
+                    <button type="submit" name="action" value="lire" class="bouton{{ apercu ? '' : ' principal' }}">Lire le classement</button>
+                </div>
+
+                {% if apercu %}
+                    <div id="apercu-classement">
+                        <h3>{{ apercu|length }} équipes reconnues</h3>
+                        <p class="discret petit">Vérifiez avant d'enregistrer : le classement actuel sera remplacé.</p>
+                        {{ t.tableau(apercu) }}
+                        <div class="barre-actions">
+                            <button type="submit" name="action" value="enregistrer" class="bouton principal">Enregistrer ce classement</button>
+                        </div>
+                    </div>
+                {% endif %}
+            </form>
+        </details>
+    </section>
+
+    <section class="carte bloc">
+        <h2>Matchs de championnat</h2>
+        {% if matchs %}
+            <div class="table-defile">
+                <table class="liste liste-fiches">
+                    <thead><tr><th>Date</th><th>Match</th><th>Score</th><th>Adversaire au classement</th></tr></thead>
+                    <tbody>
+                        {% for r in matchs %}
+                            {% set adv = classement ? classement.ligneDe(r.adversaire) : null %}
+                            <tr>
+                                <td class="nowrap"><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.date|date('d/m/Y') }}</a></td>
+                                <td class="principal"><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a></td>
+                                <td class="a-cote">{% if r.resultat %}<span class="score resultat-{{ r.resultat }}">{{ r.butsDomicile }} – {{ r.butsExterieur }}</span>{% else %}<span class="discret">{{ r.heure ?? '—' }}</span>{% endif %}</td>
+                                <td data-label="adversaire">{{ adv ? adv.rang ~ (adv.rang == 1 ? 'er' : 'e') ~ ' · ' ~ adv.points ~ ' pts' : '' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="vide">Aucun match de championnat enregistré pour {{ categorie }} en {{ saison }}. Importez le calendrier depuis <a href="{{ path('app_rencontre_importer', {categorie: categorie.id}) }}">Matchs → Importer des matchs</a>.</p>
+        {% endif %}
+    </section>
+{% endblock %}
