@@ -2,7 +2,9 @@
 
 namespace App\Form;
 
+use App\Entity\Arbitre;
 use App\Entity\Intervenant;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
@@ -40,6 +42,13 @@ class IntervenantType extends AbstractType
             ->add('telProfessionnel', TelType::class, ['label' => 'Tél. professionnel', 'required' => false])
             ->add('email', EmailType::class, ['label' => 'E-mail', 'required' => false])
             ->add('memo', TextareaType::class, ['label' => 'Mémo', 'required' => false]);
+
+        // Arbitre : niveau et équipement fourni par le club.
+        if (is_a($options['data_class'], Arbitre::class, true)) {
+            $builder
+                ->add('niveau', ChoiceType::class, ['label' => 'Niveau', 'required' => false, 'placeholder' => '—', 'choices' => array_combine(Arbitre::NIVEAUX, Arbitre::NIVEAUX)])
+                ->add('equipement', TextareaType::class, ['label' => 'Équipement fourni', 'required' => false, 'attr' => ['rows' => 3, 'placeholder' => 'ex. : 2 tenues, sifflet, cartons, drapeaux, montre…']]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void

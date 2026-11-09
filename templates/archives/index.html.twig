@@ -30,6 +30,16 @@
                 <span class="equipe-niveau">Bénévoles</span>
                 <span class="equipe-effectif">anciens bénévoles</span>
             </a>
+            <a class="tuile equipe" href="{{ path('app_intervenant_index', {type: 'arbitres', statut: 'anciens'}) }}">
+                <span class="equipe-niveau">Arbitres</span>
+                <span class="equipe-effectif">anciens arbitres</span>
+            </a>
+            {% if is_granted('ROLE_ADMIN') %}
+                <a class="tuile equipe" href="{{ path('app_sponsor_index', {statut: 'anciens'}) }}">
+                    <span class="equipe-niveau">Sponsors</span>
+                    <span class="equipe-effectif">anciens partenaires</span>
+                </a>
+            {% endif %}
         </div>
     </section>
 

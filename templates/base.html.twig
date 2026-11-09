@@ -72,6 +72,7 @@
                 <div class="compte">
                     {% if is_granted('ROLE_ADMIN') %}
                         {% set nb_demandes = demandes_medicales() %}
+                        <a href="{{ path('app_sponsor_index') }}" class="{{ route starts with 'app_sponsor' ? 'actif' }}">Sponsors</a>
                         <a href="{{ path('app_utilisateur_index') }}" class="{{ route starts with 'app_utilisateur' ? 'actif' }}">Utilisateurs</a>
                         {% if nb_demandes %}<a href="{{ path('app_utilisateur_droits') }}#demandes" title="Demandes d'accès médical à traiter">🔒 <span class="pastille alerte">{{ nb_demandes }} demande{{ nb_demandes > 1 ? 's' }}</span></a>{% endif %}
                         <a href="{{ path('app_categorie_index') }}" class="{{ route starts with 'app_categorie' ? 'actif' }}">Catégories</a>

@@ -64,6 +64,18 @@ class IntervenantTest extends WebTestCase
         $crawler = $this->client->click($crawler->filter('a.tuile:contains("Administratifs")')->link());
         self::assertSelectorTextContains('.grille-personnes', 'Paul DURAND');
 
+        // Arbitre : niveau et équipement en plus de la fiche commune.
+        $crawler = $this->client->request('GET', '/encadrement/arbitres');
+        $crawler = $this->client->click($crawler->selectLink('+ Nouvel arbitre')->link());
+        $this->client->submit($crawler->selectButton('Enregistrer')->form([
+            'intervenant[nom]' => 'Bernard', 'intervenant[prenom]' => 'Luc', 'intervenant[niveau]' => 'District', 'intervenant[equipement]' => '2 tenues, sifflet',
+        ]));
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'District');
+        self::assertSelectorTextContains('main', '2 tenues, sifflet');
+        $this->client->request('GET', '/encadrement/arbitres');
+        self::assertSelectorTextContains('.grille-personnes', 'District');
+
         $em = static::getContainer()->get(EntityManagerInterface::class);
         self::assertSame('Buvette', $em->getRepository(Benevole::class)->findOneBy(['club' => $this->clubId])?->getFonction());
         self::assertTrue($em->getRepository(Administratif::class)->findOneBy(['club' => $this->clubId])?->isAncien());

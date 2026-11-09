@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ sponsor }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_sponsor_index', sponsor.ancien ? {statut: 'anciens'} : {}) }}">← Sponsors</a></p>
+    <div class="titre-page">
+        <div>
+            <h1>{{ sponsor.nom }}</h1>
+            <p class="discret">{{ sponsor.type }}{% if sponsor.ancien %} <span class="pastille">n'est plus partenaire</span>{% endif %}</p>
+        </div>
+        <span class="actions">
+            <a class="bouton" href="{{ path('app_sponsor_modifier', {id: sponsor.id}) }}">Modifier</a>
+            <a class="bouton principal" href="{{ path('app_sponsor_participation', {id: sponsor.id}) }}">+ Participation</a>
+        </span>
+    </div>
+
+    <div class="grille-fiches">
+        <section class="carte">
+            <h2>Contact</h2>
+            <dl>
+                {{ m.ligne('Personne à contacter', sponsor.contact) }}
+                {{ m.ligne('Téléphone', sponsor.telephone) }}
+                {% if sponsor.email %}<dt>E-mail</dt><dd><a href="mailto:{{ sponsor.email }}">{{ sponsor.email }}</a></dd>{% endif %}
+                {{ m.ligne('Adresse', sponsor.adresse) }}
+                {{ m.ligne('Ville', [sponsor.codePostal, sponsor.ville]|filter(v => v)|join(' ')) }}
+                {% if sponsor.siteWeb %}<dt>Site</dt><dd><a href="{{ sponsor.siteWeb starts with 'http' ? sponsor.siteWeb : 'https://' ~ sponsor.siteWeb }}" target="_blank" rel="noopener">{{ sponsor.siteWeb }}</a></dd>{% endif %}
+            </dl>
+        </section>
+        {% if sponsor.memo %}
+            <section class="carte">
+                <h2>Mémo</h2>
+                <p class="memo">{{ sponsor.memo }}</p>
+            </section>
+        {% endif %}
+    </div>
+
+    <section class="carte bloc">
+        <div class="titre-page">
+            <h2>Participations</h2>
+            {% if sponsor.total > 0 %}<span class="pastille">Total : {{ sponsor.total|number_format(2, ',', ' ') }} €</span>{% endif %}
+        </div>
+        {% for saison, liste in par_saison %}
+            <h3>Saison {{ saison }}{% if sponsor.total(saison) > 0 %} <span class="discret petit">· {{ sponsor.total(saison)|number_format(2, ',', ' ') }} €</span>{% endif %}</h3>
+            <div class="table-defile">
+                <table class="liste">
+                    <thead><tr><th>Nature</th><th>Montant</th><th>Détail</th><th>Contrat</th><th></th></tr></thead>
+                    <tbody>
+                        {% for p in liste %}
+                            <tr>
+                                <td class="fort">{{ p.nature }}</td>
+                                <td class="nowrap">{{ p.montant is not null ? p.montant|number_format(2, ',', ' ') ~ ' €' : '—' }}</td>
+                                <td>{{ p.description }}</td>
+                                <td class="nowrap">
+                                    {% if p.contratDebut or p.contratFin %}
+                                        {{ p.contratDebut ? 'du ' ~ p.contratDebut|date('d/m/Y') }} {{ p.contratFin ? 'au ' ~ p.contratFin|date('d/m/Y') }}
+                                        {% if p.contratFin and p.contratFin < date('today') %}<span class="pastille">terminé</span>{% endif %}
+                                    {% endif %}
+                                </td>
+                                <td><a class="bouton petit" href="{{ path('app_sponsor_participation_modifier', {id: p.id}) }}">Modifier</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="vide">Aucune participation enregistrée. Ajoutez-la avec « + Participation ».</p>
+        {% endfor %}
+    </section>
+{% endblock %}

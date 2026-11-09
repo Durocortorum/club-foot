@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Administratif;
+use App\Entity\Arbitre;
 use App\Entity\Benevole;
 use App\Entity\Dirigeant;
 use App\Entity\Educateur;
@@ -20,7 +21,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * Fiches éducateurs, dirigeants, administratifs et bénévoles. Consultables par tous, modifiables par l'administration.
  */
-#[Route('/encadrement/{type}', requirements: ['type' => 'educateurs|dirigeants|administratifs|benevoles'])]
+#[Route('/encadrement/{type}', requirements: ['type' => 'educateurs|dirigeants|administratifs|benevoles|arbitres'])]
 class IntervenantController extends AbstractController
 {
     /** « nouveau » : accord du bouton « + Nouvel éducateur », « + Nouveau bénévole ». */
@@ -29,6 +30,7 @@ class IntervenantController extends AbstractController
         'dirigeants' => ['classe' => Dirigeant::class, 'singulier' => 'dirigeant', 'pluriel' => 'Dirigeants', 'photo' => 'dirigeant', 'nouveau' => 'Nouveau'],
         'administratifs' => ['classe' => Administratif::class, 'singulier' => 'administratif', 'pluriel' => 'Administratifs', 'photo' => 'administratif', 'nouveau' => 'Nouvel'],
         'benevoles' => ['classe' => Benevole::class, 'singulier' => 'bénévole', 'pluriel' => 'Bénévoles', 'photo' => 'benevole', 'nouveau' => 'Nouveau'],
+        'arbitres' => ['classe' => Arbitre::class, 'singulier' => 'arbitre', 'pluriel' => 'Arbitres', 'photo' => 'arbitre', 'nouveau' => 'Nouvel'],
     ];
 
     public function __construct(

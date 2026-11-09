@@ -32,6 +32,10 @@
             <dl>
                 {{ m.ligne('Équipe / fonction', intervenant.fonction) }}
                 {{ m.ligne('Seconde équipe', intervenant.fonction2) }}
+                {% if type == 'arbitres' %}
+                    {{ m.ligne('Niveau', intervenant.niveau) }}
+                    {{ m.ligne('Équipement fourni', intervenant.equipement) }}
+                {% endif %}
                 {{ m.ligne('Diplôme', intervenant.diplome) }}
                 {{ m.ligne('N° de licence', intervenant.licence) }}
                 {{ m.ligne('Date de naissance', intervenant.dateNaissance ? intervenant.dateNaissance|date('d/m/Y')) }}

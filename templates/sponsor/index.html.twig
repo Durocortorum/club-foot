@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sponsors{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Sponsors <span class="compteur">{{ sponsors|length }}</span></h1>
+        <a class="bouton principal" href="{{ path('app_sponsor_nouveau') }}">+ Nouveau sponsor</a>
+    </div>
+
+    <form class="filtres" method="get">
+        <input type="search" name="q" value="{{ filtres.q }}" placeholder="Nom, contact ou ville">
+        <select name="statut" onchange="this.form.requestSubmit()">
+            <option value="actifs" {{ filtres.statut == 'actifs' ? 'selected' }}>Partenaires actuels</option>
+            <option value="anciens" {{ filtres.statut == 'anciens' ? 'selected' }}>Anciens partenaires</option>
+            <option value="tous" {{ filtres.statut == 'tous' ? 'selected' }}>Tous</option>
+        </select>
+        <button type="submit" class="bouton">Filtrer</button>
+    </form>
+
+    {% if total_saison > 0 %}
+        <div class="tuiles bilan">
+            <div class="tuile"><span class="tuile-valeur">{{ total_saison|number_format(0, ',', ' ') }} €</span><span class="tuile-libelle">participations de la saison {{ saison }} (sponsors affichés)</span></div>
+        </div>
+    {% endif %}
+
+    <div class="table-defile">
+        <table class="liste liste-fiches">
+            <thead><tr><th>Sponsor</th><th>Type</th><th>Contact</th><th>Saison {{ saison }}</th><th>Total versé</th></tr></thead>
+            <tbody>
+                {% for s in sponsors %}
+                    <tr>
+                        <td class="principal"><a href="{{ path('app_sponsor_voir', {id: s.id}) }}"><strong>{{ s.nom }}</strong></a>{% if s.ancien %} <span class="pastille">ancien</span>{% endif %}</td>
+                        <td>{{ s.type }}</td>
+                        <td>{{ [s.contact, s.telephone]|filter(v => v)|join(' · ') }}</td>
+                        <td data-label="saison">{{ s.total(saison) > 0 ? s.total(saison)|number_format(0, ',', ' ') ~ ' €' : '' }}</td>
+                        <td data-label="total">{{ s.total > 0 ? s.total|number_format(0, ',', ' ') ~ ' €' : '' }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="vide">Aucun sponsor{{ filtres.q or filtres.statut != 'actifs' ? ' pour ces critères' }}. Ajoutez le premier avec « Nouveau sponsor ».</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
