@@ -149,6 +149,7 @@ class MessageController extends AbstractController
             ->add('personnes', EntityType::class, [
                 'class' => Utilisateur::class, 'choices' => $collegues, 'multiple' => true, 'expanded' => true, 'label' => 'Membres de l\'encadrement', 'required' => false,
                 'choice_label' => fn (Utilisateur $u) => trim($u->getPrenom() . ' ' . $u->getNom()),
+                'group_by' => fn (Utilisateur $u) => Messagerie::groupeEncadrement($u),
             ])
             ->add('sujet', TextType::class, ['label' => 'Objet', 'attr' => ['maxlength' => 120, 'placeholder' => 'ex. Tournoi de samedi : covoiturage'], 'constraints' => [new Length(max: 120)]])
             ->add('corps', TextareaType::class, ['label' => 'Message', 'attr' => ['rows' => 8], 'constraints' => [new Length(max: 5000)]])

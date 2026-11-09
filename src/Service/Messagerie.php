@@ -128,6 +128,9 @@ class Messagerie
     public function interlocuteurs(Utilisateur $famille, array $encadrement): array
     {
         $groupes = [];
+        // Corps médical (médecin, kiné...) : les familles peuvent leur écrire directement.
+        $medicaux = array_filter($encadrement, fn (Utilisateur $u) => self::estMedical($u));
+        $encadrement = array_values(array_filter($encadrement, fn (Utilisateur $u) => !self::estMedical($u)));
         foreach ($famille->getJoueurs() as $j) {
             $categorie = $j->getCategorie();
             $role = \App\Entity\Categorie::SECTEURS[$categorie?->getSecteur()]['role'] ?? null;
@@ -140,6 +143,9 @@ class Messagerie
                 }
             }
         }
+        foreach ($medicaux as $u) {
+            $groupes[self::MEDICAL][$u->getId()] = $u;
+        }
         foreach ($encadrement as $u) {
             if ($u->isAdmin()) {
                 $groupes['Direction du club'][$u->getId()] = $u;
@@ -147,6 +153,28 @@ class Messagerie
         }
 
         return array_map('array_values', $groupes);
+    }
+
+    public const MEDICAL = 'Corps médical (médecin, kiné…)';
+
+    /**
+     * Médecin du club, ou compte qui n'a que des droits médicaux (kiné, infirmier...).
+     * Un administrateur (qui a souvent tous les droits, « Médecin » compris) reste dans la direction.
+     */
+    public static function estMedical(Utilisateur $u): bool
+    {
+        return !$u->isAdmin() && ($u->isMedecin() || $u->isMedicalSeul());
+    }
+
+    /** Groupe d'un membre de l'encadrement dans la liste des destinataires. */
+    public static function groupeEncadrement(Utilisateur $u): string
+    {
+        return match (true) {
+            self::estMedical($u) => self::MEDICAL,
+            $u->isAdmin() => 'Direction du club',
+            [] !== array_intersect(array_column(\App\Entity\Categorie::SECTEURS, 'role'), $u->getRolesAttribues()) => 'Éducateurs',
+            default => 'Autres membres de l\'encadrement',
+        };
     }
 
     /** Lien du message pour son destinataire : espace famille, ou page « Messages » de l'encadrement. */

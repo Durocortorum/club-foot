@@ -270,12 +270,15 @@ class MessagerieTest extends WebTestCase
         $compte = (new Utilisateur())->setClub($club)->setFamille(true)->setEmail("nico-$id@exemple.test")->setNom('Descotes')->setPrenom('Nicolas')->setPassword('x')->addJoueur($nico);
         $coach = (new Utilisateur())->setClub($club)->setEmail("coach-$id@exemple.test")->setNom('Bernard')->setPrenom('Coach')->setRolesAttribues(['ROLE_ECOLE_FOOT'])->setPassword('x');
         $autre = (new Utilisateur())->setClub($club)->setEmail("pro-$id@exemple.test")->setNom('Roux')->setPrenom('Paul')->setRolesAttribues(['ROLE_PRO'])->setPassword('x');
-        foreach ([$compte, $coach, $autre] as $u) {
+        // Corps médical : médecin du club et kiné (compte qui n'a que l'Infirmerie).
+        $medecin = (new Utilisateur())->setClub($club)->setEmail("medecin-$id@exemple.test")->setNom('Morel')->setPrenom('Docteur')->setRolesAttribues(['ROLE_MEDECIN'])->setPassword('x');
+        $kine = (new Utilisateur())->setClub($club)->setEmail("kine-$id@exemple.test")->setNom('Petit')->setPrenom('Julie')->setRolesAttribues(['ROLE_INFIRMERIE'])->setPassword('x');
+        foreach ([$compte, $coach, $autre, $medecin, $kine] as $u) {
             $em->persist($u);
         }
         $em->flush();
 
-        // Le joueur : éducateurs de sa catégorie et direction, pas les autres secteurs.
+        // Le joueur : éducateurs de sa catégorie, corps médical et direction, pas les autres secteurs.
         $this->client->loginUser($compte);
         $crawler = $this->client->request('GET', '/espace/messages');
         $crawler = $this->client->click($crawler->selectLink('+ Écrire à l\'encadrement')->link());
@@ -283,6 +286,10 @@ class MessagerieTest extends WebTestCase
         self::assertSelectorExists('input[name="a[]"][value="' . $admin->getId() . '"]');
         self::assertSelectorNotExists('input[name="a[]"][value="' . $autre->getId() . '"]');
         self::assertSelectorTextContains('main', 'Éducateurs ' . $categorie->getNom());
+        $medical = $crawler->filter('fieldset')->reduce(fn ($f) => str_contains($f->filter('legend')->text(), 'Corps médical'));
+        self::assertCount(1, $medical);
+        self::assertCount(2, $medical->filter('input[name="a[]"]'));
+        self::assertSelectorExists('input[name="a[]"][value="' . $kine->getId() . '"]');
         // Destinataire hors liste : refusé.
         $jeton = $crawler->filter('input[name="_token"]')->attr('value');
         $this->client->request('POST', '/espace/messages/nouveau', ['_token' => $jeton, 'a' => [$autre->getId()], 'sujet' => 'x', 'corps' => 'y']);
@@ -292,6 +299,12 @@ class MessagerieTest extends WebTestCase
         self::assertCount(1, $this->emails("coach-$id@exemple.test"));
         $message = $this->dernierMessage();
         self::assertSame('Nicolas Descotes (joueur)', $message->getAuteurNom());
+
+        // Côté encadrement : le corps médical forme aussi un groupe dans les destinataires.
+        $this->client->loginUser($coach);
+        $crawler = $this->client->request('GET', '/messages/nouveau');
+        $groupe = $crawler->filter('[data-cible="encadrement"] fieldset')->reduce(fn ($f) => str_contains($f->filter('legend')->text(), 'Corps médical'));
+        self::assertCount(2, $groupe->filter('input'));
 
         // Le coach le reçoit (pastille, « Reçus de collègues »... de la famille), et répond.
         $this->client->loginUser($coach);
