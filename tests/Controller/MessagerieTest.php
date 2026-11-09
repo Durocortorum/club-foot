@@ -147,6 +147,9 @@ class MessagerieTest extends WebTestCase
         $this->client->request('GET', '/messages');
         self::assertSelectorTextContains('nav.menu', 'Messages 1');
         self::assertSelectorTextContains('table', '1 nouvelle');
+        // La réponse remonte aussi en tête, avec les messages reçus.
+        self::assertSelectorTextContains('.boite-reception li:first-child', 'Tournoi annulé');
+        self::assertSelectorTextContains('.boite-reception li:first-child', '1 nouvelle réponse');
         $crawler = $this->client->request('GET', '/messages/' . $important->getId());
         self::assertSelectorTextContains('#fil-' . $parent->getId(), 'Bien reçu, merci.');
         self::assertSelectorTextContains('#fil-' . $parent->getId() . ' h3', 'Parent de Léa');
@@ -319,7 +322,7 @@ class MessagerieTest extends WebTestCase
         self::assertSame(['nonLus' => 1, 'fil' => 1], json_decode($this->client->getResponse()->getContent(), true));
         $this->client->request('GET', '/espace/messages');
         self::assertSelectorTextContains('nav.menu', 'Messages 1');
-        self::assertSelectorTextContains('.boite-reception', '1 réponse');
+        self::assertSelectorTextContains('.boite-reception li:first-child', '1 nouvelle réponse');
         $crawler = $this->client->request('GET', '/espace/messages/' . $message->getId());
         self::assertSelectorTextContains('#fil-' . $coach->getId(), 'Merci de prévenir.');
         $this->client->submit($crawler->filter('#fil-' . $coach->getId() . ' form')->form(), ['corps' => 'Avec plaisir.']);

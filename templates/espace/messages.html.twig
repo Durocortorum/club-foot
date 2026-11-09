@@ -2,20 +2,6 @@
 
 {% block title %}Messages{% endblock %}
 
-{% macro ligne(msg, lu, nouvelles, info) %}
-    <li class="{{ not lu or nouvelles ? 'non-lu' }}">
-        <a href="{{ path('app_espace_message', {id: msg.id}) }}">
-            <span class="boite-sujet">
-                {% if not lu %}<span class="point-non-lu" aria-label="non lu"></span>{% endif %}
-                {{ msg.sujet }}
-                {% if msg.important %} <span class="pastille alerte">important</span>{% endif %}
-                {% if nouvelles %} <span class="pastille succes">{{ nouvelles }} {{ accord(nouvelles, 'réponse') }}</span>{% endif %}
-            </span>
-            <span class="boite-info discret petit">{{ info }} · {{ msg.creeLe|date('d/m/Y') }}</span>
-        </a>
-    </li>
-{% endmacro %}
-
 {% block body %}
     <p><a href="{{ path('app_espace') }}">← Mon espace</a></p>
     <div class="titre-page">
@@ -23,23 +9,28 @@
         <a class="bouton principal" href="{{ path('app_espace_message_nouveau') }}">+ Écrire à l'encadrement</a>
     </div>
 
-    {% if lignes %}
-        {% if envoyes %}<h2 class="titre-bloc">Reçus</h2>{% endif %}
+    {# Conversations reçues et écrites, la plus récemment active en tête (comme une messagerie de téléphone). #}
+    {% if conversations %}
         <ul class="boite-reception bloc">
-            {% for l in lignes %}
-                {{ _self.ligne(l.message, l.lu, l.nouvelles_reponses, l.message.auteurNom) }}
+            {% for c in conversations %}
+                {% set msg = c.message %}
+                {% set nouveau = not c.lu or c.nouvelles_reponses %}
+                <li class="{{ nouveau ? 'non-lu' }}">
+                    <a href="{{ path('app_espace_message', {id: msg.id}) }}">
+                        <span class="boite-sujet">
+                            {% if nouveau %}<span class="point-non-lu" aria-label="nouveau"></span>{% endif %}
+                            {{ msg.sujet }}
+                            {% if msg.important %} <span class="pastille alerte">important</span>{% endif %}
+                            {% if c.nouvelles_reponses %} <span class="pastille succes">{{ c.nouvelles_reponses }} {{ accord(c.nouvelles_reponses, 'nouvelle réponse', 'nouvelles réponses') }}</span>{% endif %}
+                        </span>
+                        <span class="boite-info discret petit">
+                            {{ c.envoye ? 'Vous → ' ~ msg.cibleLibelle : msg.auteurNom }} · {{ c.activite|date('d/m/Y H:i') }}
+                        </span>
+                    </a>
+                </li>
             {% endfor %}
         </ul>
-    {% elseif not envoyes %}
+    {% else %}
         <p class="discret">Aucun message pour l'instant. Les messages de l'encadrement (éducateurs, dirigeants) apparaîtront ici ; vous pouvez aussi leur écrire.</p>
-    {% endif %}
-
-    {% if envoyes %}
-        <h2 class="titre-bloc">Envoyés</h2>
-        <ul class="boite-reception bloc">
-            {% for l in envoyes %}
-                {{ _self.ligne(l.message, true, l.nouvelles_reponses, 'à ' ~ l.message.cibleLibelle) }}
-            {% endfor %}
-        </ul>
     {% endif %}
 {% endblock %}

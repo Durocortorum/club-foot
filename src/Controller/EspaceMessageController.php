@@ -34,11 +34,24 @@ class EspaceMessageController extends AbstractController
     public function index(): Response
     {
         $moi = $this->famille();
+        // Une seule liste de conversations (reçues et écrites), la plus récemment active en tête :
+        // une réponse à un message qu'on a écrit remonte comme un nouveau message.
+        $conversations = [];
+        foreach ($this->messages->recus($moi) as $l) {
+            $conversations[] = $l + ['envoye' => false, 'activite' => $this->activite($l['message'], $l['message']->fil($moi))];
+        }
+        foreach ($this->messages->envoyesPar($moi) as $l) {
+            $conversations[] = $l + ['lu' => true, 'envoye' => true, 'activite' => $this->activite($l['message'], $l['message']->getReponses()->toArray())];
+        }
+        usort($conversations, fn ($a, $b) => $b['activite'] <=> $a['activite']);
 
-        return $this->render('espace/messages.html.twig', [
-            'lignes' => $this->messages->recus($moi),
-            'envoyes' => $this->messages->envoyesPar($moi),
-        ]);
+        return $this->render('espace/messages.html.twig', ['conversations' => $conversations]);
+    }
+
+    /** @param list<MessageReponse> $reponses */
+    private function activite(Message $message, array $reponses): \DateTimeImmutable
+    {
+        return array_reduce($reponses, fn (\DateTimeImmutable $d, MessageReponse $r) => max($d, $r->getCreeLe()), $message->getCreeLe());
     }
 
     #[Route('/nouveau', name: 'app_espace_message_nouveau', methods: ['GET', 'POST'])]

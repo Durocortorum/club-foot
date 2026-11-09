@@ -55,13 +55,34 @@ class MessageController extends AbstractController
     {
         $page = max(1, $request->query->getInt('page', 1));
 
+        $messages = $this->messages->pourEncadrement($this->moi(), $this->secteurs(), $page);
+        // En tête (première page) : messages reçus (familles, collègues) et messages envoyés qui ont reçu
+        // une réponse non lue, le plus récemment actif d'abord.
+        $aLire = [];
+        if (1 === $page) {
+            foreach ($this->messages->recus($this->moi()) as $l) {
+                $aLire[] = $l + ['envoye' => false, 'activite' => $this->activite($l['message'], $l['message']->fil($this->moi()))];
+            }
+            foreach ($messages as $m) {
+                if ($n = $m->reponsesNonLues()) {
+                    $aLire[] = ['message' => $m, 'lu' => true, 'nouvelles_reponses' => $n, 'envoye' => true, 'activite' => $this->activite($m, $m->getReponses()->toArray())];
+                }
+            }
+            usort($aLire, fn ($a, $b) => $b['activite'] <=> $a['activite']);
+        }
+
         return $this->render('message/index.html.twig', [
-            // Messages reçus de collègues (première page seulement).
-            'recus' => 1 === $page ? $this->messages->recus($this->moi()) : [],
-            'messages' => $this->messages->pourEncadrement($this->moi(), $this->secteurs(), $page),
+            'recus' => $aLire,
+            'messages' => $messages,
             'page' => $page,
             'par_page' => MessageRepository::PAR_PAGE,
         ]);
+    }
+
+    /** Dernière activité d'une conversation : le message ou sa dernière réponse. @param list<MessageReponse> $reponses */
+    private function activite(Message $message, array $reponses): \DateTimeImmutable
+    {
+        return array_reduce($reponses, fn (\DateTimeImmutable $d, MessageReponse $r) => max($d, $r->getCreeLe()), $message->getCreeLe());
     }
 
     #[Route('/nouveau', name: 'app_message_nouveau', methods: ['GET', 'POST'])]

@@ -9,19 +9,20 @@
     </div>
 
     {% if recus %}
-        <h2 class="titre-bloc">Reçus de collègues</h2>
+        <h2 class="titre-bloc">Reçus et nouvelles réponses</h2>
         <ul class="boite-reception bloc">
             {% for l in recus %}
                 {% set msg = l.message %}
-                <li class="{{ not l.lu or l.nouvelles_reponses ? 'non-lu' }}">
+                {% set nouveau = not l.lu or l.nouvelles_reponses %}
+                <li class="{{ nouveau ? 'non-lu' }}">
                     <a href="{{ path('app_message_voir', {id: msg.id}) }}">
                         <span class="boite-sujet">
-                            {% if not l.lu %}<span class="point-non-lu" aria-label="non lu"></span>{% endif %}
+                            {% if nouveau %}<span class="point-non-lu" aria-label="nouveau"></span>{% endif %}
                             {{ msg.sujet }}
                             {% if msg.important %} <span class="pastille alerte">important</span>{% endif %}
-                            {% if l.nouvelles_reponses %} <span class="pastille succes">{{ l.nouvelles_reponses }} {{ accord(l.nouvelles_reponses, 'réponse') }}</span>{% endif %}
+                            {% if l.nouvelles_reponses %} <span class="pastille succes">{{ l.nouvelles_reponses }} {{ accord(l.nouvelles_reponses, 'nouvelle réponse', 'nouvelles réponses') }}</span>{% endif %}
                         </span>
-                        <span class="boite-info discret petit">{{ msg.auteurNom }} · {{ msg.creeLe|date('d/m/Y H:i') }}</span>
+                        <span class="boite-info discret petit">{{ l.envoye ? 'Vous → ' ~ msg.cibleLibelle : msg.auteurNom }} · {{ l.activite|date('d/m/Y H:i') }}</span>
                     </a>
                 </li>
             {% endfor %}
