@@ -5,6 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         {# Application interne (données de mineurs) : jamais dans les moteurs de recherche. #}
         <meta name="robots" content="noindex, nofollow">
+        {# Pas de copie en mémoire des pages (bouton « retour », aperçus) : les données changent souvent
+           (matchs supprimés, convocations, messages), chaque page est toujours relue à jour. #}
+        <meta name="turbo-cache-control" content="no-cache">
         <title>{% block title %}Accueil{% endblock %} · {{ apparence.club.nom }}</title>
         {% set club = apparence.club %}
         {% set logo_club = club.logo ? path('app_club_logo', {version: club.version}) : asset('images/logo.svg') %}
