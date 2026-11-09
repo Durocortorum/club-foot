@@ -285,7 +285,7 @@ class MessagerieTest extends WebTestCase
         self::assertSelectorExists('input[name="a[]"][value="' . $coach->getId() . '"]');
         self::assertSelectorExists('input[name="a[]"][value="' . $admin->getId() . '"]');
         self::assertSelectorNotExists('input[name="a[]"][value="' . $autre->getId() . '"]');
-        self::assertSelectorTextContains('main', 'Éducateurs ' . $categorie->getNom());
+        self::assertSelectorTextContains('main', 'Encadrement ' . $categorie->getNom());
         $medical = $crawler->filter('fieldset')->reduce(fn ($f) => str_contains($f->filter('legend')->text(), 'Corps médical'));
         self::assertCount(1, $medical);
         self::assertCount(2, $medical->filter('input[name="a[]"]'));

@@ -139,7 +139,7 @@ class Messagerie
             }
             foreach ($encadrement as $u) {
                 if (\in_array($role, $u->getRolesAttribues(), true) && !$u->isAdmin()) {
-                    $groupes['Éducateurs ' . $categorie->getNom()][$u->getId()] = $u;
+                    $groupes['Encadrement ' . $categorie->getNom()][$u->getId()] = $u;
                 }
             }
         }
@@ -172,7 +172,7 @@ class Messagerie
         return match (true) {
             self::estMedical($u) => self::MEDICAL,
             $u->isAdmin() => 'Direction du club',
-            [] !== array_intersect(array_column(\App\Entity\Categorie::SECTEURS, 'role'), $u->getRolesAttribues()) => 'Éducateurs',
+            [] !== array_intersect(array_column(\App\Entity\Categorie::SECTEURS, 'role'), $u->getRolesAttribues()) => 'Encadrement des équipes',
             default => 'Autres membres de l\'encadrement',
         };
     }
