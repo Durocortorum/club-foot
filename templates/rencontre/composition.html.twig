@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Composition – {{ rencontre }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← {{ rencontre }}</a></p>
+    <div class="titre-page">
+        <div>
+            <h1>Composition</h1>
+            <p class="discret">{{ rencontre.equipeAffichee }} · {{ rencontre.date|date('d/m/Y') }} · {{ rencontre }}</p>
+        </div>
+        <a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Feuille de match</a>
+    </div>
+
+    {% if not compo.titulaires %}
+        <p class="vide">Aucun titulaire sur la feuille de match. Ajoutez les joueurs dans « Feuille de match » (numéros 1 à 11 pour les titulaires), puis revenez ici pour les placer.</p>
+    {% else %}
+        <form method="post" class="composition" data-controller="composition">
+            <input type="hidden" name="_token" value="{{ csrf_token('composition' ~ rencontre.id) }}">
+            <input type="hidden" name="placements" data-composition-target="champ">
+
+            <div class="filtres">
+                <label class="en-ligne">Système
+                    <select name="systeme">
+                        <option value="">—</option>
+                        {% for groupe, liste in systemes %}
+                            <optgroup label="{{ groupe }}">
+                                {% for s in liste %}<option value="{{ s }}" {{ s == rencontre.systeme ? 'selected' }}>{{ s }}</option>{% endfor %}
+                            </optgroup>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button type="submit" name="action" value="replacer" class="bouton" data-confirmation="Replacer tous les joueurs selon le système choisi ? Les places déplacées à la main seront perdues." data-confirmation-bouton="Replacer">Replacer selon le système</button>
+            </div>
+
+            <p class="discret petit">Faites glisser les joueurs à la souris ou au doigt, puis enregistrez. Notre but est en bas.</p>
+            {% include 'rencontre/_terrain_compo.html.twig' with {modifiable: true} %}
+
+            <div class="barre-actions">
+                <button type="submit" name="action" value="enregistrer" class="bouton principal">Enregistrer la composition</button>
+            </div>
+        </form>
+    {% endif %}
+{% endblock %}

@@ -100,6 +100,15 @@ class Rencontre implements AppartientAuClub
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $systeme = null;
 
+    /**
+     * Places des titulaires sur le schéma de composition, choisies à la main : id du joueur => [x, y] en %
+     * (x de gauche à droite, y de notre but vers le but adverse). Les joueurs absents sont placés d'après le système.
+     *
+     * @var array<int, array{0: float, 1: float}>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $placements = null;
+
     #[ORM\Column(nullable: true)]
     #[Assert\Range(min: 0, max: 10)]
     private ?float $note = null;
@@ -338,6 +347,26 @@ class Rencontre implements AppartientAuClub
     public function getSysteme(): ?string
     {
         return $this->systeme;
+    }
+
+    /** @return array<int, array{0: float, 1: float}> */
+    public function getPlacements(): array
+    {
+        return $this->placements ?? [];
+    }
+
+    /** @param array<int|string, mixed> $placements id du joueur => [x, y] en % (valeurs hors 0-100 ramenées au bord) */
+    public function setPlacements(array $placements): static
+    {
+        $propres = [];
+        foreach ($placements as $id => $p) {
+            if (ctype_digit((string) $id) && \is_array($p) && 2 === \count($p) && is_numeric($p[0] ?? null) && is_numeric($p[1] ?? null)) {
+                $propres[(int) $id] = [round(min(100, max(0, (float) $p[0])), 1), round(min(100, max(0, (float) $p[1])), 1)];
+            }
+        }
+        $this->placements = $propres ?: null;
+
+        return $this;
     }
 
     public function setSysteme(?string $systeme): static

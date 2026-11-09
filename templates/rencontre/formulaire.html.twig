@@ -102,6 +102,7 @@
             <p class="discret petit">
                 Joueurs de la catégorie du match, puis ceux qui peuvent être surclassés (catégorie entre parenthèses).
                 Numéros 1 à 11 : titulaires. Poste « Non utilisé » pour un remplaçant resté sur le banc.
+                {% if rencontre.id %}Après l'enregistrement, placez les titulaires sur le terrain : <a href="{{ path('app_rencontre_composition', {id: rencontre.id}) }}">Composition sur le terrain</a>.{% endif %}
             </p>
             <label class="case-filtre petit">
                 <input type="checkbox" data-feuille-target="autres" data-action="feuille#filtrer">

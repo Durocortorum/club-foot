@@ -1,0 +1,31 @@
+{# Terrain vu de dessus, notre but en bas : titulaires placés (x, y en %), déplaçables si « modifiable ». #}
+<div class="terrain-compo{{ modifiable ? ' modifiable' }}" {% if modifiable %}data-composition-target="terrain"{% endif %}>
+    <svg class="terrain-lignes" viewBox="0 0 68 105" preserveAspectRatio="none" aria-hidden="true">
+        <g fill="none" stroke="rgba(255,255,255,.85)" stroke-width=".35">
+            <rect x="1" y="1" width="66" height="103"/>
+            <line x1="1" y1="52.5" x2="67" y2="52.5"/>
+            <circle cx="34" cy="52.5" r="9.15"/>
+            <rect x="13.84" y="1" width="40.32" height="16.5"/>
+            <rect x="24.84" y="1" width="18.32" height="5.5"/>
+            <rect x="13.84" y="87.5" width="40.32" height="16.5"/>
+            <rect x="24.84" y="98.5" width="18.32" height="5.5"/>
+            <path d="M26.7,17.5 A9.15,9.15 0 0 0 41.3,17.5"/>
+            <path d="M26.7,87.5 A9.15,9.15 0 0 1 41.3,87.5"/>
+        </g>
+    </svg>
+    {% for t in compo.titulaires %}
+        {% set j = t.participation.joueur %}
+        <div class="pion" style="left: {{ t.x }}%; top: {{ 100 - t.y }}%" data-joueur="{{ j.id }}" {% if modifiable %}data-composition-target="pion"{% endif %} title="{{ j.prenom }} {{ j.nom }}{{ t.participation.poste ? ' – ' ~ t.participation.poste }}">
+            <span class="pion-numero">{{ t.participation.numero }}</span>
+            <span class="pion-nom">{{ j.nom }}</span>
+        </div>
+    {% endfor %}
+</div>
+{% if compo.remplacants %}
+    <div class="banc">
+        <strong>Banc :</strong>
+        {% for p in compo.remplacants %}
+            <span class="banc-joueur"><span class="pion-numero petit-pion">{{ p.numero ?? '–' }}</span> {{ p.joueur.prenom }} {{ p.joueur.nom }}{% if p.poste == 'Non utilisé' %} <span class="discret petit">(non utilisé)</span>{% endif %}</span>
+        {% endfor %}
+    </div>
+{% endif %}

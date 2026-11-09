@@ -36,10 +36,12 @@ export function confirmer(question, { bouton = 'Confirmer', titre = 'Confirmatio
 
 document.addEventListener('submit', async (event) => {
     const formulaire = event.target;
-    const question = formulaire.dataset?.confirmation;
+    // La question peut aussi venir du bouton qui envoie le formulaire (un seul bouton à confirmer parmi plusieurs).
+    const source = event.submitter?.dataset?.confirmation ? event.submitter : formulaire;
+    const question = source.dataset?.confirmation;
     if (!question || formulaire.dataset.confirme) return;
     event.preventDefault();
-    if (await confirmer(question, { bouton: formulaire.dataset.confirmationBouton || 'Confirmer' })) {
+    if (await confirmer(question, { bouton: source.dataset.confirmationBouton || 'Confirmer' })) {
         formulaire.dataset.confirme = '1';
         formulaire.requestSubmit(event.submitter);
     }

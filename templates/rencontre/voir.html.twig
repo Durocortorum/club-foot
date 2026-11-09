@@ -111,6 +111,16 @@
         </section>
     {% endif %}
 
+    {% if compo.titulaires %}
+        <section class="carte bloc">
+            <div class="titre-page">
+                <h2>Composition{% if rencontre.systeme %} <span class="pastille">{{ rencontre.systeme }}</span>{% endif %}</h2>
+                <a class="bouton petit" href="{{ path('app_rencontre_composition', {id: rencontre.id}) }}">Placer les joueurs</a>
+            </div>
+            {% include 'rencontre/_terrain_compo.html.twig' with {modifiable: false} %}
+        </section>
+    {% endif %}
+
     <section class="bloc">
         <h2 class="titre-bloc">Feuille de match</h2>
         {% if rencontre.participations|length %}

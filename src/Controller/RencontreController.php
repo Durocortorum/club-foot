@@ -18,6 +18,7 @@ use App\Repository\RencontreRepository;
 use App\Security\ActiviteVoter;
 use App\Service\Apparence;
 use App\Service\BilanEquipe;
+use App\Service\CompositionTerrain;
 use App\Service\ImportMatchs;
 use App\Service\SuiviDisciplinaire;
 use Doctrine\ORM\EntityManagerInterface;
@@ -290,9 +291,47 @@ class RencontreController extends AbstractController
 
     #[Route('/matchs/{id}', name: 'app_rencontre_voir', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted(ActiviteVoter::GERER, 'rencontre')]
-    public function voir(Rencontre $rencontre, ConvocationRepository $convocations): Response
+    public function voir(Rencontre $rencontre, ConvocationRepository $convocations, CompositionTerrain $terrain): Response
     {
-        return $this->render('rencontre/voir.html.twig', ['rencontre' => $rencontre, 'convocation' => $convocations->pour($rencontre)]);
+        return $this->render('rencontre/voir.html.twig', [
+            'rencontre' => $rencontre,
+            'convocation' => $convocations->pour($rencontre),
+            'compo' => $terrain->placer($rencontre),
+        ]);
+    }
+
+    /**
+     * Schéma de la composition : titulaires placés sur le terrain (d'après le système et les postes),
+     * que l'on déplace à la souris ou au doigt ; remplaçants sur le banc.
+     */
+    #[Route('/matchs/{id}/composition', name: 'app_rencontre_composition', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    #[IsGranted(ActiviteVoter::GERER, 'rencontre')]
+    public function composition(Request $request, Rencontre $rencontre, CompositionTerrain $terrain, EntityManagerInterface $em): Response
+    {
+        $donnees = $request->getPayload();
+        if ($request->isMethod('POST') && $this->isCsrfTokenValid('composition' . $rencontre->getId(), $donnees->getString('_token'))) {
+            $systeme = $donnees->getString('systeme');
+            if (\in_array($systeme, array_merge(...array_values(Rencontre::SYSTEMES)), true)) {
+                $rencontre->setSysteme($systeme);
+            }
+            if ('replacer' === $donnees->getString('action')) {
+                $rencontre->setPlacements([]);
+                $this->addFlash('succes', 'Joueurs replacés selon le système ' . ($rencontre->getSysteme() ?? 'par défaut') . '.');
+            } else {
+                $places = json_decode($donnees->getString('placements'), true);
+                $rencontre->setPlacements(\is_array($places) ? $places : []);
+                $this->addFlash('succes', 'Composition enregistrée.');
+            }
+            $em->flush();
+
+            return $this->redirectToRoute('app_rencontre_composition', ['id' => $rencontre->getId()]);
+        }
+
+        return $this->render('rencontre/composition.html.twig', [
+            'rencontre' => $rencontre,
+            'compo' => $terrain->placer($rencontre),
+            'systemes' => Rencontre::SYSTEMES,
+        ]);
     }
 
     #[Route('/matchs/{id}/modifier', name: 'app_rencontre_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
