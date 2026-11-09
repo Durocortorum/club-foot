@@ -55,6 +55,37 @@ class BibliothequeExercices
         return $groupes;
     }
 
+    /**
+     * Garde un seul groupe (si demandé) et les exercices dont le titre ou les consignes contiennent la recherche.
+     *
+     * @param array<string, array{libelle: string, conseille: bool, exercices: array<string, array<string, mixed>>}> $groupes
+     *
+     * @return array<string, array{libelle: string, conseille: bool, exercices: array<string, array<string, mixed>>}>
+     */
+    public function filtrer(array $groupes, ?string $recherche, ?string $groupe): array
+    {
+        if ($groupe && isset($groupes[$groupe])) {
+            $groupes = [$groupe => $groupes[$groupe]];
+        }
+        if ($recherche) {
+            $cherche = self::normaliser($recherche);
+            foreach ($groupes as &$g) {
+                $g['exercices'] = array_filter($g['exercices'], fn (array $e) => str_contains(self::normaliser($e['titre'] . ' ' . $e['consignes']), $cherche));
+            }
+            unset($g);
+        }
+
+        return $groupes;
+    }
+
+    /** Minuscules sans accents, pour que « defense » trouve « Défense ». */
+    private static function normaliser(string $texte): string
+    {
+        $texte = mb_strtolower($texte);
+
+        return strtr($texte, ['à' => 'a', 'â' => 'a', 'ä' => 'a', 'ç' => 'c', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e', 'î' => 'i', 'ï' => 'i', 'ô' => 'o', 'ö' => 'o', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'œ' => 'oe']);
+    }
+
     public function creer(string $cle): ?Exercice
     {
         $type = $this->tous()[$cle] ?? null;

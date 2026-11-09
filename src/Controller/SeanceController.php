@@ -88,6 +88,44 @@ class SeanceController extends AbstractController
         ]);
     }
 
+    #[Route('/bibliotheque', name: 'app_bibliotheque', methods: ['GET'])]
+    public function bibliothequeGenerale(Request $request, BibliothequeExercices $bibliotheque, SeanceRepository $seances): Response
+    {
+        $secteurs = $this->voter->secteursModifiables();
+        if (!$secteurs) {
+            throw $this->createAccessDeniedException();
+        }
+        $groupe = $request->query->getString('groupe');
+        $filtres = [
+            'q' => trim($request->query->getString('q')) ?: null,
+            'groupe' => isset(BibliothequeExercices::GROUPES[$groupe]) ? $groupe : null,
+        ];
+
+        return $this->render('seance/bibliotheque.html.twig', [
+            'seance' => null,
+            'groupes' => $bibliotheque->filtrer($bibliotheque->parGroupe(null), $filtres['q'], $filtres['groupe']),
+            'tous_groupes' => BibliothequeExercices::GROUPES,
+            'filtres' => $filtres,
+            'destinations' => $seances->destinations($secteurs),
+        ]);
+    }
+
+    #[Route('/bibliotheque/{cle}', name: 'app_bibliotheque_ajouter', requirements: ['cle' => '[a-z0-9_]+'], methods: ['POST'])]
+    public function ajouterDepuisBibliothequeGenerale(Request $request, string $cle, BibliothequeExercices $bibliotheque, SeanceRepository $seances, EntityManagerInterface $em): Response
+    {
+        $seance = $seances->find($request->getPayload()->getInt('seance'));
+        $exercice = $bibliotheque->creer($cle);
+        if (!$seance || !$exercice || !$this->isGranted(ActiviteVoter::GERER, $seance)
+            || !$this->isCsrfTokenValid('bibliotheque', $request->getPayload()->getString('_token'))) {
+            return $this->redirectToRoute('app_bibliotheque');
+        }
+        $seance->addExercice($exercice);
+        $em->flush();
+        $this->addFlash('succes', '« ' . $exercice->getTitre() . ' » ajouté à la séance du ' . $seance->getDate()->format('d/m/Y') . '. Modifiez-le pour l\'adapter à votre groupe.');
+
+        return $this->redirectToRoute('app_seance_voir', ['id' => $seance->getId(), '_fragment' => 'exercice-' . $exercice->getId()]);
+    }
+
     #[Route('/{id}', name: 'app_seance_voir', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted(ActiviteVoter::GERER, 'seance')]
     public function voir(Seance $seance, SeanceRepository $seances): Response
