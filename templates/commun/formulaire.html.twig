@@ -23,7 +23,7 @@
             <div class="champs">
                 {% for champ in form %}
                     {% if champ.vars.name != '_token' %}
-                        <div class="champ {{ 'textarea' in champ.vars.block_prefixes ? 'large' }}">
+                        <div class="champ {{ 'textarea' in champ.vars.block_prefixes or (champ.vars.expanded ?? false) and (champ.vars.multiple ?? false) ? 'large' }}">
                             {{ form_label(champ) }}
                             {{ form_widget(champ) }}
                             {{ form_help(champ) }}

@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Événements{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Événements <span class="compteur">{{ evenements|length }}</span></h1>
+        <span class="actions">
+            <a class="bouton" href="{{ path('app_calendrier') }}">Calendrier</a>
+            {% if peut_creer %}<a class="bouton principal" href="{{ path('app_evenement_nouveau') }}">+ Nouvel événement</a>{% endif %}
+        </span>
+    </div>
+
+    <nav class="onglets">
+        <a href="{{ path('app_evenement_index') }}" class="{{ not passes ? 'actif' }}">À venir</a>
+        <a href="{{ path('app_evenement_index', {periode: 'passes'}) }}" class="{{ passes ? 'actif' }}">Passés</a>
+    </nav>
+
+    <div class="liste-evenements">
+        {% for e in evenements %}
+            <article class="carte evenement" id="evenement-{{ e.id }}">
+                <div class="evenement-date">
+                    <span class="jour">{{ e.debut|date('d') }}</span>
+                    <span class="mois">{{ ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][e.debut|date('n') - 1] }} {{ e.debut|date('Y') }}</span>
+                </div>
+                <div class="evenement-corps">
+                    <div class="avec-actions">
+                        <div>
+                            <span class="pastille">{{ e.type }}</span>
+                            <h2>{{ e.titre }}</h2>
+                        </div>
+                        {% if e.id in modifiables %}
+                            <a class="bouton petit" href="{{ path('app_evenement_modifier', {id: e.id}) }}">Modifier</a>
+                        {% endif %}
+                    </div>
+                    <p class="discret">
+                        {% if e.fin and e.fin|date('Y-m-d') != e.debut|date('Y-m-d') %}
+                            Du {{ e.debut|date('d/m/Y à H\\hi') }} au {{ e.fin|date('d/m/Y à H\\hi') }}
+                        {% else %}
+                            Le {{ e.debut|date('d/m/Y') }} à {{ e.debut|date('H\\hi') }}{% if e.fin %} jusqu'à {{ e.fin|date('H\\hi') }}{% endif %}
+                        {% endif %}
+                        {% if e.lieu %} · {{ e.lieu }}{% endif %}
+                    </p>
+                    <p class="petit">
+                        Pour : {{ e.toutLeClub ? 'tout le club' : e.categories|map(c => c.nom)|join(', ') }}
+                        {% if not e.visibleFamilles %}<span class="pastille">encadrement seulement</span>{% endif %}
+                    </p>
+                    {% if e.description %}<p class="memo">{{ e.description|nl2br }}</p>{% endif %}
+                </div>
+            </article>
+        {% else %}
+            <p class="vide">{{ passes ? 'Aucun événement passé.' : 'Aucun événement à venir.' }}{% if peut_creer and not passes %} Ajoutez le premier avec « Nouvel événement ».{% endif %}</p>
+        {% endfor %}
+    </div>
+{% endblock %}

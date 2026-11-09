@@ -19,6 +19,27 @@
         <p><a class="bouton" href="{{ path('app_espace_messages') }}">{{ non_lus }} {{ accord(non_lus, 'message') }} non {{ accord(non_lus, 'lu') }}</a></p>
     {% endif %}
 
+    {% if evenements %}
+        <section class="carte bloc" id="evenements">
+            <h2>Événements du club</h2>
+            {% for ev in evenements %}
+                <div class="evenement evenement-famille">
+                    <div class="evenement-date">
+                        <span class="jour">{{ ev.debut|date('d') }}</span>
+                        <span class="mois">{{ ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][ev.debut|date('n') - 1] }}</span>
+                    </div>
+                    <div class="evenement-corps">
+                        <strong>{{ ev.titre }}</strong> <span class="pastille">{{ ev.type }}</span>
+                        <p class="discret">
+                            {% if ev.fin and ev.fin|date('Y-m-d') != ev.debut|date('Y-m-d') %}Du {{ ev.debut|date('d/m à H\\hi') }} au {{ ev.fin|date('d/m à H\\hi') }}{% else %}{{ ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][ev.debut|date('w')] }} {{ ev.debut|date('d/m') }} à {{ ev.debut|date('H\\hi') }}{% endif %}{% if ev.lieu %} · {{ ev.lieu }}{% endif %}
+                        </p>
+                        {% if ev.description %}<p class="petit">{{ ev.description|nl2br }}</p>{% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
     {% for e in enfants %}
         {% set j = e.joueur %}
         <section class="carte bloc">

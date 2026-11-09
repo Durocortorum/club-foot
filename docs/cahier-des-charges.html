@@ -66,9 +66,9 @@
 
 <h2>2. Où en est l'application</h2>
 <div class="chiffres">
-  <div class="chiffre fait"><strong>23</strong><span>fonctions faites</span><small>13 dans la version 1</small></div>
+  <div class="chiffre fait"><strong>24</strong><span>fonctions faites</span><small>13 dans la version 1</small></div>
   <div class="chiffre partie"><strong>6</strong><span>en partie</span><small>10 dans la version 1</small></div>
-  <div class="chiffre afaire"><strong>13</strong><span>à faire</span><small>19 dans la version 1</small></div>
+  <div class="chiffre afaire"><strong>12</strong><span>à faire</span><small>19 dans la version 1</small></div>
 </div>
 <p class="note">Décompte sur les 39 fonctions des formules (section 3) plus les modules Arbitres, Contacts utiles et Info importante.</p>
 <p><strong>En résumé</strong> : la partie sportive était presque terminée ; depuis le 5 novembre, la communication avec les joueurs et les parents l'est aussi (comptes famille, convocations, entraînements, messagerie, information importante). Ce qui manque surtout maintenant : la vie du club (événements, tournois, stages, bénévoles, arbitres) et la gestion (finances, sponsors, transport).</p>
@@ -87,7 +87,7 @@
     <tr><td>Statistiques équipe</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Bilan complet : forme sur les 5 derniers matchs et série en cours, domicile / extérieur et par compétition (points, différence, % de victoires), repères (moyennes, matchs sans encaisser, plus large victoire, meilleures séries), résultat selon le score à la mi-temps, meilleurs buteurs et passeurs ; buts par quart d'heure et par situation.</td></tr>
     <tr><td>Championnat</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Page par équipe et par saison : classement de la poule recopié de la FFF ou de Transfermarkt (le club surligné), forme sur les 5 derniers matchs, prochain match et rang de l'adversaire, matchs de championnat ; calendrier et résultats importés de la même façon.</td></tr>
     <tr><td>Entraînement / convocation</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Créneaux réguliers, entraînements générés, absences signalées par les familles, feuille d'appel reportée dans les présences, annulation et rétablissement avec e-mail aux familles.</td></tr>
-    <tr><td>Événement / extra-sportif</td><td class="etat"><span class="a">À faire</span></td><td>Lieu, dates, quoi.</td></tr>
+    <tr><td>Événement / extra-sportif</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Fête, repas, assemblée générale, réunion, sortie, loto… : dates (sur un ou plusieurs jours), lieu, description, équipes concernées ou tout le club ; affichés dans le calendrier et dans l'espace des familles (sauf réunions internes).</td></tr>
     <tr><td>Convocation / match</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Rendez-vous, lieu, message ; envoi par e-mail, messagerie, WhatsApp et SMS ; réponse présent/absent sur le téléphone, relances ; joueurs des niveaux voisins, double convocation le même jour refusée ; feuille de match préremplie. Le transport viendra avec le module Transport.</td></tr>
     <tr><td>Composition</td><td class="etat"><span class="f">Fait</span></td><td>Système de jeu et postes ; schéma visuel du terrain à ajouter.</td></tr>
     <tr><td>Présence</td><td class="etat"><span class="f">Fait</span></td><td>Par semaine et par créneau, avec motifs (dont « Discipline ») et pourcentage ; reliée au planning et à la feuille d'appel.</td></tr>
@@ -143,7 +143,7 @@
     <tr><td>Messagerie</td><td>Pour tous, par catégorie, par match, collègues, corps médical</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Info importante</td><td>Mot du président, mariages, décès, naissances… (bandeau en tête de l'espace famille)</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Calendrier</td><td>Tous les matchs et activités importantes</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
-    <tr><td>Événement</td><td>Lieu, dates, quoi</td><td class="etat"><span class="a">À faire</span></td></tr>
+    <tr><td>Événement</td><td>Lieu, dates, quoi</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Tournoi</td><td>Lieu, date, catégorie, transport</td><td class="etat"><span class="p">En partie</span></td></tr>
     <tr><td>Stage</td><td>Date, lieu, catégorie, raison</td><td class="etat"><span class="a">À faire</span></td></tr>
     <tr><td>Sponsors</td><td>Entreprise ou particulier, nom, adresse, participations, contrat</td><td class="etat"><span class="a">À faire</span></td></tr>
@@ -224,6 +224,7 @@
       <li>Calendrier du club mois par mois : matchs, entraînements et séances, par équipe.</li>
       <li>Statistiques d'équipe complètes : forme, domicile / extérieur, compétitions, repères, mi-temps, meilleurs buteurs.</li>
       <li>Championnat : classement de la poule collé depuis la FFF ou Transfermarkt, forme, prochain adversaire et son rang.</li>
+      <li>Événements du club (fête, repas, assemblée générale…) dans le calendrier et l'espace des familles.</li>
       <li>Import du calendrier d'une équipe par copier-coller de la page FFF ou Transfermarkt (scores, compétitions, sans doublon), avec annulation.</li>
       <li>Fiches administratifs et bénévoles, avec leurs anciens dans les archives.</li>
       <li>Tableau des droits d'accès : un clic par case.</li>
@@ -253,7 +254,7 @@
 <div class="phase">
   <h3>Phase 3 – La vie du club <span class="etat"><span class="a">À venir</span></span></h3>
   <ul>
-    <li>Événements, tournois, stages (reliés au calendrier et aux convocations).</li>
+    <li>Tournois et stages (reliés au calendrier et aux convocations) ; les événements sont faits.</li>
     <li>Recrutement et archives étendus à tous (les fiches bénévoles et administratifs existent).</li>
     <li>Arbitres : diplôme, niveau, équipement (utile pour les obligations du club envers le district).</li>
   </ul>

@@ -10,6 +10,7 @@ use App\Entity\Utilisateur;
 use App\Service\AccesFamille;
 use App\Service\ProchesJoueur;
 use App\Repository\ConvoqueRepository;
+use App\Repository\EvenementRepository;
 use App\Repository\ParticipationRepository;
 use App\Repository\PresenceRepository;
 use App\Service\BilanJoueur;
@@ -48,6 +49,7 @@ class EspaceController extends AbstractController
         ParticipationRepository $participations,
         PresenceRepository $presences,
         BilanJoueur $bilan,
+        EvenementRepository $evenements,
     ): Response
     {
         /** @var Utilisateur $moi */
@@ -93,6 +95,8 @@ class EspaceController extends AbstractController
         }
 
         return $this->render('espace/index.html.twig', [
+            // Événements des 2 prochains mois pour les équipes de ses enfants ou tout le club (hors réunions internes).
+            'evenements' => $evenements->entre(new \DateTimeImmutable('today'), new \DateTimeImmutable('today +60 days'), array_values($categories), true),
             'enfants' => $enfants,
             'motifs' => Convoque::MOTIFS,
             'motifs_entrainement' => array_keys(AbsenceEntrainement::MOTIFS),

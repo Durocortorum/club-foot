@@ -6,6 +6,7 @@ use App\Entity\Categorie;
 use App\Entity\Rencontre;
 use App\Repository\CategorieRepository;
 use App\Repository\EntrainementRepository;
+use App\Repository\EvenementRepository;
 use App\Repository\RencontreRepository;
 use App\Repository\SeanceRepository;
 use App\Security\ActiviteVoter;
@@ -34,6 +35,7 @@ class CalendrierController extends AbstractController
         EntrainementRepository $entrainements,
         PlanningEntrainements $planning,
         SeanceRepository $seances,
+        EvenementRepository $evenements,
     ): Response {
         // Équipes visibles : celles des matchs que l'utilisateur peut voir (toutes avec le droit « rapport de match »).
         $secteurs = $activite->secteursMatchs();
@@ -89,9 +91,16 @@ class CalendrierController extends AbstractController
                 $jours[$s->getDate()->format('Y-m-d')][] = ['type' => 'seance', 'heure' => null, 'objet' => $s];
             }
         }
+        // Événements : sur chacun de leurs jours (visibles dans la grille), ceux de l'équipe choisie ou de tout le club.
+        foreach ($evenements->entre($debut, $fin, $choisie ? [$choisie] : null) as $ev) {
+            for ($j = max($ev->getDebut()->setTime(0, 0), $debut); $j <= min($ev->getDernierJour(), $fin); $j = $j->modify('+1 day')) {
+                $premierJour = $j->format('Y-m-d') === $ev->getDebut()->format('Y-m-d');
+                $jours[$j->format('Y-m-d')][] = ['type' => 'evenement', 'heure' => $premierJour ? $ev->getDebut()->format('H:i') : null, 'objet' => $ev];
+            }
+        }
         foreach ($jours as &$activites) {
             // Dans la journée : par heure (heure inconnue en dernier), les matchs avant les entraînements à égalité.
-            $rang = ['match' => 0, 'entrainement' => 1, 'seance' => 2];
+            $rang = ['match' => 0, 'entrainement' => 1, 'evenement' => 2, 'seance' => 3];
             usort($activites, fn (array $a, array $b) => [$a['heure'] ?? '99', $rang[$a['type']]] <=> [$b['heure'] ?? '99', $rang[$b['type']]]);
         }
         unset($activites);
