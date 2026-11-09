@@ -180,7 +180,7 @@ class Rencontre implements AppartientAuClub
 
     public function setEquipe(?string $equipe): static
     {
-        $this->equipe = $equipe;
+        $this->equipe = null === $equipe ? null : mb_strtoupper(trim($equipe));
 
         return $this;
     }
@@ -210,7 +210,7 @@ class Rencontre implements AppartientAuClub
 
     public function setDomicile(?string $domicile): static
     {
-        $this->domicile = $domicile;
+        $this->domicile = null === $domicile ? null : mb_strtoupper(trim($domicile));
 
         return $this;
     }
@@ -222,7 +222,7 @@ class Rencontre implements AppartientAuClub
 
     public function setExterieur(?string $exterieur): static
     {
-        $this->exterieur = $exterieur;
+        $this->exterieur = null === $exterieur ? null : mb_strtoupper(trim($exterieur));
 
         return $this;
     }

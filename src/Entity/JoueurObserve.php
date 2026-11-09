@@ -95,9 +95,10 @@ class JoueurObserve implements AppartientAuClub
         return $this->nom;
     }
 
+    /** Nom de famille, toujours en majuscules. */
     public function setNom(?string $nom): static
     {
-        $this->nom = $nom;
+        $this->nom = null === $nom ? null : mb_strtoupper(trim($nom));
 
         return $this;
     }
@@ -150,7 +151,7 @@ class JoueurObserve implements AppartientAuClub
 
     public function setClubActuel(?string $clubActuel): static
     {
-        $this->clubActuel = $clubActuel;
+        $this->clubActuel = null === $clubActuel ? null : mb_strtoupper(trim($clubActuel));
 
         return $this;
     }

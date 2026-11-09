@@ -130,7 +130,7 @@ class AccesFamilleTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'Léa');
         self::assertSelectorTextContains('main', 'Tom');
-        self::assertSelectorTextContains('main', 'Adversaire FC');
+        self::assertSelectorTextContains('main', 'ADVERSAIRE FC');
         self::assertSelectorNotExists('a[href="/joueurs"]');
 
         // --- Cloisonnement : aucune page de l'encadrement.

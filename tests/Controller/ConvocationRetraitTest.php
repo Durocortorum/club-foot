@@ -94,7 +94,7 @@ class ConvocationRetraitTest extends WebTestCase
         $this->client->submit($ligne->filter('form[action*="/retirer/"]')->form());
         self::assertSame(['Léa'], $this->convoques($match));
         $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'à prévenir par téléphone ou SMS : Max Petit');
+        self::assertSelectorTextContains('main', 'à prévenir par téléphone ou SMS : Max PETIT');
 
         // Léa, dernière convoquée : on ne la retire pas, on supprime la convocation.
         $crawler = $this->client->request('GET', $page);

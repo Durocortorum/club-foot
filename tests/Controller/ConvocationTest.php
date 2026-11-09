@@ -189,7 +189,7 @@ class ConvocationTest extends WebTestCase
         self::assertEmailAddressContains($email, 'to', "parent-$id@exemple.test");
         self::assertEmailTextBodyContains($email, 'Rendez-vous à 14h15, Stade municipal');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('.flash-info', 'Tom Martin');
+        self::assertSelectorTextContains('.flash-info', 'Tom MARTIN');
         self::assertSelectorTextContains('[data-copier-texte-value]', 'Joueurs convoqués');
         // SMS depuis le téléphone de l'éducateur : Tom (pas de compte) par son portable parent 1, Léa a un compte.
         $sms = $this->client->getCrawler()->filter('#reponses a[href^="sms:"]');
@@ -241,7 +241,7 @@ class ConvocationTest extends WebTestCase
         $crawler = $this->client->request('GET', "$match/convocation");
         $ligneTom = $crawler->filter('#reponses tr')->reduce(fn ($tr) => str_contains($tr->text(), 'Tom'));
         $this->client->submit($ligneTom->filter('form.reponse-convoque')->form(), ['reponse' => 'present']);
-        self::assertSame([Convoque::PRESENT, 'Coach Test'], [$this->convoque($rencontre, 'Tom')->getReponse(), $this->convoque($rencontre, 'Tom')->getReponduPar()]);
+        self::assertSame([Convoque::PRESENT, 'Coach TEST'], [$this->convoque($rencontre, 'Tom')->getReponse(), $this->convoque($rencontre, 'Tom')->getReponduPar()]);
         $crawler = $this->client->request('GET', "$match/convocation");
         self::assertSelectorTextContains('#reponses', '2 présents');
         self::assertSelectorNotExists('input[name="relance"]');

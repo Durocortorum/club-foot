@@ -85,7 +85,7 @@ class MessagerieTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSelectorTextContains('.flash-succes', 'Message envoyé à 1 joueur');
         self::assertSelectorTextContains('main', 'aucun compte famille');
-        self::assertSelectorTextContains('main', 'Tom Durand');
+        self::assertSelectorTextContains('main', 'Tom DURAND');
         self::assertSelectorExists('[data-controller="copier"]');
         $sansReponse = $this->dernierMessage();
 
@@ -213,7 +213,7 @@ class MessagerieTest extends WebTestCase
         self::assertCount(1, $this->emails("kine-$id@exemple.test"));
         $this->client->followRedirect();
         self::assertSelectorTextContains('.flash-succes', 'Message envoyé à 1 personne');
-        self::assertSelectorTextContains('main', 'Julie Petit');
+        self::assertSelectorTextContains('main', 'Julie PETIT');
         $message = $this->dernierMessage();
 
         // La kiné : pastille, « Reçus de collègues », lecture et réponse privée.
@@ -222,7 +222,7 @@ class MessagerieTest extends WebTestCase
         self::assertSelectorTextContains('nav.menu', 'Messages 1');
         self::assertSelectorTextContains('.boite-reception .non-lu', 'Léa : reprise ?');
         $crawler = $this->client->request('GET', '/messages/' . $message->getId());
-        self::assertSelectorTextContains('main', 'Votre conversation avec Coach Bernard');
+        self::assertSelectorTextContains('main', 'Votre conversation avec Coach BERNARD');
         $this->client->submit($crawler->selectButton('Envoyer')->form(), ['corps' => 'Oui, sans contact.']);
         self::assertResponseRedirects('/messages/' . $message->getId() . '#fil-' . $kine->getId());
         self::assertCount(1, $this->emails("coach-$id@exemple.test"));
@@ -244,7 +244,7 @@ class MessagerieTest extends WebTestCase
         self::assertSelectorTextContains('nav.menu', 'Messages 1');
         $crawler = $this->client->request('GET', '/messages/' . $message->getId());
         self::assertSelectorTextContains('#fil-' . $kine->getId(), 'Oui, sans contact.');
-        self::assertSelectorTextContains('#fil-' . $kine->getId() . ' .bulle', 'Julie Petit');
+        self::assertSelectorTextContains('#fil-' . $kine->getId() . ' .bulle', 'Julie PETIT');
         $this->client->submit($crawler->filter('#fil-' . $kine->getId() . ' form')->form(), ['corps' => 'Merci !']);
         self::assertCount(1, $this->emails("kine-$id@exemple.test"));
         $this->client->loginUser($kine);
@@ -298,7 +298,7 @@ class MessagerieTest extends WebTestCase
         self::assertResponseRedirects();
         self::assertCount(1, $this->emails("coach-$id@exemple.test"));
         $message = $this->dernierMessage();
-        self::assertSame('Nicolas Descotes (joueur)', $message->getAuteurNom());
+        self::assertSame('Nicolas DESCOTES (joueur)', $message->getAuteurNom());
 
         // Côté encadrement : le corps médical forme aussi un groupe dans les destinataires.
         $this->client->loginUser($coach);
@@ -312,7 +312,7 @@ class MessagerieTest extends WebTestCase
         self::assertSelectorTextContains('nav.menu', 'Messages 1');
         self::assertSelectorTextContains('.boite-reception', 'Absent samedi');
         $crawler = $this->client->request('GET', '/messages/' . $message->getId());
-        self::assertSelectorTextContains('main', 'Votre conversation avec Nicolas Descotes (joueur)');
+        self::assertSelectorTextContains('main', 'Votre conversation avec Nicolas DESCOTES (joueur)');
         $this->client->submit($crawler->selectButton('Envoyer')->form(), ['corps' => 'Merci de prévenir.']);
         self::assertCount(1, $this->emails("nico-$id@exemple.test"));
 

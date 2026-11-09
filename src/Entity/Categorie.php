@@ -85,9 +85,10 @@ class Categorie implements AppartientAuClub
         return $this->nom;
     }
 
+    /** Nom de l'équipe, toujours en majuscules. */
     public function setNom(string $nom): static
     {
-        $this->nom = $nom;
+        $this->nom = mb_strtoupper(trim($nom));
 
         return $this;
     }

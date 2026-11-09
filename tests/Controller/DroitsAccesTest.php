@@ -133,7 +133,7 @@ class DroitsAccesTest extends WebTestCase
 
     private function ligne(\Symfony\Component\DomCrawler\Crawler $crawler): \Symfony\Component\DomCrawler\Crawler
     {
-        return $crawler->filter('table.droits tbody tr')->reduce(fn ($tr) => str_contains($tr->text(), 'Durand'));
+        return $crawler->filter('table.droits tbody tr')->reduce(fn ($tr) => str_contains($tr->text(), 'DURAND'));
     }
 
     private function compte(Utilisateur $u): Utilisateur

@@ -127,7 +127,7 @@ class SemainePresence implements AppartientAuClub
 
     public function setEquipe(?string $equipe): static
     {
-        $this->equipe = $equipe;
+        $this->equipe = null === $equipe ? null : mb_strtoupper(trim($equipe));
 
         return $this;
     }

@@ -260,7 +260,7 @@ class AccesMedicalTest extends WebTestCase
         $crawler = $this->client->request('GET', '/infirmerie/dossiers');
         self::assertResponseIsSuccessful();
         self::assertSame(['Infirmerie', 'Dossiers médicaux', 'Messages'], $crawler->filter('nav.menu a')->each(fn ($a) => trim($a->text())));
-        $crawler = $this->client->click($crawler->selectLink('Martin')->link());
+        $crawler = $this->client->click($crawler->selectLink('MARTIN')->link());
         self::assertSelectorTextContains('#infirmerie', 'Entorse');
         self::assertSelectorExists('#visite-medicale');
         $this->client->click($crawler->selectLink('Modifier')->link());
@@ -305,7 +305,7 @@ class AccesMedicalTest extends WebTestCase
         // L'Infirmerie n'élargit plus la liste des joueurs ni les fiches.
         $this->client->loginUser($educ);
         $this->client->request('GET', '/joueurs');
-        self::assertSelectorTextContains('main', 'Dedans');
+        self::assertSelectorTextContains('main', 'DEDANS');
         self::assertSelectorTextNotContains('main', 'Dehors');
         $this->client->request('GET', '/joueurs/' . $ailleurs->getId());
         self::assertResponseStatusCodeSame(403);
@@ -313,7 +313,7 @@ class AccesMedicalTest extends WebTestCase
         // Dans l'Infirmerie : ses secteurs seulement.
         $this->ouvrirMedical($this->client);
         $this->client->request('GET', '/infirmerie?statut=toutes');
-        self::assertSelectorTextContains('main', 'Entorse Dedans');
+        self::assertSelectorTextContains('main', 'Entorse DEDANS');
         self::assertSelectorTextNotContains('main', 'Entorse Dehors');
         $this->client->request('GET', '/infirmerie/dossiers');
         self::assertSelectorTextNotContains('main', 'Dehors');
@@ -326,7 +326,7 @@ class AccesMedicalTest extends WebTestCase
         $this->client->loginUser($admin);
         $this->ouvrirMedical($this->client);
         $this->client->request('GET', '/infirmerie?statut=toutes');
-        self::assertSelectorTextContains('main', 'Entorse Dehors');
+        self::assertSelectorTextContains('main', 'Entorse DEHORS');
     }
 
     public function testNouvellePersonneMedicale(): void
