@@ -8,6 +8,9 @@
     <h1>{{ message.sujet }}{% if message.important %} <span class="pastille alerte">important</span>{% endif %}</h1>
     <p class="discret">{{ message.auteurNom }} · {{ message.creeLe|date('d/m/Y à H:i') }}{% if joueurs %} · pour {{ joueurs|join(', ', ' et ') }}{% endif %}</p>
 
+    {% if message.cible == 'convocation' and message.rencontre %}
+        <p><a class="bouton principal" href="{{ path('app_espace') }}">Répondre présent ou absent</a></p>
+    {% endif %}
     <section class="carte message-corps" data-fil-message="{{ message.id }}" data-fil-signature="{{ fil|length }}">{{ message.corps|nl2br }}</section>
 
     <section class="bloc" id="fil-{{ app.user.id }}">

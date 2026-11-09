@@ -214,6 +214,38 @@ class EnvoiConvocations
 
     public const JOURS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
+    /**
+     * Objet et texte de la convocation déposée dans la messagerie interne des familles (un même message pour
+     * toutes : chacune voit « pour Léa » d'après ses propres joueurs).
+     *
+     * @return array{sujet: string, corps: string, cible: string}
+     */
+    public function pourMessagerie(Convocation $convocation, bool $relance): array
+    {
+        $r = $convocation->getRencontre();
+        $quand = \sprintf('%s %s%s', self::JOURS[(int) $r->getDate()->format('w')], $r->getDate()->format('d/m'), $r->getHeure() ? ' à ' . $r->getHeure() : '');
+        $lignes = [
+            \sprintf('Match : %s – %s, %s%s.', $r->getDomicile(), $r->getExterieur(), mb_strtolower($quand), $r->getLieu() ? ', ' . $r->getLieu() : ''),
+        ];
+        if ($convocation->getRdvHeure() || $convocation->getRdvLieu()) {
+            $lignes[] = 'Rendez-vous : ' . trim(($convocation->getRdvHeure() ?? '') . ($convocation->getRdvLieu() ? ', ' . $convocation->getRdvLieu() : ''), ' ,') . '.';
+        }
+        if ($convocation->getMessage()) {
+            $lignes[] = '';
+            $lignes[] = $convocation->getMessage();
+        }
+        $lignes[] = '';
+        $lignes[] = $relance
+            ? 'Nous n\'avons pas encore votre réponse : merci d\'indiquer présent ou absent dans « Mon espace ».'
+            : 'Merci de répondre présent ou absent dans « Mon espace ».';
+
+        return [
+            'sujet' => mb_substr(\sprintf('%sConvocation %s contre %s, %s', $relance ? 'Rappel – ' : '', $r->getEquipeAffichee(), $r->getAdversaire(), mb_strtolower($quand)), 0, 120),
+            'corps' => implode("\n", $lignes),
+            'cible' => \sprintf('%s – %s contre %s, %s', $relance ? 'Convoqués sans réponse' : 'Convoqués', $r->getEquipeAffichee(), $r->getAdversaire(), $r->getDate()->format('d/m')),
+        ];
+    }
+
     /** Libellé d'une réponse, pour l'affichage. */
     public static function libelle(?string $reponse): string
     {

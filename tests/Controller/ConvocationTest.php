@@ -198,8 +198,26 @@ class ConvocationTest extends WebTestCase
         self::assertStringContainsString('répondre par SMS', urldecode($sms->attr('href')));
         self::assertSelectorTextContains('#reponses', 'compte famille');
 
-        // --- La famille répond « absent » (malade), puis change d'avis.
+        // La convocation est aussi déposée dans la messagerie interne (un seul e-mail : celui de la convocation).
+        $this->em()->clear();
+        $message = $this->em()->getRepository(\App\Entity\Message::class)->findOneBy(['rencontre' => $rencontre->getId()]);
+        self::assertNotNull($message);
+        self::assertSame('convocation', $message->getCible());
+        self::assertStringStartsWith('Convocation ', $message->getSujet());
+        self::assertStringContainsString('Rendez-vous : 14h15, Stade municipal.', $message->getCorps());
+        self::assertCount(2, $message->getJoueurs()); // Léa et Tom
+        $this->client->request('GET', '/messages/' . $message->getId());
+        self::assertResponseIsSuccessful();
+
+        // --- La famille voit la convocation dans ses messages, avec le bouton pour répondre.
         $this->client->loginUser($parent);
+        $this->client->request('GET', '/espace/messages');
+        self::assertSelectorTextContains('.boite-reception .non-lu', 'Convocation');
+        $this->client->request('GET', '/espace/messages/' . $message->getId());
+        self::assertSelectorTextContains('main', 'pour Léa');
+        self::assertSelectorExists('a[href="/espace"]:contains("Répondre présent ou absent")');
+
+        // --- La famille répond « absent » (malade), puis change d'avis.
         $crawler = $this->client->request('GET', '/espace');
         self::assertSelectorTextContains('.convocation-famille', 'Rendez-vous à 14h15');
         self::assertSelectorTextContains('.convocation-famille', 'réponse attendue');

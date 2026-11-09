@@ -7,7 +7,9 @@ use App\Entity\Convoque;
 use App\Entity\Joueur;
 use App\Entity\Rencontre;
 use App\Entity\Utilisateur;
+use App\Entity\Message;
 use App\Repository\ConvocationRepository;
+use App\Service\Messagerie;
 use App\Repository\ConvoqueRepository;
 use Symfony\Component\Form\FormError;
 use App\Repository\JoueurRepository;
@@ -114,14 +116,26 @@ class ConvocationController extends AbstractController
 
     /** Envoi aux familles, ou relance de celles qui n'ont pas répondu. */
     #[Route('/envoyer', name: 'app_convocation_envoyer', methods: ['POST'])]
-    public function envoyer(Request $request, Rencontre $rencontre): Response
+    public function envoyer(Request $request, Rencontre $rencontre, Messagerie $messagerie): Response
     {
         $convocation = $this->convocations->pour($rencontre) ?? throw $this->createNotFoundException();
         if (!$this->isCsrfTokenValid('envoyer-convocation' . $convocation->getId(), $request->getPayload()->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
         $relance = $request->getPayload()->getBoolean('relance');
+        // Joueurs prévenus : tous les convoqués, ou ceux qui n'ont pas répondu pour une relance.
+        $prevenus = array_values(array_map(fn (Convoque $c) => $c->getJoueur(), array_filter($convocation->getConvoques(), fn (Convoque $c) => !$relance || null === $c->getReponse())));
         $r = $this->envoi->envoyer($convocation, $relance);
+
+        // La convocation arrive aussi dans la messagerie interne des familles (sans second e-mail).
+        if ($prevenus) {
+            /** @var Utilisateur $moi */
+            $moi = $this->getUser();
+            $texte = $this->envoi->pourMessagerie($convocation, $relance);
+            $messagerie->envoyer((new Message())->setAuteur($moi)->setSujet($texte['sujet'])->setCorps($texte['corps'])
+                ->setCible('convocation')->setCibleLibelle($texte['cible'])
+                ->setCategorie($rencontre->getCategorie())->setRencontre($rencontre), $prevenus, false);
+        }
 
         $this->addFlash('succes', \sprintf('%s : %d e-mail%s envoyé%2$s.', $relance ? 'Relance' : 'Convocation envoyée', $r['emails'], $r['emails'] > 1 ? 's' : ''));
         if ($r['sans_compte']) {
