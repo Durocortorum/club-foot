@@ -221,6 +221,57 @@ class EntrainementTest extends WebTestCase
         self::assertSame((string) $categorie, $this->grille($categorie, $premier, 'Tom'), 'l\'appel reste dans la grille');
     }
 
+    public function testBibliothequeGenerale(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Coach');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = $this->em();
+        $categorie = $em->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+        $seance = (new \App\Entity\Seance())->setClub($club)->setDate(new \DateTimeImmutable('today'))->setCategorie($categorie)->setTheme('Jeu court');
+        $em->persist($seance);
+        $em->flush();
+        $bibliotheque = static::getContainer()->get(\App\Service\BibliothequeExercices::class);
+        $tous = $bibliotheque->tous();
+        $cle = array_key_first($tous);
+        $titre = $tous[$cle]['titre'];
+
+        // Depuis la liste des séances : tous les exercices types, sans passer par une séance.
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', '/entrainements');
+        $crawler = $this->client->click($crawler->selectLink('Bibliothèque d\'exercices')->link());
+        self::assertResponseIsSuccessful();
+        self::assertCount(\count($tous), $crawler->filter('article.exercice-type'));
+
+        // Recherche par titre (sans accents ni majuscules) et filtre par groupe.
+        $crawler = $this->client->request('GET', '/entrainements/bibliotheque?q=' . urlencode(strtoupper(strtr($titre, ['é' => 'e', 'è' => 'e', 'à' => 'a']))));
+        self::assertStringContainsString($titre, $crawler->filter('article.exercice-type')->first()->text());
+        $crawler = $this->client->request('GET', '/entrainements/bibliotheque?groupe=seniors');
+        self::assertCount(\count(array_filter($tous, fn ($e) => 'seniors' === $e['secteur'])), $crawler->filter('article.exercice-type'));
+        self::assertSelectorCount(1, 'section.bloc');
+
+        // Ajout à une séance choisie dans la liste.
+        $crawler = $this->client->request('GET', '/entrainements/bibliotheque');
+        $this->client->submit($crawler->filter('form[action$="/bibliotheque/' . $cle . '"]')->form(), ['seance' => $seance->getId()]);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', '« ' . $titre . ' » ajouté à la séance');
+        $em->clear();
+        self::assertSame([$titre], array_map(fn ($e) => $e->getTitre(), $em->find(\App\Entity\Seance::class, $seance->getId())->getExercices()->toArray()));
+
+        // Exercice animé : les étapes suivent l'exercice copié ; places invalides et objets écartés retirés.
+        $anime = $bibliotheque->creer('passes_y');
+        self::assertCount(3, $anime->getSchema()['etapes']);
+        self::assertSame([22.4, 22.2], $anime->copier()->getSchema()['etapes'][0][9]);
+        $schema = (new \App\Entity\Exercice())->setSchema([
+            'objets' => [['t' => 'joueur', 'x' => 1, 'y' => 1], 'pas un objet', ['t' => 'ballon', 'x' => 2, 'y' => 2]],
+            'etapes' => [[[5, 6], [7, 8], ['x', 1]], 'pas une étape'],
+        ])->getSchema();
+        self::assertSame([[[5.0, 6.0], null]], $schema['etapes']);
+        self::assertArrayNotHasKey('etapes', (new \App\Entity\Exercice())->setSchema(['objets' => []])->getSchema());
+    }
+
     private function joueur(Club $club, Categorie $categorie, string $prenom): Joueur
     {
         $joueur = (new Joueur())->setClub($club)->setCategorie($categorie)->setNom('Martin')->setPrenom($prenom);

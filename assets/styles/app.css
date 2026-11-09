@@ -494,6 +494,13 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .schema-couleurs { display: inline-flex; gap: .3rem; }
 .pastille-couleur { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--bordure); cursor: pointer; padding: 0; }
 .pastille-couleur.choisie { border-color: var(--encre); box-shadow: 0 0 0 2px #fff inset; }
+.schema-terrain.anime { cursor: pointer; }
+.schema-animation { margin-top: .6rem; padding: .5rem .7rem; background: #f6f6f8; border-radius: 8px; }
+.schema-animation p { margin: .4rem 0 0; }
+.schema-etapes-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.schema-etapes-ligne [hidden] { display: none; }
+.schema-etapes { display: inline-flex; flex-wrap: wrap; gap: .3rem; }
+.schema-etapes .bouton.actif { background: var(--encre); border-color: var(--encre); color: #fff; }
 .schema-pied { display: flex; justify-content: space-between; align-items: center; gap: .6rem; flex-wrap: wrap; margin-top: .6rem; }
 
 /* Entraînements : page d'une séance */

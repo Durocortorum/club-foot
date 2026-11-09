@@ -6,6 +6,10 @@ import { confirmer } from '../confirmation.js';
  * à la souris ou au doigt (joueurs, ballons, cônes, plots, buts, mannequins, flèches, zones, textes).
  * En édition, le schéma est rangé en JSON dans le champ caché du formulaire ;
  * en lecture (lecture: true), il est seulement dessiné à partir de la valeur « schema ».
+ *
+ * Animation : les objets donnent la position de départ ; « etapes » liste les étapes suivantes,
+ * chacune avec, par indice d'objet, la nouvelle place [x, y] d'un joueur ou d'un ballon (null = ne bouge pas).
+ * La lecture fait glisser joueurs et ballons d'une étape à l'autre.
  */
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -33,19 +37,36 @@ const NOMS = {
 };
 const STYLES_FLECHE = { passe: 'Passe', course: 'Course', conduite: 'Conduite de balle' };
 const TOURNANTS = ['but', 'minibut', 'mannequin'];
+// Objets qui se déplacent d'une étape à l'autre ; les autres restent fixes.
+const MOBILES = ['joueur', 'ballon'];
+const MAX_ETAPES = 30;
+// Durée d'un déplacement et temps d'arrêt sur chaque étape (millisecondes).
+const DUREE = 1300;
+const PAUSE = 500;
 const arrondi = (v) => Math.round(v * 10) / 10;
+const lisser = (f) => (f < 0.5 ? 2 * f * f : 1 - ((-2 * f + 2) ** 2) / 2);
 
 let instances = 0;
 
 export default class extends Controller {
-    static targets = ['svg', 'champ', 'terrain', 'selection', 'nom', 'couleurs', 'texte', 'libelleTexte', 'style', 'tourner', 'annuler'];
+    static targets = [
+        'svg', 'champ', 'terrain', 'selection', 'nom', 'couleurs', 'texte', 'libelleTexte', 'style', 'tourner', 'annuler',
+        'etapes', 'supprimerEtape', 'ajouterEtape', 'lecture', 'aideEtape',
+    ];
     static values = { lecture: Boolean, schema: Object };
 
     connect() {
         this.id = `schema${++instances}`;
         const source = this.hasChampTarget ? this.lire(this.champTarget.value) : this.schemaValue;
         this.terrain = TERRAINS[source.terrain] ? source.terrain : 'demi';
-        this.objets = Array.isArray(source.objets) ? source.objets.filter((o) => o && NOMS[o.t]) : [];
+        // Indices des étapes alignés sur ceux des objets : les objets inconnus sont gardés comme trous (null).
+        const objets = Array.isArray(source.objets) ? source.objets : [];
+        const gardes = objets.map((o) => !!(o && NOMS[o.t]));
+        this.objets = objets.filter((o, i) => gardes[i]);
+        this.etapes = (Array.isArray(source.etapes) ? source.etapes : []).filter(Array.isArray).slice(0, MAX_ETAPES)
+            .map((e) => e.filter((p, i) => gardes[i]).map((p) => (Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) ? p : null)));
+        this.etape = 0;
+        this.animation = null;
         this.choisi = null;
         this.historique = [];
         if (this.hasTerrainTarget) {
@@ -58,13 +79,22 @@ export default class extends Controller {
             this.svgTarget.addEventListener('pointermove', (e) => this.glisser(e));
             this.svgTarget.addEventListener('pointerup', () => this.lacher());
             this.svgTarget.addEventListener('pointercancel', () => this.lacher());
+        } else if (this.etapes.length) {
+            // En lecture, un clic sur le schéma lance ou arrête l'animation.
+            this.svgTarget.classList.add('anime');
+            this.svgTarget.addEventListener('click', () => this.lireAnimation());
         }
         this.dessiner();
+        this.afficherEtapes();
     }
 
     disconnect() {
         if (this.clavier) {
             document.removeEventListener('keydown', this.clavier);
+        }
+        if (this.animation) {
+            cancelAnimationFrame(this.animation);
+            this.animation = null;
         }
     }
 
@@ -120,6 +150,12 @@ export default class extends Controller {
             ['x', 'x1', 'x2'].forEach((k) => { if (k in o) o[k] = Math.min(Math.max(o[k], 0), largeur); });
             ['y', 'y1', 'y2'].forEach((k) => { if (k in o) o[k] = Math.min(Math.max(o[k], 0), hauteur); });
         });
+        this.etapes.forEach((e) => e.forEach((p) => {
+            if (p) {
+                p[0] = Math.min(Math.max(p[0], 0), largeur);
+                p[1] = Math.min(Math.max(p[1], 0), hauteur);
+            }
+        }));
         this.modifie();
     }
 
@@ -171,14 +207,17 @@ export default class extends Controller {
         if (this.choisi === null) return;
         this.memoriser();
         this.objets.splice(this.choisi, 1);
+        this.etapes.forEach((e) => e.splice(this.choisi, 1));
         this.choisi = null;
         this.modifie();
     }
 
     async toutEffacer() {
-        if (!this.objets.length || !(await confirmer('Effacer tous les objets du schéma ?', { bouton: 'Tout effacer' }))) return;
+        if (!this.objets.length || !(await confirmer('Effacer tous les objets du schéma et les étapes de l\'animation ?', { bouton: 'Tout effacer' }))) return;
         this.memoriser();
         this.objets = [];
+        this.etapes = [];
+        this.etape = 0;
         this.choisi = null;
         this.modifie();
     }
@@ -186,10 +225,126 @@ export default class extends Controller {
     annuler() {
         const etat = this.historique.pop();
         if (!etat) return;
-        ({ terrain: this.terrain, objets: this.objets } = JSON.parse(etat));
+        this.arreterAnimation();
+        const valeur = JSON.parse(etat);
+        ({ terrain: this.terrain, objets: this.objets } = valeur);
+        this.etapes = valeur.etapes || [];
+        this.etape = Math.min(this.etape, this.etapes.length);
         this.terrainTarget.value = this.terrain;
         this.choisi = null;
         this.modifie();
+    }
+
+    // --- Étapes de l'animation ---
+
+    choisirEtape({ params: { etape } }) {
+        this.arreterAnimation();
+        this.etape = etape;
+        this.choisi = null;
+        this.dessiner();
+        this.afficherSelection();
+        this.afficherEtapes();
+    }
+
+    // Nouvelle étape juste après celle affichée : elle part des mêmes positions.
+    ajouterEtape() {
+        if (this.etapes.length >= MAX_ETAPES) return;
+        this.arreterAnimation();
+        this.memoriser();
+        this.etapes.splice(this.etape, 0, []);
+        this.etape += 1;
+        this.choisi = null;
+        this.modifie();
+    }
+
+    supprimerEtape() {
+        if (this.etape === 0) return;
+        this.arreterAnimation();
+        this.memoriser();
+        this.etapes.splice(this.etape - 1, 1);
+        this.etape -= 1;
+        this.choisi = null;
+        this.modifie();
+    }
+
+    /** Place de l'objet i à l'étape k : la dernière place donnée jusqu'à cette étape, sinon celle de départ. */
+    positionA(i, k) {
+        for (let j = k; j >= 1; j--) {
+            const p = this.etapes[j - 1]?.[i];
+            if (p) return { x: p[0], y: p[1] };
+        }
+        return { x: this.objets[i].x, y: this.objets[i].y };
+    }
+
+    /** Objets tels qu'affichés à l'étape k, ou entre l'étape k et la suivante (f de 0 à 1). */
+    objetsA(k, f = 0) {
+        return this.objets.map((o, i) => {
+            if (!MOBILES.includes(o.t)) return o;
+            const a = this.positionA(i, k);
+            const b = f > 0 ? this.positionA(i, k + 1) : a;
+            return { ...o, x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+        });
+    }
+
+    lireAnimation() {
+        if (this.animation) {
+            this.arreterAnimation();
+            return;
+        }
+        if (!this.etapes.length) return;
+        this.choisi = null;
+        this.afficherSelection();
+        const debut = performance.now();
+        const total = this.etapes.length;
+        const image = () => {
+            // Arrêt sur la position de départ, puis un déplacement et un arrêt par étape.
+            const ecoule = performance.now() - debut - PAUSE;
+            const segment = Math.max(0, Math.floor(ecoule / (DUREE + PAUSE)));
+            if (segment >= total) {
+                this.arreterAnimation(true);
+                return;
+            }
+            const f = ecoule < 0 ? 0 : Math.min(1, (ecoule - segment * (DUREE + PAUSE)) / DUREE);
+            this.dessiner(this.objetsA(segment, lisser(f)), (f >= 1 ? segment + 1 : segment) + 1);
+            this.animation = requestAnimationFrame(image);
+        };
+        this.animation = requestAnimationFrame(image);
+        this.afficherEtapes();
+    }
+
+    // En lecture, l'animation finie reste sur sa dernière étape ; en édition, on revient à l'étape choisie.
+    arreterAnimation(fin = false) {
+        if (!this.animation) return;
+        cancelAnimationFrame(this.animation);
+        this.animation = null;
+        if (this.lectureValue) {
+            this.etape = fin ? this.etapes.length : 0;
+        }
+        this.dessiner();
+        this.afficherEtapes();
+    }
+
+    afficherEtapes() {
+        if (!this.hasEtapesTarget) return;
+        const libelles = ['Départ', ...this.etapes.map((e, k) => `Étape ${k + 2}`)];
+        this.etapesTarget.replaceChildren(...libelles.map((libelle, k) => {
+            const bouton = document.createElement('button');
+            bouton.type = 'button';
+            bouton.className = `bouton petit${k === this.etape ? ' actif' : ''}`;
+            bouton.textContent = libelle;
+            bouton.dataset.action = 'schema#choisirEtape';
+            bouton.dataset.schemaEtapeParam = k;
+            return bouton;
+        }));
+        this.supprimerEtapeTarget.hidden = this.etape === 0;
+        this.ajouterEtapeTarget.disabled = this.etapes.length >= MAX_ETAPES;
+        this.lectureTarget.disabled = !this.etapes.length;
+        this.lectureTarget.textContent = this.animation ? '■ Arrêter' : '▶ Lire l\'animation';
+        this.aideEtapeTarget.textContent = !this.etapes.length
+            ? 'Pour animer l\'exercice : placez les objets au départ, ajoutez une étape, puis déplacez joueurs et ballons à leur nouvelle place.'
+            : this.etape === 0
+                ? 'Départ : place de tous les objets au début de l\'exercice.'
+                : `Étape ${this.etape + 1} : déplacez les joueurs et les ballons vers leur nouvelle place (la trace en pointillés part de l'étape précédente). Les autres objets restent fixes.`;
     }
 
     toucheClavier(event) {
@@ -217,6 +372,7 @@ export default class extends Controller {
     }
 
     saisir(event) {
+        if (this.animation) return;
         const cible = event.target.closest('[data-indice]');
         if (!cible) {
             this.choisi = null;
@@ -228,7 +384,14 @@ export default class extends Controller {
         this.choisi = Number(cible.dataset.indice);
         const objet = this.objetChoisi();
         const p = this.point(event);
-        this.prise = { poignee: cible.dataset.poignee || null, depart: p, origine: structuredClone(objet), etat: this.etat() };
+        // Après le départ, seuls joueurs et ballons se déplacent ; les autres objets restent fixes.
+        const fixe = this.etape > 0 && !MOBILES.includes(objet.t);
+        this.prise = fixe ? null : {
+            poignee: cible.dataset.poignee || null,
+            depart: p,
+            origine: this.etape > 0 ? { ...objet, ...this.positionA(this.choisi, this.etape) } : structuredClone(objet),
+            etat: this.etat(),
+        };
         this.svgTarget.setPointerCapture(event.pointerId);
         this.dessiner();
         this.afficherSelection();
@@ -241,7 +404,9 @@ export default class extends Controller {
         const dy = p.y - this.prise.depart.y;
         const o = this.prise.origine;
         const objet = this.objetChoisi();
-        if (this.prise.poignee === '1') {
+        if (this.etape > 0) {
+            this.etapes[this.etape - 1][this.choisi] = [arrondi(o.x + dx), arrondi(o.y + dy)];
+        } else if (this.prise.poignee === '1') {
             Object.assign(objet, { x1: arrondi(p.x), y1: arrondi(p.y) });
         } else if (this.prise.poignee === '2') {
             Object.assign(objet, { x2: arrondi(p.x), y2: arrondi(p.y) });
@@ -273,7 +438,8 @@ export default class extends Controller {
     }
 
     etat() {
-        return JSON.stringify({ terrain: this.terrain, objets: this.objets });
+        // Les trous des étapes (objets sans nouvelle place) deviennent null en JSON.
+        return JSON.stringify({ terrain: this.terrain, objets: this.objets, ...(this.etapes.length ? { etapes: this.etapes } : {}) });
     }
 
     memoriser() {
@@ -284,6 +450,7 @@ export default class extends Controller {
     modifie() {
         this.dessiner();
         this.afficherSelection();
+        this.afficherEtapes();
         this.enregistrer();
         this.majAnnuler();
     }
@@ -340,7 +507,12 @@ export default class extends Controller {
         return element;
     }
 
-    dessiner() {
+    /**
+     * @param affiches objets à dessiner (pendant l'animation), sinon ceux de l'étape choisie
+     * @param numero   numéro de l'étape affiché pendant l'animation
+     */
+    dessiner(affiches = null, numero = null) {
+        const objets = affiches || this.objetsA(this.etape);
         const svg = this.svgTarget;
         const { largeur, hauteur } = TERRAINS[this.terrain];
         svg.replaceChildren();
@@ -356,13 +528,51 @@ export default class extends Controller {
         });
 
         this.dessinerTerrain(svg, largeur, hauteur);
+        if (!this.lectureValue && !affiches && this.etape > 0) {
+            this.dessinerTraces(svg, objets);
+        }
         const calque = this.el('g', {}, svg);
         // Les zones sous les autres objets, pour qu'ils restent saisissables.
-        const ordre = this.objets.map((o, i) => i).sort((a, b) => (this.objets[b].t === 'zone') - (this.objets[a].t === 'zone'));
-        ordre.forEach((i) => this.dessinerObjet(calque, this.objets[i], i));
-        if (this.choisi !== null && this.objets[this.choisi] && !this.lectureValue) {
-            this.dessinerSelection(svg, this.objets[this.choisi], this.choisi);
+        const ordre = objets.map((o, i) => i).sort((a, b) => (objets[b].t === 'zone') - (objets[a].t === 'zone'));
+        ordre.forEach((i) => this.dessinerObjet(calque, objets[i], i));
+        if (this.choisi !== null && objets[this.choisi] && !this.lectureValue && !affiches) {
+            this.dessinerSelection(svg, objets[this.choisi], this.choisi);
         }
+        if (this.etapes.length) {
+            this.dessinerRepereAnimation(svg, largeur, hauteur, numero);
+        }
+    }
+
+    // Édition d'une étape : place précédente en transparence et trajet en pointillés.
+    dessinerTraces(svg, objets) {
+        const g = this.el('g', { 'pointer-events': 'none' }, svg);
+        objets.forEach((o, i) => {
+            if (!MOBILES.includes(o.t)) return;
+            const avant = this.positionA(i, this.etape - 1);
+            if (Math.hypot(avant.x - o.x, avant.y - o.y) < 0.2) return;
+            this.el('path', {
+                d: `M${avant.x},${avant.y} L${o.x},${o.y}`, stroke: '#fff', 'stroke-width': 0.25, 'stroke-dasharray': '0.7 0.5', fill: 'none', opacity: 0.85,
+            }, g);
+            const fantome = this.el('g', { opacity: 0.35 }, g);
+            this.dessinerObjet(fantome, { ...o, x: avant.x, y: avant.y }, i);
+            fantome.querySelectorAll('[data-indice]').forEach((n) => n.removeAttribute('data-indice'));
+        });
+    }
+
+    // Numéro d'étape pendant l'animation ; bouton ▶ sur les schémas en lecture.
+    dessinerRepereAnimation(svg, largeur, hauteur, numero) {
+        const animation = this.animation || numero !== null;
+        if (animation) {
+            const texte = this.el('text', {
+                x: 1.5, y: 2.6, 'font-size': 2, 'font-weight': 700, fill: '#fff', stroke: 'rgba(0,0,0,.5)', 'stroke-width': 0.3,
+                'paint-order': 'stroke', 'font-family': 'system-ui, sans-serif', 'pointer-events': 'none',
+            }, svg);
+            texte.textContent = `${numero ?? this.etape + 1} / ${this.etapes.length + 1}`;
+        }
+        if (!this.lectureValue) return;
+        const g = this.el('g', { transform: `translate(${largeur - 4.5} ${hauteur - 4.5})` }, svg);
+        this.el('circle', { r: 3, fill: 'rgba(0,0,0,.55)', stroke: '#fff', 'stroke-width': 0.25 }, g);
+        this.el('path', { d: animation ? 'M-1,-1 h2 v2 h-2 z' : 'M-0.9,-1.4 L1.5,0 L-0.9,1.4 z', fill: '#fff' }, g);
     }
 
     dessinerTerrain(svg, largeur, hauteur) {

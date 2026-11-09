@@ -63,6 +63,17 @@
                 <button type="button" class="bouton petit danger" data-action="schema#supprimer">Supprimer</button>
             </div>
 
+            <div class="schema-animation">
+                <div class="schema-etapes-ligne">
+                    <strong>Animation</strong>
+                    <span class="schema-etapes" data-schema-target="etapes"></span>
+                    <button type="button" class="bouton petit" data-schema-target="ajouterEtape" data-action="schema#ajouterEtape">+ Étape</button>
+                    <button type="button" class="bouton petit danger" data-schema-target="supprimerEtape" data-action="schema#supprimerEtape" hidden>Supprimer l'étape</button>
+                    <button type="button" class="bouton petit principal" data-schema-target="lecture" data-action="schema#lireAnimation" disabled>▶ Lire l'animation</button>
+                </div>
+                <p class="discret petit" data-schema-target="aideEtape"></p>
+            </div>
+
             <div class="schema-pied">
                 <span class="discret petit">Cliquez un objet pour le déplacer ou le modifier. Flèches : tirez leurs extrémités. Zones : tirez le coin. Touche Suppr pour effacer, Ctrl+Z pour annuler.</span>
                 <span class="actions">
