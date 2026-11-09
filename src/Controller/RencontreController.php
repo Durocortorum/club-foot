@@ -17,6 +17,7 @@ use App\Repository\ParticipationRepository;
 use App\Repository\RencontreRepository;
 use App\Security\ActiviteVoter;
 use App\Service\Apparence;
+use App\Service\ImportMatchs;
 use App\Service\SuiviDisciplinaire;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,6 +31,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  */
 class RencontreController extends AbstractController
 {
+    /** Clé de session du dernier import de calendrier (matchs créés, équipe, heure). */
+    private const DERNIER_IMPORT = 'dernier_import_matchs';
+    /** Le bouton « Annuler cet import » reste proposé 24 heures. */
+    private const DUREE_ANNULATION = 86400;
+
     public function __construct(private readonly ActiviteVoter $voter)
     {
     }
@@ -54,6 +60,7 @@ class RencontreController extends AbstractController
             'categories' => $this->categoriesVisibles($categories),
             'filtres' => $filtres,
             'peut_creer' => null === $secteurs || [] !== $secteurs,
+            'dernier_import' => ($i = $request->getSession()->get(self::DERNIER_IMPORT)) && $i['ids'] && time() - $i['le'] < self::DUREE_ANNULATION ? $i : null,
         ]);
     }
 
@@ -112,6 +119,160 @@ class RencontreController extends AbstractController
         $rencontre = (new Rencontre())->setDate(new \DateTimeImmutable('today'))->setDomicile(mb_strtoupper($apparence->club()->getNom()));
 
         return $this->formulaire($request, $rencontre, $em, $joueurs, 'Nouveau match');
+    }
+
+    /**
+     * Calendrier copié depuis un site (Transfermarkt, FFF…) : lu, montré, puis les matchs cochés sont créés.
+     * Un match de la même équipe à la même date n'est pas recréé.
+     */
+    #[Route('/matchs/importer', name: 'app_rencontre_importer', methods: ['GET', 'POST'])]
+    public function importer(
+        Request $request,
+        CategorieRepository $categories,
+        RencontreRepository $rencontres,
+        ImportMatchs $import,
+        Apparence $apparence,
+        EntityManagerInterface $em,
+    ): Response {
+        if ([] === $this->voter->secteursMatchs()) {
+            throw $this->createAccessDeniedException();
+        }
+        $visibles = $this->categoriesVisibles($categories);
+        $donnees = $request->getPayload();
+        $idCategorie = $request->isMethod('POST') ? $donnees->getInt('categorie') : $request->query->getInt('categorie');
+        $categorie = array_values(array_filter($visibles, fn (Categorie $c) => $c->getId() === $idCategorie))[0] ?? null;
+        $competition = \in_array($c = $donnees->getString('competition'), Rencontre::COMPETITIONS, true) ? $c : 'Championnat';
+        $texte = $donnees->getString('texte');
+        $scores = !$request->isMethod('POST') || $donnees->getBoolean('scores');
+        $analyse = null;
+        $deja = [];
+
+        if ($request->isMethod('POST') && $this->isCsrfTokenValid('importer-matchs', $donnees->getString('_token'))) {
+            if (!$categorie) {
+                $this->addFlash('erreur', 'Choisissez l\'équipe à qui sont ces matchs.');
+            } elseif (!($analyse = $import->analyser($texte))['matchs']) {
+                $this->addFlash('erreur', 'Aucun match reconnu : chaque match doit avoir une date (« dim. 23 août 2026 » ou « 23/08/2026 ») suivie des deux équipes.');
+                $analyse = null;
+            } else {
+                foreach ($analyse['matchs'] as $i => $m) {
+                    if ($existant = $rencontres->findOneBy(['categorie' => $categorie, 'date' => $m['date']])) {
+                        $deja[$i] = $existant;
+                    }
+                }
+            }
+
+            if ($analyse && 'importer' === $donnees->getString('action')) {
+                $club = mb_strtoupper($apparence->club()->getNom());
+                $choisis = array_map('intval', $donnees->all('lignes'));
+                $crees = [];
+                foreach ($analyse['matchs'] as $i => $m) {
+                    if (!\in_array($i, $choisis, true) || isset($deja[$i])) {
+                        continue;
+                    }
+                    $r = (new Rencontre())
+                        ->setDate($m['date'])
+                        ->setHeure($m['heure'])
+                        ->setCategorie($categorie)
+                        ->setCompetition($m['competition'] ?? $competition)
+                        ->setDomicile($m['aDomicile'] ? $club : $m['adversaire'])
+                        ->setExterieur($m['aDomicile'] ? $m['adversaire'] : $club);
+                    if ($scores && null !== $m['butsDomicile']) {
+                        $r->setButsDomicile($m['butsDomicile'])->setButsExterieur($m['butsExterieur']);
+                    }
+                    $em->persist($r);
+                    $crees[] = $r;
+                }
+                $em->flush();
+                // Retenu pour pouvoir annuler tout l'import depuis la liste des matchs.
+                $request->getSession()->set(self::DERNIER_IMPORT, [
+                    'ids' => array_map(fn (Rencontre $r) => $r->getId(), $crees),
+                    'categorie' => (string) $categorie,
+                    'le' => time(),
+                ]);
+                $this->addFlash('succes', \sprintf('%d match%s importé%s pour %s.', \count($crees), \count($crees) > 1 ? 's' : '', \count($crees) > 1 ? 's' : '', $categorie));
+
+                return $this->redirectToRoute('app_rencontre_index', [
+                    'categorie' => $categorie->getId(),
+                    'saison' => Rencontre::saisonDe(($crees[0] ?? null)?->getDate() ?? $analyse['matchs'][0]['date']),
+                ]);
+            }
+        }
+
+        return $this->render('rencontre/importer.html.twig', [
+            'categories' => $visibles,
+            'categorie' => $categorie,
+            'competitions' => Rencontre::COMPETITIONS,
+            'competition' => $competition,
+            'texte' => $texte,
+            'scores' => $scores,
+            'analyse' => $analyse,
+            'deja' => $deja,
+        ]);
+    }
+
+    /**
+     * Annule le dernier import : supprime les matchs qu'il a créés, sauf ceux déjà complétés
+     * (feuille de match, buts, remplacements ou convocation), qui sont gardés.
+     */
+    #[Route('/matchs/importer/annuler', name: 'app_rencontre_import_annuler', methods: ['POST'])]
+    public function annulerImport(Request $request, RencontreRepository $rencontres, ConvocationRepository $convocations, EntityManagerInterface $em): Response
+    {
+        $import = $request->getSession()->get(self::DERNIER_IMPORT);
+        if (!$import || !$this->isCsrfTokenValid('annuler-import', $request->getPayload()->getString('_token'))) {
+            return $this->redirectToRoute('app_rencontre_index');
+        }
+        $this->addFlash('succes', 'Import annulé : ' . $this->effacer($rencontres->findBy(['id' => $import['ids']]), $convocations, $em));
+        $request->getSession()->remove(self::DERNIER_IMPORT);
+
+        return $this->redirectToRoute('app_rencontre_index');
+    }
+
+    /** Efface les matchs d'une équipe pour une saison (calendrier importé par erreur…), sauf ceux déjà complétés. */
+    #[Route('/matchs/effacer', name: 'app_rencontre_effacer', methods: ['POST'])]
+    public function effacerSaison(Request $request, RencontreRepository $rencontres, CategorieRepository $categories, ConvocationRepository $convocations, EntityManagerInterface $em): Response
+    {
+        $donnees = $request->getPayload();
+        $categorie = array_values(array_filter($this->categoriesVisibles($categories), fn (Categorie $c) => $c->getId() === $donnees->getInt('categorie')))[0] ?? null;
+        $saison = $donnees->getString('saison');
+        if (!$categorie || !preg_match('#^(\d{4})/\d{4}$#', $saison, $m) || !$this->isCsrfTokenValid('effacer-matchs', $donnees->getString('_token'))) {
+            return $this->redirectToRoute('app_rencontre_index');
+        }
+        $liste = $rencontres->createQueryBuilder('r')
+            ->andWhere('r.categorie = :c')->setParameter('c', $categorie)
+            ->andWhere('r.date BETWEEN :debut AND :fin')
+            ->setParameter('debut', new \DateTimeImmutable($m[1] . '-07-01'))
+            ->setParameter('fin', new \DateTimeImmutable(((int) $m[1] + 1) . '-06-30'))
+            ->getQuery()->getResult();
+        $this->addFlash('succes', \sprintf('%s, saison %s : ', $categorie, $saison) . $this->effacer($liste, $convocations, $em));
+
+        return $this->redirectToRoute('app_rencontre_index', ['categorie' => $categorie->getId(), 'saison' => $saison]);
+    }
+
+    /**
+     * Supprime les matchs encore vierges ; garde ceux qui ont une feuille de match, des buts, des remplacements ou une convocation.
+     *
+     * @param list<Rencontre> $liste
+     *
+     * @return string bilan à afficher
+     */
+    private function effacer(array $liste, ConvocationRepository $convocations, EntityManagerInterface $em): string
+    {
+        $supprimes = $gardes = 0;
+        foreach ($liste as $r) {
+            if (!$this->isGranted(ActiviteVoter::GERER, $r)) {
+                continue;
+            }
+            if (!$r->getParticipations()->isEmpty() || !$r->getButs()->isEmpty() || !$r->getRemplacements()->isEmpty() || $convocations->pour($r)) {
+                ++$gardes;
+                continue;
+            }
+            $em->remove($r);
+            ++$supprimes;
+        }
+        $em->flush();
+
+        return \sprintf('%d match%s supprimé%s.', $supprimes, $supprimes > 1 ? 's' : '', $supprimes > 1 ? 's' : '')
+            . ($gardes ? \sprintf(' %d match%s déjà complété%s (feuille de match ou convocation) conservé%s.', $gardes, $gardes > 1 ? 's' : '', $gardes > 1 ? 's' : '', $gardes > 1 ? 's' : '') : '');
     }
 
     #[Route('/matchs/{id}', name: 'app_rencontre_voir', requirements: ['id' => '\d+'], methods: ['GET'])]

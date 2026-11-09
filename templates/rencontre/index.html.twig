@@ -7,9 +7,23 @@
     <div class="titre-page">
         <h1>Matchs <span class="compteur">{{ total }}</span></h1>
         {% if peut_creer %}
-            <a class="bouton principal" href="{{ path('app_rencontre_nouveau') }}">+ Nouveau match</a>
+            <span class="actions">
+                <a class="bouton" href="{{ path('app_rencontre_importer', filtres.categorie ? {categorie: filtres.categorie} : {}) }}">Importer des matchs</a>
+                <a class="bouton principal" href="{{ path('app_rencontre_nouveau') }}">+ Nouveau match</a>
+            </span>
         {% endif %}
     </div>
+
+    {% if dernier_import %}
+        {% set n = dernier_import.ids|length %}
+        <div class="carte annuler-import">
+            <span>Dernier import : {{ n }} match{{ n > 1 ? 's' }} pour {{ dernier_import.categorie }}, le {{ dernier_import.le|date('d/m/Y à H:i') }}.</span>
+            <form method="post" action="{{ path('app_rencontre_import_annuler') }}" class="en-ligne" data-confirmation="Supprimer les {{ n }} match{{ n > 1 ? 's' }} créé{{ n > 1 ? 's' }} par cet import ? Les matchs déjà complétés (feuille de match, convocation) sont gardés." data-confirmation-bouton="Annuler l'import">
+                <input type="hidden" name="_token" value="{{ csrf_token('annuler-import') }}">
+                <button class="bouton petit danger">Annuler cet import</button>
+            </form>
+        </div>
+    {% endif %}
 
     <form class="filtres" method="get">
         <input type="search" name="q" value="{{ filtres.q }}" placeholder="Adversaire ou stade">
@@ -18,6 +32,18 @@
     </form>
 
     {% include 'rencontre/_bilan.html.twig' %}
+
+    {% if peut_creer and filtres.categorie and filtres.saison and total > 0 %}
+        {% set equipe = (categories|filter(c => c.id == filtres.categorie)|first) %}
+        <form method="post" action="{{ path('app_rencontre_effacer') }}" class="effacer-saison"
+              data-confirmation="Effacer les {{ total }} match{{ total > 1 ? 's' }} {{ equipe.nom }} de la saison {{ filtres.saison }} ? Les matchs déjà complétés (feuille de match, buts, convocation) sont gardés."
+              data-confirmation-bouton="Effacer">
+            <input type="hidden" name="_token" value="{{ csrf_token('effacer-matchs') }}">
+            <input type="hidden" name="categorie" value="{{ filtres.categorie }}">
+            <input type="hidden" name="saison" value="{{ filtres.saison }}">
+            <button class="bouton petit danger">Effacer les matchs {{ equipe.nom }} de la saison {{ filtres.saison }}</button>
+        </form>
+    {% endif %}
 
     <div class="table-defile">
         <table class="liste liste-fiches">

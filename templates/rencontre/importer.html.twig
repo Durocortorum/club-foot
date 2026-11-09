@@ -1,0 +1,95 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Importer des matchs{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_rencontre_index') }}">← Matchs</a></p>
+    <div class="titre-page">
+        <div>
+            <h1>Importer des matchs</h1>
+            <p class="discret">Copiez le calendrier de l'équipe sur un site (Transfermarkt, page « Résultats et calendrier » de la FFF…), collez-le ci-dessous puis vérifiez les matchs reconnus avant de les importer.</p>
+        </div>
+    </div>
+
+    {# Sans Turbo : l'aperçu est une page ordinaire (pas une redirection), que Turbo n'afficherait pas. #}
+    <form method="post" class="formulaire" action="{{ path('app_rencontre_importer') }}#apercu" data-turbo="false">
+        <input type="hidden" name="_token" value="{{ csrf_token('importer-matchs') }}">
+        <div class="carte">
+            <div class="champs">
+                <div class="champ">
+                    <label for="import-categorie">Équipe</label>
+                    <select id="import-categorie" name="categorie" required>
+                        <option value="">Choisir l'équipe</option>
+                        {% for c in categories %}
+                            <option value="{{ c.id }}" {{ categorie and categorie.id == c.id ? 'selected' }}>{{ c.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="champ">
+                    <label for="import-competition">Compétition (si le calendrier ne l'indique pas)</label>
+                    <select id="import-competition" name="competition">
+                        {% for c in competitions %}
+                            <option value="{{ c }}" {{ c == competition ? 'selected' }}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="champ case">
+                    <input type="checkbox" id="import-scores" name="scores" value="1" {{ scores ? 'checked' }}>
+                    <label for="import-scores">Reprendre le score des matchs déjà joués</label>
+                </div>
+                <div class="champ large">
+                    <label for="import-texte">Calendrier copié</label>
+                    <textarea id="import-texte" name="texte" rows="10" required placeholder="Sur la page du calendrier : sélectionnez la liste des matchs (ou Ctrl+A), copiez (Ctrl+C) puis collez ici (Ctrl+V).">{{ texte }}</textarea>
+                    <p class="discret petit">Chaque match doit avoir une date (« dim. 23 août 2026 » ou « 23/08/2026 »), l'heure si elle est connue, puis l'équipe qui reçoit et l'équipe qui se déplace. Le reste de la page est ignoré.</p>
+                </div>
+            </div>
+        </div>
+        <div class="barre-actions">
+            <button type="submit" name="action" value="analyser" class="bouton{{ analyse ? '' : ' principal' }}">{{ analyse ? 'Relire le calendrier' : 'Lire le calendrier' }}</button>
+        </div>
+
+        {% if analyse %}
+            {% set nouveaux = analyse.matchs|length - deja|length %}
+            <section class="bloc" id="apercu">
+                <h2 class="titre-bloc">{{ analyse.matchs|length }} match{{ analyse.matchs|length > 1 ? 's' }} reconnu{{ analyse.matchs|length > 1 ? 's' }}</h2>
+                <p class="discret">Votre équipe sur ce calendrier : <strong>{{ analyse.nous }}</strong> (elle sera enregistrée sous le nom du club). Décochez les matchs à ne pas importer.</p>
+                <div class="table-defile">
+                    <table class="liste">
+                        <thead><tr><th></th><th>Date</th><th>Heure</th><th>Lieu</th><th>Adversaire</th><th>Score</th><th>Compétition</th><th></th></tr></thead>
+                        <tbody>
+                            {% for i, m in analyse.matchs %}
+                                <tr>
+                                    <td>
+                                        {% if deja[i] is defined %}
+                                            —
+                                        {% else %}
+                                            <input type="checkbox" name="lignes[]" value="{{ i }}" checked aria-label="Importer le match du {{ m.date|date('d/m/Y') }}">
+                                        {% endif %}
+                                    </td>
+                                    <td class="nowrap">{{ m.date|date('d/m/Y') }}</td>
+                                    <td>{{ m.heure ?? 'à préciser' }}</td>
+                                    <td>{{ m.aDomicile ? 'Domicile' : 'Extérieur' }}</td>
+                                    <td class="fort">{{ m.adversaire }}</td>
+                                    <td class="nowrap">{{ m.butsDomicile is not null ? m.butsDomicile ~ ' – ' ~ m.butsExterieur : '' }}</td>
+                                    <td>{{ m.competition ?? competition }}</td>
+                                    <td>
+                                        {% if deja[i] is defined %}
+                                            <a href="{{ path('app_rencontre_voir', {id: deja[i].id}) }}">déjà enregistré</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <div class="barre-actions">
+                {% if nouveaux > 0 %}
+                    <button type="submit" name="action" value="importer" class="bouton principal">Importer les matchs cochés</button>
+                {% else %}
+                    <p class="discret">Tous ces matchs sont déjà enregistrés pour {{ categorie }}.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </form>
+{% endblock %}

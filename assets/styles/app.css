@@ -495,6 +495,8 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .pastille-couleur { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--bordure); cursor: pointer; padding: 0; }
 .pastille-couleur.choisie { border-color: var(--encre); box-shadow: 0 0 0 2px #fff inset; }
 .schema-terrain.anime { cursor: pointer; }
+.effacer-saison { display: flex; justify-content: flex-end; margin: -.4rem 0 .8rem; }
+.annuler-import { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; padding: .7rem 1rem; margin-bottom: 1rem; }
 .schema-animation { margin-top: .6rem; padding: .5rem .7rem; background: #f6f6f8; border-radius: 8px; }
 .schema-animation p { margin: .4rem 0 0; }
 .schema-etapes-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
