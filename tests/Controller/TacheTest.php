@@ -212,6 +212,7 @@ class TacheTest extends WebTestCase
         $crawler = $this->client->followRedirect();
         // Une tâche faite disparaît de l'espace famille.
         self::assertCount(0, $crawler->filter('#taches'));
-        self::assertSelectorTextNotContains('main', 'Laver les maillots');
+        self::assertCount(0, $crawler->filter('.liste-taches'));
+        self::assertCount(0, $crawler->selectButton("✓ C'est fait"));
     }
 }
