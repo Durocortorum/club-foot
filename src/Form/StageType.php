@@ -56,7 +56,7 @@ class StageType extends AbstractType
                 'required' => false,
                 'help' => 'Stage non obligatoire. Le bouton « Prévenir les joueurs » de la fiche du stage leur envoie le message et ouvre les inscriptions.',
             ])
-            ->add('dateLimite', DateType::class, ['label' => 'Inscriptions jusqu\'au', 'required' => false, 'help' => 'Vide : jusqu\'à la veille du stage.'] + $date);
+            ->add('dateLimite', DateType::class, ['label' => 'Inscriptions jusqu\'au', 'required' => false, 'help' => 'Vide : jusqu\'au premier jour du stage inclus.'] + $date);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

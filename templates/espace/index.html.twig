@@ -79,7 +79,7 @@
                         {% elseif s.obligatoire %}
                             <span class="discret petit">En cas d'empêchement, prévenez l'éducateur.</span>
                         {% elseif not inscrit and s.inscriptionsFamilles %}
-                            <span class="discret petit">Inscriptions closes</span>
+                            <span class="discret petit">Inscriptions closes{% if s.limiteInscription %} depuis le {{ s.limiteInscription|date_modify('+1 day')|date('d/m') }}{% endif %}</span>
                         {% elseif not inscrit %}
                             <span class="discret petit">Inscription auprès de l'éducateur</span>
                         {% endif %}

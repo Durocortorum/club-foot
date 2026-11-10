@@ -84,7 +84,7 @@ class Stage implements AppartientAuClub
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $prevenuLe = null;
 
-    /** Dernier jour pour s'inscrire depuis l'espace famille ; vide = jusqu'à la veille du stage. */
+    /** Dernier jour pour s'inscrire depuis l'espace famille ; vide = jusqu'au premier jour du stage inclus. */
     #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $dateLimite = null;
 
@@ -333,10 +333,10 @@ class Stage implements AppartientAuClub
         return $this;
     }
 
-    /** Date limite d'inscription réelle (la veille du stage si aucune n'est indiquée). */
+    /** Date limite d'inscription réelle (le premier jour du stage si aucune n'est indiquée). */
     public function getLimiteInscription(): ?\DateTimeImmutable
     {
-        return $this->dateLimite ?? $this->debut?->modify('-1 day');
+        return $this->dateLimite ?? $this->debut;
     }
 
     public function getDateLimite(): ?\DateTimeImmutable
