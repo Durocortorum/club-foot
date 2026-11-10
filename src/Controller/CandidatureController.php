@@ -83,6 +83,8 @@ class CandidatureController extends AbstractController
             'c' => $candidature,
             'fiche' => $this->lienFiche($candidature),
             'a_supprimer' => $this->aSupprimer($candidature),
+            'deja_connu' => $candidature->getFiche() ? [] : $this->dejaConnu($candidature),
+            'meme_type' => null !== $this->ficheExistante($candidature, $candidature->getPosteVise()),
         ]);
     }
 
@@ -122,12 +124,22 @@ class CandidatureController extends AbstractController
         }
 
         $type = $candidature->getPosteVise();
-        $fiche = 'medical' === $type ? $this->contactMedical($candidature) : $this->intervenant($candidature, $type);
-        $this->em->persist($fiche);
+        // Pas de doublon : une fiche du même type au même nom (ancien compris) est reprise telle quelle.
+        $fiche = $this->ficheExistante($candidature, $type);
+        if ($fiche) {
+            if ($fiche instanceof Intervenant && $fiche->isAncien()) {
+                $fiche->setAncien(false);
+            }
+            $message = '%s avait déjà une fiche au club : la candidature y est rattachée, aucune fiche en double.';
+        } else {
+            $fiche = 'medical' === $type ? $this->contactMedical($candidature) : $this->intervenant($candidature, $type);
+            $this->em->persist($fiche);
+            $message = '%s a rejoint le club : sa fiche a été créée.';
+        }
         $this->em->flush();
         $candidature->setStatut('retenu')->setFiche($type . ':' . $fiche->getId());
         $this->em->flush();
-        $this->addFlash('succes', sprintf('%s a rejoint le club : sa fiche a été créée.', $candidature->getNomComplet()));
+        $this->addFlash('succes', sprintf($message, $candidature->getNomComplet()));
 
         $lien = $this->lienFiche($candidature);
 
@@ -224,6 +236,45 @@ class CandidatureController extends AbstractController
             'url' => $this->generateUrl('app_intervenant_voir', ['type' => $type, 'id' => $id]),
             'libelle' => 'fiche ' . mb_strtolower($c->getPosteViseLibelle()),
         ];
+    }
+
+    /**
+     * Fiche du type donné au même nom et prénom (la base ignore majuscules et accents), anciens compris.
+     */
+    private function ficheExistante(Candidature $c, string $type): Intervenant|ContactMedical|null
+    {
+        $classe = 'medical' === $type ? ContactMedical::class : (Encadrement::TYPES[$type]['classe'] ?? null);
+        if (!$classe) {
+            return null;
+        }
+
+        return $this->em->getRepository($classe)->createQueryBuilder('f')
+            ->where('f.nom = :nom AND f.prenom = :prenom')
+            ->setParameter('nom', $c->getNom())->setParameter('prenom', trim((string) $c->getPrenom()))
+            ->setMaxResults(1)->getQuery()->getOneOrNullResult();
+    }
+
+    /**
+     * Fiches au même nom dans tout le club (encadrement, arbitres, contacts médicaux), pour prévenir un doublon.
+     *
+     * @return list<array{url: string, libelle: string}>
+     */
+    private function dejaConnu(Candidature $c): array
+    {
+        $connu = [];
+        foreach (Encadrement::TYPES as $type => $t) {
+            if ($f = $this->ficheExistante($c, $type)) {
+                $connu[] = [
+                    'url' => $this->generateUrl('app_intervenant_voir', ['type' => $type, 'id' => $f->getId()]),
+                    'libelle' => $t['libelle'] . ($f->isAncien() ? ' (ancien)' : '') . ($f->getFonction() ? ' – ' . $f->getFonction() : ''),
+                ];
+            }
+        }
+        if ($f = $this->ficheExistante($c, 'medical')) {
+            $connu[] = ['url' => $this->generateUrl('app_contact_modifier', ['id' => $f->getId()]), 'libelle' => 'Contact médical' . ($f->getProfession() ? ' – ' . $f->getProfession() : '')];
+        }
+
+        return $connu;
     }
 
     /** Candidature non retenue reçue il y a plus de deux ans : à supprimer. */

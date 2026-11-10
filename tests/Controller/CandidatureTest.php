@@ -5,6 +5,7 @@ namespace App\Tests\Controller;
 use App\Entity\Candidature;
 use App\Entity\Club;
 use App\Entity\ContactMedical;
+use App\Entity\Dirigeant;
 use App\Entity\Educateur;
 use App\Entity\Utilisateur;
 use App\Service\CreationClub;
@@ -35,7 +36,7 @@ class CandidatureTest extends WebTestCase
             foreach ($connexion->fetchFirstColumn('SELECT cv FROM candidature WHERE club_id = ? AND cv IS NOT NULL', [$this->clubId]) as $cv) {
                 @unlink(static::getContainer()->getParameter('kernel.project_dir') . '/var/documents/' . $cv);
             }
-            foreach (['candidature', 'educateur', 'contact_medical', 'utilisateur'] as $table) {
+            foreach (['candidature', 'educateur', 'dirigeant', 'contact_medical', 'utilisateur'] as $table) {
                 $connexion->executeStatement("DELETE FROM $table WHERE club_id = ?", [$this->clubId]);
             }
             $connexion->executeStatement('DELETE FROM club WHERE id = ?', [$this->clubId]);
@@ -116,6 +117,21 @@ class CandidatureTest extends WebTestCase
         $contact = $em->getRepository(ContactMedical::class)->findOneBy(['club' => $this->clubId, 'nom' => 'PETIT']);
         self::assertSame('Kinésithérapeute', $contact->getProfession());
         self::assertSame('06 99 88 77 66', $contact->getTelephone());
+
+        // Un ancien dirigeant repostule (nom écrit autrement) : pas de doublon, sa fiche est reprise et réactivée.
+        $club = $em->find(Club::class, $this->clubId);
+        $ancien = (new Dirigeant())->setClub($club)->setNom('Lefèvre')->setPrenom('Jean')->setAncien(true);
+        $retour = (new Candidature())->setClub($club)->setNom('lefevre')->setPrenom('jean')->setPosteVise('dirigeants');
+        $em->persist($ancien);
+        $em->persist($retour);
+        $em->flush();
+        $crawler = $this->client->request('GET', '/recrutement/candidatures/' . $retour->getId());
+        self::assertStringContainsString('Déjà connu au club', $crawler->filter('main')->text());
+        $this->client->submit($crawler->selectButton('Rattacher à sa fiche existante')->form());
+        $em->clear();
+        self::assertCount(1, $em->getRepository(Dirigeant::class)->findBy(['club' => $this->clubId]));
+        self::assertFalse($em->find(Dirigeant::class, $ancien->getId())->isAncien());
+        self::assertSame('dirigeants:' . $ancien->getId(), $em->find(Candidature::class, $retour->getId())->getFiche());
 
         // Suppression : la candidature et son CV disparaissent.
         $cv = static::getContainer()->getParameter('kernel.project_dir') . '/var/documents/' . $lucas->getCv();

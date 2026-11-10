@@ -21,15 +21,23 @@
         <div class="actions">
             {% if c.cv %}<a class="bouton" href="{{ path('app_candidature_cv', {id: c.id}) }}" target="_blank" rel="noopener">Voir le CV</a>{% endif %}
             {% if not fiche and c.statut != 'refuse' %}
-                <form method="post" action="{{ path('app_candidature_integrer', {id: c.id}) }}" onsubmit="return confirm('Créer la fiche de {{ c.nomComplet|e('js') }} dans {{ c.posteVise == 'medical' ? 'les contacts médicaux de l\'infirmerie' : 'l\'encadrement' }} ?')">
+                <form method="post" action="{{ path('app_candidature_integrer', {id: c.id}) }}" onsubmit="return confirm('{{ (meme_type ? 'Rattacher la candidature à la fiche existante de ' ~ c.nomComplet : 'Créer la fiche de ' ~ c.nomComplet ~ ' dans ' ~ (c.posteVise == 'medical' ? 'les contacts médicaux de l\'infirmerie' : 'l\'encadrement'))|e('js') }} ?')">
                     <input type="hidden" name="_token" value="{{ csrf_token('integrer-candidature' ~ c.id) }}">
-                    <button type="submit" class="bouton">Intégrer {{ c.posteVise == 'medical' ? 'au corps médical' : 'à l\'encadrement' }}</button>
+                    <button type="submit" class="bouton">{{ meme_type ? 'Rattacher à sa fiche existante' : 'Intégrer ' ~ (c.posteVise == 'medical' ? 'au corps médical' : 'à l\'encadrement') }}</button>
                 </form>
             {% endif %}
             <a class="bouton principal" href="{{ path('app_candidature_modifier', {id: c.id}) }}">Modifier</a>
             {{ m.supprimer(path('app_candidature_supprimer', {id: c.id}), 'supprimer-candidature' ~ c.id, 'Supprimer la candidature et le CV de ' ~ c.nomComplet ~ ' ?') }}
         </div>
     </div>
+
+    {% if deja_connu %}
+        <p class="pastille alerte">
+            Déjà connu au club sous ce nom :
+            {% for f in deja_connu %}<a href="{{ f.url }}">{{ f.libelle }}</a>{{ not loop.last ? ' · ' }}{% endfor %}
+            {% if meme_type %} – le bouton rattache la candidature à la fiche {{ c.posteViseLibelle|lower }} existante, sans en créer une nouvelle.{% endif %}
+        </p>
+    {% endif %}
 
     {% if a_supprimer %}
         <p class="pastille alerte">Candidature non retenue reçue il y a plus de 2 ans : la CNIL recommande de la supprimer, sauf accord de la personne pour la garder.</p>
