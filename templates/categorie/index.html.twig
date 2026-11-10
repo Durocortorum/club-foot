@@ -7,7 +7,7 @@
     <div class="titre-page">
         <div>
             <h1>Catégories <span class="compteur">{{ categories|length }}</span></h1>
-            <p class="discret">Les équipes du club, dans l'ordre où elles apparaissent partout (accueil, filtres, statistiques).</p>
+            <p class="discret">Les équipes du club, dans l'ordre où elles apparaissent partout (accueil, filtres, statistiques). Une catégorie ne peut être supprimée que si plus aucun joueur, match ou séance ne l'utilise.</p>
         </div>
         <a class="bouton principal" href="{{ path('app_categorie_nouvelle') }}">+ Nouvelle catégorie</a>
     </div>
@@ -36,7 +36,10 @@
                         <td class="nowrap actions fin">
                             <a class="bouton petit" href="{{ path('app_categorie_modifier', {id: c.id}) }}">Modifier</a>
                             {% if not utilisations[c.id] %}
-                                {{ m.supprimer(path('app_categorie_supprimer', {id: c.id}), 'supprimer-categorie' ~ c.id, 'Supprimer la catégorie « ' ~ c.nom ~ ' » ?', '×') }}
+                                {{ m.supprimer(path('app_categorie_supprimer', {id: c.id}), 'supprimer-categorie' ~ c.id, 'Supprimer la catégorie « ' ~ c.nom ~ ' » ?') }}
+                            {% else %}
+                                {# Utilisée : la supprimer ferait perdre leur catégorie aux joueurs, matchs, séances… #}
+                                <button class="bouton petit danger" disabled title="Utilisée par {{ utilisations[c.id]|join(', ') }} : changez-les de catégorie avant de la supprimer, ou renommez-la.">Supprimer</button>
                             {% endif %}
                         </td>
                     </tr>

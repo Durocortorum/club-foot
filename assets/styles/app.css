@@ -416,7 +416,7 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
     display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem;
     border-radius: 50%; background: var(--rouge); color: var(--sur-rouge); font-size: .9rem; font-weight: 700;
 }
-.atlas-acces .bouton:disabled { opacity: .5; cursor: not-allowed; }
+.atlas-acces .bouton:disabled, .bouton:disabled { opacity: .5; cursor: not-allowed; }
 .atlas-credits { margin-top: 1rem; font-size: .75rem; color: var(--gris); }
 .atlas-credits a { color: inherit; text-decoration: underline; }
 .atlas-region .atlas-structures { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
