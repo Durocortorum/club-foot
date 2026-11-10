@@ -184,7 +184,7 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
 
     public function setPrenom(string $prenom): static
     {
-        $this->prenom = $prenom;
+        $this->prenom = Prenom::formater($prenom);
 
         return $this;
     }

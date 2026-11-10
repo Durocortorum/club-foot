@@ -110,7 +110,7 @@ class JoueurObserve implements AppartientAuClub
 
     public function setPrenom(?string $prenom): static
     {
-        $this->prenom = $prenom;
+        $this->prenom = Prenom::formater($prenom);
 
         return $this;
     }
