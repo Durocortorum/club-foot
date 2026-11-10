@@ -59,6 +59,25 @@ class TacheRepository extends ServiceEntityRepository
             ->getQuery()->getResult();
     }
 
+    /**
+     * Tâches non faites confiées à d'autres (encadrement ou joueurs) que ce compte peut voir, pour l'accueil.
+     *
+     * @return list<Tache>
+     */
+    public function ouvertesDesAutres(Utilisateur $u, int $limite): array
+    {
+        return self::visibles($this->createQueryBuilder('t'), $u)
+            ->leftJoin('t.categorie', 'c')->addSelect('c')
+            ->leftJoin('t.responsable', 'r')->addSelect('r')
+            ->leftJoin('t.joueur', 'j')->addSelect('j')
+            ->andWhere('t.statut != :faite')->setParameter('faite', 'faite')
+            ->andWhere('t.responsable IS NULL OR t.responsable != :moi')->setParameter('moi', $u)
+            ->addSelect('CASE WHEN t.echeance IS NULL THEN 1 ELSE 0 END AS HIDDEN sans_echeance')
+            ->orderBy('t.urgente', 'DESC')->addOrderBy('sans_echeance')->addOrderBy('t.echeance')->addOrderBy('t.id')
+            ->setMaxResults($limite)
+            ->getQuery()->getResult();
+    }
+
     /** Tâches non faites du club (à faire et en cours) que ce compte peut voir. */
     public function compterOuvertes(Utilisateur $u): int
     {

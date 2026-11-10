@@ -38,6 +38,8 @@ class AccueilController extends AbstractController
             'etapes_faites' => \count(array_filter($etapes, fn (array $e) => $e['fait'])),
             'mes_taches' => $taches->ouvertesDe($this->getUser(), 5),
             'nb_taches' => $taches->compterOuvertesDe($this->getUser()),
+            'taches_club' => $taches->ouvertesDesAutres($this->getUser(), 8),
+            'nb_taches_club' => $taches->compterOuvertes($this->getUser()) - $taches->compterOuvertesDe($this->getUser()),
         ]);
     }
 }

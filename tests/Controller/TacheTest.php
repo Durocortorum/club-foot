@@ -76,6 +76,11 @@ class TacheTest extends WebTestCase
         $pastille = $crawler->filter('a[href="/taches?vue=toutes"] .pastille');
         self::assertSame('1', $pastille->text());
         self::assertStringNotContainsString('alerte', $pastille->attr('class'));
+        // Accueil de l'administrateur : la tâche de Paul dans « Tâches en cours du club », pas dans « Mes tâches ».
+        $crawler = $this->client->request('GET', '/');
+        self::assertCount(0, $crawler->filter('.mes-taches:not(.taches-club)'));
+        self::assertStringContainsString('Commander les maillots', $crawler->filter('.taches-club')->text());
+        self::assertStringContainsString('Paul DURAND', $crawler->filter('.taches-club')->text());
         $tache = $em->getRepository(Tache::class)->findOneBy(['club' => $this->clubId]);
         self::assertSame('U13', $tache->getCategorie()->getNom());
         self::assertTrue($tache->isEnRetard());
@@ -91,7 +96,7 @@ class TacheTest extends WebTestCase
         self::assertEmailCount(1);
         self::assertEmailAddressContains(self::getMailerMessage(), 'To', "admin-$id@exemple.test");
         $crawler = $this->client->followRedirect();
-        self::assertCount(0, $crawler->filter('.mes-taches'));
+        self::assertCount(0, $crawler->filter('.mes-taches:not(.taches-club)'));
         $em->clear();
         $tache = $em->find(Tache::class, $tache->getId());
         self::assertTrue($tache->isFaite());

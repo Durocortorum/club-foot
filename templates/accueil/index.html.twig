@@ -22,8 +22,8 @@
         </section>
     {% endif %}
 
+    {% import 'tache/_boutons.html.twig' as b %}
     {% if mes_taches %}
-        {% import 'tache/_boutons.html.twig' as b %}
         <section class="carte mes-taches">
             <div class="premiers-pas-entete">
                 <h2>Mes tâches</h2>
@@ -36,6 +36,24 @@
                             <span class="discret petit">{{ t.categorie ? t.categorie.nom : 'Tout le club' }}{% if t.echeance %} · pour le {{ t.echeance|date('d/m') }}{% endif %}</span>
                             {{ b.pastilles(t) }}</span>
                         <span>{{ b.statut(t, path('app_accueil')) }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {% if taches_club %}
+        <section class="carte mes-taches taches-club">
+            <div class="premiers-pas-entete">
+                <h2>Tâches en cours du club</h2>
+                <a class="discret petit" href="{{ path('app_tache_index', {vue: 'toutes'}) }}">{{ nb_taches_club > taches_club|length ? 'les ' ~ nb_taches_club ~ ' tâches' : 'tout voir' }} →</a>
+            </div>
+            <ul class="liste-taches">
+                {% for t in taches_club %}
+                    <li>
+                        <span><a href="{{ path('app_tache_voir', {id: t.id}) }}"><strong>{{ t.objet }}</strong></a>
+                            <span class="discret petit">{{ t.chargeDe }} · {{ t.categorie ? t.categorie.nom : 'Tout le club' }}{% if t.echeance %} · pour le {{ t.echeance|date('d/m') }}{% endif %}</span>
+                            {{ b.pastilles(t) }}</span>
                     </li>
                 {% endfor %}
             </ul>
