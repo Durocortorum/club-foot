@@ -197,4 +197,22 @@ class Club
 
         return \sprintf('#%02x%02x%02x', $r * .78, $v * .78, $b * .78);
     }
+
+    /**
+     * Pastilles « à traiter » du menu : jaune et chiffre noir, qui ressortent sur la plupart des couleurs ;
+     * noire et chiffre blanc si le menu du club est lui-même clair (jaune, blanc, orange vif…).
+     *
+     * @return array{fond: string, texte: string}
+     */
+    public function getCouleursNotification(): array
+    {
+        [$r, $v, $b] = array_map(function (int $c): float {
+            $c /= 255;
+
+            return $c <= .03928 ? $c / 12.92 : (($c + .055) / 1.055) ** 2.4;
+        }, sscanf($this->couleur, '#%02x%02x%02x'));
+        $luminance = .2126 * $r + .7152 * $v + .0722 * $b;
+
+        return $luminance > .4 ? ['fond' => '#1d1d1f', 'texte' => '#ffffff'] : ['fond' => '#ffd60a', 'texte' => '#1d1d1f'];
+    }
 }

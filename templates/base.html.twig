@@ -19,7 +19,7 @@
     </head>
     {# Couleurs du club (page « Apparence du club ») sur le <body>, que Turbo remplace à chaque page :
        dans le <head>, l'ancien style restait après un changement de club. #}
-    <body style="--rouge: {{ club.couleur }}; --rouge-fonce: {{ club.couleurFoncee }}; --sur-rouge: {{ club.couleurTexte }};">
+    <body style="--rouge: {{ club.couleur }}; --rouge-fonce: {{ club.couleurFoncee }}; --sur-rouge: {{ club.couleurTexte }}; --notif: {{ club.couleursNotification.fond }}; --sur-notif: {{ club.couleursNotification.texte }};">
         {% if app.user %}
             <header class="entete" data-controller="menu">
                 <a class="marque" href="{{ path('app_accueil') }}">
