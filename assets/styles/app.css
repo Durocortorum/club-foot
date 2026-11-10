@@ -38,8 +38,8 @@ h2 { font-size: 1.05rem; margin: 0 0 .8rem; }
 .menu { display: flex; flex-wrap: wrap; gap: .3rem; order: 3; flex-basis: 100%; min-width: 0; }
 .menu a { padding: .4rem .8rem; border-radius: 6px; opacity: .85; }
 .menu a:hover, .menu a.actif { background: color-mix(in srgb, var(--sur-rouge) 18%, transparent); opacity: 1; text-decoration: none; }
-/* Pastilles du menu : à traiter (alerte) = jaune ou noire selon la couleur du club (Club::getCouleursNotification), information = translucide. */
-.menu .pastille { background: color-mix(in srgb, var(--sur-rouge) 22%, transparent); color: var(--sur-rouge); font-weight: 600; }
+/* Pastilles du menu : pour soi (alerte) = jaune, ou noire si le menu est clair (Club::getCouleursNotification) ; pour les autres = deuxième couleur du club. */
+.menu .pastille { background: var(--sur-rouge); color: var(--rouge); font-weight: 600; }
 .menu .pastille.alerte { background: var(--notif, #ffd60a); color: var(--sur-notif, #1d1d1f); font-weight: 700; }
 .compte { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem 1rem; font-size: .9rem; margin-left: auto; white-space: nowrap; }
 .burger {
