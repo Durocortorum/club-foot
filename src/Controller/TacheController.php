@@ -73,6 +73,7 @@ class TacheController extends AbstractController
             'personnes' => 'toutes' === $vue ? $utilisateurs->findBy(['famille' => false], ['nom' => 'ASC', 'prenom' => 'ASC']) : [],
             'compteurs' => [
                 'miennes' => $taches->compterOuvertesDe($moi),
+                'toutes' => $taches->compterOuvertes(),
                 'donnees' => (int) $taches->createQueryBuilder('t')->select('COUNT(t.id)')
                     ->where('t.creePar = :moi AND t.statut != :faite')->setParameter('moi', $moi)->setParameter('faite', 'faite')
                     ->getQuery()->getSingleScalarResult(),

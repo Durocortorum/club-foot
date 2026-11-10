@@ -58,6 +58,14 @@ class TacheRepository extends ServiceEntityRepository
             ->getQuery()->getResult();
     }
 
+    /** Tâches non faites de tout le club (à faire et en cours). */
+    public function compterOuvertes(): int
+    {
+        return (int) $this->createQueryBuilder('t')->select('COUNT(t.id)')
+            ->where('t.statut != :faite')->setParameter('faite', 'faite')
+            ->getQuery()->getSingleScalarResult();
+    }
+
     public function compterOuvertesDe(Utilisateur $u): int
     {
         return (int) $this->createQueryBuilder('t')->select('COUNT(t.id)')

@@ -72,6 +72,10 @@ class TacheTest extends WebTestCase
         self::assertEmailHtmlBodyContains($email, 'Commander les maillots');
         $crawler = $this->client->followRedirect();
         self::assertStringContainsString('Paul est prévenu(e) par e-mail', $crawler->filter('.flash-succes, .flash')->text());
+        // Menu de l'administrateur : 1 tâche en cours dans le club, aucune pour lui (pastille grise, lien vers toutes).
+        $pastille = $crawler->filter('a[href="/taches?vue=toutes"] .pastille');
+        self::assertSame('1', $pastille->text());
+        self::assertStringNotContainsString('alerte', $pastille->attr('class'));
         $tache = $em->getRepository(Tache::class)->findOneBy(['club' => $this->clubId]);
         self::assertSame('U13', $tache->getCategorie()->getNom());
         self::assertTrue($tache->isEnRetard());

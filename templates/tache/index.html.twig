@@ -7,7 +7,7 @@
     <nav class="onglets">
         <a href="{{ path('app_tache_index', {vue: 'miennes'}) }}" class="{{ filtres.vue == 'miennes' ? 'actif' }}">Mes tâches{% if compteurs.miennes %} <span class="pastille">{{ compteurs.miennes }}</span>{% endif %}</a>
         <a href="{{ path('app_tache_index', {vue: 'donnees'}) }}" class="{{ filtres.vue == 'donnees' ? 'actif' }}">Confiées par moi{% if compteurs.donnees %} <span class="pastille">{{ compteurs.donnees }}</span>{% endif %}</a>
-        <a href="{{ path('app_tache_index', {vue: 'toutes'}) }}" class="{{ filtres.vue == 'toutes' ? 'actif' }}">Toutes les tâches</a>
+        <a href="{{ path('app_tache_index', {vue: 'toutes'}) }}" class="{{ filtres.vue == 'toutes' ? 'actif' }}">Toutes les tâches{% if compteurs.toutes %} <span class="pastille">{{ compteurs.toutes }}</span>{% endif %}</a>
     </nav>
 
     <div class="titre-page">
