@@ -368,12 +368,12 @@ class Stage implements AppartientAuClub
         return null;
     }
 
-    public function inscrire(Joueur $joueur, bool $parFamille = false): InscriptionStage
+    public function inscrire(Joueur $joueur, bool $parFamille = false, bool $parLeJoueur = false): InscriptionStage
     {
         if ($existante = $this->inscription($joueur)) {
             return $existante;
         }
-        $inscription = new InscriptionStage($this, $joueur, $parFamille);
+        $inscription = new InscriptionStage($this, $joueur, $parFamille, $parLeJoueur);
         $this->inscriptions->add($inscription);
 
         return $inscription;

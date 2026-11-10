@@ -2,6 +2,7 @@
 
 namespace App\Tests\Entity;
 
+use App\Entity\Joueur;
 use App\Entity\Stage;
 use PHPUnit\Framework\TestCase;
 
@@ -25,5 +26,16 @@ class StageTest extends TestCase
         self::assertFalse($stage->isInscriptionOuverte($aujourdhui));
         $stage->setObligatoire(false)->setInscriptionsFamilles(false);
         self::assertFalse($stage->isInscriptionOuverte($aujourdhui));
+    }
+
+    public function testInscriptionParLeJoueur(): void
+    {
+        $stage = (new Stage())->setDebut(new \DateTimeImmutable('today'));
+        $parLui = $stage->inscrire((new Joueur())->setNom('Durand')->setPrenom('Max'), true, true);
+        self::assertTrue($parLui->isParLeJoueur());
+        self::assertTrue($parLui->isParFamille(), 'inscrit depuis un espace');
+        $parEncadrement = $stage->inscrire((new Joueur())->setNom('Petit')->setPrenom('Tom'));
+        self::assertFalse($parEncadrement->isParLeJoueur());
+        self::assertFalse($parEncadrement->isParFamille());
     }
 }

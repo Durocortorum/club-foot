@@ -130,7 +130,9 @@ class StageTest extends WebTestCase
         $stage = $em->find(Stage::class, $stage->getId());
         self::assertCount(2, $stage->getInscriptions());
         self::assertTrue($stage->isComplet());
-        self::assertTrue($stage->inscription($em->find(Joueur::class, $lea->getId()))->isParFamille());
+        $inscriptionLea = $stage->inscription($em->find(Joueur::class, $lea->getId()));
+        self::assertTrue($inscriptionLea->isParFamille());
+        self::assertFalse($inscriptionLea->isParLeJoueur(), 'inscrite par ses parents, pas par elle-même');
 
         // Elle annule l'inscription.
         $this->client->submit($crawler->selectButton("Annuler l'inscription")->form());

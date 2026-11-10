@@ -121,7 +121,7 @@ class EspaceController extends AbstractController
 
     /** La famille inscrit son enfant à un stage, ou annule l'inscription, tant que les inscriptions sont ouvertes. */
     #[Route('/espace/stage/{id}/{joueur}', name: 'app_espace_stage', requirements: ['id' => '\d+', 'joueur' => '\d+'], methods: ['POST'])]
-    public function stage(Request $request, ?Stage $stage, Joueur $joueur, EntityManagerInterface $em): Response
+    public function stage(Request $request, ?Stage $stage, Joueur $joueur, EntityManagerInterface $em, AccesFamille $acces): Response
     {
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
@@ -149,7 +149,7 @@ class EspaceController extends AbstractController
 
             return $retour;
         } else {
-            $em->persist($stage->inscrire($joueur, true));
+            $em->persist($stage->inscrire($joueur, true, $acces->estLeJoueur($moi, $joueur)));
             $this->addFlash('succes', $joueur->getPrenom() . ' est inscrit(e) au stage « ' . $stage->getTitre() . ' ».' . ($stage->isPayant() ? ' Le règlement se fait auprès du club.' : ''));
         }
         $em->flush();

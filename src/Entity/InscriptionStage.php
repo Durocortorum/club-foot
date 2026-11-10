@@ -30,14 +30,19 @@ class InscriptionStage
     #[ORM\Column]
     private bool $parFamille;
 
+    /** Inscrit depuis le compte du joueur lui-même (joueur majeur), et non par ses parents. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $parLeJoueur = false;
+
     #[ORM\Column]
     private bool $paye = false;
 
-    public function __construct(Stage $stage, Joueur $joueur, bool $parFamille = false)
+    public function __construct(Stage $stage, Joueur $joueur, bool $parFamille = false, bool $parLeJoueur = false)
     {
         $this->stage = $stage;
         $this->joueur = $joueur;
-        $this->parFamille = $parFamille;
+        $this->parFamille = $parFamille || $parLeJoueur;
+        $this->parLeJoueur = $parLeJoueur;
         $this->inscritLe = new \DateTimeImmutable();
     }
 
@@ -64,6 +69,11 @@ class InscriptionStage
     public function isParFamille(): bool
     {
         return $this->parFamille;
+    }
+
+    public function isParLeJoueur(): bool
+    {
+        return $this->parLeJoueur;
     }
 
     public function isPaye(): bool

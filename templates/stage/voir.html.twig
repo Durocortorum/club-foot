@@ -65,7 +65,7 @@
                             <tr>
                                 <td class="principal"><a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a></td>
                                 <td data-label="catégorie">{{ j.categorie ? j.categorie.nom }}</td>
-                                <td data-label="inscrit">le {{ i.inscritLe|date('d/m') }}{% if i.parFamille %} <span class="pastille">par la famille</span>{% endif %}</td>
+                                <td data-label="inscrit">le {{ i.inscritLe|date('d/m') }}{% if i.parLeJoueur %} <span class="pastille">par le joueur</span>{% elseif i.parFamille %} <span class="pastille">par la famille</span>{% endif %}</td>
                                 {% if s.payant %}
                                     <td>
                                         {% if i.paye %}<span class="pastille succes">payé</span>{% else %}<span class="pastille alerte">à payer</span>{% endif %}
