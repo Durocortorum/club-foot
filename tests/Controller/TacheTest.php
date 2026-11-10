@@ -210,7 +210,8 @@ class TacheTest extends WebTestCase
         self::assertEmailAddressContains($email, 'To', "admin-$id@exemple.test");
         self::assertEmailHtmlBodyContains($email, 'La famille de Tom PETIT');
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('#taches + .liste-taches', 'faite');
-        self::assertCount(0, $crawler->selectButton("✓ C'est fait"));
+        // Une tâche faite disparaît de l'espace famille.
+        self::assertCount(0, $crawler->filter('#taches'));
+        self::assertSelectorTextNotContains('main', 'Laver les maillots');
     }
 }

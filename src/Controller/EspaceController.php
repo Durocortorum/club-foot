@@ -81,7 +81,7 @@ class EspaceController extends AbstractController
         // Même période que la page « Planning » de l'éducateur.
         $entrainements = $planning->aVenir(array_values($categories), PlanningEntrainements::HORIZON);
 
-        // Tâches confiées aux joueurs : non faites, et faites depuis moins de 15 jours.
+        // Tâches confiées aux joueurs, à faire ou en cours (une tâche faite disparaît).
         $tachesParJoueur = [];
         foreach ($taches->pourJoueurs($moi->getJoueurs()->toArray()) as $t) {
             $tachesParJoueur[$t->getJoueur()->getId()][] = $t;

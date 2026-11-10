@@ -36,7 +36,7 @@ class TacheRepository extends ServiceEntityRepository
     }
 
     /**
-     * Tâches confiées à ces joueurs, pour l'espace famille : non faites, et faites depuis moins de 15 jours.
+     * Tâches à faire ou en cours confiées à ces joueurs, pour l'espace famille (une tâche faite en disparaît).
      *
      * @param list<\App\Entity\Joueur> $joueurs
      *
@@ -50,12 +50,10 @@ class TacheRepository extends ServiceEntityRepository
 
         return $this->createQueryBuilder('t')
             ->where('t.joueur IN (:joueurs)')
-            ->andWhere('t.statut != :faite OR t.faiteLe >= :depuis')
+            ->andWhere('t.statut != :faite')
             ->setParameter('joueurs', $joueurs)->setParameter('faite', 'faite')
-            ->setParameter('depuis', new \DateTimeImmutable('-15 days'))
-            ->addSelect('CASE WHEN t.statut = :faite THEN 1 ELSE 0 END AS HIDDEN faite_en_dernier')
             ->addSelect('CASE WHEN t.echeance IS NULL THEN 1 ELSE 0 END AS HIDDEN sans_echeance')
-            ->orderBy('faite_en_dernier')->addOrderBy('sans_echeance')->addOrderBy('t.echeance')
+            ->orderBy('sans_echeance')->addOrderBy('t.echeance')
             ->getQuery()->getResult();
     }
 
