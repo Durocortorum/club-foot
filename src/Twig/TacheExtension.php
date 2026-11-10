@@ -28,7 +28,7 @@ class TacheExtension extends AbstractExtension
                     return ['total' => 0, 'miennes' => 0];
                 }
 
-                return ['total' => $this->taches->compterOuvertes(), 'miennes' => $this->taches->compterOuvertesDe($u)];
+                return ['total' => $this->taches->compterOuvertes($u), 'miennes' => $this->taches->compterOuvertesDe($u)];
             }),
         ];
     }

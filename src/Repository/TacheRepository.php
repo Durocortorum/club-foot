@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Tache;
 use App\Entity\Utilisateur;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -58,12 +59,19 @@ class TacheRepository extends ServiceEntityRepository
             ->getQuery()->getResult();
     }
 
-    /** Tâches non faites de tout le club (à faire et en cours). */
-    public function compterOuvertes(): int
+    /** Tâches non faites du club (à faire et en cours) que ce compte peut voir. */
+    public function compterOuvertes(Utilisateur $u): int
     {
-        return (int) $this->createQueryBuilder('t')->select('COUNT(t.id)')
-            ->where('t.statut != :faite')->setParameter('faite', 'faite')
+        return (int) self::visibles($this->createQueryBuilder('t')->select('COUNT(t.id)'), $u)
+            ->andWhere('t.statut != :faite')->setParameter('faite', 'faite')
             ->getQuery()->getSingleScalarResult();
+    }
+
+    /** Écarte les tâches privées dont ce compte n'est ni l'auteur ni la personne chargée. */
+    public static function visibles(QueryBuilder $qb, Utilisateur $u, string $alias = 't'): QueryBuilder
+    {
+        return $qb->andWhere("$alias.privee = false OR $alias.creePar = :visible_par OR $alias.responsable = :visible_par")
+            ->setParameter('visible_par', $u);
     }
 
     public function compterOuvertesDe(Utilisateur $u): int

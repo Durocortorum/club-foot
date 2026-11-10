@@ -72,6 +72,11 @@ class TacheType extends AbstractType
             ])
             ->add('echeance', DateType::class, ['label' => 'À faire pour le', 'widget' => 'single_text', 'input' => 'datetime_immutable', 'required' => false])
             ->add('urgente', CheckboxType::class, ['label' => 'Urgente', 'required' => false])
+            ->add('privee', CheckboxType::class, [
+                'label' => 'Tâche privée',
+                'required' => false,
+                'help' => 'Visible seulement par vous et la personne chargée (ou la famille du joueur).',
+            ])
             ->add('description', TextareaType::class, ['label' => 'Détails', 'required' => false]);
 
         if (!$options['creation']) {

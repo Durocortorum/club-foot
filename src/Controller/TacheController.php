@@ -46,6 +46,7 @@ class TacheController extends AbstractController
             ->leftJoin('t.responsable', 'r')->addSelect('r')
             ->leftJoin('t.joueur', 'j')->addSelect('j')
             ->addSelect('CASE WHEN t.echeance IS NULL THEN 1 ELSE 0 END AS HIDDEN sans_echeance');
+        TacheRepository::visibles($qb, $moi);
         match ($vue) {
             'miennes' => $qb->andWhere('t.responsable = :moi')->setParameter('moi', $moi),
             'donnees' => $qb->andWhere('t.creePar = :moi')->setParameter('moi', $moi),
@@ -73,7 +74,7 @@ class TacheController extends AbstractController
             'personnes' => 'toutes' === $vue ? $utilisateurs->findBy(['famille' => false], ['nom' => 'ASC', 'prenom' => 'ASC']) : [],
             'compteurs' => [
                 'miennes' => $taches->compterOuvertesDe($moi),
-                'toutes' => $taches->compterOuvertes(),
+                'toutes' => $taches->compterOuvertes($moi),
                 'donnees' => (int) $taches->createQueryBuilder('t')->select('COUNT(t.id)')
                     ->where('t.creePar = :moi AND t.statut != :faite')->setParameter('moi', $moi)->setParameter('faite', 'faite')
                     ->getQuery()->getSingleScalarResult(),
@@ -98,6 +99,7 @@ class TacheController extends AbstractController
     #[Route('/{id}', name: 'app_tache_voir', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function voir(Tache $tache): Response
     {
+        $this->verifierVisible($tache);
         return $this->render('tache/voir.html.twig', [
             't' => $tache,
             'peut_modifier' => $this->peutModifier($tache),
@@ -108,6 +110,7 @@ class TacheController extends AbstractController
     #[Route('/{id}/modifier', name: 'app_tache_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function modifier(Request $request, Tache $tache): Response
     {
+        $this->verifierVisible($tache);
         $this->verifier($this->peutModifier($tache));
 
         return $this->formulaire($request, $tache, 'Modifier la tâche', false);
@@ -117,6 +120,7 @@ class TacheController extends AbstractController
     #[Route('/{id}/statut', name: 'app_tache_statut', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function statut(Request $request, Tache $tache): Response
     {
+        $this->verifierVisible($tache);
         $this->verifier($this->peutModifier($tache));
         $statut = $request->getPayload()->getString('statut');
         if ($this->isCsrfTokenValid('statut-tache' . $tache->getId(), $request->getPayload()->getString('_token'))
@@ -140,6 +144,7 @@ class TacheController extends AbstractController
     #[Route('/{id}/supprimer', name: 'app_tache_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimer(Request $request, Tache $tache): Response
     {
+        $this->verifierVisible($tache);
         $this->verifier($this->peutSupprimer($tache));
         if ($this->isCsrfTokenValid('supprimer-tache' . $tache->getId(), $request->getPayload()->getString('_token'))) {
             $this->em->remove($tache);
@@ -194,6 +199,14 @@ class TacheController extends AbstractController
     private function peutSupprimer(Tache $tache): bool
     {
         return $this->isGranted('ROLE_ADMIN') || $tache->getCreePar() === $this->moi();
+    }
+
+    /** Tâche privée d'autres personnes : introuvable, administration comprise. */
+    private function verifierVisible(Tache $tache): void
+    {
+        if (!$tache->estVisiblePar($this->moi())) {
+            throw $this->createNotFoundException();
+        }
     }
 
     private function verifier(bool $autorise): void

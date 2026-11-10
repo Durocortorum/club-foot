@@ -56,6 +56,10 @@ class Tache implements AppartientAuClub
     #[ORM\Column]
     private bool $urgente = false;
 
+    /** Visible seulement par la personne qui l'a confiée et celle qui en est chargée (ou la famille du joueur). */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $privee = false;
+
     #[ORM\Column(length: 20)]
     #[Assert\Choice(choices: ['a_faire', 'en_cours', 'faite'])]
     private string $statut = 'a_faire';
@@ -186,6 +190,27 @@ class Tache implements AppartientAuClub
         $this->urgente = $urgente;
 
         return $this;
+    }
+
+    public function isPrivee(): bool
+    {
+        return $this->privee;
+    }
+
+    public function setPrivee(bool $privee): static
+    {
+        $this->privee = $privee;
+
+        return $this;
+    }
+
+    /** Ce compte peut-il voir la tâche ? Une tâche privée : celui qui l'a confiée, la personne chargée, la famille du joueur. */
+    public function estVisiblePar(Utilisateur $u): bool
+    {
+        return !$this->privee
+            || $this->creePar === $u
+            || $this->responsable === $u
+            || ($this->joueur && $u->suit($this->joueur));
     }
 
     public function getStatut(): string

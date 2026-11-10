@@ -18,7 +18,7 @@
 
         <fieldset class="carte">
             <legend>Tâche</legend>
-            {{ m.groupe(form, ['objet', 'categorie', 'responsable', 'joueur', 'echeance', 'urgente', 'description']) }}
+            {{ m.groupe(form, ['objet', 'categorie', 'responsable', 'joueur', 'echeance', 'urgente', 'privee', 'description']) }}
             {% if not t.id %}<p class="discret petit">Confiez la tâche à une personne de l'encadrement ou à un joueur : la personne, ou la famille du joueur, reçoit un e-mail.</p>{% endif %}
         </fieldset>
 

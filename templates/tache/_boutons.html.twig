@@ -13,6 +13,7 @@
 
 {# Pastilles : statut, urgence, retard. #}
 {% macro pastilles(t) %}
+    {% if t.privee %}<span class="pastille" title="Visible seulement par la personne qui l'a confiée et la personne chargée">🔒 privée</span>{% endif %}
     {% if t.urgente and not t.faite %}<span class="pastille alerte">urgente</span>{% endif %}
     {% if t.enRetard %}<span class="pastille alerte">en retard</span>{% endif %}
     <span class="pastille {{ t.faite ? 'succes' }}">{{ t.statutLibelle }}</span>

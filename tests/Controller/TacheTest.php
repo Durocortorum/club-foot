@@ -124,6 +124,31 @@ class TacheTest extends WebTestCase
         $this->client->request('GET', '/taches/' . $propre->getId() . '/modifier');
         self::assertResponseStatusCodeSame(403);
 
+        // Léa confie une tâche privée à Paul : eux deux la voient, ni l'administrateur ni les autres.
+        $crawler = $this->client->request('GET', '/taches/nouvelle');
+        $this->client->submit($crawler->selectButton('Confier la tâche')->form([
+            'tache[objet]' => 'Entretien individuel',
+            'tache[responsable]' => $coach->getId(),
+            'tache[privee]' => '1',
+        ]));
+        $privee = $em->getRepository(Tache::class)->findOneBy(['club' => $this->clubId, 'objet' => 'Entretien individuel']);
+        self::assertTrue($privee->isPrivee());
+        $crawler = $this->client->request('GET', '/taches?vue=donnees');
+        self::assertStringContainsString('privée', $crawler->filter('tbody')->text());
+        $this->client->loginUser($em->find(Utilisateur::class, $coach->getId()));
+        $crawler = $this->client->request('GET', '/taches');
+        self::assertStringContainsString('Entretien individuel', $crawler->filter('tbody')->text());
+        $this->client->loginUser($em->find(Utilisateur::class, $admin->getId()));
+        $crawler = $this->client->request('GET', '/taches?vue=toutes&statut=toutes');
+        self::assertStringNotContainsString('Entretien individuel', $crawler->filter('tbody')->text());
+        self::assertSame('1', $crawler->filter('nav.onglets a')->last()->filter('.pastille')->text(), 'compteur sans la tâche privée');
+        $this->client->request('GET', '/taches/' . $privee->getId());
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('GET', '/taches/' . $privee->getId() . '/modifier');
+        self::assertResponseStatusCodeSame(404);
+        $em->remove($em->find(Tache::class, $privee->getId()));
+        $em->flush();
+
         // Tâche confiée à un joueur : la famille reçoit un e-mail, la voit dans son espace et la marque faite.
         $club = $em->find(Club::class, $this->clubId);
         $u13 = $em->find(Categorie::class, $u13->getId());
