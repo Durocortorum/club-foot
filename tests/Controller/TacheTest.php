@@ -97,13 +97,16 @@ class TacheTest extends WebTestCase
         self::assertTrue($tache->isFaite());
         self::assertNotNull($tache->getFaiteLe());
 
-        // Paul se donne une tâche : pas d'e-mail. Elle apparaît dans « Mes tâches ».
+        // Paul se donne une tâche : e-mail de rappel. Elle apparaît dans « Mes tâches ».
         $crawler = $this->client->request('GET', '/taches/nouvelle');
         $this->client->submit($crawler->selectButton('Confier la tâche')->form([
             'tache[objet]' => 'Préparer le plateau',
             'tache[responsable]' => $coach->getId(),
         ]));
-        self::assertEmailCount(0);
+        self::assertEmailCount(1);
+        $rappel = self::getMailerMessage();
+        self::assertEmailAddressContains($rappel, 'To', "coach-$id@exemple.test");
+        self::assertEmailHtmlBodyContains($rappel, 'Vous avez noté cette tâche pour vous.');
         $crawler = $this->client->request('GET', '/taches');
         self::assertCount(1, $crawler->filter('tbody tr'));
         self::assertStringContainsString('Tout le club', $crawler->filter('tbody')->text());

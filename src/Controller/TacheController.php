@@ -163,7 +163,9 @@ class TacheController extends AbstractController
             $this->em->flush();
             $message = $creation ? 'Tâche confiée à ' . $tache->getChargeDe() . '.' : 'Tâche enregistrée.';
             if ($tache->getResponsable() && $tache->getResponsable() !== $responsableAvant && $this->avis->responsable($tache, $this->moi())) {
-                $message .= ' ' . $tache->getResponsable()->getPrenom() . ' est prévenu(e) par e-mail.';
+                $message .= $tache->getResponsable() === $this->moi()
+                    ? ' Un rappel vous est envoyé par e-mail.'
+                    : ' ' . $tache->getResponsable()->getPrenom() . ' est prévenu(e) par e-mail.';
             }
             if ($tache->getJoueur() && $tache->getJoueur() !== $joueurAvant) {
                 $prevenus = $this->avis->famille($tache, $this->moi());

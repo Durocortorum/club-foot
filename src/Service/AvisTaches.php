@@ -24,18 +24,19 @@ class AvisTaches
     ) {
     }
 
-    /** E-mail à la personne chargée, sauf si elle se confie la tâche à elle-même. */
+    /** E-mail à la personne chargée ; rappel si elle s'est confié la tâche à elle-même. */
     public function responsable(Tache $tache, Utilisateur $par): bool
     {
         $responsable = $tache->getResponsable();
-        if (!$responsable || $responsable === $par) {
+        if (!$responsable) {
             return false;
         }
+        $soiMeme = $responsable === $par;
 
-        return $this->envoyer($tache, $responsable, 'Nouvelle tâche : ' . $tache->getObjet(), [
-            'titre' => 'Une tâche vous est confiée',
+        return $this->envoyer($tache, $responsable, ($soiMeme ? 'Rappel de tâche : ' : 'Nouvelle tâche : ') . $tache->getObjet(), [
+            'titre' => $soiMeme ? 'Votre tâche' : 'Une tâche vous est confiée',
             'salutation' => 'Bonjour ' . $responsable->getPrenom() . ',',
-            'paragraphes' => [self::nom($par) . ' vous confie la tâche suivante.'],
+            'paragraphes' => [$soiMeme ? 'Vous avez noté cette tâche pour vous.' : self::nom($par) . ' vous confie la tâche suivante.'],
             'encadre' => $tache->getObjet(),
             'details' => [
                 'Catégorie' => $tache->getCategorie()?->getNom() ?? 'Tout le club',
