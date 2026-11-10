@@ -12,7 +12,7 @@
                     <tr class="{{ l.nous ? 'nous' }}">
                         <td class="rang-classement">{{ l.rang }}</td>
                         <td class="fort">{{ l.equipe }}</td>
-                        <td><strong>{{ l.points }}</strong></td>
+                        <td><strong>{{ l.points }}</strong>{% if l.ajustement ?? 0 %} <span class="discret petit" title="Points retirés ou ajoutés à la main">({{ l.ajustement > 0 ? '+' }}{{ l.ajustement }})</span>{% endif %}</td>
                         <td>{{ l.joues }}</td>
                         <td>{{ l.gagnes }}</td>
                         <td>{{ l.nuls }}</td>
@@ -76,10 +76,12 @@
     <section class="carte bloc">
         <div class="titre-page">
             <h2>Classement</h2>
-            {% if classement %}<span class="discret petit">Mis à jour le {{ classement.misAJourLe|date('d/m/Y à H:i') }}</span>{% endif %}
+            {% if classement and classement.calcule %}
+                <span class="pastille succes" title="Dernier classement officiel{{ officiel ? ' du ' ~ classement.misAJourLe|date('d/m') }} + {{ recalcul.appliques }} {{ recalcul.appliques > 1 ? 'matchs joués' : 'match joué' }} depuis">Recalculé avec {{ recalcul.appliques }} {{ recalcul.appliques > 1 ? 'résultats' : 'résultat' }}{{ officiel ? ' depuis l\'officiel du ' ~ classement.misAJourLe|date('d/m') }}</span>
+            {% elseif classement and classement.misAJourLe %}<span class="discret petit">Officiel, mis à jour le {{ classement.misAJourLe|date('d/m/Y à H:i') }}</span>{% endif %}
         </div>
         {% if joues_depuis %}
-            <p class="rappel-classement">Classement à mettre à jour : {{ joues_depuis }} {{ accord(joues_depuis, 'match') }} de championnat {{ joues_depuis > 1 ? 'ont été joués' : 'a été joué' }} depuis la mise à jour du {{ classement.misAJourLe|date('d/m') }}.</p>
+            <p class="rappel-classement">Classement à mettre à jour : {{ joues_depuis }} {{ accord(joues_depuis, 'match') }} de championnat {{ joues_depuis > 1 ? 'ont été joués' : 'a été joué' }} depuis la mise à jour du {{ classement.misAJourLe|date('d/m') }}.{% if classement.calcule %} Ils sont déjà comptés pour {{ categorie }} : tapez les scores des autres matchs ci-dessous, ou importez le classement officiel.{% endif %}</p>
         {% endif %}
         {% if lignes %}
             {{ t.tableau(lignes) }}
@@ -114,6 +116,81 @@
                 {% endif %}
             </form>
         </details>
+    </section>
+
+    {# Scores des autres matchs de la poule : le classement est recalculé sans attendre la FFF. #}
+    <section class="carte bloc" id="resultats-poule">
+        <h2>Résultats de la poule</h2>
+        <p class="discret">Tapez les scores des autres matchs de la journée : le classement se recalcule aussitôt. Les matchs de {{ categorie }} sont repris de vos feuilles de match.{% if officiel %} Seuls les matchs joués après le {{ classement.misAJourLe|date('d/m') }} (dernier classement officiel) comptent : les précédents y sont déjà.{% endif %}</p>
+        {% if equipes|length < 2 %}
+            <p class="vide">Ajoutez d'abord le classement (ci-dessus) : ses équipes seront proposées ici.</p>
+        {% else %}
+            {% set nb_lignes = max(1, ((equipes|length + 1) / 2)|round(0, 'floor')) %}
+            <form method="post" action="{{ path('app_championnat_resultats') }}" class="saisie-poule">
+                <input type="hidden" name="_token" value="{{ csrf_token('resultats-poule') }}">
+                <input type="hidden" name="categorie" value="{{ categorie.id }}">
+                <input type="hidden" name="saison" value="{{ saison }}">
+                <div class="champ"><label for="poule-date">Journée du</label><input type="date" id="poule-date" name="date" value="{{ 'now'|date('Y-m-d') }}" required></div>
+                <div class="table-defile">
+                    <table class="liste saisie-scores">
+                        <thead><tr><th>Domicile</th><th colspan="3">Score</th><th>Extérieur</th></tr></thead>
+                        <tbody>
+                            {% for i in 0..(nb_lignes - 1) %}
+                                <tr>
+                                    <td><select name="matchs[{{ i }}][domicile]" aria-label="Équipe à domicile, match {{ i + 1 }}"><option value="">—</option>{% for e in equipes %}<option>{{ e }}</option>{% endfor %}</select></td>
+                                    <td><input type="number" name="matchs[{{ i }}][bd]" min="0" max="99" inputmode="numeric" aria-label="Buts à domicile, match {{ i + 1 }}"></td>
+                                    <td class="tiret">–</td>
+                                    <td><input type="number" name="matchs[{{ i }}][be]" min="0" max="99" inputmode="numeric" aria-label="Buts à l'extérieur, match {{ i + 1 }}"></td>
+                                    <td><select name="matchs[{{ i }}][exterieur]" aria-label="Équipe à l'extérieur, match {{ i + 1 }}"><option value="">—</option>{% for e in equipes %}<option>{{ e }}</option>{% endfor %}</select></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="discret petit">Laissez vides les lignes inutiles.</p>
+                <div class="barre-actions"><button type="submit" class="bouton principal">Enregistrer les scores</button></div>
+            </form>
+        {% endif %}
+
+        {% if resultats %}
+            <h3>Scores saisis</h3>
+            <ul class="scores-saisis">
+                {% for r in resultats %}
+                    <li class="{{ officiel and r.date|date('Y-m-d') <= classement.misAJourLe|date('Y-m-d') ? 'deja-compte' }}">
+                        <span class="discret">{{ r.date|date('d/m') }}</span>
+                        <span>{{ r.domicile }} <strong>{{ r.butsDomicile }} – {{ r.butsExterieur }}</strong> {{ r.exterieur }}</span>
+                        {% if officiel and r.date|date('Y-m-d') <= classement.misAJourLe|date('Y-m-d') %}<span class="pastille" title="Joué avant le dernier classement officiel, qui le compte déjà">déjà dans l'officiel</span>{% endif %}
+                        <form method="post" action="{{ path('app_championnat_resultat_supprimer', {id: r.id}) }}" class="en-ligne" data-confirmation="Supprimer ce score ?" data-confirmation-bouton="Supprimer">
+                            <input type="hidden" name="_token" value="{{ csrf_token('supprimer-resultat' ~ r.id) }}">
+                            <button class="bouton petit" title="Supprimer ce score">×</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if officiel %}
+            <details class="ajustements">
+                <summary>Pénalités, points retirés ou ajoutés{% if classement.ajustements %} ({{ classement.ajustements|length }}){% endif %}</summary>
+                {% for equipe, points in classement.ajustements %}
+                    <form method="post" action="{{ path('app_championnat_ajustement') }}" class="ajustement">
+                        <input type="hidden" name="_token" value="{{ csrf_token('ajustement') }}">
+                        <input type="hidden" name="categorie" value="{{ categorie.id }}"><input type="hidden" name="saison" value="{{ saison }}">
+                        <input type="hidden" name="equipe" value="{{ equipe }}"><input type="hidden" name="retirer" value="1">
+                        {{ equipe }} : <strong>{{ points > 0 ? '+' }}{{ points }} pt{{ points|abs > 1 ? 's' }}</strong>
+                        <button class="bouton petit">Annuler</button>
+                    </form>
+                {% endfor %}
+                <form method="post" action="{{ path('app_championnat_ajustement') }}" class="ajustement">
+                    <input type="hidden" name="_token" value="{{ csrf_token('ajustement') }}">
+                    <input type="hidden" name="categorie" value="{{ categorie.id }}"><input type="hidden" name="saison" value="{{ saison }}">
+                    <select name="equipe" required aria-label="Équipe"><option value="">Équipe</option>{% for l in officiel %}<option>{{ l.equipe }}</option>{% endfor %}</select>
+                    <input type="number" name="points" required placeholder="-1" aria-label="Points (négatif pour une pénalité)">
+                    <button class="bouton petit">Appliquer</button>
+                    <span class="discret petit">Nombre négatif pour une pénalité. Le prochain classement officiel les comprend déjà : annulez-les après l'avoir importé.</span>
+                </form>
+            </details>
+        {% endif %}
     </section>
 
     <section class="carte bloc">

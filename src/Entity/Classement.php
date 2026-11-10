@@ -36,6 +36,13 @@ class Classement implements AppartientAuClub
     #[ORM\Column]
     private ?\DateTimeImmutable $misAJourLe = null;
 
+    /** Points retirés ou ajoutés à la main (pénalités, forfaits) : équipe => points. */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $ajustements = null;
+
+    /** Classement recalculé avec les scores saisis depuis la mise à jour officielle (non enregistré). */
+    private ?array $calcule = null;
+
     public function __construct(Categorie $categorie, string $saison)
     {
         $this->categorie = $categorie;
@@ -77,6 +84,53 @@ class Classement implements AppartientAuClub
         return $this->misAJourLe;
     }
 
+    /** @return array<string, int> */
+    public function getAjustements(): array
+    {
+        return $this->ajustements ?? [];
+    }
+
+    public function ajuster(string $equipe, int $points): static
+    {
+        $ajustements = $this->getAjustements();
+        $total = ($ajustements[$equipe] ?? 0) + $points;
+        if (0 === $total) {
+            unset($ajustements[$equipe]);
+        } else {
+            $ajustements[$equipe] = $total;
+        }
+        $this->ajustements = $ajustements ?: null;
+
+        return $this;
+    }
+
+    public function retirerAjustement(string $equipe): static
+    {
+        $ajustements = $this->getAjustements();
+        unset($ajustements[$equipe]);
+        $this->ajustements = $ajustements ?: null;
+
+        return $this;
+    }
+
+    /** Classement à afficher : recalculé s'il y a des scores saisis depuis la mise à jour officielle, sinon l'officiel. */
+    public function getLignesAffichees(): array
+    {
+        return $this->calcule ?? $this->lignes;
+    }
+
+    public function setCalcule(?array $lignes): static
+    {
+        $this->calcule = $lignes;
+
+        return $this;
+    }
+
+    public function isCalcule(): bool
+    {
+        return null !== $this->calcule;
+    }
+
     /** Ligne d'une équipe (adversaire d'un match) : même nom une fois retirés « FC », « AS », « U19 »… */
     public function ligneDe(?string $equipe): ?array
     {
@@ -84,7 +138,7 @@ class Classement implements AppartientAuClub
         if ('' === $cherche) {
             return null;
         }
-        foreach ($this->lignes as $l) {
+        foreach ($this->getLignesAffichees() as $l) {
             $coeur = Rencontre::coeurDuNom($l['equipe']);
             if ($coeur === $cherche || str_starts_with($coeur, $cherche . ' ') || str_starts_with($cherche, $coeur . ' ')) {
                 return $l;

@@ -1041,3 +1041,17 @@ table.droits thead th.droits-nom { z-index: 3; }
 .etapes-fff li { margin-bottom: .7rem; line-height: 1.5; }
 .bouton-favori { display: inline-block; margin-top: .5rem; cursor: grab; font-size: 1.05rem; }
 .fff-recu { border-left: 4px solid var(--rouge); }
+
+/* Championnat : saisie des scores de la poule et pénalités. */
+.saisie-poule .champ { max-width: 220px; margin-bottom: .6rem; }
+.saisie-scores td { padding: .3rem .35rem; vertical-align: middle; }
+.saisie-scores select { width: 100%; min-width: 150px; }
+.saisie-scores input[type=number] { width: 4rem; text-align: center; font-weight: 700; }
+.saisie-scores .tiret { text-align: center; color: var(--gris); padding: 0; }
+.scores-saisis { list-style: none; margin: .4rem 0 0; padding: 0; }
+.scores-saisis li { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; padding: .35rem 0; border-top: 1px solid var(--bordure); }
+.scores-saisis li.deja-compte { opacity: .6; }
+.ajustements { margin-top: 1rem; }
+.ajustements summary { cursor: pointer; font-weight: 600; }
+.ajustement { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: .5rem 0; }
+.ajustement input[type=number] { width: 5rem; }
