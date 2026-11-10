@@ -99,7 +99,9 @@ class TacheController extends AbstractController
     #[Route('/{id}', name: 'app_tache_voir', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function voir(Tache $tache): Response
     {
-        $this->verifierVisible($tache);
+        if ($retour = $this->siInvisible($tache)) {
+            return $retour;
+        }
         return $this->render('tache/voir.html.twig', [
             't' => $tache,
             'peut_modifier' => $this->peutModifier($tache),
@@ -110,7 +112,9 @@ class TacheController extends AbstractController
     #[Route('/{id}/modifier', name: 'app_tache_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function modifier(Request $request, Tache $tache): Response
     {
-        $this->verifierVisible($tache);
+        if ($retour = $this->siInvisible($tache)) {
+            return $retour;
+        }
         $this->verifier($this->peutModifier($tache));
 
         return $this->formulaire($request, $tache, 'Modifier la tâche', false);
@@ -120,7 +124,9 @@ class TacheController extends AbstractController
     #[Route('/{id}/statut', name: 'app_tache_statut', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function statut(Request $request, Tache $tache): Response
     {
-        $this->verifierVisible($tache);
+        if ($retour = $this->siInvisible($tache)) {
+            return $retour;
+        }
         $this->verifier($this->peutModifier($tache));
         $statut = $request->getPayload()->getString('statut');
         if ($this->isCsrfTokenValid('statut-tache' . $tache->getId(), $request->getPayload()->getString('_token'))
@@ -144,7 +150,9 @@ class TacheController extends AbstractController
     #[Route('/{id}/supprimer', name: 'app_tache_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimer(Request $request, Tache $tache): Response
     {
-        $this->verifierVisible($tache);
+        if ($retour = $this->siInvisible($tache)) {
+            return $retour;
+        }
         $this->verifier($this->peutSupprimer($tache));
         if ($this->isCsrfTokenValid('supprimer-tache' . $tache->getId(), $request->getPayload()->getString('_token'))) {
             $this->em->remove($tache);
@@ -201,12 +209,18 @@ class TacheController extends AbstractController
         return $this->isGranted('ROLE_ADMIN') || $tache->getCreePar() === $this->moi();
     }
 
-    /** Tâche privée d'autres personnes : introuvable, administration comprise. */
-    private function verifierVisible(Tache $tache): void
+    /**
+     * Tâche privée d'autres personnes (administration comprise) : retour à la liste avec un message,
+     * par exemple depuis une page restée ouverte avant que la tâche devienne privée.
+     */
+    private function siInvisible(Tache $tache): ?Response
     {
-        if (!$tache->estVisiblePar($this->moi())) {
-            throw $this->createNotFoundException();
+        if ($tache->estVisiblePar($this->moi())) {
+            return null;
         }
+        $this->addFlash('info', 'Cette tâche est privée : seules la personne qui l\'a confiée et la personne chargée peuvent la voir.');
+
+        return $this->redirectToRoute('app_tache_index');
     }
 
     private function verifier(bool $autorise): void

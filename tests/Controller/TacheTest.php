@@ -142,10 +142,14 @@ class TacheTest extends WebTestCase
         $crawler = $this->client->request('GET', '/taches?vue=toutes&statut=toutes');
         self::assertStringNotContainsString('Entretien individuel', $crawler->filter('tbody')->text());
         self::assertSame('1', $crawler->filter('nav.onglets a')->last()->filter('.pastille')->text(), 'compteur sans la tâche privée');
-        $this->client->request('GET', '/taches/' . $privee->getId());
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('GET', '/taches/' . $privee->getId() . '/modifier');
-        self::assertResponseStatusCodeSame(404);
+        // Page restée ouverte ou adresse directe : retour à la liste avec un message, pas de page d'erreur.
+        foreach (['', '/modifier'] as $page) {
+            $this->client->request('GET', '/taches/' . $privee->getId() . $page);
+            self::assertResponseRedirects('/taches');
+            $this->client->followRedirect();
+            self::assertSelectorTextContains('.flash-info', 'Cette tâche est privée');
+            self::assertSelectorTextNotContains('main', 'Entretien individuel');
+        }
         $em->remove($em->find(Tache::class, $privee->getId()));
         $em->flush();
 
