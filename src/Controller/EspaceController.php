@@ -116,10 +116,15 @@ class EspaceController extends AbstractController
 
     /** La famille indique que la tâche confiée au joueur est faite : la personne qui l'a confiée est prévenue. */
     #[Route('/espace/tache/{id}', name: 'app_espace_tache_faite', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function tacheFaite(Request $request, Tache $tache, EntityManagerInterface $em, AvisTaches $avis): Response
+    public function tacheFaite(Request $request, ?Tache $tache, EntityManagerInterface $em, AvisTaches $avis): Response
     {
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
+        if (!$tache) {
+            $this->addFlash('info', 'Cette tâche n\'existe plus : l\'encadrement l\'a supprimée.');
+
+            return $this->redirectToRoute('app_espace');
+        }
         if (!$moi->isFamille() || !$tache->getJoueur() || !$moi->suit($tache->getJoueur())) {
             throw $this->createAccessDeniedException();
         }

@@ -163,8 +163,16 @@ class TacheTest extends WebTestCase
             self::assertSelectorTextContains('.flash-info', 'Cette tâche est privée');
             self::assertSelectorTextNotContains('main', 'Entretien individuel');
         }
-        $em->remove($em->find(Tache::class, $privee->getId()));
+        $idPrivee = $privee->getId();
+        $em->remove($em->find(Tache::class, $idPrivee));
         $em->flush();
+        // Tâche supprimée (ancienne page, lien d'un e-mail) : retour à la liste avec un message.
+        foreach (['', '/modifier'] as $page) {
+            $this->client->request('GET', '/taches/' . $idPrivee . $page);
+            self::assertResponseRedirects('/taches');
+            $this->client->followRedirect();
+            self::assertSelectorTextContains('.flash-info', 'Cette tâche n\'existe plus');
+        }
 
         // Tâche confiée à un joueur : la famille reçoit un e-mail, la voit dans son espace et la marque faite.
         $club = $em->find(Club::class, $this->clubId);

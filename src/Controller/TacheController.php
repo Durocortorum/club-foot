@@ -97,11 +97,12 @@ class TacheController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_tache_voir', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function voir(Tache $tache): Response
+    public function voir(?Tache $tache): Response
     {
         if ($retour = $this->siInvisible($tache)) {
             return $retour;
         }
+
         return $this->render('tache/voir.html.twig', [
             't' => $tache,
             'peut_modifier' => $this->peutModifier($tache),
@@ -111,7 +112,7 @@ class TacheController extends AbstractController
     }
 
     #[Route('/{id}/modifier', name: 'app_tache_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
-    public function modifier(Request $request, Tache $tache): Response
+    public function modifier(Request $request, ?Tache $tache): Response
     {
         if ($retour = $this->siInvisible($tache)) {
             return $retour;
@@ -123,7 +124,7 @@ class TacheController extends AbstractController
 
     /** Boutons « Commencer », « Marquer comme faite », « Rouvrir ». */
     #[Route('/{id}/statut', name: 'app_tache_statut', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function statut(Request $request, Tache $tache): Response
+    public function statut(Request $request, ?Tache $tache): Response
     {
         if ($retour = $this->siInvisible($tache)) {
             return $retour;
@@ -149,7 +150,7 @@ class TacheController extends AbstractController
     }
 
     #[Route('/{id}/supprimer', name: 'app_tache_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function supprimer(Request $request, Tache $tache): Response
+    public function supprimer(Request $request, ?Tache $tache): Response
     {
         if ($retour = $this->siInvisible($tache)) {
             return $retour;
@@ -221,11 +222,18 @@ class TacheController extends AbstractController
     }
 
     /**
-     * Tâche privée d'autres personnes (administration comprise) : retour à la liste avec un message,
-     * par exemple depuis une page restée ouverte avant que la tâche devienne privée.
+     * Tâche supprimée, ou privée d'autres personnes (administration comprise) : retour à la liste avec un message,
+     * par exemple depuis une page restée ouverte ou le lien d'un ancien e-mail.
+     *
+     * @phpstan-assert-if-false Tache $tache
      */
-    private function siInvisible(Tache $tache): ?Response
+    private function siInvisible(?Tache $tache): ?Response
     {
+        if (!$tache) {
+            $this->addFlash('info', 'Cette tâche n\'existe plus : elle a été supprimée.');
+
+            return $this->redirectToRoute('app_tache_index');
+        }
         if ($tache->estVisiblePar($this->moi())) {
             return null;
         }
