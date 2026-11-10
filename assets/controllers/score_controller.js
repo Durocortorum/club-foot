@@ -15,7 +15,7 @@ import { Controller } from '@hotwired/stimulus';
 export default class extends Controller {
     static targets = ['categorie', 'cote', 'club', 'adversaire', 'mt1Dom', 'mt1Ext', 'finDom', 'finExt',
         'butMinute', 'butCamp', 'temps', 'nomDom', 'nomExt', 'affFinDom', 'affFinExt', 'affMt1', 'affMt2', 'butsDom', 'butsExt',
-        'minuteCarton'];
+        'minuteCarton', 'rapide', 'rapideDom', 'rapideExt', 'nomRapideDom', 'nomRapideExt'];
 
     connect() {
         [...this.butMinuteTargets, ...this.minuteCartonTargets].forEach((select) => this.remplirMinutes(select));
@@ -54,7 +54,9 @@ export default class extends Controller {
 
     saisie(event) {
         const cible = event.target;
-        if (this.butCampTargets.includes(cible)) {
+        if ((this.hasRapideDomTarget && cible === this.rapideDomTarget) || (this.hasRapideExtTarget && cible === this.rapideExtTarget)) {
+            this.scoreRapide();
+        } else if (this.butCampTargets.includes(cible)) {
             this.basculerCamp(cible);
             this.butsChanges();
         } else if (this.butMinuteTargets.includes(cible) || this.tempsTargets.includes(cible)) {
@@ -84,6 +86,16 @@ export default class extends Controller {
         }
     }
 
+    // Score tapé directement : le match est joué ; le score enregistré auparavant n'est plus gardé.
+    scoreRapide() {
+        this.garderEnregistre = false;
+        const joue = this.element.querySelector('input[type=checkbox][name$="[joue]"]');
+        if (joue && (this.rapideDomTarget.value !== '' || this.rapideExtTarget.value !== '')) {
+            joue.checked = true;
+        }
+        this.actualiser();
+    }
+
     butsChanges() {
         if (!this.pret) return;
         this.garderEnregistre = false;
@@ -106,7 +118,18 @@ export default class extends Controller {
 
     // Recopie le score des buts dans les champs envoyés (sauf score ancien gardé) et met l'affichage à jour.
     actualiser() {
-        if (!this.garderEnregistre) {
+        const detailles = this.butCampTargets.length > 0;
+        if (this.hasRapideTarget) {
+            this.rapideTarget.hidden = detailles;
+        }
+        const rapide = !detailles && this.hasRapideDomTarget && (this.rapideDomTarget.value !== '' || this.rapideExtTarget.value !== '');
+        if (rapide) {
+            // « Score seulement » : pas de buts détaillés, donc pas de score à la mi-temps.
+            this.finDomTarget.value = this.nombre(this.rapideDomTarget) ?? 0;
+            this.finExtTarget.value = this.nombre(this.rapideExtTarget) ?? 0;
+            this.mt1DomTarget.value = '';
+            this.mt1ExtTarget.value = '';
+        } else if (!this.garderEnregistre) {
             const calcul = this.calculer();
             const ecrire = (champ, valeur) => { champ.value = valeur ?? ''; };
             ecrire(this.mt1DomTarget, calcul.dom.mt1); ecrire(this.finDomTarget, calcul.dom.fin);
@@ -186,6 +209,9 @@ export default class extends Controller {
         const club = this.clubTarget.value.trim() || 'Club';
         const adversaire = this.adversaireTarget.value.trim() || 'Adversaire';
         [this.nomDomTarget.textContent, this.nomExtTarget.textContent] = this.clubADomicile() ? [club, adversaire] : [adversaire, club];
+        if (this.hasNomRapideDomTarget) {
+            [this.nomRapideDomTarget.textContent, this.nomRapideExtTarget.textContent] = [this.nomDomTarget.textContent, this.nomExtTarget.textContent];
+        }
     }
 
     // Durée d'un match : celle de la catégorie, sinon le plus long temps de jeu de la feuille, sinon 90.

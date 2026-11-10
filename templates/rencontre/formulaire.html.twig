@@ -66,6 +66,19 @@
             {% else %}
                 <div class="champ case match-joue">{{ form_label(form.joue) }}{{ form_widget(form.joue) }}</div>
                 <p class="discret petit">Le score vient des buts saisis plus bas. Un match avec des buts compte forcément ; sans but, cochez la case pour un 0 – 0.</p>
+                {# Score seulement, sans détailler les buts : masqué dès qu'un but est détaillé (score_controller.js). #}
+                {% set sans_buts = rencontre.buts is empty %}
+                <div class="score-rapide" data-score-target="rapide" {{ sans_buts ? '' : 'hidden' }}>
+                    <p class="score-rapide-titre"><strong>Score seulement</strong> <span class="discret petit">(sans détailler les buts)</span></p>
+                    <div class="score-rapide-cases">
+                        <label for="score-rapide-dom" data-score-target="nomRapideDom">{{ rencontre.domicile }}</label>
+                        <input type="number" id="score-rapide-dom" min="0" max="99" inputmode="numeric" data-score-target="rapideDom" value="{{ sans_buts ? rencontre.butsDomicile }}">
+                        <span class="tiret">–</span>
+                        <input type="number" id="score-rapide-ext" min="0" max="99" inputmode="numeric" data-score-target="rapideExt" value="{{ sans_buts ? rencontre.butsExterieur }}" aria-labelledby="score-rapide-nom-ext">
+                        <span id="score-rapide-nom-ext" data-score-target="nomRapideExt">{{ rencontre.exterieur }}</span>
+                    </div>
+                    <p class="discret petit">Pour les buteurs et les minutes, détaillez les buts plus bas : le score se calculera alors à partir d'eux.</p>
+                </div>
             {% endif %}
             <div class="tableau-score" aria-live="polite" {{ nouveau ? 'hidden' }}>
                 <span class="equipe" data-score-target="nomDom">{{ rencontre.domicile }}</span>

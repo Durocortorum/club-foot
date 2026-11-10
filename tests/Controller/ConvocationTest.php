@@ -322,6 +322,22 @@ class ConvocationTest extends WebTestCase
         $this->client->submit($form);
         $this->em()->clear();
         self::assertSame('N', $this->em()->find(Rencontre::class, $rencontre->getId())->getResultat());
+
+        // « Score seulement », sans détailler les buts : la page recopie les deux cases dans le score envoyé
+        // et coche « Match joué » ; le score est gardé et réaffiché dans les cases.
+        $crawler = $this->client->request('GET', '/matchs/' . $rencontre->getId() . '/modifier');
+        self::assertCount(1, $crawler->filter('.score-rapide input[data-score-target="rapideDom"]'));
+        $form = $crawler->selectButton('Enregistrer le match')->form();
+        $form['rencontre[joue]']->tick();
+        $form['rencontre[butsDomicile]'] = '2';
+        $form['rencontre[butsExterieur]'] = '1';
+        $this->client->submit($form);
+        $this->em()->clear();
+        $joue = $this->em()->find(Rencontre::class, $rencontre->getId());
+        self::assertSame([2, 1], [$joue->getButsDomicile(), $joue->getButsExterieur()]);
+        $crawler = $this->client->request('GET', '/matchs/' . $rencontre->getId() . '/modifier');
+        self::assertSame('2', $crawler->filter('input[data-score-target="rapideDom"]')->attr('value'));
+        self::assertSame('1', $crawler->filter('input[data-score-target="rapideExt"]')->attr('value'));
     }
 
     private function joueur(Club $club, Categorie $categorie, string $prenom): Joueur

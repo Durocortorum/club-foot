@@ -1055,3 +1055,10 @@ table.droits thead th.droits-nom { z-index: 3; }
 .ajustements summary { cursor: pointer; font-weight: 600; }
 .ajustement { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: .5rem 0; }
 .ajustement input[type=number] { width: 5rem; }
+
+/* Formulaire de match : score seulement, sans détailler les buts. */
+.score-rapide { margin: .8rem 0; padding: .8rem 1rem; border: 1px dashed var(--bordure); border-radius: var(--rayon); background: #fafafb; }
+.score-rapide-titre { margin: 0 0 .5rem; }
+.score-rapide-cases { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; font-weight: 700; }
+.score-rapide-cases input { width: 4.5rem; text-align: center; font-size: 1.3rem; font-weight: 800; }
+.score-rapide-cases .tiret { color: var(--gris); }
