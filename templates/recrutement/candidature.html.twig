@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ c.nomComplet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_candidature_index') }}">← Candidatures encadrement</a></p>
+
+    <div class="titre-page">
+        <div>
+            <h1>{{ c.prenom }} <strong>{{ c.nom }}</strong></h1>
+            <p class="discret">
+                Candidature {{ c.posteViseLibelle|lower }}{% if c.fonction %} · {{ c.fonction }}{% endif %}
+                {% if c.dateReception %} · reçue le {{ c.dateReception|date('d/m/Y') }}{% endif %}
+                <span class="pastille {{ c.statut == 'retenu' ? 'succes' : (c.statut == 'refuse' ? 'alerte') }}">{{ c.statutLibelle }}</span>
+            </p>
+            {% if fiche %}
+                <p>A rejoint le club : <a href="{{ fiche.url }}">{{ fiche.libelle }} de {{ c.nomComplet }}</a></p>
+            {% endif %}
+        </div>
+        <div class="actions">
+            {% if c.cv %}<a class="bouton" href="{{ path('app_candidature_cv', {id: c.id}) }}" target="_blank" rel="noopener">Voir le CV</a>{% endif %}
+            {% if not fiche and c.statut != 'refuse' %}
+                <form method="post" action="{{ path('app_candidature_integrer', {id: c.id}) }}" onsubmit="return confirm('Créer la fiche de {{ c.nomComplet|e('js') }} dans {{ c.posteVise == 'medical' ? 'les contacts médicaux de l\'infirmerie' : 'l\'encadrement' }} ?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('integrer-candidature' ~ c.id) }}">
+                    <button type="submit" class="bouton">Intégrer {{ c.posteVise == 'medical' ? 'au corps médical' : 'à l\'encadrement' }}</button>
+                </form>
+            {% endif %}
+            <a class="bouton principal" href="{{ path('app_candidature_modifier', {id: c.id}) }}">Modifier</a>
+            {{ m.supprimer(path('app_candidature_supprimer', {id: c.id}), 'supprimer-candidature' ~ c.id, 'Supprimer la candidature et le CV de ' ~ c.nomComplet ~ ' ?') }}
+        </div>
+    </div>
+
+    {% if a_supprimer %}
+        <p class="pastille alerte">Candidature non retenue reçue il y a plus de 2 ans : la CNIL recommande de la supprimer, sauf accord de la personne pour la garder.</p>
+    {% endif %}
+
+    <div class="grille-fiches">
+        <section class="carte">
+            <h2>Coordonnées</h2>
+            <dl>
+                {{ m.ligne('Né(e) le', c.dateNaissance ? c.dateNaissance|date('d/m/Y') ~ ' (' ~ c.age ~ ' ans)') }}
+                {{ m.ligne('Téléphone', c.telephone) }}
+                {% if c.email %}<dt>E-mail</dt><dd><a href="mailto:{{ c.email }}">{{ c.email }}</a></dd>{% endif %}
+                {{ m.ligne('Adresse', [c.adresse, [c.codePostal, c.ville]|filter(v => v)|join(' ')]|filter(v => v)|join(', ')) }}
+            </dl>
+        </section>
+
+        <section class="carte">
+            <h2>Profil</h2>
+            <dl>
+                {{ m.ligne('Diplômes', c.diplomes) }}
+                {{ m.ligne('Club actuel', c.clubActuel) }}
+                {{ m.ligne('Disponibilités', c.disponibilites) }}
+                {{ m.ligne('Origine', c.origine) }}
+                {{ m.ligne('CV', c.cv ? 'joint (PDF)' : 'non joint') }}
+            </dl>
+        </section>
+
+        {% if c.experience %}
+            <section class="carte">
+                <h2>Parcours, expérience</h2>
+                <p class="memo">{{ c.experience }}</p>
+            </section>
+        {% endif %}
+
+        <section class="carte">
+            <h2>Suivi</h2>
+            <dl>
+                {{ m.ligne('Statut', c.statutLibelle) }}
+                {{ m.ligne('Entretien', c.dateEntretien ? c.dateEntretien|date('d/m/Y à H:i')) }}
+            </dl>
+            {% if c.appreciation %}<p class="memo">{{ c.appreciation }}</p>{% endif %}
+        </section>
+    </div>
+{% endblock %}

@@ -1,4 +1,7 @@
 <nav class="onglets">
     <a href="{{ path('app_detection_index') }}" class="{{ onglet == 'detections' ? 'actif' }}">Détections</a>
     <a href="{{ path('app_observe_index') }}" class="{{ onglet == 'observes' ? 'actif' }}">Joueurs observés</a>
+    {% if is_granted('ROLE_ADMIN') %}
+        <a href="{{ path('app_candidature_index') }}" class="{{ onglet == 'candidatures' ? 'actif' }}">Candidatures encadrement</a>
+    {% endif %}
 </nav>

@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Candidatures encadrement{% endblock %}
+
+{% block body %}
+    {% include 'recrutement/_onglets.html.twig' with {onglet: 'candidatures'} %}
+
+    <div class="titre-page">
+        <h1>Candidatures encadrement <span class="compteur">{{ candidatures|length }}</span></h1>
+        <a class="bouton principal" href="{{ path('app_candidature_nouvelle', filtres.poste ? {poste: filtres.poste} : {}) }}">+ Nouvelle candidature</a>
+    </div>
+    <p class="discret petit">CV des personnes qui veulent rejoindre le club comme éducateur, dirigeant, administratif, bénévole ou au corps médical. Visible uniquement par l'administration.</p>
+
+    <form class="filtres" method="get">
+        <input type="search" name="q" value="{{ filtres.q }}" placeholder="Nom, fonction, diplôme ou ville">
+        <select name="poste" onchange="this.form.requestSubmit()">
+            <option value="">Tous les postes</option>
+            {% for cle, libelle in postes %}<option value="{{ cle }}" {{ filtres.poste == cle ? 'selected' }}>{{ libelle }}</option>{% endfor %}
+        </select>
+        <select name="statut" onchange="this.form.requestSubmit()">
+            <option value="">Tous les statuts</option>
+            {% for cle, libelle in statuts %}<option value="{{ cle }}" {{ filtres.statut == cle ? 'selected' }}>{{ libelle }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="bouton">Filtrer</button>
+    </form>
+
+    <div class="table-defile">
+        <table class="liste liste-fiches">
+            <thead><tr><th>Candidat</th><th>Poste visé</th><th>Fonction</th><th>Diplômes</th><th>Reçue le</th><th>Statut</th></tr></thead>
+            <tbody>
+                {% for c in candidatures %}
+                    <tr>
+                        <td class="principal etroit"><a href="{{ path('app_candidature_voir', {id: c.id}) }}"><strong>{{ c.nom }}</strong> {{ c.prenom }}</a></td>
+                        <td data-label="poste">{{ c.posteViseLibelle }}</td>
+                        <td>{{ c.fonction }}</td>
+                        <td>{{ c.diplomes }}</td>
+                        <td data-label="reçue le">{{ c.dateReception ? c.dateReception|date('d/m/Y') }}</td>
+                        <td class="a-cote">
+                            <span class="pastille {{ c.statut == 'retenu' ? 'succes' : (c.statut == 'refuse' ? 'alerte') }}">{{ c.statutLibelle }}</span>
+                            {% if c.statut == 'entretien' and c.dateEntretien %}<span class="discret petit">{{ c.dateEntretien|date('d/m H:i') }}</span>{% endif %}
+                            {% if c.statut != 'retenu' and c.dateReception and c.dateReception < limite_conservation %}<span class="pastille alerte" title="Candidature non retenue de plus de 2 ans : à supprimer (RGPD)">plus de 2 ans</span>{% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="vide">Aucune candidature.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

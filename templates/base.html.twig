@@ -59,7 +59,7 @@
                     <a href="{{ path('app_message_index') }}" class="{{ route starts with 'app_message' ? 'actif' }}" title="Messagerie avec les familles et les collègues">Messages <span class="pastille alerte" title="Messages et réponses non lus" data-controller="nouvelles" data-nouvelles-url-value="{{ path('app_messages_etat') }}" {{ non_lus ? '' : 'hidden' }}>{{ non_lus ?: '' }}</span></a>
                     <a href="{{ path('app_archives') }}" class="{{ route starts with 'app_archives' ? 'actif' }}">Archives</a>
                     {% if is_granted('ROLE_ECOLE_FOOT') or is_granted('ROLE_PREFORMATION') or is_granted('ROLE_FORMATION') or is_granted('ROLE_ELITE') or is_granted('ROLE_PRO') %}
-                        <a href="{{ path('app_detection_index') }}" class="{{ route starts with 'app_detection' or route starts with 'app_observe' ? 'actif' }}">Recrutement</a>
+                        <a href="{{ path('app_detection_index') }}" class="{{ route starts with 'app_detection' or route starts with 'app_observe' or route starts with 'app_candidature' ? 'actif' }}">Recrutement</a>
                     {% endif %}
                     {% if is_granted('ROLE_SCOLAIRE_LECTURE') %}
                         <a href="{{ path('app_scolarite_index') }}" class="{{ route starts with 'app_scolarite' or route starts with 'app_bulletin' or route starts with 'app_discipline' or route starts with 'app_sanction' ? 'actif' }}">Scolarité</a>

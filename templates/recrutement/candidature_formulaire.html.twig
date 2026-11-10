@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% block body %}
+    <p>
+        {% if c.id %}
+            <a href="{{ path('app_candidature_voir', {id: c.id}) }}">← Retour à la candidature</a>
+        {% else %}
+            <a href="{{ path('app_candidature_index') }}">← Candidatures encadrement</a>
+        {% endif %}
+    </p>
+    <h1>{{ titre }}</h1>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+
+        <fieldset class="carte">
+            <legend>Candidat</legend>
+            {{ m.groupe(form, ['nom', 'prenom', 'posteVise', 'fonction', 'dateNaissance', 'telephone', 'email', 'adresse', 'codePostal', 'ville']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>CV</legend>
+            {% if c.cv %}<p class="discret petit">Un CV est déjà joint ; un nouveau fichier le remplacera.</p>{% endif %}
+            {{ m.groupe(form, ['document', 'diplomes', 'clubActuel', 'disponibilites', 'experience', 'origine', 'dateReception']) }}
+        </fieldset>
+
+        <fieldset class="carte">
+            <legend>Suivi</legend>
+            {{ m.groupe(form, ['statut', 'dateEntretien', 'appreciation']) }}
+        </fieldset>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}
