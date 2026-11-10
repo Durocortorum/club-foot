@@ -1,0 +1,106 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+{% import 'stage/_resume.html.twig' as r %}
+
+{% block title %}{{ s.titre }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_stage_index', s.dernierJour < date('today') ? {periode: 'passes'} : {}) }}">← Stages</a></p>
+
+    <div class="titre-page">
+        <div>
+            <h1>{{ s.titre }}</h1>
+            <p class="discret">{{ r.quand(s) }}</p>
+        </div>
+        {% if peut_modifier %}
+            <div class="actions"><a class="bouton principal" href="{{ path('app_stage_modifier', {id: s.id}) }}">Modifier</a></div>
+        {% endif %}
+    </div>
+
+    <div class="grille-fiches">
+        <section class="carte">
+            <h2>Le stage</h2>
+            <dl>
+                {{ m.ligne('Raison', s.raison) }}
+                {{ m.ligne('Pour', s.toutLeClub ? 'Tout le club' : s.categories|map(c => c.nom)|join(', ')) }}
+                {{ m.ligne('Tarif', r.tarif(s)) }}
+                {{ m.ligne('Places', s.places ? s.places ~ ' (' ~ s.placesRestantes ~ ' ' ~ (s.placesRestantes > 1 ? 'restantes' : 'restante') ~ ')' : 'illimitées') }}
+                {{ m.ligne('Inscriptions des familles', s.inscriptionsFamilles ? (s.inscriptionOuverte ? 'ouvertes jusqu\'au ' ~ (s.dateLimite ?? s.debut|date_modify('-1 day'))|date('d/m/Y') : 'closes') : 'non, inscription par l\'encadrement') }}
+            </dl>
+        </section>
+        {% if s.description %}
+            <section class="carte">
+                <h2>Programme, informations</h2>
+                <p class="memo">{{ s.description }}</p>
+            </section>
+        {% endif %}
+    </div>
+
+    <section class="carte bloc" id="participants">
+        <div class="avec-actions">
+            <h2>Participants <span class="compteur">{{ inscriptions|length }}{% if s.places %} / {{ s.places }}{% endif %}</span></h2>
+            {% if s.payant and inscriptions %}
+                {% set payes = inscriptions|filter(i => i.paye)|length %}
+                <span class="discret">{{ payes }} payé{{ payes > 1 ? 's' }} sur {{ inscriptions|length }} · encaissé : {{ s.encaisse|number_format(2, ',', ' ') }} €</span>
+            {% endif %}
+        </div>
+
+        {% if inscriptions %}
+            <div class="table-defile">
+                <table class="liste liste-fiches">
+                    <thead><tr><th>Joueur</th><th>Catégorie</th><th>Inscrit</th>{% if s.payant %}<th>Paiement</th>{% endif %}<th></th></tr></thead>
+                    <tbody>
+                        {% for i in inscriptions %}
+                            {% set j = i.joueur %}
+                            {% set jeton = csrf_token('inscription-stage' ~ s.id ~ '-' ~ j.id) %}
+                            <tr>
+                                <td class="principal"><a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a></td>
+                                <td data-label="catégorie">{{ j.categorie ? j.categorie.nom }}</td>
+                                <td data-label="inscrit">le {{ i.inscritLe|date('d/m') }}{% if i.parFamille %} <span class="pastille">par la famille</span>{% endif %}</td>
+                                {% if s.payant %}
+                                    <td>
+                                        {% if i.paye %}<span class="pastille succes">payé</span>{% else %}<span class="pastille alerte">à payer</span>{% endif %}
+                                        {% if peut_modifier %}
+                                            <form method="post" action="{{ path('app_stage_inscription', {id: s.id, joueur: j.id, action: i.paye ? 'non-paye' : 'paye'}) }}" class="en-ligne">
+                                                <input type="hidden" name="_token" value="{{ jeton }}">
+                                                <button class="bouton petit">{{ i.paye ? 'Annuler le paiement' : 'Marquer payé' }}</button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                                <td class="a-cote">
+                                    {% if peut_modifier %}
+                                        <form method="post" action="{{ path('app_stage_inscription', {id: s.id, joueur: j.id, action: 'retirer'}) }}" data-confirmation="Retirer {{ j.prenom }} {{ j.nom }} du stage ?" data-confirmation-bouton="Retirer" class="en-ligne">
+                                            <input type="hidden" name="_token" value="{{ jeton }}">
+                                            <button class="bouton petit danger">Retirer</button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="vide">Aucun joueur inscrit pour l'instant.</p>
+        {% endif %}
+
+        {% if peut_modifier and a_inscrire %}
+            <form method="post" action="{{ path('app_stage_inscrire', {id: s.id}) }}" class="inscrire-stage">
+                <input type="hidden" name="_token" value="{{ csrf_token('inscrire-stage' ~ s.id) }}">
+                <h3>Inscrire des joueurs</h3>
+                {% for categorie, joueurs in a_inscrire %}
+                    <details {{ a_inscrire|length == 1 ? 'open' }}>
+                        <summary>{{ categorie }} <span class="discret">({{ joueurs|length }})</span></summary>
+                        <div class="cases-joueurs">
+                            {% for j in joueurs %}
+                                <label><input type="checkbox" name="joueurs[]" value="{{ j.id }}"> {{ j.nom }} {{ j.prenom }}</label>
+                            {% endfor %}
+                        </div>
+                    </details>
+                {% endfor %}
+                <div class="barre-actions"><button type="submit" class="bouton principal">Inscrire les joueurs cochés</button></div>
+            </form>
+        {% endif %}
+    </section>
+{% endblock %}

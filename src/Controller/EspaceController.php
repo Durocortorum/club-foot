@@ -6,7 +6,9 @@ use App\Entity\AbsenceEntrainement;
 use App\Entity\Convoque;
 use App\Entity\Entrainement;
 use App\Entity\Joueur;
+use App\Entity\Stage;
 use App\Entity\Tache;
+use App\Repository\StageRepository;
 use App\Repository\TacheRepository;
 use App\Service\AvisTaches;
 use App\Entity\Utilisateur;
@@ -54,6 +56,7 @@ class EspaceController extends AbstractController
         BilanJoueur $bilan,
         EvenementRepository $evenements,
         TacheRepository $taches,
+        StageRepository $stages,
     ): Response
     {
         /** @var Utilisateur $moi */
@@ -95,6 +98,8 @@ class EspaceController extends AbstractController
                 'joueur' => $j,
                 'convocations' => $mesConvocations,
                 'taches' => $tachesParJoueur[$j->getId()] ?? [],
+                // Stages à venir de son équipe (ou de tout le club).
+                'stages' => $j->getCategorie() ? $stages->entre(new \DateTimeImmutable('today'), new \DateTimeImmutable('2100-01-01'), [$j->getCategorie()]) : [],
                 'entrainements' => array_values(array_filter($entrainements, fn (Entrainement $e) => $e->getCategorie() === $j->getCategorie())),
                 // Les matchs déjà couverts par une convocation ne sont pas répétés.
                 'matchs' => $j->getCategorie() ? array_values(array_filter($rencontres->aVenir($j->getCategorie(), 5), fn ($r) => !\in_array($r, $convoquesA, true))) : [],
@@ -114,6 +119,41 @@ class EspaceController extends AbstractController
         ]);
     }
 
+    /** La famille inscrit son enfant à un stage, ou annule l'inscription, tant que les inscriptions sont ouvertes. */
+    #[Route('/espace/stage/{id}/{joueur}', name: 'app_espace_stage', requirements: ['id' => '\d+', 'joueur' => '\d+'], methods: ['POST'])]
+    public function stage(Request $request, ?Stage $stage, Joueur $joueur, EntityManagerInterface $em): Response
+    {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        if (!$moi->isFamille() || !$moi->suit($joueur)) {
+            throw $this->createAccessDeniedException();
+        }
+        $retour = $this->redirect($this->generateUrl('app_espace') . '#stages-' . $joueur->getId());
+        if (!$stage || !$this->isCsrfTokenValid('stage-famille' . ($stage?->getId() ?? 0) . '-' . $joueur->getId(), $request->getPayload()->getString('_token'))) {
+            return $retour;
+        }
+        if (!$stage->isInscriptionOuverte() || !$stage->concerne(array_filter([$joueur->getCategorie()]))) {
+            $this->addFlash('erreur', 'Les inscriptions à ce stage sont closes : contactez l\'encadrement.');
+
+            return $retour;
+        }
+        if ('desinscrire' === $request->getPayload()->getString('action')) {
+            $stage->desinscrire($joueur);
+            $this->addFlash('succes', 'L\'inscription de ' . $joueur->getPrenom() . ' au stage « ' . $stage->getTitre() . ' » est annulée.');
+        } elseif ($stage->inscription($joueur)) {
+            return $retour;
+        } elseif ($stage->isComplet()) {
+            $this->addFlash('erreur', 'Le stage « ' . $stage->getTitre() . ' » est complet : contactez l\'encadrement.');
+
+            return $retour;
+        } else {
+            $em->persist($stage->inscrire($joueur, true));
+            $this->addFlash('succes', $joueur->getPrenom() . ' est inscrit(e) au stage « ' . $stage->getTitre() . ' ».' . ($stage->isPayant() ? ' Le règlement se fait auprès du club.' : ''));
+        }
+        $em->flush();
+
+        return $retour;
+    }
     /** La famille indique que la tâche confiée au joueur est faite : la personne qui l'a confiée est prévenue. */
     #[Route('/espace/tache/{id}', name: 'app_espace_tache_faite', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function tacheFaite(Request $request, ?Tache $tache, EntityManagerInterface $em, AvisTaches $avis): Response

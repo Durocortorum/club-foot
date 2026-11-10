@@ -1,0 +1,19 @@
+{# Dates, horaires, lieu d'un stage, sur une ligne. #}
+{% macro quand(s) %}
+    {%- if s.fin and s.fin != s.debut -%}
+        Du {{ s.debut|date('d/m/Y') }} au {{ s.fin|date('d/m/Y') }} ({{ s.duree }} jours)
+    {%- else -%}
+        Le {{ ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][s.debut|date('w')] }} {{ s.debut|date('d/m/Y') }}
+    {%- endif -%}
+    {%- if s.horaires %} · {{ s.horaires }}{% endif -%}
+    {%- if s.lieu %} · {{ s.lieu }}{% endif -%}
+{% endmacro %}
+
+{# « 45 € (repas compris) » ou « Gratuit ». #}
+{% macro tarif(s) %}
+    {%- if s.payant -%}
+        {{ s.tarif|number_format(s.tarif == s.tarif|round ? 0 : 2, ',', ' ') }} €{% if s.detailTarif %} ({{ s.detailTarif }}){% endif %}
+    {%- else -%}
+        Gratuit{% if s.detailTarif %} ({{ s.detailTarif }}){% endif %}
+    {%- endif -%}
+{% endmacro %}

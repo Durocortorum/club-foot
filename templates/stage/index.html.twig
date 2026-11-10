@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+{% import 'stage/_resume.html.twig' as r %}
+
+{% block title %}Stages{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Stages <span class="compteur">{{ stages|length }}</span></h1>
+        <span class="actions">
+            <a class="bouton" href="{{ path('app_calendrier') }}">Calendrier</a>
+            {% if peut_creer %}<a class="bouton principal" href="{{ path('app_stage_nouveau') }}">+ Nouveau stage</a>{% endif %}
+        </span>
+    </div>
+
+    <nav class="onglets">
+        <a href="{{ path('app_stage_index') }}" class="{{ not passes ? 'actif' }}">À venir</a>
+        <a href="{{ path('app_stage_index', {periode: 'passes'}) }}" class="{{ passes ? 'actif' }}">Passés</a>
+    </nav>
+
+    <div class="liste-evenements">
+        {% for s in stages %}
+            <article class="carte evenement stage">
+                <div class="evenement-date">
+                    <span class="jour">{{ s.debut|date('d') }}</span>
+                    <span class="mois">{{ ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][s.debut|date('n') - 1] }} {{ s.debut|date('Y') }}</span>
+                </div>
+                <div class="evenement-corps">
+                    <div>
+                        {% if s.raison %}<span class="pastille">{{ s.raison }}</span>{% endif %}
+                        <h2><a href="{{ path('app_stage_voir', {id: s.id}) }}">{{ s.titre }}</a></h2>
+                    </div>
+                    <p class="discret">{{ r.quand(s) }}</p>
+                    <p class="petit">
+                        Pour : {{ s.toutLeClub ? 'tout le club' : s.categories|map(c => c.nom)|join(', ') }}
+                        · {{ r.tarif(s) }}
+                        · {{ s.inscriptions|length }} {{ s.inscriptions|length > 1 ? 'inscrits' : 'inscrit' }}{% if s.places %} sur {{ s.places }} places{% endif %}
+                        {% if s.complet %}<span class="pastille alerte">complet</span>{% endif %}
+                        {% if s.inscriptionOuverte %}<span class="pastille succes">inscriptions ouvertes aux familles</span>{% endif %}
+                    </p>
+                </div>
+            </article>
+        {% else %}
+            <p class="vide">{{ passes ? 'Aucun stage passé.' : 'Aucun stage à venir.' }}{% if peut_creer and not passes %} Ajoutez le premier avec « Nouveau stage ».{% endif %}</p>
+        {% endfor %}
+    </div>
+{% endblock %}

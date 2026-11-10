@@ -7,6 +7,7 @@ use App\Entity\Rencontre;
 use App\Repository\CategorieRepository;
 use App\Repository\EntrainementRepository;
 use App\Repository\EvenementRepository;
+use App\Repository\StageRepository;
 use App\Repository\RencontreRepository;
 use App\Repository\SeanceRepository;
 use App\Security\ActiviteVoter;
@@ -36,6 +37,7 @@ class CalendrierController extends AbstractController
         PlanningEntrainements $planning,
         SeanceRepository $seances,
         EvenementRepository $evenements,
+        StageRepository $stages,
     ): Response {
         // Équipes visibles : celles des matchs que l'utilisateur peut voir (toutes avec le droit « rapport de match »).
         $secteurs = $activite->secteursMatchs();
@@ -98,9 +100,15 @@ class CalendrierController extends AbstractController
                 $jours[$j->format('Y-m-d')][] = ['type' => 'evenement', 'heure' => $premierJour ? $ev->getDebut()->format('H:i') : null, 'objet' => $ev];
             }
         }
+        // Stages : sur chacun de leurs jours, ceux de l'équipe choisie ou de tout le club.
+        foreach ($stages->entre($debut, $fin, $choisie ? [$choisie] : null) as $st) {
+            for ($j = max($st->getDebut(), $debut); $j <= min($st->getDernierJour(), $fin); $j = $j->modify('+1 day')) {
+                $jours[$j->format('Y-m-d')][] = ['type' => 'stage', 'heure' => null, 'objet' => $st, 'premier' => $j == $st->getDebut()];
+            }
+        }
         foreach ($jours as &$activites) {
             // Dans la journée : par heure (heure inconnue en dernier), les matchs avant les entraînements à égalité.
-            $rang = ['match' => 0, 'entrainement' => 1, 'evenement' => 2, 'seance' => 3];
+            $rang = ['match' => 0, 'entrainement' => 1, 'evenement' => 2, 'stage' => 3, 'seance' => 4];
             usort($activites, fn (array $a, array $b) => [$a['heure'] ?? '99', $rang[$a['type']]] <=> [$b['heure'] ?? '99', $rang[$b['type']]]);
         }
         unset($activites);

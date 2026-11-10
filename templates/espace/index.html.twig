@@ -51,6 +51,39 @@
                 </div>
             </div>
 
+            {% if e.stages %}
+                {% import 'stage/_resume.html.twig' as resume_stage %}
+                <h3 id="stages-{{ j.id }}">Stages</h3>
+                {% for s in e.stages %}
+                    {% set inscrit = s.inscription(j) %}
+                    <div class="stage-famille">
+                        <div>
+                            <strong>{{ s.titre }}</strong>
+                            {% if inscrit %}<span class="pastille succes">{{ j.prenom }} est inscrit(e)</span>{% endif %}
+                            {% if inscrit and s.payant %}<span class="pastille {{ inscrit.paye ? 'succes' : 'alerte' }}">{{ inscrit.paye ? 'réglé' : 'à régler' }}</span>{% endif %}
+                            <br><span class="discret petit">{{ resume_stage.quand(s) }} · {{ resume_stage.tarif(s) }}{% if s.raison %} · {{ s.raison }}{% endif %}</span>
+                            {% if s.description %}<br><span class="petit">{{ s.description|nl2br }}</span>{% endif %}
+                        </div>
+                        {% if s.inscriptionOuverte %}
+                            {% if inscrit or not s.complet %}
+                                <form method="post" action="{{ path('app_espace_stage', {id: s.id, joueur: j.id}) }}" {% if inscrit %}data-confirmation="Annuler l'inscription de {{ j.prenom }} ?" data-confirmation-bouton="Annuler l'inscription"{% endif %}>
+                                    <input type="hidden" name="_token" value="{{ csrf_token('stage-famille' ~ s.id ~ '-' ~ j.id) }}">
+                                    <input type="hidden" name="action" value="{{ inscrit ? 'desinscrire' : 'inscrire' }}">
+                                    <button type="submit" class="bouton petit {{ inscrit ? 'danger' : 'principal' }}">{{ inscrit ? 'Annuler l\'inscription' : 'Inscrire ' ~ j.prenom }}</button>
+                                    <br><span class="discret petit">jusqu'au {{ (s.dateLimite ?? s.debut|date_modify('-1 day'))|date('d/m') }}{% if s.places and not inscrit %} · {{ s.placesRestantes }} {{ s.placesRestantes > 1 ? 'places' : 'place' }}{% endif %}</span>
+                                </form>
+                            {% else %}
+                                <span class="pastille alerte">complet</span>
+                            {% endif %}
+                        {% elseif not inscrit and s.inscriptionsFamilles %}
+                            <span class="discret petit">Inscriptions closes</span>
+                        {% elseif not inscrit %}
+                            <span class="discret petit">Inscription auprès de l'éducateur</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
             {% if e.taches %}
                 <h3 id="taches">Tâches confiées à {{ j.prenom }}</h3>
                 <ul class="liste-taches">
