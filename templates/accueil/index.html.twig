@@ -22,6 +22,26 @@
         </section>
     {% endif %}
 
+    {% if mes_taches %}
+        {% import 'tache/_boutons.html.twig' as b %}
+        <section class="carte mes-taches">
+            <div class="premiers-pas-entete">
+                <h2>Mes tâches</h2>
+                <a class="discret petit" href="{{ path('app_tache_index') }}">{{ nb_taches > mes_taches|length ? 'les ' ~ nb_taches ~ ' tâches' : 'tout voir' }} →</a>
+            </div>
+            <ul class="liste-taches">
+                {% for t in mes_taches %}
+                    <li>
+                        <span><a href="{{ path('app_tache_voir', {id: t.id}) }}"><strong>{{ t.objet }}</strong></a>
+                            <span class="discret petit">{{ t.categorie ? t.categorie.nom : 'Tout le club' }}{% if t.echeance %} · pour le {{ t.echeance|date('d/m') }}{% endif %}</span>
+                            {{ b.pastilles(t) }}</span>
+                        <span>{{ b.statut(t, path('app_accueil')) }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
     <p class="discret">Joueurs actifs par catégorie, pour les secteurs auxquels vous avez accès.</p>
     {% for secteur, categories in secteurs %}
         <section class="secteur">

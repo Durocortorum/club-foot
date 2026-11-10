@@ -1,0 +1,19 @@
+{# Boutons de changement de statut d'une tâche ; « retour » : page où revenir. #}
+{% macro statut(t, retour = null) %}
+    {% set suivants = t.statut == 'a_faire' ? {en_cours: 'Commencer', faite: '✓ Faite'} : (t.statut == 'en_cours' ? {faite: '✓ Faite'} : {a_faire: 'Rouvrir'}) %}
+    {% for statut, libelle in suivants %}
+        <form method="post" action="{{ path('app_tache_statut', {id: t.id}) }}" class="en-ligne">
+            <input type="hidden" name="_token" value="{{ csrf_token('statut-tache' ~ t.id) }}">
+            <input type="hidden" name="statut" value="{{ statut }}">
+            {% if retour %}<input type="hidden" name="retour" value="{{ retour }}">{% endif %}
+            <button type="submit" class="bouton petit {{ statut == 'faite' ? 'principal' }}">{{ libelle }}</button>
+        </form>
+    {% endfor %}
+{% endmacro %}
+
+{# Pastilles : statut, urgence, retard. #}
+{% macro pastilles(t) %}
+    {% if t.urgente and not t.faite %}<span class="pastille alerte">urgente</span>{% endif %}
+    {% if t.enRetard %}<span class="pastille alerte">en retard</span>{% endif %}
+    <span class="pastille {{ t.faite ? 'succes' }}">{{ t.statutLibelle }}</span>
+{% endmacro %}

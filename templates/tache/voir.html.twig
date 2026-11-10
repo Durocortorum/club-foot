@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+{% import 'tache/_boutons.html.twig' as b %}
+
+{% block title %}{{ t.objet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_tache_index') }}">← Tâches</a></p>
+
+    <div class="titre-page">
+        <div>
+            <h1>{{ t.objet }}</h1>
+            <p class="discret">
+                {{ t.categorie ? t.categorie.nom : 'Tout le club' }}
+                {% if t.echeance %} · pour le {{ t.echeance|date('d/m/Y') }}{% endif %}
+                {{ b.pastilles(t) }}
+            </p>
+        </div>
+        <div class="actions">
+            {% if peut_modifier %}
+                {{ b.statut(t) }}
+                <a class="bouton" href="{{ path('app_tache_modifier', {id: t.id}) }}">Modifier</a>
+            {% endif %}
+            {% if peut_supprimer %}
+                {{ m.supprimer(path('app_tache_supprimer', {id: t.id}), 'supprimer-tache' ~ t.id, 'Supprimer la tâche « ' ~ t.objet ~ ' » ?') }}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grille-fiches">
+        <section class="carte">
+            <h2>Tâche</h2>
+            <dl>
+                {{ m.ligne('Personne chargée', t.responsable ? t.responsable.prenom ~ ' ' ~ t.responsable.nom : 'compte supprimé') }}
+                {{ m.ligne('Confiée par', t.creePar ? t.creePar.prenom ~ ' ' ~ t.creePar.nom) }}
+                {{ m.ligne('Le', t.creeLe|date('d/m/Y')) }}
+                {{ m.ligne('Faite le', t.faiteLe ? t.faiteLe|date('d/m/Y')) }}
+            </dl>
+        </section>
+
+        {% if t.description %}
+            <section class="carte">
+                <h2>Détails</h2>
+                <p class="memo">{{ t.description }}</p>
+            </section>
+        {% endif %}
+
+        {% if t.compteRendu %}
+            <section class="carte">
+                <h2>Compte rendu</h2>
+                <p class="memo">{{ t.compteRendu }}</p>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

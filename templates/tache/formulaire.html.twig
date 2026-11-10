@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% block body %}
+    <p>
+        {% if t.id %}
+            <a href="{{ path('app_tache_voir', {id: t.id}) }}">← Retour à la tâche</a>
+        {% else %}
+            <a href="{{ path('app_tache_index') }}">← Tâches</a>
+        {% endif %}
+    </p>
+    <h1>{{ titre }}</h1>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+
+        <fieldset class="carte">
+            <legend>Tâche</legend>
+            {{ m.groupe(form, ['objet', 'responsable', 'categorie', 'echeance', 'urgente', 'description']) }}
+            {% if not t.id %}<p class="discret petit">La personne chargée reçoit un e-mail avec la tâche.</p>{% endif %}
+        </fieldset>
+
+        {% if form.statut is defined %}
+            <fieldset class="carte">
+                <legend>Suivi</legend>
+                {{ m.groupe(form, ['statut', 'compteRendu']) }}
+            </fieldset>
+        {% endif %}
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">{{ t.id ? 'Enregistrer' : 'Confier la tâche' }}</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

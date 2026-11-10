@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+{% import 'tache/_boutons.html.twig' as b %}
+
+{% block title %}Tâches{% endblock %}
+
+{% block body %}
+    <nav class="onglets">
+        <a href="{{ path('app_tache_index', {vue: 'miennes'}) }}" class="{{ filtres.vue == 'miennes' ? 'actif' }}">Mes tâches{% if compteurs.miennes %} <span class="pastille">{{ compteurs.miennes }}</span>{% endif %}</a>
+        <a href="{{ path('app_tache_index', {vue: 'donnees'}) }}" class="{{ filtres.vue == 'donnees' ? 'actif' }}">Confiées par moi{% if compteurs.donnees %} <span class="pastille">{{ compteurs.donnees }}</span>{% endif %}</a>
+        <a href="{{ path('app_tache_index', {vue: 'toutes'}) }}" class="{{ filtres.vue == 'toutes' ? 'actif' }}">Toutes les tâches</a>
+    </nav>
+
+    <div class="titre-page">
+        <h1>{{ {miennes: 'Mes tâches', donnees: 'Tâches confiées par moi', toutes: 'Toutes les tâches'}[filtres.vue] }} <span class="compteur">{{ taches|length }}</span></h1>
+        <a class="bouton principal" href="{{ path('app_tache_nouvelle') }}">+ Confier une tâche</a>
+    </div>
+
+    <form class="filtres" method="get">
+        <input type="hidden" name="vue" value="{{ filtres.vue }}">
+        <select name="statut" onchange="this.form.requestSubmit()">
+            <option value="ouvertes" {{ filtres.statut == 'ouvertes' ? 'selected' }}>À faire et en cours</option>
+            <option value="faites" {{ filtres.statut == 'faites' ? 'selected' }}>Faites</option>
+            <option value="toutes" {{ filtres.statut == 'toutes' ? 'selected' }}>Toutes</option>
+        </select>
+        <select name="categorie" onchange="this.form.requestSubmit()">
+            <option value="">Toutes les catégories</option>
+            <option value="club" {{ filtres.categorie == 'club' ? 'selected' }}>Tout le club</option>
+            {% for c in categories %}<option value="{{ c.id }}" {{ filtres.categorie == c.id ~ '' ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
+        </select>
+        {% if filtres.vue == 'toutes' %}
+            <select name="responsable" onchange="this.form.requestSubmit()">
+                <option value="">Toutes les personnes</option>
+                {% for p in personnes %}<option value="{{ p.id }}" {{ filtres.responsable == p.id ? 'selected' }}>{{ p.prenom }} {{ p.nom }}</option>{% endfor %}
+            </select>
+        {% endif %}
+        <button type="submit" class="bouton">Filtrer</button>
+    </form>
+
+    <div class="table-defile">
+        <table class="liste liste-fiches">
+            <thead><tr><th>Objet</th><th>Personne</th><th>Catégorie</th><th>Pour le</th><th>Statut</th><th></th></tr></thead>
+            <tbody>
+                {% for t in taches %}
+                    <tr class="{{ t.faite ? 'discret' }}">
+                        <td class="principal"><a href="{{ path('app_tache_voir', {id: t.id}) }}"><strong>{{ t.objet }}</strong></a></td>
+                        <td data-label="personne">{{ t.responsable ? t.responsable.prenom ~ ' ' ~ t.responsable.nom : '—' }}</td>
+                        <td data-label="catégorie">{{ t.categorie ? t.categorie.nom : 'Tout le club' }}</td>
+                        <td data-label="pour le">{{ t.echeance ? t.echeance|date('d/m/Y') }}</td>
+                        <td>{{ b.pastilles(t) }}</td>
+                        <td class="a-cote">
+                            {% if is_granted('ROLE_ADMIN') or t.responsable == app.user or t.creePar == app.user %}
+                                {{ b.statut(t, app.request.requestUri) }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="vide">Aucune tâche.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

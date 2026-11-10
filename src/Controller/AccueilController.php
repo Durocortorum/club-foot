@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Categorie;
 use App\Repository\CategorieRepository;
 use App\Repository\JoueurRepository;
+use App\Repository\TacheRepository;
 use App\Security\JoueurVoter;
 use App\Service\PremiersPas;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -14,7 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class AccueilController extends AbstractController
 {
     #[Route('/', name: 'app_accueil')]
-    public function index(JoueurRepository $joueurs, CategorieRepository $categories, JoueurVoter $voter, PremiersPas $premiersPas): Response
+    public function index(JoueurRepository $joueurs, CategorieRepository $categories, JoueurVoter $voter, PremiersPas $premiersPas, TacheRepository $taches): Response
     {
         if ($this->isGranted('ROLE_MEDICAL_SEUL')) {
             return $this->redirectToRoute($this->isGranted('ROLE_INFIRMERIE_LECTURE') ? 'app_infirmerie_index' : 'app_dossier_medical_index');
@@ -35,6 +36,8 @@ class AccueilController extends AbstractController
             'libelles' => Categorie::SECTEURS,
             'etapes' => $etapes,
             'etapes_faites' => \count(array_filter($etapes, fn (array $e) => $e['fait'])),
+            'mes_taches' => $taches->ouvertesDe($this->getUser(), 5),
+            'nb_taches' => $taches->compterOuvertesDe($this->getUser()),
         ]);
     }
 }
