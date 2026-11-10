@@ -1,7 +1,89 @@
 {% extends 'base.html.twig' %}
 
+{% import 'tache/_boutons.html.twig' as b %}
+
+{# « Aujourd'hui », « Demain », « Hier » ou « sam. 14/11 ». #}
+{% macro jour(d) %}
+    {#- Écart en jours, arrondi (une journée de changement d'heure dure 23 ou 25 heures). -#}
+    {%- set ecart = ((d|date('Y-m-d')|date('U') - 'today'|date('U')) / 86400)|round -%}
+    {%- if ecart == 0 -%}Aujourd'hui
+    {%- elseif ecart == 1 -%}Demain
+    {%- elseif ecart == -1 -%}Hier
+    {%- else -%}{{ ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'][d|date('w')] }} {{ d|date('d/m') }}
+    {%- endif -%}
+{% endmacro %}
+
+{# « 3 – 1 » vu du club, coloré selon le résultat. #}
+{% macro score(r) %}<span class="score-pastille resultat-{{ r.resultat }}">{{ r.butsPour }} – {{ r.butsContre }}</span>{% endmacro %}
+
 {% block body %}
-    <h1>Bonjour {{ app.user.prenom }}</h1>
+    {% import _self as a %}
+    {% set jours_longs = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] %}
+    {% set mois_longs = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'] %}
+
+    {# La une : le club, la date, les chiffres de la saison. #}
+    <section class="accueil-une">
+        <svg class="une-terrain" viewBox="0 0 400 240" aria-hidden="true" preserveAspectRatio="xMaxYMid slice">
+            <rect x="8" y="8" width="384" height="224" rx="4"/>
+            <line x1="200" y1="8" x2="200" y2="232"/>
+            <circle cx="200" cy="120" r="38"/>
+            <rect x="8" y="64" width="58" height="112"/>
+            <rect x="334" y="64" width="58" height="112"/>
+            <rect x="8" y="94" width="22" height="52"/>
+            <rect x="370" y="94" width="22" height="52"/>
+        </svg>
+        <div class="une-identite">
+            <img class="une-blason" src="{{ logo_club }}" alt="">
+            <div>
+                <p class="une-date">{{ jours_longs['now'|date('w')]|capitalize }} {{ 'now'|date('j') }} {{ mois_longs['now'|date('n') - 1] }} {{ 'now'|date('Y') }}</p>
+                <h1>Bonjour {{ app.user.prenom }}</h1>
+                <p class="une-club">{{ club.nom }} · saison {{ saison }}</p>
+            </div>
+        </div>
+        <dl class="une-chiffres">
+            <div><dt>Joueurs</dt><dd>{{ nb_joueurs }}</dd></div>
+            <div><dt>Équipes</dt><dd>{{ nb_equipes }}</dd></div>
+            <div><dt>Matchs cette semaine</dt><dd>{{ semaine|length }}</dd></div>
+            {% if bilan.matchs %}
+                <div class="une-bilan">
+                    <dt>Bilan de la saison</dt>
+                    <dd><span title="Victoires">{{ bilan.V }} V</span> <span title="Nuls">{{ bilan.N }} N</span> <span title="Défaites">{{ bilan.D }} D</span></dd>
+                </div>
+            {% endif %}
+        </dl>
+    </section>
+
+    {# Le fil du club : défile en continu, s'arrête au survol. #}
+    {% set fil = [] %}
+    {% for r in semaine %}
+        {% set fil = fil|merge([{genre: 'match', icone: '⚽', lien: path('app_rencontre_voir', {id: r.id}), texte: a.jour(r.date) ~ (r.heure ? ' ' ~ r.heure|replace({':': 'h'})) ~ ' · ' ~ r.equipeAffichee ~ ' – ' ~ r.adversaire ~ (r.aDomicile ? ' (dom.)' : ' (ext.)')}]) %}
+    {% endfor %}
+    {% for r in resultats %}
+        {% set fil = fil|merge([{genre: 'resultat resultat-' ~ r.resultat, icone: {V: '🏆', N: '🤝', D: '📉'}[r.resultat], lien: path('app_rencontre_voir', {id: r.id}), texte: r.equipeAffichee ~ ' ' ~ r.butsPour ~ ' – ' ~ r.butsContre ~ ' ' ~ r.adversaire}]) %}
+    {% endfor %}
+    {% for an in anniversaires %}
+        {% set fil = fil|merge([{genre: 'anniversaire', icone: '🎂', lien: path('app_joueur_voir', {id: an.joueur.id}), texte: an.joueur.prenom ~ ' ' ~ an.joueur.nom ~ ' (' ~ an.joueur.categorie.nom ~ ') ' ~ (an.dans == 0 ? 'fête ses ' ~ an.age ~ ' ans aujourd\'hui !' : 'aura ' ~ an.age ~ ' ans ' ~ (an.dans == 1 ? 'demain' : a.jour(an.date)|lower))}]) %}
+    {% endfor %}
+    {% for st in stages %}
+        {% set fil = fil|merge([{genre: 'stage', icone: '🏕️', lien: path('app_stage_voir', {id: st.id}), texte: 'Stage « ' ~ st.titre ~ ' » ' ~ a.jour(st.debut)|lower}]) %}
+    {% endfor %}
+    {% if fil %}
+        <div class="fil-club" role="region" aria-label="Fil du club : matchs, résultats, anniversaires">
+            <span class="fil-titre">Le fil du club</span>
+            <div class="fil-fenetre">
+                <div class="fil-piste" style="--duree: {{ max(25, fil|length * 6) }}s">
+                    {% for tour in [1, 2] %}
+                        {# Deux fois la même liste : la seconde prend le relais sans à-coup ; elle est cachée aux lecteurs d'écran. #}
+                        <ul class="fil-liste" {{ tour == 2 ? 'aria-hidden=true' }}>
+                            {% for e in fil %}
+                                <li class="fil-element fil-{{ e.genre }}"><a href="{{ e.lien }}" {{ tour == 2 ? 'tabindex=-1' }}><span aria-hidden="true">{{ e.icone }}</span> {{ e.texte }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
 
     {% if etapes_faites < etapes|length %}
         <section class="carte premiers-pas">
@@ -22,7 +104,65 @@
         </section>
     {% endif %}
 
-    {% import 'tache/_boutons.html.twig' as b %}
+    {# La semaine en trois cartes. #}
+    <div class="accueil-cartes">
+        <section class="carte accueil-carte">
+            <h2><span aria-hidden="true">📅</span> Cette semaine</h2>
+            {% if semaine %}
+                <ul class="accueil-liste">
+                    {% for r in semaine %}
+                        <li>
+                            <a href="{{ path('app_rencontre_voir', {id: r.id}) }}">
+                                <span class="accueil-quand"><strong>{{ a.jour(r.date) }}</strong>{% if r.heure %}<br>{{ r.heure|replace({':': 'h'}) }}{% endif %}</span>
+                                <span class="accueil-quoi"><strong>{{ r.equipeAffichee }}</strong> – {{ r.adversaire }}<br><span class="discret petit">{{ r.aDomicile ? 'à domicile' : 'à l\'extérieur' }}{% if r.competition %} · {{ r.competition }}{% endif %}</span></span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="vide">Aucun match dans les 7 prochains jours.</p>
+            {% endif %}
+            <a class="discret petit" href="{{ path('app_calendrier') }}">Calendrier du club →</a>
+        </section>
+
+        <section class="carte accueil-carte">
+            <h2><span aria-hidden="true">🏆</span> Derniers résultats</h2>
+            {% if resultats %}
+                <ul class="accueil-liste">
+                    {% for r in resultats %}
+                        <li>
+                            <a href="{{ path('app_rencontre_voir', {id: r.id}) }}">
+                                <span class="accueil-quand">{{ a.score(r) }}</span>
+                                <span class="accueil-quoi"><strong>{{ r.equipeAffichee }}</strong> – {{ r.adversaire }}<br><span class="discret petit">{{ a.jour(r.date) }} · {{ r.aDomicile ? 'domicile' : 'extérieur' }}</span></span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="vide">Pas de résultat ces 7 derniers jours.</p>
+            {% endif %}
+            <a class="discret petit" href="{{ path('app_rencontre_index') }}">Tous les matchs →</a>
+        </section>
+
+        <section class="carte accueil-carte">
+            <h2><span aria-hidden="true">🎂</span> Anniversaires</h2>
+            {% if anniversaires %}
+                <ul class="accueil-liste">
+                    {% for an in anniversaires %}
+                        <li class="{{ an.dans == 0 ? 'fete-aujourdhui' }}">
+                            <a href="{{ path('app_joueur_voir', {id: an.joueur.id}) }}">
+                                <span class="accueil-quand"><strong>{{ an.dans == 0 ? 'Aujourd\'hui' : a.jour(an.date) }}</strong></span>
+                                <span class="accueil-quoi"><strong>{{ an.joueur.prenom }} {{ an.joueur.nom }}</strong><br><span class="discret petit">{{ an.joueur.categorie.nom }} · {{ an.age }} ans</span></span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="vide">Aucun anniversaire dans les 7 prochains jours.</p>
+            {% endif %}
+        </section>
+    </div>
+
     {% if mes_taches %}
         <section class="carte mes-taches">
             <div class="premiers-pas-entete">
@@ -60,15 +200,24 @@
         </section>
     {% endif %}
 
-    <p class="discret">Joueurs actifs par catégorie, pour les secteurs auxquels vous avez accès.</p>
+    {# Les équipes, par secteur : effectif (barre proportionnelle à la plus grande équipe) et prochain match. #}
+    <h2 class="accueil-titre-equipes">Les équipes du club</h2>
     {% for secteur, categories in secteurs %}
         <section class="secteur">
-            <h2>{{ libelles[secteur].libelle }}</h2>
+            <h3 class="secteur-titre">{{ libelles[secteur].libelle }} <span class="discret">{{ totaux_secteurs[secteur] }} joueur{{ totaux_secteurs[secteur] > 1 ? 's' }}</span></h3>
             <div class="tuiles">
                 {% for c in categories %}
                     <a class="tuile equipe" href="{{ path('app_joueur_index', {categorie: c.id}) }}">
                         <span class="equipe-niveau">{{ c.nom }}</span>
                         <span class="equipe-effectif">{{ c.total }} joueur{{ c.total > 1 ? 's' }}</span>
+                        <span class="equipe-jauge" aria-hidden="true"><span style="width: {{ (100 * c.total / plus_grande)|round }}%"></span></span>
+                        <span class="equipe-prochain">
+                            {% if c.prochain %}
+                                ⚽ {{ a.jour(c.prochain.date) }} · {{ c.prochain.aDomicile ? 'vs' : '@' }} {{ c.prochain.adversaire }}
+                            {% else %}
+                                <span class="discret">Pas de match prévu</span>
+                            {% endif %}
+                        </span>
                     </a>
                 {% endfor %}
             </div>

@@ -941,3 +941,97 @@ table.droits thead th.droits-nom { z-index: 3; }
 .inscrire-stage summary { cursor: pointer; font-weight: 600; }
 .stage-famille { border-top: 1px solid var(--bordure); padding: .6rem 0; display: flex; justify-content: space-between; gap: .8rem; flex-wrap: wrap; align-items: center; }
 .stage-famille:first-of-type { border-top: 0; }
+
+/* ===== Accueil ===== */
+
+/* La une : bandeau aux couleurs du club, avec un terrain en filigrane. */
+.accueil-une {
+    position: relative; overflow: hidden; border-radius: 16px; padding: 1.6rem 1.8rem 1.4rem;
+    background: linear-gradient(135deg, var(--rouge) 0%, var(--rouge-fonce) 100%); color: var(--sur-rouge);
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--rouge) 25%, transparent);
+}
+.une-terrain {
+    position: absolute; right: -40px; top: 50%; transform: translateY(-50%); width: 520px; height: 320px;
+    fill: none; stroke: currentColor; stroke-width: 2; opacity: .13; pointer-events: none;
+}
+.une-identite { position: relative; display: flex; align-items: center; gap: 1.1rem; }
+.une-blason {
+    width: 78px; height: 78px; flex: none; object-fit: contain; border-radius: 50%; padding: 6px;
+    background: color-mix(in srgb, var(--sur-rouge) 92%, transparent); box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+}
+.accueil-une h1 { margin: 0; font-size: 2.1rem; letter-spacing: -.02em; color: inherit; }
+.une-date { margin: 0; text-transform: none; opacity: .85; font-size: .95rem; }
+.une-club { margin: .1rem 0 0; opacity: .85; }
+.une-chiffres {
+    position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .7rem; margin: 1.3rem 0 0;
+}
+.une-chiffres > div {
+    background: color-mix(in srgb, var(--sur-rouge) 13%, transparent); border: 1px solid color-mix(in srgb, var(--sur-rouge) 22%, transparent);
+    border-radius: 12px; padding: .6rem .9rem; backdrop-filter: blur(2px);
+}
+.une-chiffres dt { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: inherit; opacity: .9; font-weight: 600; }
+.une-chiffres dd { margin: .1rem 0 0; font-size: 1.7rem; font-weight: 800; line-height: 1.1; color: inherit; }
+.une-bilan dd { font-size: 1.25rem; display: flex; gap: .7rem; padding-top: .2rem; }
+
+/* Le fil du club : défilement continu, arrêt au survol ou au clavier. */
+.fil-club {
+    display: flex; align-items: stretch; margin: .9rem 0 1.4rem; background: #fff; border: 1px solid var(--bordure);
+    border-radius: 999px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+}
+.fil-titre {
+    flex: none; display: flex; align-items: center; padding: 0 1rem; font-weight: 700; font-size: .85rem;
+    text-transform: uppercase; letter-spacing: .05em; background: var(--rouge); color: var(--sur-rouge);
+}
+.fil-fenetre { flex: 1; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent); }
+.fil-piste { display: flex; width: max-content; animation: fil-defile var(--duree, 40s) linear infinite; }
+.fil-club:hover .fil-piste, .fil-club:focus-within .fil-piste { animation-play-state: paused; }
+.fil-liste { display: flex; list-style: none; margin: 0; padding: 0; }
+.fil-element a { display: block; padding: .6rem 1.4rem; white-space: nowrap; color: var(--encre); border-right: 1px solid var(--bordure); }
+.fil-element a:hover { color: var(--rouge); text-decoration: none; }
+.fil-resultat-V a { color: var(--succes); font-weight: 600; }
+.fil-resultat-D a { color: var(--danger-fonce); }
+.fil-anniversaire a { color: #8a4b00; }
+@keyframes fil-defile { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+    .fil-piste { animation: none; }
+    .fil-fenetre { overflow-x: auto; mask-image: none; }
+    .fil-liste[aria-hidden] { display: none; }
+}
+
+/* Les trois cartes de la semaine. */
+.accueil-cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1rem; margin-bottom: 1.4rem; }
+.accueil-carte { display: flex; flex-direction: column; gap: .6rem; }
+.accueil-carte h2 { margin: 0; font-size: 1.1rem; }
+.accueil-carte > a:last-child { margin-top: auto; }
+.accueil-liste { list-style: none; margin: 0; padding: 0; }
+.accueil-liste li + li { border-top: 1px solid var(--bordure); }
+.accueil-liste a { display: flex; gap: .8rem; align-items: center; padding: .55rem .2rem; color: var(--encre); border-radius: 8px; }
+.accueil-liste a:hover { background: color-mix(in srgb, var(--rouge) 6%, transparent); text-decoration: none; }
+.accueil-quand { flex: none; width: 5.2rem; font-size: .85rem; line-height: 1.25; color: var(--gris); }
+.accueil-quand strong { color: var(--encre); }
+.accueil-quoi { min-width: 0; line-height: 1.3; }
+.score-pastille { display: inline-block; font-weight: 800; font-size: 1rem; padding: .15rem .55rem; border-radius: 8px; background: #f0f0f3; }
+.score-pastille.resultat-V { background: #e5f4ea; color: var(--succes); }
+.score-pastille.resultat-N { background: #f2f0e6; color: #6b5d1a; }
+.score-pastille.resultat-D { background: var(--danger-clair); color: var(--danger-fonce); }
+.fete-aujourdhui a { background: linear-gradient(90deg, #fff4d6, transparent); }
+.fete-aujourdhui .accueil-quand strong { color: #8a4b00; }
+
+/* Les équipes : effectif en barre, prochain match. */
+.accueil-titre-equipes { margin: 2rem 0 0; font-size: 1.35rem; }
+.secteur-titre { margin: 0 0 .7rem; font-size: 1.05rem; display: flex; align-items: baseline; gap: .6rem; }
+.secteur-titre .discret { font-weight: 400; font-size: .9rem; }
+.secteur .tuiles { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.equipe-jauge { display: block; height: 6px; border-radius: 99px; background: #f0f0f3; overflow: hidden; }
+.equipe-jauge span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--rouge), var(--rouge-fonce)); }
+.equipe-prochain { font-size: .8rem; color: var(--gris); line-height: 1.3; min-height: 2.1em; }
+
+@media (max-width: 600px) {
+    .accueil-une { padding: 1.2rem; border-radius: 12px; }
+    .accueil-une h1 { font-size: 1.6rem; }
+    .une-blason { width: 58px; height: 58px; }
+    .une-chiffres { grid-template-columns: repeat(2, 1fr); }
+    .une-chiffres dd { font-size: 1.4rem; }
+    .fil-titre { display: none; }
+    .fil-club { border-radius: 12px; }
+}
