@@ -55,6 +55,10 @@
                             {% endif %}
                             {% if peut_modifier %}
                                 <a class="bouton petit" href="{{ path('app_tache_modifier', {id: t.id}) }}">Modifier</a>
+                                <form method="post" action="{{ path('app_tache_supprimer', {id: t.id}) }}" data-confirmation="Supprimer la tâche « {{ t.objet }} » ?" data-confirmation-bouton="Supprimer" class="en-ligne">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('supprimer-tache' ~ t.id) }}">
+                                    <button class="bouton petit danger">Supprimer</button>
+                                </form>
                             {% endif %}
                         </td>
                     </tr>
