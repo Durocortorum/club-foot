@@ -46,7 +46,16 @@ class StageType extends AbstractType
             ->add('detailTarif', null, ['label' => 'Précisions sur le tarif', 'required' => false, 'attr' => ['placeholder' => 'ex. : repas compris, 60 € pour le 2e enfant']])
             ->add('places', IntegerType::class, ['label' => 'Nombre de places', 'required' => false, 'attr' => ['min' => 1, 'placeholder' => 'Vide si illimité']])
             ->add('description', TextareaType::class, ['label' => 'Programme, informations', 'required' => false, 'attr' => ['rows' => 5, 'placeholder' => 'Programme, ce qu\'il faut apporter, encadrement…']])
-            ->add('inscriptionsFamilles', CheckboxType::class, ['label' => 'Les familles inscrivent leur enfant depuis leur espace', 'required' => false])
+            ->add('obligatoire', CheckboxType::class, [
+                'label' => 'Stage obligatoire',
+                'required' => false,
+                'help' => 'Tous les joueurs des équipes concernées sont inscrits d\'office et prévenus par e-mail et dans leur espace.',
+            ])
+            ->add('inscriptionsFamilles', CheckboxType::class, [
+                'label' => 'Les joueurs (ou leurs parents) s\'inscrivent depuis leur espace',
+                'required' => false,
+                'help' => 'Stage non obligatoire. Le bouton « Prévenir les joueurs » de la fiche du stage leur envoie le message et ouvre les inscriptions.',
+            ])
             ->add('dateLimite', DateType::class, ['label' => 'Inscriptions jusqu\'au', 'required' => false, 'help' => 'Vide : jusqu\'à la veille du stage.'] + $date);
     }
 

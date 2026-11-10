@@ -10,10 +10,19 @@
     <div class="titre-page">
         <div>
             <h1>{{ s.titre }}</h1>
-            <p class="discret">{{ r.quand(s) }}</p>
+            <p class="discret">{{ r.quand(s) }}{% if s.obligatoire %} <span class="pastille alerte">obligatoire</span>{% endif %}</p>
+            {% if s.prevenuLe %}<p class="discret petit">Joueurs prévenus le {{ s.prevenuLe|date('d/m/Y à H\hi') }}.</p>{% endif %}
         </div>
         {% if peut_modifier %}
-            <div class="actions"><a class="bouton principal" href="{{ path('app_stage_modifier', {id: s.id}) }}">Modifier</a></div>
+            <div class="actions">
+                {% if s.dernierJour >= date('today') %}
+                    <form method="post" action="{{ path('app_stage_prevenir', {id: s.id}) }}" class="en-ligne" data-confirmation="{{ s.obligatoire ? 'Inscrire d\'office les joueurs qui ne le sont pas et envoyer' : 'Envoyer' }} le stage à tous les joueurs concernés (espace et e-mail){{ s.obligatoire ? '' : ', et ouvrir les inscriptions depuis leur espace' }} ?" data-confirmation-bouton="Prévenir">
+                        <input type="hidden" name="_token" value="{{ csrf_token('prevenir-stage' ~ s.id) }}">
+                        <button class="bouton">{{ s.prevenuLe ? 'Prévenir à nouveau les joueurs' : 'Prévenir les joueurs' }}</button>
+                    </form>
+                {% endif %}
+                <a class="bouton principal" href="{{ path('app_stage_modifier', {id: s.id}) }}">Modifier</a>
+            </div>
         {% endif %}
     </div>
 
@@ -25,7 +34,7 @@
                 {{ m.ligne('Pour', s.toutLeClub ? 'Tout le club' : s.categories|map(c => c.nom)|join(', ')) }}
                 {{ m.ligne('Tarif', r.tarif(s)) }}
                 {{ m.ligne('Places', s.places ? s.places ~ ' (' ~ s.placesRestantes ~ ' ' ~ (s.placesRestantes > 1 ? 'restantes' : 'restante') ~ ')' : 'illimitées') }}
-                {{ m.ligne('Inscriptions des familles', s.inscriptionsFamilles ? (s.inscriptionOuverte ? 'ouvertes jusqu\'au ' ~ (s.dateLimite ?? s.debut|date_modify('-1 day'))|date('d/m/Y') : 'closes') : 'non, inscription par l\'encadrement') }}
+                {{ m.ligne('Inscriptions', s.obligatoire ? 'obligatoire : tous les joueurs concernés sont inscrits' : (s.inscriptionsFamilles ? (s.inscriptionOuverte ? 'depuis l\'espace des joueurs, jusqu\'au ' ~ s.limiteInscription|date('d/m/Y') : 'closes') : 'par l\'encadrement (« Prévenir les joueurs » les ouvre depuis leur espace)')) }}
             </dl>
         </section>
         {% if s.description %}

@@ -76,6 +76,14 @@ class Stage implements AppartientAuClub
     #[ORM\Column]
     private bool $inscriptionsFamilles = false;
 
+    /** Stage obligatoire : tous les joueurs des équipes concernées sont inscrits et prévenus. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $obligatoire = false;
+
+    /** Dernier envoi du message aux joueurs (e-mail et espace). */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $prevenuLe = null;
+
     /** Dernier jour pour s'inscrire depuis l'espace famille ; vide = jusqu'à la veille du stage. */
     #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $dateLimite = null;
@@ -301,6 +309,36 @@ class Stage implements AppartientAuClub
         return $this;
     }
 
+    public function isObligatoire(): bool
+    {
+        return $this->obligatoire;
+    }
+
+    public function setObligatoire(bool $obligatoire): static
+    {
+        $this->obligatoire = $obligatoire;
+
+        return $this;
+    }
+
+    public function getPrevenuLe(): ?\DateTimeImmutable
+    {
+        return $this->prevenuLe;
+    }
+
+    public function setPrevenuLe(?\DateTimeImmutable $prevenuLe): static
+    {
+        $this->prevenuLe = $prevenuLe;
+
+        return $this;
+    }
+
+    /** Date limite d'inscription réelle (la veille du stage si aucune n'est indiquée). */
+    public function getLimiteInscription(): ?\DateTimeImmutable
+    {
+        return $this->dateLimite ?? $this->debut?->modify('-1 day');
+    }
+
     public function getDateLimite(): ?\DateTimeImmutable
     {
         return $this->dateLimite;
@@ -370,8 +408,9 @@ class Stage implements AppartientAuClub
     public function isInscriptionOuverte(?\DateTimeImmutable $aujourdhui = null): bool
     {
         $aujourdhui ??= new \DateTimeImmutable('today');
-        $limite = $this->dateLimite ?? $this->debut?->modify('-1 day');
+        $limite = $this->getLimiteInscription();
 
-        return $this->inscriptionsFamilles && $limite && $aujourdhui <= $limite;
+        // Stage obligatoire : tout le monde est inscrit d'office, rien à choisir.
+        return !$this->obligatoire && $this->inscriptionsFamilles && $limite && $aujourdhui <= $limite;
     }
 }

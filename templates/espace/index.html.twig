@@ -59,6 +59,7 @@
                     <div class="stage-famille">
                         <div>
                             <strong>{{ s.titre }}</strong>
+                            {% if s.obligatoire %}<span class="pastille alerte">obligatoire</span>{% endif %}
                             {% if inscrit %}<span class="pastille succes">{{ j.prenom }} est inscrit(e)</span>{% endif %}
                             {% if inscrit and s.payant %}<span class="pastille {{ inscrit.paye ? 'succes' : 'alerte' }}">{{ inscrit.paye ? 'réglé' : 'à régler' }}</span>{% endif %}
                             <br><span class="discret petit">{{ resume_stage.quand(s) }} · {{ resume_stage.tarif(s) }}{% if s.raison %} · {{ s.raison }}{% endif %}</span>
@@ -70,11 +71,13 @@
                                     <input type="hidden" name="_token" value="{{ csrf_token('stage-famille' ~ s.id ~ '-' ~ j.id) }}">
                                     <input type="hidden" name="action" value="{{ inscrit ? 'desinscrire' : 'inscrire' }}">
                                     <button type="submit" class="bouton petit {{ inscrit ? 'danger' : 'principal' }}">{{ inscrit ? 'Annuler l\'inscription' : 'Inscrire ' ~ j.prenom }}</button>
-                                    <br><span class="discret petit">jusqu'au {{ (s.dateLimite ?? s.debut|date_modify('-1 day'))|date('d/m') }}{% if s.places and not inscrit %} · {{ s.placesRestantes }} {{ s.placesRestantes > 1 ? 'places' : 'place' }}{% endif %}</span>
+                                    <br><span class="discret petit">jusqu'au {{ s.limiteInscription|date('d/m') }}{% if s.places and not inscrit %} · {{ s.placesRestantes }} {{ s.placesRestantes > 1 ? 'places' : 'place' }}{% endif %}</span>
                                 </form>
                             {% else %}
                                 <span class="pastille alerte">complet</span>
                             {% endif %}
+                        {% elseif s.obligatoire %}
+                            <span class="discret petit">En cas d'empêchement, prévenez l'éducateur.</span>
                         {% elseif not inscrit and s.inscriptionsFamilles %}
                             <span class="discret petit">Inscriptions closes</span>
                         {% elseif not inscrit %}

@@ -133,7 +133,9 @@ class EspaceController extends AbstractController
             return $retour;
         }
         if (!$stage->isInscriptionOuverte() || !$stage->concerne(array_filter([$joueur->getCategorie()]))) {
-            $this->addFlash('erreur', 'Les inscriptions à ce stage sont closes : contactez l\'encadrement.');
+            $this->addFlash('erreur', $stage->isObligatoire()
+                ? 'Ce stage est obligatoire : en cas d\'empêchement, prévenez l\'éducateur.'
+                : 'Les inscriptions à ce stage sont closes : contactez l\'encadrement.');
 
             return $retour;
         }

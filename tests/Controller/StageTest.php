@@ -30,7 +30,7 @@ class StageTest extends WebTestCase
     {
         if ($this->clubId) {
             $connexion = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
-            foreach (['stage', 'utilisateur', 'joueur', 'categorie'] as $table) {
+            foreach (['stage', 'message', 'utilisateur', 'joueur', 'categorie'] as $table) {
                 $connexion->executeStatement("DELETE FROM $table WHERE club_id = ?", [$this->clubId]);
             }
             $connexion->executeStatement('DELETE FROM club WHERE id = ?', [$this->clubId]);
@@ -80,7 +80,6 @@ class StageTest extends WebTestCase
             'stage[tarif]' => '45',
             'stage[detailTarif]' => 'repas compris',
             'stage[places]' => '2',
-            'stage[inscriptionsFamilles]' => '1',
         ]);
         $crawler = $this->client->followRedirect();
         $stage = $em->getRepository(Stage::class)->findOneBy(['club' => $this->clubId]);
@@ -103,6 +102,17 @@ class StageTest extends WebTestCase
         $this->client->submit($crawler->filter('#participants')->selectButton('Marquer payé')->form());
         $crawler = $this->client->followRedirect();
         self::assertStringContainsString('encaissé : 45,00 €', $crawler->filter('#participants')->text());
+
+        // Stage non obligatoire : « Prévenir les joueurs » envoie le message (espace et e-mail) et ouvre les inscriptions.
+        $this->client->submit($crawler->selectButton('Prévenir les joueurs')->form());
+        self::assertEmailCount(1); // la famille de Léa ; Tom n'a pas de compte
+        $email = self::getMailerMessage();
+        self::assertEmailAddressContains($email, 'To', "parent-$id@exemple.test");
+        self::assertEmailHtmlBodyContains($email, 'inscrivez-vous depuis votre espace');
+        $crawler = $this->client->followRedirect();
+        self::assertStringContainsString('2 joueurs prévenus', $crawler->filter('.flash-succes')->text());
+        self::assertStringContainsString('Tom PETIT', $crawler->filter('.flash-info')->text());
+        self::assertCount(1, $crawler->selectButton('Prévenir à nouveau les joueurs'));
 
         // Le stage est dans le calendrier du mois (sur ses 3 jours s'ils sont dans le même mois).
         $crawler = $this->client->request('GET', '/calendrier?mois=' . $debut->format('Y-m'));
@@ -142,5 +152,34 @@ class StageTest extends WebTestCase
         self::assertCount(0, $crawler->filter('form.inscrire-stage'));
         $this->client->request('GET', '/stages/' . $stage->getId() . '/modifier');
         self::assertResponseStatusCodeSame(403);
+
+        // Stage obligatoire : tous les U13 inscrits d'office et prévenus ; la famille ne peut pas se désinscrire.
+        $this->client->loginUser($em->find(Utilisateur::class, $admin->getId()));
+        $crawler = $this->client->request('GET', '/stages/nouveau');
+        $form = $crawler->selectButton('Enregistrer')->form();
+        foreach ($form['stage[categories]'] as $case) {
+            if ((string) $u13->getId() === $case->availableOptionValues()[0]) {
+                $case->tick();
+            }
+        }
+        $this->client->submit($form, [
+            'stage[titre]' => 'Stage de reprise',
+            'stage[debut]' => $debut->modify('+20 days')->format('Y-m-d'),
+            'stage[obligatoire]' => '1',
+        ]);
+        self::assertEmailCount(1);
+        self::assertEmailHtmlBodyContains(self::getMailerMessage(), 'Tous les joueurs concernés y sont inscrits');
+        $crawler = $this->client->followRedirect();
+        self::assertStringContainsString('2 inscrits d\'office', $crawler->filter('.flash-succes')->last()->text());
+        $reprise = $em->getRepository(Stage::class)->findOneBy(['club' => $this->clubId, 'titre' => 'Stage de reprise']);
+        self::assertCount(2, $reprise->getInscriptions());
+        $this->client->loginUser($em->find(Utilisateur::class, $parent->getId()));
+        $crawler = $this->client->request('GET', '/espace');
+        $bloc = $crawler->filter('.stage-famille')->reduce(fn ($n) => str_contains($n->text(), 'Stage de reprise'));
+        self::assertStringContainsString('obligatoire', $bloc->text());
+        self::assertStringContainsString('Léa est inscrit(e)', $bloc->text());
+        self::assertCount(0, $bloc->filter('button'));
+        $crawler = $this->client->request('GET', '/espace/messages');
+        self::assertStringContainsString('Stage obligatoire : Stage de reprise', $crawler->filter('main')->text());
     }
 }

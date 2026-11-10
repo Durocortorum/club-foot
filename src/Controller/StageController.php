@@ -10,6 +10,7 @@ use App\Repository\CategorieRepository;
 use App\Repository\JoueurRepository;
 use App\Repository\StageRepository;
 use App\Security\JoueurVoter;
+use App\Service\AvisStages;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -28,6 +29,7 @@ class StageController extends AbstractController
         private readonly JoueurVoter $voter,
         private readonly CategorieRepository $categories,
         private readonly EntityManagerInterface $em,
+        private readonly AvisStages $avis,
     ) {
     }
 
@@ -115,6 +117,40 @@ class StageController extends AbstractController
         return $this->redirectToRoute('app_stage_index');
     }
 
+    /** Envoie le stage aux joueurs (espace et e-mail) ; ouvre les inscriptions s'il n'est pas obligatoire. */
+    #[Route('/{id}/prevenir', name: 'app_stage_prevenir', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function prevenir(Request $request, Stage $stage, AvisStages $avis): Response
+    {
+        $this->verifierModifiable($stage);
+        if ($this->isCsrfTokenValid('prevenir-stage' . $stage->getId(), $request->getPayload()->getString('_token'))) {
+            if ($stage->getDernierJour() < new \DateTimeImmutable('today')) {
+                $this->addFlash('erreur', 'Ce stage est terminé.');
+            } else {
+                $this->annoncer($stage, $avis);
+            }
+        }
+
+        return $this->redirectToRoute('app_stage_voir', ['id' => $stage->getId()]);
+    }
+
+    /** Stage obligatoire : inscription d'office ; puis message à tous les joueurs concernés, avec le bilan. */
+    private function annoncer(Stage $stage, AvisStages $avis): void
+    {
+        $inscrits = $stage->isObligatoire() ? $avis->inscrireTous($stage) : 0;
+        $r = $avis->prevenir($stage, $this->getUser());
+        $message = \sprintf('%d %s prévenu%s dans leur espace', $r['joueurs'], $r['joueurs'] > 1 ? 'joueurs' : 'joueur', $r['joueurs'] > 1 ? 's' : '');
+        $message .= $r['emails'] ? \sprintf(' (%d e-mail%s)', $r['emails'], $r['emails'] > 1 ? 's' : '') : '';
+        $message .= $inscrits ? \sprintf(', %d inscrit%s d\'office', $inscrits, $inscrits > 1 ? 's' : '') : '';
+        $message .= $stage->isObligatoire() ? '.' : ' ; ils peuvent maintenant s\'inscrire depuis leur espace.';
+        $this->addFlash('succes', $message);
+        if ($r['sans_compte']) {
+            $noms = array_map(fn (Joueur $j) => $j->getPrenom() . ' ' . $j->getNom(), \array_slice($r['sans_compte'], 0, 8));
+            $this->addFlash('info', \sprintf('%d sans compte actif, à prévenir autrement : %s%s.', \count($r['sans_compte']), implode(', ', $noms), \count($r['sans_compte']) > 8 ? '…' : ''));
+        }
+        if ($r['echecs']) {
+            $this->addFlash('erreur', 'E-mail impossible vers : ' . implode(', ', $r['echecs']) . '.');
+        }
+    }
     /** Inscrire les joueurs cochés. */
     #[Route('/{id}/inscrire', name: 'app_stage_inscrire', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function inscrire(Request $request, Stage $stage, JoueurRepository $joueurs): Response
@@ -170,6 +206,7 @@ class StageController extends AbstractController
         }
         $proposees = array_values($proposees);
         usort($proposees, fn (Categorie $a, Categorie $b) => $a->getOrdre() <=> $b->getOrdre());
+        $obligatoireAvant = $stage->getId() && $stage->isObligatoire();
         $form = $this->createForm(StageType::class, $stage, ['categories' => $proposees, 'tout_le_club' => $admin]);
         $form->handleRequest($request);
 
@@ -180,6 +217,10 @@ class StageController extends AbstractController
             $this->em->persist($stage);
             $this->em->flush();
             $this->addFlash('succes', 'Stage enregistré.');
+            // Devenu obligatoire (ou créé obligatoire) : tout le monde est inscrit et prévenu.
+            if ($stage->isObligatoire() && !$obligatoireAvant && $stage->getDernierJour() >= new \DateTimeImmutable('today')) {
+                $this->annoncer($stage, $this->avis);
+            }
 
             return $this->redirectToRoute('app_stage_voir', ['id' => $stage->getId()]);
         }

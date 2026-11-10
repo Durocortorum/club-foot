@@ -34,6 +34,7 @@
                         Pour : {{ s.toutLeClub ? 'tout le club' : s.categories|map(c => c.nom)|join(', ') }}
                         · {{ r.tarif(s) }}
                         · {{ s.inscriptions|length }} {{ s.inscriptions|length > 1 ? 'inscrits' : 'inscrit' }}{% if s.places %} sur {{ s.places }} places{% endif %}
+                        {% if s.obligatoire %}<span class="pastille alerte">obligatoire</span>{% endif %}
                         {% if s.complet %}<span class="pastille alerte">complet</span>{% endif %}
                         {% if s.inscriptionOuverte %}<span class="pastille succes">inscriptions ouvertes aux familles</span>{% endif %}
                     </p>
