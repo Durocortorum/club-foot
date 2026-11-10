@@ -51,6 +51,28 @@
                 </div>
             </div>
 
+            {% if e.taches %}
+                <h3 id="taches">Tâches confiées à {{ j.prenom }}</h3>
+                <ul class="liste-taches">
+                    {% for t in e.taches %}
+                        <li>
+                            <span>
+                                <strong>{{ t.objet }}</strong>
+                                {% if t.echeance %}<span class="discret petit">pour le {{ ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][t.echeance|date('w')] }} {{ t.echeance|date('d/m') }}</span>{% endif %}
+                                {% if t.faite %}<span class="pastille succes">faite</span>{% elseif t.enRetard %}<span class="pastille alerte">en retard</span>{% endif %}
+                                {% if t.description %}<span class="petit">{{ t.description }}</span>{% endif %}
+                            </span>
+                            {% if not t.faite %}
+                                <form method="post" action="{{ path('app_espace_tache_faite', {id: t.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('tache-faite' ~ t.id) }}">
+                                    <button type="submit" class="bouton petit principal">✓ C'est fait</button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
             {% if e.convocations %}
                 <h3>Convocations</h3>
                 {% for c in e.convocations %}

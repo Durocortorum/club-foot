@@ -6,6 +6,9 @@ use App\Entity\AbsenceEntrainement;
 use App\Entity\Convoque;
 use App\Entity\Entrainement;
 use App\Entity\Joueur;
+use App\Entity\Tache;
+use App\Repository\TacheRepository;
+use App\Service\AvisTaches;
 use App\Entity\Utilisateur;
 use App\Service\AccesFamille;
 use App\Service\ProchesJoueur;
@@ -50,6 +53,7 @@ class EspaceController extends AbstractController
         PresenceRepository $presences,
         BilanJoueur $bilan,
         EvenementRepository $evenements,
+        TacheRepository $taches,
     ): Response
     {
         /** @var Utilisateur $moi */
@@ -77,6 +81,12 @@ class EspaceController extends AbstractController
         // Même période que la page « Planning » de l'éducateur.
         $entrainements = $planning->aVenir(array_values($categories), PlanningEntrainements::HORIZON);
 
+        // Tâches confiées aux joueurs : non faites, et faites depuis moins de 15 jours.
+        $tachesParJoueur = [];
+        foreach ($taches->pourJoueurs($moi->getJoueurs()->toArray()) as $t) {
+            $tachesParJoueur[$t->getJoueur()->getId()][] = $t;
+        }
+
         $enfants = [];
         foreach ($moi->getJoueurs() as $j) {
             $mesConvocations = $convocations[$j->getId()] ?? [];
@@ -84,6 +94,7 @@ class EspaceController extends AbstractController
             $enfants[] = [
                 'joueur' => $j,
                 'convocations' => $mesConvocations,
+                'taches' => $tachesParJoueur[$j->getId()] ?? [],
                 'entrainements' => array_values(array_filter($entrainements, fn (Entrainement $e) => $e->getCategorie() === $j->getCategorie())),
                 // Les matchs déjà couverts par une convocation ne sont pas répétés.
                 'matchs' => $j->getCategorie() ? array_values(array_filter($rencontres->aVenir($j->getCategorie(), 5), fn ($r) => !\in_array($r, $convoquesA, true))) : [],
@@ -101,6 +112,26 @@ class EspaceController extends AbstractController
             'motifs' => Convoque::MOTIFS,
             'motifs_entrainement' => array_keys(AbsenceEntrainement::MOTIFS),
         ]);
+    }
+
+    /** La famille indique que la tâche confiée au joueur est faite : la personne qui l'a confiée est prévenue. */
+    #[Route('/espace/tache/{id}', name: 'app_espace_tache_faite', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function tacheFaite(Request $request, Tache $tache, EntityManagerInterface $em, AvisTaches $avis): Response
+    {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        if (!$moi->isFamille() || !$tache->getJoueur() || !$moi->suit($tache->getJoueur())) {
+            throw $this->createAccessDeniedException();
+        }
+        if ($this->isCsrfTokenValid('tache-faite' . $tache->getId(), $request->getPayload()->getString('_token')) && !$tache->isFaite()) {
+            $tache->setStatut('faite');
+            $em->flush();
+            $j = $tache->getJoueur();
+            $avis->faite($tache, $moi, 'La famille de ' . $j->getPrenom() . ' ' . $j->getNom());
+            $this->addFlash('succes', 'Merci ! L\'encadrement est informé que la tâche « ' . $tache->getObjet() . ' » est faite.');
+        }
+
+        return $this->redirect($this->generateUrl('app_espace') . '#taches');
     }
 
     /** La famille signale une absence à un entraînement, ou la retire (finalement présent). */

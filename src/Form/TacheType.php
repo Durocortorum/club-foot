@@ -3,6 +3,7 @@
 namespace App\Form;
 
 use App\Entity\Categorie;
+use App\Entity\Joueur;
 use App\Entity\Tache;
 use App\Entity\Utilisateur;
 use App\Service\Messagerie;
@@ -23,13 +24,26 @@ class TacheType extends AbstractType
         $builder
             ->add('objet', null, ['attr' => ['placeholder' => 'Commander les maillots U13, préparer le tournoi…']])
             ->add('responsable', EntityType::class, [
-                'label' => 'Personne chargée',
+                'label' => 'Personne de l\'encadrement',
                 'class' => Utilisateur::class,
-                'placeholder' => '— Choisir —',
+                'required' => false,
+                'placeholder' => '— Aucune —',
                 'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('u')
                     ->where('u.famille = false')->orderBy('u.nom')->addOrderBy('u.prenom'),
                 'choice_label' => fn (Utilisateur $u) => $u->getPrenom() . ' ' . $u->getNom(),
                 'group_by' => fn (Utilisateur $u) => Messagerie::groupeEncadrement($u),
+            ])
+            ->add('joueur', EntityType::class, [
+                'label' => 'ou un joueur',
+                'class' => Joueur::class,
+                'required' => false,
+                'placeholder' => '— Aucun —',
+                'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('j')
+                    ->leftJoin('j.categorie', 'c')->addSelect('c')
+                    ->where('j.ancien = false')->orderBy('c.ordre')->addOrderBy('j.nom')->addOrderBy('j.prenom'),
+                'choice_label' => fn (Joueur $j) => $j->getNom() . ' ' . $j->getPrenom(),
+                'group_by' => fn (Joueur $j) => $j->getCategorie()?->getNom() ?? 'Sans catégorie',
+                'help' => 'Sa famille est prévenue par e-mail et voit la tâche dans son espace.',
             ])
             ->add('categorie', EntityType::class, [
                 'label' => 'Catégorie',

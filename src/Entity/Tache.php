@@ -6,6 +6,7 @@ use App\Repository\TacheRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Tâche confiée à un membre de l'encadrement : objet, personne, catégorie (ou tout le club), échéance.
@@ -34,11 +35,15 @@ class Tache implements AppartientAuClub
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    /** Personne chargée de la tâche. */
+    /** Membre de l'encadrement chargé de la tâche… */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(onDelete: 'SET NULL')]
-    #[Assert\NotNull(message: 'Choisissez la personne chargée de la tâche.')]
     private ?Utilisateur $responsable = null;
+
+    /** …ou joueur (sa famille est prévenue et voit la tâche dans son espace). */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'CASCADE')]
+    private ?Joueur $joueur = null;
 
     /** Catégorie concernée ; aucune = tout le club. */
     #[ORM\ManyToOne]
@@ -113,6 +118,38 @@ class Tache implements AppartientAuClub
         $this->responsable = $responsable;
 
         return $this;
+    }
+
+    public function getJoueur(): ?Joueur
+    {
+        return $this->joueur;
+    }
+
+    public function setJoueur(?Joueur $joueur): static
+    {
+        $this->joueur = $joueur;
+
+        return $this;
+    }
+
+    /** « Paul DURAND » ou « Lucas MARTIN (joueur) ». */
+    public function getChargeDe(): string
+    {
+        return match (true) {
+            null !== $this->joueur => $this->joueur->getPrenom() . ' ' . $this->joueur->getNom() . ' (joueur)',
+            null !== $this->responsable => $this->responsable->getPrenom() . ' ' . $this->responsable->getNom(),
+            default => '—',
+        };
+    }
+
+    #[Assert\Callback]
+    public function verifierPersonne(ExecutionContextInterface $context): void
+    {
+        if (!$this->responsable && !$this->joueur) {
+            $context->buildViolation('Choisissez une personne de l\'encadrement ou un joueur.')->atPath('responsable')->addViolation();
+        } elseif ($this->responsable && $this->joueur) {
+            $context->buildViolation('Choisissez soit une personne de l\'encadrement, soit un joueur, pas les deux.')->atPath('joueur')->addViolation();
+        }
     }
 
     public function getCategorie(): ?Categorie

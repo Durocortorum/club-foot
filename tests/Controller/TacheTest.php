@@ -4,6 +4,7 @@ namespace App\Tests\Controller;
 
 use App\Entity\Categorie;
 use App\Entity\Club;
+use App\Entity\Joueur;
 use App\Entity\Tache;
 use App\Entity\Utilisateur;
 use App\Service\CreationClub;
@@ -29,7 +30,7 @@ class TacheTest extends WebTestCase
     {
         if ($this->clubId) {
             $connexion = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
-            foreach (['tache', 'categorie', 'utilisateur'] as $table) {
+            foreach (['tache', 'utilisateur', 'joueur', 'categorie'] as $table) {
                 $connexion->executeStatement("DELETE FROM $table WHERE club_id = ?", [$this->clubId]);
             }
             $connexion->executeStatement('DELETE FROM club WHERE id = ?', [$this->clubId]);
@@ -114,5 +115,41 @@ class TacheTest extends WebTestCase
         self::assertCount(0, $crawler->selectLink('Modifier'));
         $this->client->request('GET', '/taches/' . $propre->getId() . '/modifier');
         self::assertResponseStatusCodeSame(403);
+
+        // Tâche confiée à un joueur : la famille reçoit un e-mail, la voit dans son espace et la marque faite.
+        $club = $em->find(Club::class, $this->clubId);
+        $u13 = $em->find(Categorie::class, $u13->getId());
+        $joueur = (new Joueur())->setClub($club)->setCategorie($u13)->setNom('Petit')->setPrenom('Tom');
+        $parent = (new Utilisateur())->setClub($club)->setFamille(true)->setEmail("parent-$id@exemple.test")->setNom('Petit')->setPrenom('Famille')->setPassword('x')->addJoueur($joueur);
+        $em->persist($joueur);
+        $em->persist($parent);
+        $em->flush();
+        $this->client->loginUser($em->find(Utilisateur::class, $admin->getId()));
+        $crawler = $this->client->request('GET', '/taches/nouvelle');
+        $this->client->submit($crawler->selectButton('Confier la tâche')->form(['tache[objet]' => 'Laver les maillots']));
+        self::assertSelectorTextContains('main', "Choisissez une personne de l'encadrement ou un joueur.");
+        $this->client->submit($crawler->selectButton('Confier la tâche')->form([
+            'tache[objet]' => 'Laver les maillots',
+            'tache[joueur]' => $joueur->getId(),
+            'tache[categorie]' => $u13->getId(),
+            'tache[echeance]' => (new \DateTimeImmutable('+3 days'))->format('Y-m-d'),
+        ]));
+        self::assertEmailCount(1);
+        self::assertEmailAddressContains(self::getMailerMessage(), 'To', "parent-$id@exemple.test");
+        $crawler = $this->client->followRedirect();
+        self::assertStringContainsString('Famille prévenue par e-mail', $crawler->filter('.flash-succes')->text());
+        self::assertStringContainsString('Tom PETIT (joueur)', $crawler->filter('main')->text());
+
+        $this->client->loginUser($em->find(Utilisateur::class, $parent->getId()));
+        $crawler = $this->client->request('GET', '/espace');
+        self::assertStringContainsString('Laver les maillots', $crawler->filter('#taches + .liste-taches')->text());
+        $this->client->submit($crawler->selectButton("✓ C'est fait")->form());
+        self::assertEmailCount(1);
+        $email = self::getMailerMessage();
+        self::assertEmailAddressContains($email, 'To', "admin-$id@exemple.test");
+        self::assertEmailHtmlBodyContains($email, 'La famille de Tom PETIT');
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('#taches + .liste-taches', 'faite');
+        self::assertCount(0, $crawler->selectButton("✓ C'est fait"));
     }
 }

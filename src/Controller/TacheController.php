@@ -8,16 +8,12 @@ use App\Form\TacheType;
 use App\Repository\CategorieRepository;
 use App\Repository\TacheRepository;
 use App\Repository\UtilisateurRepository;
-use App\Service\CourrielClub;
+use App\Service\AvisTaches;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Tâches confiées aux membres de l'encadrement. Tout l'encadrement les voit et peut en confier ;
@@ -28,9 +24,7 @@ class TacheController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly MailerInterface $mailer,
-        private readonly CourrielClub $courriel,
-        private readonly LoggerInterface $logger,
+        private readonly AvisTaches $avis,
     ) {
     }
 
@@ -50,6 +44,7 @@ class TacheController extends AbstractController
         $qb = $taches->createQueryBuilder('t')
             ->leftJoin('t.categorie', 'c')->addSelect('c')
             ->leftJoin('t.responsable', 'r')->addSelect('r')
+            ->leftJoin('t.joueur', 'j')->addSelect('j')
             ->addSelect('CASE WHEN t.echeance IS NULL THEN 1 ELSE 0 END AS HIDDEN sans_echeance');
         match ($vue) {
             'miennes' => $qb->andWhere('t.responsable = :moi')->setParameter('moi', $moi),
@@ -129,7 +124,7 @@ class TacheController extends AbstractController
             $tache->setStatut($statut);
             $this->em->flush();
             if ('faite' === $statut && 'faite' !== $avant) {
-                $this->prevenirFaite($tache);
+                $this->avis->faite($tache, $this->moi());
             }
             $this->addFlash('succes', 'Tâche « ' . $tache->getObjet() . ' » : ' . mb_strtolower($tache->getStatutLibelle()) . '.');
         }
@@ -157,6 +152,7 @@ class TacheController extends AbstractController
     private function formulaire(Request $request, Tache $tache, string $titre, bool $creation): Response
     {
         $responsableAvant = $tache->getResponsable();
+        $joueurAvant = $tache->getJoueur();
         $statutAvant = $tache->getStatut();
         $form = $this->createForm(TacheType::class, $tache, ['creation' => $creation]);
         $form->handleRequest($request);
@@ -164,12 +160,18 @@ class TacheController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->em->persist($tache);
             $this->em->flush();
-            $message = $creation ? 'Tâche confiée à ' . $this->nom($tache->getResponsable()) . '.' : 'Tâche enregistrée.';
-            if ($tache->getResponsable() !== $responsableAvant && $this->prevenirResponsable($tache)) {
+            $message = $creation ? 'Tâche confiée à ' . $tache->getChargeDe() . '.' : 'Tâche enregistrée.';
+            if ($tache->getResponsable() && $tache->getResponsable() !== $responsableAvant && $this->avis->responsable($tache, $this->moi())) {
                 $message .= ' ' . $tache->getResponsable()->getPrenom() . ' est prévenu(e) par e-mail.';
             }
+            if ($tache->getJoueur() && $tache->getJoueur() !== $joueurAvant) {
+                $prevenus = $this->avis->famille($tache, $this->moi());
+                $message .= $prevenus
+                    ? ' Famille prévenue par e-mail (' . $prevenus . ' ' . ($prevenus > 1 ? 'comptes' : 'compte') . ').'
+                    : ' La famille n\'a pas de compte actif : prévenez-la vous-même.';
+            }
             if ($tache->isFaite() && 'faite' !== $statutAvant) {
-                $this->prevenirFaite($tache);
+                $this->avis->faite($tache, $this->moi());
             }
             $this->addFlash('succes', $message);
 
@@ -177,60 +179,6 @@ class TacheController extends AbstractController
         }
 
         return $this->render('tache/formulaire.html.twig', ['form' => $form, 't' => $tache, 'titre' => $titre]);
-    }
-
-    /** E-mail à la personne chargée, sauf si elle se confie la tâche à elle-même. */
-    private function prevenirResponsable(Tache $tache): bool
-    {
-        $responsable = $tache->getResponsable();
-        if (!$responsable || $responsable === $this->moi()) {
-            return false;
-        }
-
-        return $this->envoyer($tache, $responsable, 'Nouvelle tâche : ' . $tache->getObjet(), [
-            'titre' => 'Une tâche vous est confiée',
-            'salutation' => 'Bonjour ' . $responsable->getPrenom() . ',',
-            'paragraphes' => [$this->nom($this->moi()) . ' vous confie la tâche suivante.'],
-            'encadre' => $tache->getObjet(),
-            'details' => [
-                'Catégorie' => $tache->getCategorie()?->getNom() ?? 'Tout le club',
-                'À faire pour le' => $tache->getEcheance()?->format('d/m/Y'),
-                'Urgente' => $tache->isUrgente() ? 'oui' : null,
-                'Détails' => $tache->getDescription(),
-            ],
-            'bouton' => ['libelle' => 'Voir la tâche', 'url' => $this->generateUrl('app_tache_voir', ['id' => $tache->getId()], UrlGeneratorInterface::ABSOLUTE_URL)],
-        ]);
-    }
-
-    /** E-mail à la personne qui a confié la tâche quand quelqu'un d'autre la termine. */
-    private function prevenirFaite(Tache $tache): void
-    {
-        $auteur = $tache->getCreePar();
-        if (!$auteur || $auteur === $this->moi()) {
-            return;
-        }
-        $this->envoyer($tache, $auteur, 'Tâche faite : ' . $tache->getObjet(), [
-            'titre' => 'Tâche faite',
-            'salutation' => 'Bonjour ' . $auteur->getPrenom() . ',',
-            'paragraphes' => [$this->nom($this->moi()) . ' a terminé la tâche que vous aviez confiée.'],
-            'encadre' => $tache->getObjet(),
-            'details' => ['Compte rendu' => $tache->getCompteRendu()],
-            'bouton' => ['libelle' => 'Voir la tâche', 'url' => $this->generateUrl('app_tache_voir', ['id' => $tache->getId()], UrlGeneratorInterface::ABSOLUTE_URL)],
-        ]);
-    }
-
-    /** @param array<string, mixed> $contenu */
-    private function envoyer(Tache $tache, Utilisateur $a, string $sujet, array $contenu): bool
-    {
-        try {
-            $this->mailer->send($this->courriel->message($tache->getClub(), (string) $a->getEmail(), $sujet, $contenu));
-
-            return true;
-        } catch (TransportExceptionInterface $e) {
-            $this->logger->error('Tâche : e-mail non envoyé à {email} : {erreur}', ['email' => $a->getEmail(), 'erreur' => $e->getMessage()]);
-
-            return false;
-        }
     }
 
     private function peutModifier(Tache $tache): bool
@@ -250,11 +198,6 @@ class TacheController extends AbstractController
         if (!$autorise) {
             throw $this->createAccessDeniedException();
         }
-    }
-
-    private function nom(?Utilisateur $u): string
-    {
-        return $u ? $u->getPrenom() . ' ' . $u->getNom() : '?';
     }
 
     private function moi(): Utilisateur

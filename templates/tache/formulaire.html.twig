@@ -18,8 +18,8 @@
 
         <fieldset class="carte">
             <legend>Tâche</legend>
-            {{ m.groupe(form, ['objet', 'responsable', 'categorie', 'echeance', 'urgente', 'description']) }}
-            {% if not t.id %}<p class="discret petit">La personne chargée reçoit un e-mail avec la tâche.</p>{% endif %}
+            {{ m.groupe(form, ['objet', 'responsable', 'joueur', 'categorie', 'echeance', 'urgente', 'description']) }}
+            {% if not t.id %}<p class="discret petit">Confiez la tâche à une personne de l'encadrement ou à un joueur : la personne, ou la famille du joueur, reçoit un e-mail.</p>{% endif %}
         </fieldset>
 
         {% if form.statut is defined %}

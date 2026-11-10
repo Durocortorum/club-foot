@@ -31,7 +31,7 @@
         <section class="carte">
             <h2>Tâche</h2>
             <dl>
-                {{ m.ligne('Personne chargée', t.responsable ? t.responsable.prenom ~ ' ' ~ t.responsable.nom : 'compte supprimé') }}
+                {{ m.ligne('Chargé(e)', t.chargeDe) }}
                 {{ m.ligne('Confiée par', t.creePar ? t.creePar.prenom ~ ' ' ~ t.creePar.nom) }}
                 {{ m.ligne('Le', t.creeLe|date('d/m/Y')) }}
                 {{ m.ligne('Faite le', t.faiteLe ? t.faiteLe|date('d/m/Y')) }}

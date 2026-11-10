@@ -43,7 +43,7 @@
                 {% for t in taches %}
                     <tr class="{{ t.faite ? 'discret' }}">
                         <td class="principal"><a href="{{ path('app_tache_voir', {id: t.id}) }}"><strong>{{ t.objet }}</strong></a></td>
-                        <td data-label="personne">{{ t.responsable ? t.responsable.prenom ~ ' ' ~ t.responsable.nom : '—' }}</td>
+                        <td data-label="personne">{{ t.chargeDe }}</td>
                         <td data-label="catégorie">{{ t.categorie ? t.categorie.nom : 'Tout le club' }}</td>
                         <td data-label="pour le">{{ t.echeance ? t.echeance|date('d/m/Y') }}</td>
                         <td>{{ b.pastilles(t) }}</td>
