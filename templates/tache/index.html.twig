@@ -48,8 +48,12 @@
                         <td data-label="pour le">{{ t.echeance ? t.echeance|date('d/m/Y') }}</td>
                         <td>{{ b.pastilles(t) }}</td>
                         <td class="a-cote">
-                            {% if is_granted('ROLE_ADMIN') or t.responsable == app.user or t.creePar == app.user %}
+                            {# Mêmes règles que TacheController : modifier = qui l'a confiée (l'administration si son compte n'existe plus) ; statut = elle et la personne chargée. #}
+                            {% set peut_modifier = t.creePar ? t.creePar == app.user : is_granted('ROLE_ADMIN') %}
+                            {% if peut_modifier or t.responsable == app.user %}
                                 {{ b.statut(t, app.request.requestUri) }}
+                            {% endif %}
+                            {% if peut_modifier %}
                                 <a class="bouton petit" href="{{ path('app_tache_modifier', {id: t.id}) }}">Modifier</a>
                             {% endif %}
                         </td>

@@ -96,6 +96,13 @@ class TacheTest extends WebTestCase
         $tache = $em->find(Tache::class, $tache->getId());
         self::assertTrue($tache->isFaite());
         self::assertNotNull($tache->getFaiteLe());
+        // Paul est chargé de la tâche mais ne l'a pas confiée : il change le statut, pas le reste.
+        $crawler = $this->client->request('GET', '/taches/' . $tache->getId());
+        self::assertCount(1, $crawler->selectButton('Rouvrir'));
+        self::assertCount(0, $crawler->selectLink('Modifier'));
+        self::assertCount(0, $crawler->filter('form[action$="/supprimer"]'));
+        $this->client->request('GET', '/taches/' . $tache->getId() . '/modifier');
+        self::assertResponseStatusCodeSame(403);
 
         // Paul se donne une tâche : e-mail de rappel. Elle apparaît dans « Mes tâches ».
         $crawler = $this->client->request('GET', '/taches/nouvelle');

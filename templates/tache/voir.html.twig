@@ -17,8 +17,8 @@
             </p>
         </div>
         <div class="actions">
+            {% if peut_statut %}{{ b.statut(t) }}{% endif %}
             {% if peut_modifier %}
-                {{ b.statut(t) }}
                 <a class="bouton" href="{{ path('app_tache_modifier', {id: t.id}) }}">Modifier</a>
             {% endif %}
             {% if peut_supprimer %}

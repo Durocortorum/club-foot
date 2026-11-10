@@ -105,6 +105,7 @@ class TacheController extends AbstractController
         return $this->render('tache/voir.html.twig', [
             't' => $tache,
             'peut_modifier' => $this->peutModifier($tache),
+            'peut_statut' => $this->peutChangerStatut($tache),
             'peut_supprimer' => $this->peutSupprimer($tache),
         ]);
     }
@@ -127,7 +128,7 @@ class TacheController extends AbstractController
         if ($retour = $this->siInvisible($tache)) {
             return $retour;
         }
-        $this->verifier($this->peutModifier($tache));
+        $this->verifier($this->peutChangerStatut($tache));
         $statut = $request->getPayload()->getString('statut');
         if ($this->isCsrfTokenValid('statut-tache' . $tache->getId(), $request->getPayload()->getString('_token'))
             && \array_key_exists($statut, Tache::STATUTS)) {
@@ -197,16 +198,26 @@ class TacheController extends AbstractController
         return $this->render('tache/formulaire.html.twig', ['form' => $form, 't' => $tache, 'titre' => $titre]);
     }
 
+    /**
+     * Modifier ou supprimer : seule la personne qui a confié la tâche. Si son compte a été supprimé,
+     * l'administration prend le relais pour que la tâche ne reste pas bloquée.
+     */
     private function peutModifier(Tache $tache): bool
     {
-        $moi = $this->moi();
-
-        return $this->isGranted('ROLE_ADMIN') || $tache->getCreePar() === $moi || $tache->getResponsable() === $moi;
+        return $tache->getCreePar()
+            ? $tache->getCreePar() === $this->moi()
+            : $this->isGranted('ROLE_ADMIN');
     }
 
     private function peutSupprimer(Tache $tache): bool
     {
-        return $this->isGranted('ROLE_ADMIN') || $tache->getCreePar() === $this->moi();
+        return $this->peutModifier($tache);
+    }
+
+    /** Commencer, marquer faite, rouvrir : la personne qui l'a confiée et la personne chargée. */
+    private function peutChangerStatut(Tache $tache): bool
+    {
+        return $this->peutModifier($tache) || $tache->getResponsable() === $this->moi();
     }
 
     /**
