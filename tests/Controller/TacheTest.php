@@ -126,6 +126,9 @@ class TacheTest extends WebTestCase
         $em->flush();
         $this->client->loginUser($em->find(Utilisateur::class, $admin->getId()));
         $crawler = $this->client->request('GET', '/taches/nouvelle');
+        // Chaque joueur porte sa catégorie : la page filtre la liste selon la catégorie choisie.
+        self::assertSame((string) $u13->getId(), $crawler->filter('#tache_joueur option[value="' . $joueur->getId() . '"]')->attr('data-categorie'));
+        self::assertSame('tache', $crawler->filter('form[name="tache"]')->attr('data-controller'));
         $this->client->submit($crawler->selectButton('Confier la tâche')->form(['tache[objet]' => 'Laver les maillots']));
         self::assertSelectorTextContains('main', "Choisissez une personne de l'encadrement ou un joueur.");
         $this->client->submit($crawler->selectButton('Confier la tâche')->form([

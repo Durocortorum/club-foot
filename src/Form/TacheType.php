@@ -43,7 +43,10 @@ class TacheType extends AbstractType
                     ->where('j.ancien = false')->orderBy('c.ordre')->addOrderBy('j.nom')->addOrderBy('j.prenom'),
                 'choice_label' => fn (Joueur $j) => $j->getNom() . ' ' . $j->getPrenom(),
                 'group_by' => fn (Joueur $j) => $j->getCategorie()?->getNom() ?? 'Sans catégorie',
-                'help' => 'Sa famille est prévenue par e-mail et voit la tâche dans son espace.',
+                // Filtrage par catégorie dans la page (tache_controller.js).
+                'choice_attr' => fn (Joueur $j) => $j->getCategorie() ? ['data-categorie' => $j->getCategorie()->getId()] : [],
+                'attr' => ['data-tache-target' => 'joueur', 'data-action' => 'tache#joueurChoisi'],
+                'help' => 'Joueurs de la catégorie choisie. Sa famille est prévenue par e-mail et voit la tâche dans son espace.',
             ])
             ->add('categorie', EntityType::class, [
                 'label' => 'Catégorie',
@@ -52,6 +55,7 @@ class TacheType extends AbstractType
                 'placeholder' => 'Tout le club',
                 'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('c')->orderBy('c.ordre')->addOrderBy('c.nom'),
                 'choice_label' => 'nom',
+                'attr' => ['data-tache-target' => 'categorie', 'data-action' => 'tache#filtrer'],
             ])
             ->add('echeance', DateType::class, ['label' => 'À faire pour le', 'widget' => 'single_text', 'input' => 'datetime_immutable', 'required' => false])
             ->add('urgente', CheckboxType::class, ['label' => 'Urgente', 'required' => false])
