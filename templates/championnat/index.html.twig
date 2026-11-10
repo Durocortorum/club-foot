@@ -96,6 +96,7 @@
                 <input type="hidden" name="categorie" value="{{ categorie.id }}">
                 <input type="hidden" name="saison" value="{{ saison }}">
                 <p class="discret petit">Sur la page « Classement » de l'équipe (FFF) ou le tableau de Transfermarkt : Ctrl+A pour tout sélectionner, Ctrl+C pour copier, puis Ctrl+V ici.</p>
+                <p class="petit">Ou, plus simple : <a href="{{ path('app_import_fff') }}">le bouton « ➜ Club Foot » sur la page de la FFF</a>.</p>
                 <textarea name="texte" rows="8" required placeholder="Collez ici la page du classement">{{ texte }}</textarea>
                 <div class="barre-actions">
                     <button type="submit" name="action" value="lire" class="bouton{{ apercu ? '' : ' principal' }}">Lire le classement</button>

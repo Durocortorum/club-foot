@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Importer depuis la FFF{% endblock %}
+
+{% block body %}
+    <div data-controller="import-fff" data-import-fff-calendrier-value="{{ path('app_rencontre_importer') }}" data-import-fff-classement-value="{{ path('app_championnat') }}">
+        <div class="titre-page">
+            <div>
+                <h1>Importer depuis la FFF</h1>
+                <p class="discret">Calendrier et classement d'une équipe en un clic, depuis les pages de la FFF.</p>
+            </div>
+        </div>
+
+        {# Données reçues du bouton : choix de l'équipe, puis l'import habituel (aperçu avant enregistrement). #}
+        <section class="carte bloc fff-recu" data-import-fff-target="recu" hidden>
+            <h2 data-import-fff-target="titre">Page reçue de la FFF</h2>
+            <p class="discret" data-import-fff-target="resume"></p>
+            {# Sans Turbo : l'aperçu de l'import est une page ordinaire. #}
+            <form method="post" class="formulaire" data-import-fff-target="formulaire" data-action="import-fff#envoyer" data-turbo="false">
+                <input type="hidden" name="_token" value="" data-import-fff-target="jeton" data-calendrier="{{ csrf_token('importer-matchs') }}" data-classement="{{ csrf_token('classement') }}">
+                <input type="hidden" name="texte" data-import-fff-target="texte">
+                <input type="hidden" name="action" data-import-fff-target="action">
+                <input type="hidden" name="competition" value="Championnat">
+                <input type="hidden" name="scores" value="1">
+                <input type="hidden" name="saison" value="{{ saison }}">
+                <div class="champs">
+                    <div class="champ">
+                        <label for="fff-categorie">Pour quelle équipe du club ?</label>
+                        <select id="fff-categorie" name="categorie" required data-import-fff-target="categorie">
+                            <option value="">Choisir l'équipe</option>
+                            {% for c in categories %}<option value="{{ c.id }}">{{ c.nom }}</option>{% endfor %}
+                        </select>
+                        <p class="discret petit">Retenu pour la prochaine fois (sur cet ordinateur).</p>
+                    </div>
+                </div>
+                <div class="barre-actions">
+                    <button type="submit" class="bouton principal">Continuer vers l'aperçu</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="carte bloc">
+            <h2>Installer le bouton « ➜ Club Foot » (une seule fois)</h2>
+            <ol class="etapes-fff">
+                <li>Affichez la barre de favoris de votre navigateur : <strong>Ctrl + Maj + B</strong>.</li>
+                <li>
+                    Avec la souris, <strong>faites glisser ce bouton dans la barre de favoris</strong> (cliquez dessus sans relâcher, déplacez-le en haut, relâchez) :
+                    <br><a class="bouton principal bouton-favori" href="{{ bouton }}" data-action="click->import-fff#pasIci">➜ Club Foot</a>
+                </li>
+                <li>C'est installé : le bouton « ➜ Club Foot » apparaît dans la barre de favoris.</li>
+            </ol>
+            <h2>L'utiliser</h2>
+            <ol class="etapes-fff">
+                <li>Sur le site de la FFF (<a href="https://epreuves.fff.fr" target="_blank" rel="noopener">epreuves.fff.fr</a>), ouvrez la page <strong>Résultats et calendrier</strong> ou <strong>Classement</strong> d'une équipe du club, et attendez qu'elle soit affichée.</li>
+                <li>Cliquez sur <strong>➜ Club Foot</strong> dans la barre de favoris : Club Foot s'ouvre avec les matchs ou le classement.</li>
+                <li>Choisissez l'équipe (la première fois seulement), vérifiez l'aperçu, puis enregistrez. Les matchs déjà présents ne sont pas recréés.</li>
+            </ol>
+            <p class="discret petit">Le bouton lit la page affichée dans votre navigateur, comme un copier-coller, et ne transmet rien d'autre. L'import par copier-coller reste possible.</p>
+        </section>
+    </div>
+{% endblock %}

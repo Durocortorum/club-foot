@@ -1,0 +1,49 @@
+{#
+  Code du bouton « ➜ Club Foot » (favori) : lu sur une page Calendrier ou Classement d'une équipe
+  du site de la FFF, dans le navigateur de l'utilisateur, puis ouvert dans Club Foot (page import_fff).
+  Les données passent dans l'ancre (#…) de l'adresse : elles ne sont envoyées à aucun serveur au passage.
+  Calendrier : un bloc de lignes par match (date, compétition, domicile, score ou heure, extérieur) ;
+  classement : une ligne par équipe, cellules séparées par des tabulations. Ce sont les formats
+  qu'ImportMatchs et ImportClassement lisent déjà pour le copier-coller.
+#}
+(function () {
+  var A = {{ adresse|json_encode|raw }};
+  var t = function (e) { return ((e && e.textContent) || '').replace(/\s+/g, ' ').trim(); };
+  var type, texte;
+  if (/classement/.test(location.pathname)) {
+    type = 'classement';
+    var lignes = [];
+    document.querySelectorAll('table').forEach(function (tb) {
+      var l = Array.prototype.map.call(tb.querySelectorAll('tbody tr'), function (tr) {
+        return Array.prototype.map.call(tr.querySelectorAll('td'), t).join('\t');
+      });
+      if (l.length > lignes.length) { lignes = l; }
+    });
+    texte = lignes.join('\n');
+  } else {
+    type = 'calendrier';
+    var vus = {}, blocs = [];
+    document.querySelectorAll('app-match-score').forEach(function (m) {
+      var l = m.querySelector('a[href*="/competition/match/"]');
+      if (!l || vus[l.href]) { return; }
+      vus[l.href] = 1;
+      var eq = Array.prototype.filter.call(m.querySelectorAll('a'), function (a) { return a.querySelector('app-logo-team'); })
+        .map(function (a) { var i = a.querySelector('img'); return i && i.alt ? i.alt : t(a); });
+      var s = Array.prototype.filter.call(l.children, function (c) { return c.tagName === 'SPAN'; }).map(t);
+      var milieu = s.length === 2 && /^\d+$/.test(s[0]) && /^\d+$/.test(s[1]) ? s[0] + ' - ' + s[1] : s.join(' ');
+      var date = Array.prototype.filter.call(m.children, function (c) { return c.tagName === 'SPAN'; })[0];
+      blocs.push([t(date), t(m.querySelector('app-match-score-competition a')), eq[0] || '', milieu, eq[1] || ''].join('\n'));
+    });
+    texte = blocs.join('\n\n');
+  }
+  if (!texte) {
+    alert('Club Foot : ouvrez d\'abord la page « Calendrier » ou « Classement » d\'une équipe sur le site de la FFF, attendez qu\'elle soit affichée, puis cliquez sur ce bouton.');
+    return;
+  }
+  var p = new URLSearchParams();
+  p.set('type', type);
+  p.set('texte', texte);
+  p.set('src', location.href.split('#')[0]);
+  p.set('titre', t(document.querySelector('h1')) || document.title.trim());
+  window.open(A + '#' + p.toString(), '_blank');
+})();

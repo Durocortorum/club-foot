@@ -1035,3 +1035,9 @@ table.droits thead th.droits-nom { z-index: 3; }
     .fil-titre { display: none; }
     .fil-club { border-radius: 12px; }
 }
+
+/* Import depuis la FFF : bouton à glisser dans la barre de favoris. */
+.etapes-fff { margin: .4rem 0 1.2rem; padding-left: 1.3rem; }
+.etapes-fff li { margin-bottom: .7rem; line-height: 1.5; }
+.bouton-favori { display: inline-block; margin-top: .5rem; cursor: grab; font-size: 1.05rem; }
+.fff-recu { border-left: 4px solid var(--rouge); }
