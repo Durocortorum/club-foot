@@ -38,6 +38,9 @@ h2 { font-size: 1.05rem; margin: 0 0 .8rem; }
 .menu { display: flex; flex-wrap: wrap; gap: .3rem; order: 3; flex-basis: 100%; min-width: 0; }
 .menu a { padding: .4rem .8rem; border-radius: 6px; opacity: .85; }
 .menu a:hover, .menu a.actif { background: color-mix(in srgb, var(--sur-rouge) 18%, transparent); opacity: 1; text-decoration: none; }
+/* Pastilles du menu aux couleurs du club : à traiter (alerte) = pleine, information = translucide. */
+.menu .pastille { background: color-mix(in srgb, var(--sur-rouge) 22%, transparent); color: var(--sur-rouge); font-weight: 600; }
+.menu .pastille.alerte { background: var(--sur-rouge); color: var(--rouge); font-weight: 700; }
 .compte { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem 1rem; font-size: .9rem; margin-left: auto; white-space: nowrap; }
 .burger {
     display: none; align-items: center; gap: .4rem; margin-left: auto; padding: .45rem .9rem;
