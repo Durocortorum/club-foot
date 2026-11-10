@@ -50,6 +50,7 @@
                         <td class="a-cote">
                             {% if is_granted('ROLE_ADMIN') or t.responsable == app.user or t.creePar == app.user %}
                                 {{ b.statut(t, app.request.requestUri) }}
+                                <a class="bouton petit" href="{{ path('app_tache_modifier', {id: t.id}) }}">Modifier</a>
                             {% endif %}
                         </td>
                     </tr>

@@ -109,6 +109,7 @@ class TacheTest extends WebTestCase
         self::assertEmailHtmlBodyContains($rappel, 'Vous avez noté cette tâche pour vous.');
         $crawler = $this->client->request('GET', '/taches');
         self::assertCount(1, $crawler->filter('tbody tr'));
+        self::assertCount(1, $crawler->filter('tbody tr')->selectLink('Modifier'), 'bouton Modifier sur la ligne');
         self::assertStringContainsString('Tout le club', $crawler->filter('tbody')->text());
         $crawler = $this->client->request('GET', '/taches?statut=faites');
         self::assertStringContainsString('Commander les maillots', $crawler->filter('tbody')->text());

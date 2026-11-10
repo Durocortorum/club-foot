@@ -6,6 +6,7 @@ use App\Entity\Categorie;
 use App\Entity\Joueur;
 use App\Entity\Tache;
 use App\Entity\Utilisateur;
+use App\Repository\UtilisateurRepository;
 use App\Service\Messagerie;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -19,8 +20,20 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class TacheType extends AbstractType
 {
+    public function __construct(private readonly UtilisateurRepository $utilisateurs)
+    {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        // Deux comptes au même nom (ex. deux adresses de la même personne) : l'adresse les distingue.
+        $noms = array_count_values(array_map(
+            fn (Utilisateur $u) => mb_strtolower($u->getPrenom() . ' ' . $u->getNom()),
+            $this->utilisateurs->findBy(['famille' => false]),
+        ));
+        $libelle = fn (Utilisateur $u) => $u->getPrenom() . ' ' . $u->getNom()
+            . (($noms[mb_strtolower($u->getPrenom() . ' ' . $u->getNom())] ?? 0) > 1 ? ' – ' . $u->getEmail() : '');
+
         $builder
             ->add('objet', null, ['attr' => ['placeholder' => 'Commander les maillots U13, préparer le tournoi…']])
             ->add('responsable', EntityType::class, [
@@ -30,7 +43,7 @@ class TacheType extends AbstractType
                 'placeholder' => '— Aucune —',
                 'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('u')
                     ->where('u.famille = false')->orderBy('u.nom')->addOrderBy('u.prenom'),
-                'choice_label' => fn (Utilisateur $u) => $u->getPrenom() . ' ' . $u->getNom(),
+                'choice_label' => $libelle,
                 'group_by' => fn (Utilisateur $u) => Messagerie::groupeEncadrement($u),
             ])
             ->add('joueur', EntityType::class, [
