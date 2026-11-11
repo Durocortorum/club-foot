@@ -69,6 +69,7 @@
                     {% if is_granted('ROLE_INFIRMERIE_LECTURE') %}
                         <a href="{{ path('app_infirmerie_index') }}" class="{{ route starts with 'app_infirmerie' or route starts with 'app_blessure' or route starts with 'app_contact' ? 'actif' }}">Infirmerie</a>
                     {% endif %}
+                    <a href="{{ path('app_transport') }}" class="{{ route starts with 'app_transport' ? 'actif' }}">Transport</a>
                     {% if is_granted('ROLE_FINANCES_LECTURE') %}
                         <a href="{{ path('app_finances') }}" class="{{ route starts with 'app_finances' ? 'actif' }}">Finances</a>
                     {% endif %}

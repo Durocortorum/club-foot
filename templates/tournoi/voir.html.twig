@@ -15,6 +15,7 @@
         {% if peut_modifier %}
             <div class="actions">
                 <a class="bouton" href="{{ path('app_tournoi_convocation', {id: t.id}) }}" title="Convoquer les joueurs pour le tournoi">Convocation</a>
+                <a class="bouton" href="{{ path('app_transport_nouveau', {tournoi: t.id}) }}" title="Noter le déplacement : car, minibus, voitures et frais kilométriques">Transport</a>
                 <a class="bouton principal" href="{{ path('app_tournoi_modifier', {id: t.id}) }}">Modifier</a>
             </div>
         {% endif %}

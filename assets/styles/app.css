@@ -1125,3 +1125,10 @@ table.droits thead th.droits-nom { z-index: 3; }
 .journee-matchs .match-club td { background: color-mix(in srgb, var(--rouge) 6%, transparent); font-weight: 600; }
 .journee-matchs .score-club { text-align: center; }
 .journee-matchs tr.deja-compte { opacity: .65; }
+
+/* Transport : échéances des véhicules, récapitulatif imprimable des frais abandonnés. */
+.echeance-proche { color: #9a5b00; font-weight: 600; }
+.recapitulatif-frais { max-width: 60rem; }
+.recapitulatif-frais h1 { font-size: 1.4rem; }
+.recapitulatif-frais .signatures { display: flex; justify-content: space-between; gap: 2rem; margin-top: 2.5rem; }
+.recapitulatif-frais .signatures p { flex: 1; min-height: 6rem; border-top: 1px solid var(--bordure); padding-top: .5rem; }

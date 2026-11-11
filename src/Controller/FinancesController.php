@@ -15,6 +15,7 @@ use App\Form\OperationType;
 use App\Repository\CategorieRepository;
 use App\Repository\ContratRepository;
 use App\Repository\CotisationRepository;
+use App\Repository\DeplacementRepository;
 use App\Repository\JoueurRepository;
 use App\Repository\OperationRepository;
 use App\Repository\TarifCotisationRepository;
@@ -44,7 +45,7 @@ class FinancesController extends AbstractController
 
     /** Synthèse de la saison : cotisations, recettes, dépenses, solde, contrats à échéance. */
     #[Route('', name: 'app_finances', methods: ['GET'])]
-    public function index(Request $request, OperationRepository $operations, ContratRepository $contrats, JoueurRepository $joueurs, CotisationRepository $cotisations, TarifCotisationRepository $tarifs): Response
+    public function index(Request $request, OperationRepository $operations, ContratRepository $contrats, JoueurRepository $joueurs, CotisationRepository $cotisations, TarifCotisationRepository $tarifs, DeplacementRepository $deplacements): Response
     {
         $saison = $this->saison($request);
         $lignes = $this->lignesCotisations($saison, null, $joueurs, $cotisations, $tarifs);
@@ -52,6 +53,15 @@ class FinancesController extends AbstractController
         $parRubrique = ['recette' => [], 'depense' => []];
         foreach ($liste as $o) {
             $parRubrique[$o->getSens()][$o->getRubrique()] = ($parRubrique[$o->getSens()][$o->getRubrique()] ?? 0) + $o->getMontant();
+        }
+        // Frais kilométriques remboursés aux conducteurs (page Transport) : des dépenses du club.
+        [$debut, $fin] = Rencontre::bornesSaison($saison);
+        $km = array_sum(array_map(fn ($d) => $d->getMontant(), $deplacements->createQueryBuilder('d')
+            ->andWhere('d.statut = :rembourse')->setParameter('rembourse', \App\Entity\Deplacement::REMBOURSE)
+            ->andWhere('d.date BETWEEN :debut AND :fin')->setParameter('debut', $debut->format('Y-m-d'))->setParameter('fin', $fin->format('Y-m-d'))
+            ->getQuery()->getResult()));
+        if ($km > 0) {
+            $parRubrique['depense']['Frais kilométriques (remboursés)'] = $km;
         }
         arsort($parRubrique['recette']);
         arsort($parRubrique['depense']);

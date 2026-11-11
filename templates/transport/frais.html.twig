@@ -1,0 +1,69 @@
+{% extends 'base.html.twig' %}
+{% import 'finances/_macros.html.twig' as f %}
+
+{% block title %}Frais kilométriques {{ annee }}{% endblock %}
+
+{% block body %}
+    {% include 'transport/_onglets.html.twig' with {actif: 'frais'} %}
+    <div class="titre-page">
+        <h1>Frais kilométriques <span class="compteur">{{ annee }}</span></h1>
+    </div>
+    <p class="discret petit">Voitures personnelles, par conducteur et par année civile (celle du reçu fiscal). Un bénévole peut renoncer à son remboursement : c'est alors un don au club, qui lui ouvre une réduction d'impôt ; le récapitulatif sert à établir son reçu fiscal (Cerfa n° 11580).</p>
+
+    <form class="filtres" method="get">
+        <select name="annee" onchange="this.form.requestSubmit()" aria-label="Année">
+            {% for a in annees %}<option value="{{ a }}" {{ a == annee ? 'selected' }}>Année {{ a }}</option>{% endfor %}
+        </select>
+        <noscript><button type="submit" class="bouton">Afficher</button></noscript>
+    </form>
+
+    <div class="tuiles bilan finances-tuiles">
+        <div class="tuile"><span class="tuile-valeur {{ totaux.a_rembourser ? 'montant-negatif' }}">{{ f.euros(totaux.a_rembourser) }}</span><span class="tuile-libelle">à rembourser</span></div>
+        <div class="tuile"><span class="tuile-valeur">{{ f.euros(totaux.rembourse) }}</span><span class="tuile-libelle">remboursés</span></div>
+        <div class="tuile"><span class="tuile-valeur montant-positif">{{ f.euros(totaux.abandonne) }}</span><span class="tuile-libelle">donnés au club (abandon)</span></div>
+    </div>
+
+    {% for nom, c in conducteurs %}
+        <section class="carte bloc" id="{{ c.ancre }}">
+            <div class="avec-actions">
+                <h2>{{ nom }} <span class="discret petit">{{ c.km|number_format(0, ',', ' ') }} km</span></h2>
+                <span class="discret">
+                    {% if c.a_rembourser %}<span class="pastille alerte">{{ f.euros(c.a_rembourser) }} à rembourser</span>{% endif %}
+                    {% if c.rembourse %}<span class="pastille succes">{{ f.euros(c.rembourse) }} remboursés</span>{% endif %}
+                    {% if c.abandonne %}<span class="pastille">{{ f.euros(c.abandonne) }} donnés</span> <a href="{{ path('app_transport_recapitulatif', {conducteur: nom, annee: annee}) }}" target="_blank">Récapitulatif pour le reçu fiscal</a>{% endif %}
+                </span>
+            </div>
+            <div class="table-defile">
+                <table class="liste">
+                    <thead><tr><th>Date</th><th>Objet</th><th class="a-droite">Km</th><th class="a-droite">Montant</th><th>État</th>{% if peut_regler %}<th></th>{% endif %}</tr></thead>
+                    <tbody>
+                        {% for d in c.deplacements %}
+                            <tr>
+                                <td class="nowrap">{{ d.date|date('d/m/Y') }}</td>
+                                <td>{{ d.objet }}</td>
+                                <td class="a-droite">{{ d.km }}</td>
+                                <td class="a-droite" title="{{ d.km }} km × {{ d.tauxKm|number_format(3, ',', ' ') }} €{{ d.frais ? ' + ' ~ d.frais|number_format(2, ',', ' ') ~ ' € de péages / parking' }}">{{ f.euros(d.montant) }}</td>
+                                <td><span class="pastille {{ {a_rembourser: 'alerte', rembourse: 'succes', abandonne: ''}[d.statut] ?? '' }}">{{ d.statutLibelle }}</span>{% if d.regleLe %} <span class="discret petit">le {{ d.regleLe|date('d/m') }}</span>{% endif %}</td>
+                                {% if peut_regler %}
+                                    <td class="nowrap">
+                                        {% for s, libelle in {rembourse: 'Remboursé', abandonne: 'Don', a_rembourser: 'Annuler'} %}
+                                            {% if d.statut != s %}
+                                                <form method="post" action="{{ path('app_transport_statut', {id: d.id}) }}" class="en-ligne">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('statut-deplacement' ~ d.id) }}">
+                                                    <input type="hidden" name="statut" value="{{ s }}">
+                                                    <button type="submit" class="bouton petit" title="{{ {rembourse: 'Marquer remboursé', abandonne: 'Le conducteur renonce au remboursement : don au club', a_rembourser: 'Remettre à rembourser'}[s] }}">{{ libelle }}</button>
+                                                </form>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% else %}
+        <p class="vide">Aucun déplacement en voiture personnelle en {{ annee }}.</p>
+    {% endfor %}
+{% endblock %}

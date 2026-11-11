@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Véhicules du club{% endblock %}
+
+{% macro echeance(date) %}
+    {%- if date -%}
+        {% set jours = ((date|date('U') - 'today'|date('U')) / 86400)|round %}
+        <span class="nowrap {{ jours < 0 ? 'montant-negatif' : (jours <= 30 ? 'echeance-proche') }}">{{ date|date('d/m/Y') }}</span>
+    {%- else -%}—{%- endif -%}
+{% endmacro %}
+
+{% block body %}
+    {% include 'transport/_onglets.html.twig' with {actif: 'vehicules'} %}
+    <div class="titre-page">
+        <h1>Véhicules du club <span class="compteur">{{ vehicules|length }}</span></h1>
+        {% if is_granted('ROLE_ADMIN') %}<a class="bouton principal" href="{{ path('app_transport_vehicule_nouveau') }}">+ Nouveau véhicule</a>{% endif %}
+    </div>
+    <div class="table-defile">
+        <table class="liste">
+            <thead><tr><th>Véhicule</th><th>Places</th><th class="a-droite">Kilométrage</th><th>Assurance</th><th>Contrôle technique</th><th>Révision</th><th>Cartes</th><th></th></tr></thead>
+            <tbody>
+                {% for v in vehicules %}
+                    <tr>
+                        <td class="fort">{{ v.nom }}{% if v.immatriculation %}<br><span class="discret petit">{{ v.immatriculation }}</span>{% endif %}</td>
+                        <td>{{ v.places ?? '—' }}</td>
+                        <td class="a-droite">{{ v.kilometrage is not null ? v.kilometrage|number_format(0, ',', ' ') ~ ' km' : '—' }}</td>
+                        <td>{{ _self.echeance(v.assurance) }}</td>
+                        <td>{{ _self.echeance(v.controleTechnique) }}</td>
+                        <td>{{ _self.echeance(v.revision) }}</td>
+                        <td class="petit">{% if v.carteCarburant %}⛽ {{ v.carteCarburant }}{% endif %}{% if v.badgeAutoroute %}<br>🛣️ {{ v.badgeAutoroute }}{% endif %}</td>
+                        <td class="a-cote">{% if is_granted('ROLE_ADMIN') %}<a href="{{ path('app_transport_vehicule_modifier', {id: v.id}) }}">Modifier</a>{% endif %}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" class="vide">Aucun véhicule.{% if is_granted('ROLE_ADMIN') %} Ajoutez le minibus du club avec « Nouveau véhicule » : ses échéances seront signalées 30 jours avant.{% endif %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

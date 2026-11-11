@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+{% import 'finances/_macros.html.twig' as f %}
+
+{% block title %}Frais abandonnés {{ annee }} – {{ conducteur }}{% endblock %}
+
+{% block body %}
+    <div class="recapitulatif-frais">
+        <p class="sans-impression"><a href="{{ path('app_transport_frais', {annee: annee}) }}">← Frais kilométriques</a> · <button type="button" class="bouton petit" onclick="window.print()">Imprimer</button></p>
+        <h1>Frais engagés et abandonnés au profit de l'association</h1>
+        <p><strong>{{ app.user.club.nom ?? '' }}</strong> · Année {{ annee }}</p>
+        <p>Bénévole : <strong>{{ conducteur }}</strong></p>
+        <p class="petit">Frais de déplacement engagés pour l'activité de l'association, auxquels le bénévole renonce expressément (article 200 du Code général des impôts). Montants calculés au barème kilométrique, péages et parking compris. Ce récapitulatif sert à établir le reçu fiscal (Cerfa n° 11580).</p>
+        <table class="liste">
+            <thead><tr><th>Date</th><th>Objet du déplacement</th><th class="a-droite">Km</th><th class="a-droite">Barème</th><th class="a-droite">Péages / parking</th><th class="a-droite">Montant</th></tr></thead>
+            <tbody>
+                {% for d in deplacements %}
+                    <tr>
+                        <td>{{ d.date|date('d/m/Y') }}</td>
+                        <td>{{ d.objet }}</td>
+                        <td class="a-droite">{{ d.km }}</td>
+                        <td class="a-droite">{{ d.tauxKm|number_format(3, ',', ' ') }} €</td>
+                        <td class="a-droite">{{ d.frais ? f.euros(d.frais) }}</td>
+                        <td class="a-droite">{{ f.euros(d.montant) }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="vide">Aucun frais abandonné en {{ annee }}.</td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot><tr><th colspan="2">Total</th><th class="a-droite">{{ km|number_format(0, ',', ' ') }}</th><th></th><th></th><th class="a-droite">{{ f.euros(total) }}</th></tr></tfoot>
+        </table>
+        <div class="signatures">
+            <p>Le bénévole, renonçant au remboursement :<br><br>Signature</p>
+            <p>Pour l'association, le trésorier :<br><br>Signature</p>
+        </div>
+    </div>
+{% endblock %}

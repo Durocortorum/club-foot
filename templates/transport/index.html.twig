@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+{% import 'finances/_macros.html.twig' as f %}
+
+{% block title %}Transport {{ saison }}{% endblock %}
+
+{% block body %}
+    {% include 'transport/_onglets.html.twig' with {actif: 'deplacements'} %}
+    <div class="titre-page">
+        <h1>Déplacements <span class="compteur">{{ deplacements|length }}</span></h1>
+        {% if peut_creer %}<a class="bouton principal" href="{{ path('app_transport_nouveau') }}">+ Nouveau déplacement</a>{% endif %}
+    </div>
+
+    {% for a in alertes %}
+        <p class="flash {{ a.depassee ? 'flash-erreur' : 'flash-info' }}">🚐 {{ a.vehicule.nom }} : {{ a.libelle|lower }} {{ a.depassee ? 'dépassé(e) depuis le' : 'à faire avant le' }} <strong>{{ a.date|date('d/m/Y') }}</strong>.{% if is_granted('ROLE_ADMIN') %} <a href="{{ path('app_transport_vehicule_modifier', {id: a.vehicule.id}) }}">Mettre à jour</a>{% endif %}</p>
+    {% endfor %}
+
+    <form class="filtres" method="get">
+        <select name="saison" onchange="this.form.requestSubmit()" aria-label="Saison">
+            {% for s in saisons %}<option value="{{ s }}" {{ s == saison ? 'selected' }}>Saison {{ s }}</option>{% endfor %}
+        </select>
+        <noscript><button type="submit" class="bouton">Afficher</button></noscript>
+    </form>
+
+    {% if deplacements %}<p class="discret">{{ km|number_format(0, ',', ' ') }} km parcourus · coût total {{ f.euros(cout) }}</p>{% endif %}
+
+    <div class="table-defile">
+        <table class="liste liste-fiches">
+            <thead><tr><th>Date</th><th>Objet</th><th>Moyen</th><th>Conducteur</th><th class="a-droite">Km</th><th class="a-droite">Coût</th><th></th></tr></thead>
+            <tbody>
+                {% for d in deplacements %}
+                    <tr>
+                        <td class="nowrap">{{ d.date|date('d/m/Y') }}</td>
+                        <td class="principal">{{ d.objet }}{% if d.categorie %} <span class="pastille">{{ d.categorie }}</span>{% endif %}{% if d.note %}<br><span class="discret petit">{{ d.note }}</span>{% endif %}</td>
+                        <td data-label="moyen">{{ d.moyen }}{% if d.vehicule %} · {{ d.vehicule.nom }}{% endif %}{% if d.passagers %} <span class="discret petit">({{ d.passagers }} pass.)</span>{% endif %}</td>
+                        <td data-label="conducteur">{{ d.conducteur ?? '—' }}</td>
+                        <td class="a-droite" data-label="km">{{ d.km ?? '' }}</td>
+                        <td class="a-droite" data-label="coût">{% if d.montant %}{{ f.euros(d.montant) }}{% endif %}{% if d.statut %}<br><span class="pastille {{ {a_rembourser: 'alerte', rembourse: 'succes', abandonne: ''}[d.statut] }}">{{ d.statutLibelle }}</span>{% endif %}</td>
+                        <td class="a-cote">{% if peut_creer %}<a href="{{ path('app_transport_modifier', {id: d.id}) }}">Modifier</a>{% endif %}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="vide">Aucun déplacement pour {{ saison }}.{% if peut_creer %} Ajoutez-en un avec « Nouveau déplacement », ou depuis la page d'un match ou d'un tournoi.{% endif %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
