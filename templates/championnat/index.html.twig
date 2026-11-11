@@ -65,7 +65,7 @@
             {% endif %}
             {% if prochain %}
                 {% set adv = classement ? classement.ligneDe(prochain.adversaire) : null %}
-                <a class="tuile" href="{{ path('app_rencontre_voir', {id: prochain.id}) }}">
+                <a class="tuile tuile-prochain" href="{{ path('app_rencontre_voir', {id: prochain.id}) }}">
                     <span class="tuile-valeur petit-valeur">{{ prochain.adversaire }}</span>
                     <span class="tuile-libelle">prochain match · {{ prochain.date|date('d/m') }}{{ prochain.heure ? ' à ' ~ prochain.heure }} · {{ prochain.aDomicile ? 'à domicile' : 'à l\'extérieur' }}{{ adv ? ' · ' ~ adv.rang ~ (adv.rang == 1 ? 'er' : 'e') ~ ', ' ~ adv.points ~ ' pts' }}</span>
                 </a>
