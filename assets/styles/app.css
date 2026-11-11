@@ -594,6 +594,10 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .tuile-forme .score:hover { text-decoration: none; }
 .petit-valeur { font-size: 1.1rem; }
 .maj-classement { margin-top: 1rem; }
+.import-fff-unique summary.entete-import { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.2rem; cursor: pointer; }
+.import-fff-unique summary.entete-import::-webkit-details-marker { display: none; }
+.import-fff-unique details[open] > summary.entete-import { margin-bottom: .8rem; }
+.import-fff-unique .rappel-import { color: var(--gris); line-height: 1.4; }
 .maj-classement > summary { list-style: none; display: inline-flex; }
 .maj-classement > summary::-webkit-details-marker { display: none; }
 .maj-classement form { margin-top: .8rem; }
