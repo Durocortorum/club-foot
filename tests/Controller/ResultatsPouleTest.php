@@ -125,6 +125,10 @@ class ResultatsPouleTest extends WebTestCase
         $crawler = $client->followRedirect();
         self::assertStringContainsString('2 scores enregistrés', $crawler->filter('.flash-succes')->text());
         self::assertSame(["FC D'ANNECY", 'ESTAC TROYES', 'PARIS FC', 'DIJON FCO', 'STADE DE REIMS'], $crawler->filter('table.classement tbody tr td.fort')->each(fn ($n) => $n->text()));
+        // Série en cours calculée à partir des matchs de la poule : Annecy V, Troyes D, Paris V, Dijon D, Reims rien.
+        self::assertSame(['V', 'D', 'V', 'D', ''], $crawler->filter('table.classement tbody tr')->each(
+            fn ($tr) => implode('', $tr->filter('.point-serie')->each(fn ($p) => substr($p->attr('class'), -1))),
+        ));
 
         // Nouveau copier-coller avec un score : le match existant est complété, pas recréé.
         $texte2 = implode("\n", ['Journée 12', $date($jour->modify('+7 days')) . ' - 15h00', 'ESTAC TROYES', 'ESTAC TROYES', '1', '-', '1', 'PARIS FC', 'PARIS FC']);

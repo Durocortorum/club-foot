@@ -1,11 +1,11 @@
 {% extends 'base.html.twig' %}
 
 {% macro tableau(lignes, classement = null) %}
-    {% set rangs = {} %}
+    {% set avec_serie = lignes|filter(l => l.serie ?? [])|length > 0 %}
     <div class="table-defile">
         <table class="liste classement">
             <thead>
-                <tr><th>#</th><th>Équipe</th><th title="Points">Pts</th><th title="Matchs joués">J</th><th title="Gagnés">G</th><th title="Nuls">N</th><th title="Perdus">P</th><th title="Buts pour – contre">Buts</th><th title="Différence">Diff.</th></tr>
+                <tr><th>#</th><th>Équipe</th><th title="Points">Pts</th><th title="Matchs joués">J</th><th title="Gagnés">G</th><th title="Nuls">N</th><th title="Perdus">P</th><th title="Buts pour – contre">Buts</th><th title="Différence">Diff.</th>{% if avec_serie %}<th title="5 derniers matchs, du plus ancien au plus récent">Série en cours</th>{% endif %}</tr>
             </thead>
             <tbody>
                 {% for l in lignes %}
@@ -19,6 +19,9 @@
                         <td>{{ l.perdus }}</td>
                         <td class="nowrap">{{ l.pour }} – {{ l.contre }}</td>
                         <td>{{ l.diff > 0 ? '+' }}{{ l.diff }}</td>
+                        {% if avec_serie %}
+                            <td class="serie nowrap">{% for s in l.serie %}<span class="point-serie serie-{{ s.resultat }}" title="{{ {V: 'Victoire', N: 'Nul', D: 'Défaite'}[s.resultat] }} : {{ s.titre }}"></span>{% endfor %}</td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </tbody>

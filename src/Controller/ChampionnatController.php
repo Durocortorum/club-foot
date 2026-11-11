@@ -98,7 +98,7 @@ class ChampionnatController extends AbstractController
             'saisons' => $saisons,
             'saison' => $saison,
             'classement' => $classement,
-            'lignes' => $this->marquerLeClub($classement?->getLignesAffichees() ?? []),
+            'lignes' => $this->marquerLeClub($classement?->getLignesAffichees() ?? [], $calcul->series($resultats, $matchs)),
             'officiel' => $classement?->getLignes() ?? [],
             'recalcul' => $recalcul,
             'resultats' => $resultats,
@@ -419,9 +419,28 @@ class ChampionnatController extends AbstractController
         return $noms;
     }
 
-    /** Ajoute « nous » aux lignes du classement : celle(s) du club de l'utilisateur. */
-    private function marquerLeClub(array $lignes): array
+    /**
+     * Ajoute « nous » aux lignes du classement (celle(s) du club de l'utilisateur) et la série en cours
+     * de chaque équipe (voir CalculClassement::series), reconnue même écrite un peu autrement.
+     *
+     * @param array<string, list<array{resultat: string, titre: string}>> $series
+     */
+    private function marquerLeClub(array $lignes, array $series = []): array
     {
-        return array_map(fn (array $l) => $l + ['nous' => Rencontre::estLeClub($l['equipe'])], $lignes);
+        return array_map(function (array $l) use ($series) {
+            $nous = Rencontre::estLeClub($l['equipe']);
+            $cle = $nous ? '#club' : Rencontre::coeurDuNom($l['equipe']);
+            $serie = $series[$cle] ?? null;
+            if (null === $serie && '' !== $cle) {
+                foreach ($series as $c => $s) {
+                    if ('#club' !== $c && '' !== $c && (str_starts_with($c, $cle . ' ') || str_starts_with($cle, $c . ' '))) {
+                        $serie = $s;
+                        break;
+                    }
+                }
+            }
+
+            return $l + ['nous' => $nous, 'serie' => $serie ?? []];
+        }, $lignes);
     }
 }

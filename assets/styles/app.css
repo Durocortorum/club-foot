@@ -594,6 +594,12 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .tuile-forme .score:hover { text-decoration: none; }
 .petit-valeur { font-size: 1.1rem; }
 .maj-classement { margin-top: 1rem; }
+/* Série en cours dans le classement : un point par match (vert victoire, gris nul, rouge défaite). */
+.classement td.serie { white-space: nowrap; }
+.point-serie { width: .7rem; height: .7rem; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: .3rem; cursor: help; }
+.point-serie.serie-V { background: #1e8e3e; }
+.point-serie.serie-N { background: #8e8e93; }
+.point-serie.serie-D { background: #e3000b; }
 .import-fff-unique summary.entete-import { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.2rem; cursor: pointer; }
 .import-fff-unique summary.entete-import::-webkit-details-marker { display: none; }
 .import-fff-unique details[open] > summary.entete-import { margin-bottom: .8rem; }

@@ -77,6 +77,44 @@ class CalculClassement
         return ['lignes' => $lignes, 'appliques' => $appliques, 'deja_comptes' => $dejaComptes];
     }
 
+    /**
+     * Série en cours de chaque équipe : ses derniers matchs joués (du plus ancien au plus récent),
+     * tirés du calendrier de la poule et des matchs du club. Clé : cœur du nom (Rencontre::coeurDuNom),
+     * ou « #club » pour le club.
+     *
+     * @param list<ResultatPoule> $resultats
+     * @param list<Rencontre>     $matchsClub
+     *
+     * @return array<string, list<array{resultat: string, titre: string}>>
+     */
+    public function series(array $resultats, array $matchsClub, int $nombre = 5): array
+    {
+        $matchs = [];
+        foreach ($resultats as $r) {
+            if ($r->isJoue()) {
+                $matchs[] = [$r->getDate(), Rencontre::coeurDuNom($r->getDomicile()), Rencontre::coeurDuNom($r->getExterieur()), $r->getDomicile(), $r->getExterieur(), $r->getButsDomicile(), $r->getButsExterieur()];
+            }
+        }
+        foreach ($matchsClub as $m) {
+            if (null !== $m->getResultat()) {
+                $eux = Rencontre::coeurDuNom($m->getAdversaire());
+                $matchs[] = $m->isADomicile()
+                    ? [$m->getDate(), '#club', $eux, $m->getDomicile(), $m->getExterieur(), $m->getButsDomicile(), $m->getButsExterieur()]
+                    : [$m->getDate(), $eux, '#club', $m->getDomicile(), $m->getExterieur(), $m->getButsDomicile(), $m->getButsExterieur()];
+            }
+        }
+        usort($matchs, fn (array $a, array $b) => $a[0] <=> $b[0]);
+
+        $series = [];
+        foreach ($matchs as [$date, $cleDom, $cleExt, $dom, $ext, $bd, $be]) {
+            $titre = \sprintf('%s %s %d – %d %s', $date->format('d/m'), $dom, $bd, $be, $ext);
+            $series[$cleDom][] = ['resultat' => $bd > $be ? 'V' : ($bd === $be ? 'N' : 'D'), 'titre' => $titre];
+            $series[$cleExt][] = ['resultat' => $be > $bd ? 'V' : ($bd === $be ? 'N' : 'D'), 'titre' => $titre];
+        }
+
+        return array_map(fn (array $s) => \array_slice($s, -$nombre), $series);
+    }
+
     /** Ajoute un match aux deux équipes (créées si elles ne sont pas encore au classement). */
     private function compter(array &$equipes, string $domicile, string $exterieur, int $bd, int $be): void
     {
