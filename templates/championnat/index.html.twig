@@ -76,13 +76,13 @@
     {# Une seule case pour tout ce qui vient de la FFF : classement, matchs du club, matchs de la poule. #}
     <section class="carte bloc import-fff-unique" id="importer">
         <details {{ not lignes and not resultats and not matchs ? 'open' }}>
-            <summary class="bouton principal">Importer depuis la FFF (classement, matchs, calendrier)</summary>
+            <summary class="bouton principal">Importer {{ categorie }} depuis la FFF (classement, matchs, calendrier)</summary>
             <form method="post" action="{{ path('app_championnat_importer') }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('importer-fff') }}">
                 <input type="hidden" name="categorie" value="{{ categorie.id }}">
                 <input type="hidden" name="saison" value="{{ saison }}">
                 <ol class="petit etapes-poule">
-                    <li>Sur le site de la FFF, ouvrez la page que vous voulez : <strong>Classement</strong>, les <strong>matchs de l'équipe</strong> (onglet « Saison ») ou la <strong>page de la poule</strong> (tous les matchs du groupe).</li>
+                    <li>Sur le site de la FFF, ouvrez la page de l'équipe <strong>{{ categorie }}</strong> : onglet <strong>Saison</strong> (classement, matchs et scores en une fois), <strong>Classement</strong>, ou la <strong>page de sa poule</strong> (tous les matchs du groupe).</li>
                     <li><strong>Important :</strong> faites défiler la page de la FFF <strong>jusqu'en bas</strong>, sans rien sauter : les matchs ne s'affichent qu'au fur et à mesure. Si vous ne descendez pas, les derniers ne seront pas copiés.</li>
                     <li>Faites <strong>Ctrl+A</strong> puis <strong>Ctrl+C</strong>.</li>
                     <li>Collez ici (<strong>Ctrl+V</strong>) et cliquez sur « Importer ». Le site reconnaît tout seul ce que vous avez collé.</li>
@@ -260,7 +260,7 @@
                 </table>
             </div>
         {% else %}
-            <p class="vide">Aucun match de championnat enregistré pour {{ categorie }} en {{ saison }}. Importez-les depuis la FFF avec le bouton <a href="#importer">« Importer depuis la FFF »</a> en haut de la page.</p>
+            <p class="vide">Aucun match de championnat enregistré pour {{ categorie }} en {{ saison }}. Importez-les depuis la FFF avec le bouton <a href="#importer">« Importer {{ categorie }} depuis la FFF »</a> en haut de la page.</p>
         {% endif %}
     </section>
 {% endblock %}
