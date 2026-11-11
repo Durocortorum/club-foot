@@ -9,6 +9,7 @@
         {% if peut_creer %}
             <span class="actions">
                 <a class="bouton" href="{{ path('app_championnat', filtres.categorie ? {categorie: filtres.categorie} : {}) }}">Championnat</a>
+                <a class="bouton" href="{{ path('app_tournoi_index') }}">Tournois</a>
                 <a class="bouton principal" href="{{ path('app_rencontre_nouveau') }}">+ Nouveau match</a>
             </span>
         {% endif %}

@@ -8,6 +8,7 @@
         <span class="actions">
             <a class="bouton" href="{{ path('app_evenement_index') }}">Événements</a>
             <a class="bouton" href="{{ path('app_stage_index') }}">Stages</a>
+            <a class="bouton" href="{{ path('app_tournoi_index') }}">Tournois</a>
             <a class="bouton" href="{{ path('app_rencontre_index') }}">Matchs</a>
             {% if peut_planifier %}<a class="bouton" href="{{ path('app_planning') }}">Planning des entraînements</a>{% endif %}
         </span>
@@ -36,6 +37,7 @@
             <span class="cal-activite cal-entrainement">Entraînement</span>
             <span class="cal-activite cal-evenement">Événement</span>
             <span class="cal-activite cal-stage">Stage</span>
+            <span class="cal-activite cal-tournoi">Tournoi</span>
             <span class="cal-activite cal-seance">Séance seule</span>
         </span>
     </div>
@@ -73,6 +75,11 @@
                                 <a class="cal-activite cal-stage" href="{{ path('app_stage_voir', {id: o.id}) }}" title="Stage : {{ o.titre }}{{ o.lieu ? ' – ' ~ o.lieu }}">
                                     <span class="cal-heure">{{ a.premier ? (o.horaires ?: 'Stage') : 'suite' }}{% if not choisie %} · {{ o.toutLeClub ? 'club' : o.categories|map(c => c.nom)|join(', ') }}{% endif %}</span>
                                     <span class="cal-titre">{{ o.titre }}</span>
+                                </a>
+                            {% elseif a.type == 'tournoi' %}
+                                <a class="cal-activite cal-tournoi" href="{{ path('app_tournoi_voir', {id: o.id}) }}" title="Tournoi : {{ o.nom }}{{ o.lieu ? ' – ' ~ o.lieu }}">
+                                    <span class="cal-heure">{{ a.premier ? 'Tournoi' : 'suite' }}{% if not choisie %} · {{ o.categorie }}{% endif %}</span>
+                                    <span class="cal-titre">{{ o.nom }}</span>
                                 </a>
                             {% elseif a.type == 'seance' %}
                                 {# Séance préparée un jour sans entraînement prévu de l'équipe. #}

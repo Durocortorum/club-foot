@@ -977,6 +977,10 @@ table.droits thead th.droits-nom { z-index: 3; }
 
 /* Stages : vert, pour les distinguer des événements (violet) dans le calendrier et les listes. */
 .cal-stage { background: #e4f4ec; border-color: #1e7f43; color: #14532d; }
+.cal-tournoi { background: #fff1d6; border-color: #b7791f; color: #6b4410; }
+.ajout-match-tournoi { margin-top: 1rem; padding-top: .8rem; border-top: 1px solid var(--bordure); }
+.score-saisie { display: inline-flex; align-items: center; gap: .4rem; }
+.score-saisie input { width: 4.5rem; }
 .evenement.stage .evenement-date { background: #e4f4ec; color: #14532d; }
 .evenement.stage h2 a { color: inherit; }
 #participants > .avec-actions { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }

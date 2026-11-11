@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tournois{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Tournois <span class="compteur">{{ tournois|length }}</span></h1>
+        <span class="actions">
+            <a class="bouton" href="{{ path('app_calendrier') }}">Calendrier</a>
+            {% if peut_creer %}<a class="bouton principal" href="{{ path('app_tournoi_nouveau') }}">+ Nouveau tournoi</a>{% endif %}
+        </span>
+    </div>
+
+    <nav class="onglets">
+        <a href="{{ path('app_tournoi_index') }}" class="{{ not passes ? 'actif' }}">À venir</a>
+        <a href="{{ path('app_tournoi_index', {periode: 'passes'}) }}" class="{{ passes ? 'actif' }}">Passés</a>
+    </nav>
+
+    <div class="liste-evenements">
+        {% for t in tournois %}
+            {% set b = t.bilan %}
+            <article class="carte evenement tournoi">
+                <div class="evenement-date">
+                    <span class="jour">{{ t.debut|date('d') }}</span>
+                    <span class="mois">{{ ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][t.debut|date('n') - 1] }} {{ t.debut|date('Y') }}</span>
+                </div>
+                <div class="evenement-corps">
+                    <div>
+                        <span class="pastille">{{ t.categorie }}</span>
+                        {% if t.resultat %}<span class="pastille succes">🏆 {{ t.resultat }}</span>{% endif %}
+                        <h2><a href="{{ path('app_tournoi_voir', {id: t.id}) }}">{{ t.nom }}</a></h2>
+                    </div>
+                    <p class="discret">{% include 'tournoi/_quand.html.twig' %}</p>
+                    <p class="petit">
+                        {{ t.matchs|length }} match{{ t.matchs|length > 1 ? 's' }}{% if b.joues %} · {{ b.V }} V, {{ b.N }} N, {{ b.D }} D · {{ b.pour }} – {{ b.contre }}{% endif %}
+                        {% if t.transport %} · {{ t.transport }}{% endif %}
+                    </p>
+                </div>
+            </article>
+        {% else %}
+            <p class="vide">{{ passes ? 'Aucun tournoi passé.' : 'Aucun tournoi à venir.' }}{% if peut_creer and not passes %} Ajoutez le premier avec « Nouveau tournoi ».{% endif %}</p>
+        {% endfor %}
+    </div>
+{% endblock %}

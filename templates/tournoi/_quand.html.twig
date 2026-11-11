@@ -1,0 +1,7 @@
+{# Dates et lieu d'un tournoi (variable t). #}
+{%- if t.fin and t.fin != t.debut -%}
+    Du {{ t.debut|date('d/m/Y') }} au {{ t.fin|date('d/m/Y') }}
+{%- else -%}
+    Le {{ ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][t.debut|date('w')] }} {{ t.debut|date('d/m/Y') }}
+{%- endif -%}
+{%- if t.lieu %} · {{ t.lieu }}{% endif -%}

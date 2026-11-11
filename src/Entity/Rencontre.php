@@ -57,6 +57,11 @@ class Rencontre implements AppartientAuClub
     #[ORM\Column(length: 30, nullable: true)]
     private ?string $competition = null;
 
+    /** Tournoi dont ce match fait partie (compétition « Tournoi »). */
+    #[ORM\ManyToOne(inversedBy: 'matchs')]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?Tournoi $tournoi = null;
+
     #[ORM\Column(length: 80)]
     #[Assert\NotBlank]
     private ?string $domicile = null;
@@ -203,6 +208,18 @@ class Rencontre implements AppartientAuClub
     public function getCompetition(): ?string
     {
         return $this->competition;
+    }
+
+    public function getTournoi(): ?Tournoi
+    {
+        return $this->tournoi;
+    }
+
+    public function setTournoi(?Tournoi $tournoi): static
+    {
+        $this->tournoi = $tournoi;
+
+        return $this;
     }
 
     public function setCompetition(?string $competition): static

@@ -1,0 +1,96 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ t.nom }}{% endblock %}
+
+{% block body %}
+    {% set b = t.bilan %}
+    <p><a href="{{ path('app_tournoi_index', t.dernierJour < date('today') ? {periode: 'passes'} : {}) }}">← Tournois</a></p>
+
+    <div class="titre-page">
+        <div>
+            <h1>{{ t.nom }}</h1>
+            <p class="discret">{{ t.categorie }} · {% include 'tournoi/_quand.html.twig' %}{% if t.resultat %} <span class="pastille succes">🏆 {{ t.resultat }}</span>{% endif %}</p>
+        </div>
+        {% if peut_modifier %}
+            <div class="actions">
+                <a class="bouton" href="{{ path('app_tournoi_convocation', {id: t.id}) }}" title="Convoquer les joueurs pour le tournoi">Convocation</a>
+                <a class="bouton principal" href="{{ path('app_tournoi_modifier', {id: t.id}) }}">Modifier</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="grille-fiches">
+        <section class="carte">
+            <h2>Le tournoi</h2>
+            <dl>
+                {{ m.ligne('Équipe', t.categorie.nom) }}
+                {{ m.ligne('Lieu', t.lieu) }}
+                {{ m.ligne('Organisateur', t.organisateur) }}
+                {{ m.ligne('Format', t.format) }}
+                {{ m.ligne('Inscription', t.coutInscription is not null ? (t.coutInscription ? t.coutInscription|number_format(2, ',', ' ') ~ ' €' : 'gratuite') : null) }}
+                {{ m.ligne('Résultat final', t.resultat) }}
+            </dl>
+        </section>
+        <section class="carte">
+            <h2>Transport</h2>
+            {% if t.transport or t.detailTransport %}
+                <dl>
+                    {{ m.ligne('Moyen', t.transport) }}
+                    {{ m.ligne('Départ, retour', t.detailTransport) }}
+                </dl>
+            {% else %}
+                <p class="vide">Pas encore renseigné.</p>
+            {% endif %}
+        </section>
+        {% if t.description %}
+            <section class="carte">
+                <h2>Informations</h2>
+                <p class="memo">{{ t.description }}</p>
+            </section>
+        {% endif %}
+    </div>
+
+    <section class="carte bloc" id="matchs">
+        <div class="avec-actions">
+            <h2>Matchs du tournoi <span class="compteur">{{ t.matchs|length }}</span></h2>
+            {% if b.joues %}<span class="discret">{{ b.V }} victoire{{ b.V > 1 ? 's' }}, {{ b.N }} nul{{ b.N > 1 ? 's' }}, {{ b.D }} défaite{{ b.D > 1 ? 's' }} · buts {{ b.pour }} – {{ b.contre }}</span>{% endif %}
+        </div>
+        {% if t.matchs|length %}
+            <div class="table-defile">
+                <table class="liste">
+                    <thead><tr><th>Jour</th><th>Heure</th><th>Match</th><th>Score</th><th></th></tr></thead>
+                    <tbody>
+                        {% for r in t.matchs %}
+                            <tr>
+                                <td class="nowrap">{{ r.date|date('d/m') }}</td>
+                                <td>{{ r.heure ?? '—' }}</td>
+                                <td><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a></td>
+                                <td>{{ m.score(r) }}</td>
+                                <td class="a-cote">{% if peut_modifier %}<a href="{{ path('app_rencontre_modifier', {id: r.id}) }}">{{ r.resultat ? 'Modifier' : 'Score' }}</a>{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="vide">Aucun match pour l'instant.{% if peut_modifier %} Ajoutez-les au fur et à mesure ci-dessous (le premier sert aussi à la convocation).{% endif %}</p>
+        {% endif %}
+
+        {% if peut_modifier %}
+            <form method="post" action="{{ path('app_tournoi_match', {id: t.id}) }}" class="ajout-match-tournoi">
+                <input type="hidden" name="_token" value="{{ csrf_token('match-tournoi' ~ t.id) }}">
+                <h3>Ajouter un match</h3>
+                <div class="champs">
+                    <div class="champ"><label for="adversaire">Adversaire</label><input type="text" id="adversaire" name="adversaire" class="majuscules" required placeholder="ex. : AS Tinqueux ou À définir"></div>
+                    {% if jours|length > 1 %}
+                        <div class="champ"><label for="jour">Jour</label><select id="jour" name="jour">{% for j in jours %}<option value="{{ j|date('Y-m-d') }}">{{ j|date('d/m') }}</option>{% endfor %}</select></div>
+                    {% endif %}
+                    <div class="champ"><label for="heure">Heure</label><input type="text" id="heure" name="heure" placeholder="10H30"></div>
+                    <div class="champ"><label>Score (si déjà joué)</label><span class="score-saisie"><input type="number" name="pour" min="0" max="99" aria-label="Nos buts" placeholder="Nous"> – <input type="number" name="contre" min="0" max="99" aria-label="Buts de l'adversaire" placeholder="Eux"></span></div>
+                </div>
+                <div class="barre-actions"><button type="submit" class="bouton principal">Ajouter le match</button></div>
+            </form>
+        {% endif %}
+    </section>
+{% endblock %}
