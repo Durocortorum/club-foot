@@ -259,7 +259,7 @@
                 </table>
             </div>
         {% else %}
-            <p class="vide">Aucun match de championnat enregistré pour {{ categorie }} en {{ saison }}. Importez le calendrier depuis <a href="{{ path('app_rencontre_importer', {categorie: categorie.id}) }}">Matchs → Importer des matchs</a>.</p>
+            <p class="vide">Aucun match de championnat enregistré pour {{ categorie }} en {{ saison }}. Importez-les depuis la FFF avec le bouton <a href="#importer">« Importer depuis la FFF »</a> en haut de la page.</p>
         {% endif %}
     </section>
 {% endblock %}

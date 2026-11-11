@@ -100,8 +100,10 @@ class ImportMatchsTest extends WebTestCase
         $categorie = $em->getRepository(Categorie::class)->findOneBy(['club' => $club, 'nom' => 'U19']);
 
         $this->client->loginUser($admin);
+        // Plus de bouton sur « Matchs » (l'import se fait dans Championnat) : la page reste pour le bouton « ➜ Club Foot ».
         $crawler = $this->client->request('GET', '/matchs');
-        $crawler = $this->client->click($crawler->selectLink('Importer des matchs')->link());
+        self::assertSelectorNotExists('a[href^="/matchs/importer"]');
+        $crawler = $this->client->request('GET', '/matchs/importer');
         self::assertResponseIsSuccessful();
         // L'aperçu répond 200 à un envoi de formulaire : avec Turbo, le navigateur ne l'afficherait pas.
         self::assertSelectorExists('form[data-turbo="false"]');
