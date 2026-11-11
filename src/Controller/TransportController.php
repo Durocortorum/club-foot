@@ -3,12 +3,15 @@
 namespace App\Controller;
 
 use App\Entity\Categorie;
+use App\Entity\Conducteur;
 use App\Entity\Deplacement;
 use App\Entity\Rencontre;
 use App\Entity\Vehicule;
+use App\Form\ConducteurType;
 use App\Form\DeplacementType;
 use App\Form\VehiculeType;
 use App\Repository\CategorieRepository;
+use App\Repository\ConducteurRepository;
 use App\Repository\DeplacementRepository;
 use App\Repository\RencontreRepository;
 use App\Repository\TournoiRepository;
@@ -33,6 +36,7 @@ class TransportController extends AbstractController
         private readonly JoueurVoter $voter,
         private readonly CategorieRepository $categories,
         private readonly EntityManagerInterface $em,
+        private readonly ConducteurRepository $conducteurs,
     ) {
     }
 
@@ -58,6 +62,7 @@ class TransportController extends AbstractController
             'saison' => $saison,
             'saisons' => self::saisons(),
             'alertes' => $alertes,
+            'permis' => $this->conducteurs->aControler(),
             'peut_creer' => $this->peutCreer(),
             'km' => array_sum(array_map(fn (Deplacement $d) => $d->getKm() ?? 0, $liste)),
             'cout' => array_sum(array_map(fn (Deplacement $d) => $d->getMontant(), $liste)),
@@ -205,6 +210,115 @@ class TransportController extends AbstractController
         return $this->redirectToRoute('app_transport_vehicules');
     }
 
+    // ———————————————————————— Conducteurs et permis ————————————————————————
+
+    #[Route('/conducteurs', name: 'app_transport_conducteurs', methods: ['GET'])]
+    public function conducteurs(): Response
+    {
+        $liste = $this->conducteurs->findBy([], ['nom' => 'ASC']);
+        // À contrôler en premier.
+        usort($liste, fn (Conducteur $a, Conducteur $b) => [$a->isEnRegle(), $a->getNom()] <=> [$b->isEnRegle(), $b->getNom()]);
+
+        return $this->render('transport/conducteurs.html.twig', ['conducteurs' => $liste, 'peut_gerer' => $this->peutCreer()]);
+    }
+
+    #[Route('/conducteurs/nouveau', name: 'app_transport_conducteur_nouveau', methods: ['GET', 'POST'])]
+    public function nouveauConducteur(Request $request): Response
+    {
+        if (!$this->peutCreer()) {
+            throw $this->createAccessDeniedException();
+        }
+        $conducteur = (new Conducteur())->setClub($this->getUser()?->getClub())->setNom($request->query->getString('nom') ?: null);
+
+        return $this->formulaireConducteur($request, $conducteur, 'Nouveau conducteur');
+    }
+
+    #[Route('/conducteurs/{id}/modifier', name: 'app_transport_conducteur_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    public function modifierConducteur(Request $request, Conducteur $conducteur): Response
+    {
+        if (!$this->peutCreer()) {
+            throw $this->createAccessDeniedException();
+        }
+
+        return $this->formulaireConducteur($request, $conducteur, (string) $conducteur);
+    }
+
+    /** « Permis contrôlé aujourd'hui » : en un clic, par la personne connectée. */
+    #[Route('/conducteurs/{id}/controle', name: 'app_transport_conducteur_controle', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function controle(Request $request, Conducteur $conducteur): Response
+    {
+        if (!$this->peutCreer()) {
+            throw $this->createAccessDeniedException();
+        }
+        if ($this->isCsrfTokenValid('controle-permis' . $conducteur->getId(), $request->getPayload()->getString('_token'))) {
+            $conducteur->setControleLe(new \DateTimeImmutable('today'))->setControlePar((string) $this->getUser());
+            $this->em->flush();
+            $this->addFlash('succes', \sprintf('Permis de %s contrôlé aujourd\'hui : prochain contrôle le %s.', $conducteur, $conducteur->getProchainControle()->format('d/m/Y')));
+        }
+
+        return $this->redirectToRoute('app_transport_conducteurs');
+    }
+
+    #[Route('/conducteurs/{id}/supprimer', name: 'app_transport_conducteur_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function supprimerConducteur(Request $request, Conducteur $conducteur): Response
+    {
+        if (!$this->peutCreer()) {
+            throw $this->createAccessDeniedException();
+        }
+        if ($this->isCsrfTokenValid('supprimer-conducteur' . $conducteur->getId(), $request->getPayload()->getString('_token'))) {
+            $this->em->remove($conducteur);
+            $this->em->flush();
+            $this->addFlash('succes', 'Conducteur retiré de la liste (ses déplacements restent).');
+        }
+
+        return $this->redirectToRoute('app_transport_conducteurs');
+    }
+
+    private function formulaireConducteur(Request $request, Conducteur $conducteur, string $titre): Response
+    {
+        $form = $this->createForm(ConducteurType::class, $conducteur);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            if ($conducteur->getControleLe() && !$conducteur->getControlePar()) {
+                $conducteur->setControlePar((string) $this->getUser());
+            }
+            $this->em->persist($conducteur);
+            $this->em->flush();
+            $this->addFlash('succes', 'Conducteur enregistré.');
+
+            return $this->redirectToRoute('app_transport_conducteurs');
+        }
+
+        return $this->render('commun/formulaire.html.twig', [
+            'form' => $form,
+            'titre' => $titre,
+            'retour' => $this->generateUrl('app_transport_conducteurs'),
+        ] + ($conducteur->getId() ? ['suppression' => [
+            'action' => $this->generateUrl('app_transport_conducteur_supprimer', ['id' => $conducteur->getId()]),
+            'jeton' => 'supprimer-conducteur' . $conducteur->getId(),
+            'question' => 'Retirer ' . $conducteur . ' de la liste des conducteurs ?',
+        ]] : []));
+    }
+
+    /** Après un déplacement : le conducteur est-il dans la liste, son permis contrôlé, le minibus autorisé ? */
+    private function verifierConducteur(Deplacement $d): void
+    {
+        if (!$d->getConducteur() || !\in_array($d->getMoyen(), [Deplacement::VOITURE, 'Minibus du club'], true)) {
+            return;
+        }
+        $c = $this->conducteurs->parNom($d->getConducteur());
+        $message = match (true) {
+            null === $c => \sprintf('%s n\'est pas dans la liste des conducteurs : ajoutez-le pour suivre son permis.', $d->getConducteur()),
+            'expire' === $c->getEtat() => \sprintf('Attention : le permis de %s n\'est plus valable (depuis le %s).', $c, $c->getPermisExpireLe()->format('d/m/Y')),
+            'a_controler' === $c->getEtat() => \sprintf('Permis de %s à contrôler (%s).', $c, $c->getControleLe() ? 'dernier contrôle le ' . $c->getControleLe()->format('d/m/Y') : 'jamais contrôlé'),
+            'Minibus du club' === $d->getMoyen() && !$c->isMinibus() => \sprintf('%s n\'est pas noté comme autorisé à conduire le minibus.', $c),
+            default => null,
+        };
+        if ($message) {
+            $this->addFlash('erreur', $message);
+        }
+    }
+
     // ———————————————————————— Outils ————————————————————————
 
     private function formulaire(Request $request, Deplacement $deplacement, string $titre): Response
@@ -213,12 +327,13 @@ class TransportController extends AbstractController
         if ($deplacement->getCategorie() && !\in_array($deplacement->getCategorie(), $proposees, true)) {
             $proposees[] = $deplacement->getCategorie();
         }
-        $form = $this->createForm(DeplacementType::class, $deplacement, ['categories' => $proposees]);
+        $form = $this->createForm(DeplacementType::class, $deplacement, ['categories' => $proposees, 'conducteurs' => array_map(fn (Conducteur $c) => (string) $c->getNom(), $this->conducteurs->findBy([], ['nom' => 'ASC']))]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $this->em->persist($deplacement);
             $this->em->flush();
             $this->addFlash('succes', 'Déplacement enregistré' . ($deplacement->isVoiture() ? \sprintf(' : %s € de frais pour %s.', number_format($deplacement->getMontant(), 2, ',', ' '), $deplacement->getConducteur()) : '.'));
+            $this->verifierConducteur($deplacement);
 
             return $this->redirectToRoute('app_transport', ['saison' => Rencontre::saisonDe($deplacement->getDate())]);
         }

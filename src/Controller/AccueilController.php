@@ -4,9 +4,11 @@ namespace App\Controller;
 
 use App\Entity\Categorie;
 use App\Repository\CategorieRepository;
+use App\Repository\ConducteurRepository;
 use App\Repository\JoueurRepository;
 use App\Repository\StageRepository;
 use App\Repository\TacheRepository;
+use App\Repository\VehiculeRepository;
 use App\Security\JoueurVoter;
 use App\Service\PremiersPas;
 use App\Service\TableauAccueil;
@@ -25,6 +27,8 @@ class AccueilController extends AbstractController
         TacheRepository $taches,
         TableauAccueil $tableau,
         StageRepository $stages,
+        ConducteurRepository $conducteurs,
+        VehiculeRepository $vehicules,
     ): Response {
         if ($this->isGranted('ROLE_MEDICAL_SEUL')) {
             return $this->redirectToRoute($this->isGranted('ROLE_INFIRMERIE_LECTURE') ? 'app_infirmerie_index' : 'app_dossier_medical_index');
@@ -64,6 +68,9 @@ class AccueilController extends AbstractController
             'mes_taches' => $taches->ouvertesDe($this->getUser(), 5),
             'nb_taches' => $taches->compterOuvertesDe($this->getUser()),
             'taches_club' => $taches->ouvertesDesAutres($this->getUser(), 8),
+            // Rappels du transport (permis à contrôler, échéances des véhicules) pour ceux qui organisent les déplacements.
+            'permis_a_controler' => $voter->secteursModifiables() || $this->isGranted('ROLE_FINANCES') ? $conducteurs->aControler() : [],
+            'vehicules_alertes' => $voter->secteursModifiables() || $this->isGranted('ROLE_FINANCES') ? array_values(array_filter($vehicules->findAll(), fn ($v) => $v->getAlertes())) : [],
             'nb_taches_club' => $taches->compterOuvertes($this->getUser()) - $taches->compterOuvertesDe($this->getUser()),
         ]);
     }

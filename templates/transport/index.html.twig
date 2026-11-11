@@ -13,6 +13,9 @@
     {% for a in alertes %}
         <p class="flash {{ a.depassee ? 'flash-erreur' : 'flash-info' }}">🚐 {{ a.vehicule.nom }} : {{ a.libelle|lower }} {{ a.depassee ? 'dépassé(e) depuis le' : 'à faire avant le' }} <strong>{{ a.date|date('d/m/Y') }}</strong>.{% if is_granted('ROLE_ADMIN') %} <a href="{{ path('app_transport_vehicule_modifier', {id: a.vehicule.id}) }}">Mettre à jour</a>{% endif %}</p>
     {% endfor %}
+    {% if permis %}
+        <p class="flash flash-erreur">🪪 Permis à contrôler : {% for c in permis %}<strong>{{ c.nom }}</strong>{{ c.etat == 'expire' ? ' (plus valable)' }}{{ not loop.last ? ', ' }}{% endfor %}. <a href="{{ path('app_transport_conducteurs') }}">Voir les conducteurs</a></p>
+    {% endif %}
 
     <form class="filtres" method="get">
         <select name="saison" onchange="this.form.requestSubmit()" aria-label="Saison">

@@ -2,5 +2,6 @@
 <nav class="onglets">
     <a href="{{ path('app_transport') }}" class="{{ actif == 'deplacements' ? 'actif' }}">Déplacements</a>
     <a href="{{ path('app_transport_frais') }}" class="{{ actif == 'frais' ? 'actif' }}">Frais kilométriques</a>
+    <a href="{{ path('app_transport_conducteurs') }}" class="{{ actif == 'conducteurs' ? 'actif' }}">Conducteurs</a>
     <a href="{{ path('app_transport_vehicules') }}" class="{{ actif == 'vehicules' ? 'actif' }}">Véhicules du club</a>
 </nav>

@@ -53,6 +53,15 @@
         </dl>
     </section>
 
+    {# Rappels du transport : permis des conducteurs à contrôler, échéances des véhicules du club. #}
+    {% if permis_a_controler or vehicules_alertes %}
+        <p class="flash flash-erreur rappel-transport">
+            {% if permis_a_controler %}🪪 Permis à contrôler : {{ permis_a_controler|map(c => c.nom)|join(', ') }}. {% endif %}
+            {% if vehicules_alertes %}🚐 {% for v in vehicules_alertes %}{{ v.nom }} : {{ v.alertes|map(al => al.libelle|lower ~ ' ' ~ (al.depassee ? 'dépassé(e)' : 'avant le ' ~ al.date|date('d/m')))|join(', ') }}{{ not loop.last ? ' · ' }}{% endfor %}. {% endif %}
+            <a href="{{ path(permis_a_controler ? 'app_transport_conducteurs' : 'app_transport_vehicules') }}">Voir</a>
+        </p>
+    {% endif %}
+
     {# Le fil du club : défile en continu, s'arrête au survol. #}
     {% set fil = [] %}
     {% for r in semaine %}

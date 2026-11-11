@@ -22,7 +22,7 @@ class TransportTest extends WebTestCase
     {
         if ($this->clubId) {
             $connexion = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
-            foreach (['deplacement', 'vehicule', 'utilisateur', 'categorie'] as $table) {
+            foreach (['deplacement', 'vehicule', 'conducteur', 'utilisateur', 'categorie'] as $table) {
                 $connexion->executeStatement("DELETE FROM $table WHERE club_id = ?", [$this->clubId]);
             }
             $connexion->executeStatement('DELETE FROM club WHERE id = ?', [$this->clubId]);
@@ -79,6 +79,29 @@ class TransportTest extends WebTestCase
         self::assertStringContainsString('Paul Martin', $crawler->filter('.recapitulatif-frais')->text());
         self::assertCount(1, $crawler->filter('.recapitulatif-frais tbody tr'));
         self::assertStringContainsString('39,50 €', $crawler->filter('.recapitulatif-frais tfoot')->text());
+
+        // Conducteurs : Paul n'est pas dans la liste → signalé au déplacement suivant.
+        $crawler = $client->request('GET', '/transport/nouveau');
+        $client->submit($crawler->selectButton('Enregistrer')->form(['deplacement[objet]' => 'Match U15 à Reims', 'deplacement[moyen]' => Deplacement::VOITURE, 'deplacement[conducteur]' => 'Paul Martin', 'deplacement[km]' => '20']));
+        $crawler = $client->followRedirect();
+        self::assertStringContainsString('Paul Martin n\'est pas dans la liste des conducteurs', $crawler->filter('.flash-erreur')->text());
+
+        // Ajouté, permis contrôlé il y a 13 mois : à contrôler, rappelé sur l'accueil.
+        $crawler = $client->request('GET', '/transport/conducteurs/nouveau');
+        $client->submit($crawler->selectButton('Enregistrer')->form(['conducteur[nom]' => 'paul martin', 'conducteur[controleLe]' => (new \DateTimeImmutable('-13 months'))->format('Y-m-d')]));
+        $crawler = $client->followRedirect();
+        self::assertStringContainsString('À contrôler', $crawler->filter('tbody tr')->first()->text());
+        $crawler = $client->request('GET', '/');
+        self::assertStringContainsString('Permis à contrôler : paul martin', $crawler->filter('.rappel-transport')->text());
+
+        // « Permis contrôlé aujourd'hui » : en règle, plus de rappel ; le prochain contrôle dans un an.
+        $crawler = $client->request('GET', '/transport/conducteurs');
+        $client->submit($crawler->selectButton('Permis contrôlé aujourd\'hui')->form());
+        $crawler = $client->followRedirect();
+        self::assertStringContainsString('prochain contrôle le ' . (new \DateTimeImmutable('+12 months'))->format('d/m/Y'), $crawler->filter('.flash-succes')->text());
+        self::assertStringContainsString('En règle', $crawler->filter('tbody tr')->first()->text());
+        $crawler = $client->request('GET', '/');
+        self::assertStringNotContainsString('Permis à contrôler', $crawler->filter('.rappel-transport')->count() ? $crawler->filter('.rappel-transport')->text() : '');
 
         // Synthèse des finances : les 67 € remboursés sont une dépense.
         $crawler = $client->request('GET', '/finances');

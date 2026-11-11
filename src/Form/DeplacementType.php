@@ -27,7 +27,7 @@ class DeplacementType extends AbstractType
             ->add('categorie', EntityType::class, ['label' => 'Équipe', 'class' => Categorie::class, 'choices' => $options['categories'], 'required' => false, 'placeholder' => '— Aucune —'])
             ->add('moyen', ChoiceType::class, ['label' => 'Moyen de transport', 'choices' => array_combine(Deplacement::MOYENS, Deplacement::MOYENS)])
             ->add('vehicule', EntityType::class, ['label' => 'Minibus', 'class' => Vehicule::class, 'required' => false, 'placeholder' => '—', 'help' => 'Pour un minibus du club.'])
-            ->add('conducteur', null, ['label' => 'Conducteur', 'required' => false, 'attr' => ['placeholder' => 'Prénom Nom'], 'help' => 'Voiture personnelle : les frais kilométriques sont regroupés par conducteur.'])
+            ->add('conducteur', ListeOuverteType::class, ['label' => 'Conducteur', 'suggestions' => $options['conducteurs'], 'attr' => ['placeholder' => 'Prénom Nom'], 'help' => 'Choisissez dans la liste des conducteurs (permis contrôlé). Voiture personnelle : les frais sont regroupés par conducteur.'])
             ->add('passagers', IntegerType::class, ['label' => 'Passagers', 'required' => false, 'attr' => ['min' => 0]])
             ->add('km', IntegerType::class, ['label' => 'Kilomètres (aller et retour)', 'required' => false, 'attr' => ['min' => 0]])
             ->add('tauxKm', NumberType::class, ['label' => 'Barème (€ par km)', 'required' => false, 'scale' => 3, 'html5' => true, 'attr' => ['step' => '0.001', 'min' => 0, 'placeholder' => (string) Deplacement::BAREME_KM], 'help' => 'Voiture personnelle. Vide : ' . str_replace('.', ',', (string) Deplacement::BAREME_KM) . ' € (barème des bénévoles).'])
@@ -38,6 +38,6 @@ class DeplacementType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => Deplacement::class, 'categories' => []]);
+        $resolver->setDefaults(['data_class' => Deplacement::class, 'categories' => [], 'conducteurs' => []]);
     }
 }

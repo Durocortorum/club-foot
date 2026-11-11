@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Conducteurs{% endblock %}
+
+{% block body %}
+    {% set etats = {expire: ['Permis plus valable', 'alerte'], a_controler: ['À contrôler', 'alerte'], bientot: ['À contrôler bientôt', 'attention'], ok: ['En règle', 'succes']} %}
+    {% include 'transport/_onglets.html.twig' with {actif: 'conducteurs'} %}
+    <div class="titre-page">
+        <h1>Conducteurs <span class="compteur">{{ conducteurs|length }}</span></h1>
+        {% if peut_gerer %}<a class="bouton principal" href="{{ path('app_transport_conducteur_nouveau') }}">+ Nouveau conducteur</a>{% endif %}
+    </div>
+    <p class="discret petit">Les personnes qui transportent des joueurs. Leur permis est contrôlé chaque année (permis vu, pas de suspension) : le contrôle est redemandé 12 mois après le précédent, et signalé un mois avant sur l'accueil et la page Transport.</p>
+
+    <div class="table-defile">
+        <table class="liste liste-fiches">
+            <thead><tr><th>Conducteur</th><th>Permis</th><th>Valable jusqu'au</th><th>Dernier contrôle</th><th>Prochain contrôle</th><th>État</th><th></th></tr></thead>
+            <tbody>
+                {% for c in conducteurs %}
+                    {% set e = etats[c.etat] %}
+                    <tr>
+                        <td class="principal"><strong>{{ c.nom }}</strong>{% if c.minibus %} <span class="pastille" title="Autorisé à conduire le minibus du club">🚐 minibus</span>{% endif %}{% if c.telephone %}<br><a class="petit" href="tel:{{ c.telephone|replace({' ': ''}) }}">{{ c.telephone }}</a>{% endif %}</td>
+                        <td data-label="permis">{{ c.categoriesPermis ?? '—' }}{% if c.numeroPermis %} <span class="discret petit">n° {{ c.numeroPermis }}</span>{% endif %}</td>
+                        <td data-label="valable jusqu'au" class="{{ c.etat == 'expire' ? 'montant-negatif' }}">{{ c.permisExpireLe ? c.permisExpireLe|date('d/m/Y') : '—' }}</td>
+                        <td data-label="dernier contrôle">{{ c.controleLe ? c.controleLe|date('d/m/Y') ~ (c.controlePar ? ' par ' ~ c.controlePar) : 'jamais' }}</td>
+                        <td data-label="prochain contrôle">{{ c.controleLe ? c.prochainControle|date('d/m/Y') : 'maintenant' }}</td>
+                        <td><span class="pastille {{ e[1] }}">{{ e[0] }}</span></td>
+                        <td class="a-cote nowrap">
+                            {% if peut_gerer %}
+                                {% if c.etat != 'ok' %}
+                                    <form method="post" action="{{ path('app_transport_conducteur_controle', {id: c.id}) }}" class="en-ligne" data-confirmation="Vous avez vu le permis de {{ c.nom }} aujourd'hui, valable et sans suspension ?" data-confirmation-bouton="Oui, contrôlé">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('controle-permis' ~ c.id) }}">
+                                        <button type="submit" class="bouton petit principal">Permis contrôlé aujourd'hui</button>
+                                    </form>
+                                {% endif %}
+                                <a href="{{ path('app_transport_conducteur_modifier', {id: c.id}) }}">Modifier</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="vide">Aucun conducteur.{% if peut_gerer %} Ajoutez les parents et éducateurs qui conduisent, avec « Nouveau conducteur ».{% endif %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
