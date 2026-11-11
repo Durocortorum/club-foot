@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Séance de tests{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_tests') }}">← Catalogue des tests</a></p>
+    <div class="titre-page">
+        <h1>Séance de tests{% if categorie %} <span class="compteur">{{ categorie }}</span>{% endif %}</h1>
+    </div>
+
+    {# Étape 1 : l'équipe et les tests. #}
+    <form method="get" class="carte bloc choix-seance">
+        <div class="champs">
+            <div class="champ">
+                <label for="categorie">Équipe</label>
+                <select id="categorie" name="categorie" required onchange="this.form.requestSubmit()">
+                    <option value="">— Choisir —</option>
+                    {% for c in categories %}<option value="{{ c.id }}" {{ categorie and categorie.id == c.id ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="champ"><label for="date">Date</label><input type="date" id="date" name="date" value="{{ date|date('Y-m-d') }}"></div>
+        </div>
+        {% if categorie %}
+            <p class="petit"><strong>Tests à faire passer</strong> <span class="discret">(en gras : conseillés pour les {{ categorie }})</span></p>
+            <div class="cases-tests">
+                {% for t in tests %}
+                    <label class="{{ t.id in conseilles ? 'conseille' }}"><input type="checkbox" name="tests[]" value="{{ t.id }}" {{ t in choisis ? 'checked' }}> {{ t.nom }} <span class="discret">({{ t.unite }})</span></label>
+                {% endfor %}
+            </div>
+            <div class="barre-actions"><button type="submit" class="bouton {{ choisis ? '' : 'principal' }}">{{ choisis ? 'Changer les tests' : 'Préparer le tableau' }}</button></div>
+        {% endif %}
+    </form>
+
+    {# Étape 2 : les résultats de tous les joueurs. #}
+    {% if categorie and choisis %}
+        {% if joueurs %}
+            <form method="post" class="carte bloc">
+                <input type="hidden" name="_token" value="{{ csrf_token('seance-tests') }}">
+                <input type="hidden" name="categorie" value="{{ categorie.id }}">
+                <input type="hidden" name="date" value="{{ date|date('Y-m-d') }}">
+                {% for t in choisis %}<input type="hidden" name="tests[]" value="{{ t.id }}">{% endfor %}
+                <h2>Résultats du {{ date|date('d/m/Y') }}</h2>
+                <p class="discret petit">Laissez vide pour un joueur absent ou non testé. Virgule ou point pour les décimales (3,45).</p>
+                <div class="table-defile">
+                    <table class="liste saisie-tests">
+                        <thead><tr><th>Joueur</th>{% for t in choisis %}<th title="{{ t.objectif }}">{{ t.nom }}<br><span class="discret">{{ t.unite }}{{ t.plusBasMieux ? ' · le plus bas' }}</span></th>{% endfor %}</tr></thead>
+                        <tbody>
+                            {% for j in joueurs %}
+                                <tr>
+                                    <td class="fort nowrap">{{ j.nom }} {{ j.prenom }}</td>
+                                    {% for t in choisis %}<td><input type="text" inputmode="decimal" name="valeurs[{{ j.id }}][{{ t.id }}]" aria-label="{{ t.nom }} de {{ j.prenom }} {{ j.nom }}" autocomplete="off"></td>{% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="barre-actions"><button type="submit" class="bouton principal">Enregistrer les résultats</button></div>
+            </form>
+            {% for t in choisis|filter(t => t.protocole) %}
+                <details class="carte bloc">
+                    <summary><strong>Protocole : {{ t.nom }}</strong></summary>
+                    <p class="memo">{{ t.protocole }}</p>
+                    {% if t.materiel %}<p class="petit"><strong>Matériel :</strong> {{ t.materiel }}</p>{% endif %}
+                </details>
+            {% endfor %}
+        {% else %}
+            <p class="vide">Aucun joueur de {{ categorie }} dont vous pouvez saisir les tests.</p>
+        {% endif %}
+    {% endif %}
+{% endblock %}

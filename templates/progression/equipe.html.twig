@@ -6,6 +6,10 @@
 {% block body %}
     <div class="titre-page">
         <h1>Progression <span class="compteur">{{ categorie }}</span></h1>
+        <span class="actions">
+            <a class="bouton" href="{{ path('app_tests', {categorie: categorie.id}) }}">Catalogue des tests</a>
+            {% if is_granted('ROLE_TESTS_PHYSIQUES') %}<a class="bouton principal" href="{{ path('app_test_seance', {categorie: categorie.id}) }}">Faire passer des tests</a>{% endif %}
+        </span>
     </div>
     <p class="discret petit">Dernier résultat de chaque joueur à chaque test, et son évolution depuis le test précédent (<span class="progression-evolution mieux">vert</span> : progrès, <span class="progression-evolution moins-bien">rouge</span> : recul). ★ : meilleur de l'équipe. Cliquez sur un joueur pour ses courbes.</p>
 
@@ -16,19 +20,19 @@
         <noscript><button type="submit" class="bouton">Afficher</button></noscript>
     </form>
 
-    {% if tableau.epreuves %}
+    {% if tableau.tests %}
         <p class="discret">{{ tableau.testes }} joueur{{ tableau.testes > 1 ? 's' }} testé{{ tableau.testes > 1 ? 's' }} sur {{ tableau.lignes|length }}.</p>
         <div class="table-defile">
             <table class="liste tableau-progression">
                 <thead>
-                    <tr><th>Joueur</th>{% for champ, e in tableau.epreuves %}<th class="a-droite">{{ e[0] }} <span class="discret">({{ e[1] }})</span></th>{% endfor %}</tr>
+                    <tr><th>Joueur</th>{% for t in tableau.tests %}<th class="a-droite" title="{{ t.plusBasMieux ? 'Le plus bas est le meilleur' : 'Le plus élevé est le meilleur' }}">{{ t.nom }} <span class="discret">({{ t.unite }})</span></th>{% endfor %}</tr>
                 </thead>
                 <tbody>
                     {% for l in tableau.lignes %}
                         <tr>
                             <td class="fort"><a href="{{ path('app_progression_joueur', {id: l.joueur.id}) }}">{{ l.joueur.nom }} {{ l.joueur.prenom }}</a></td>
-                            {% for champ, e in tableau.epreuves %}
-                                {% set v = l.valeurs[champ] ?? null %}
+                            {% for t in tableau.tests %}
+                                {% set v = l.valeurs[t.id] ?? null %}
                                 <td class="a-droite nowrap">
                                     {% if v %}
                                         <span title="Test du {{ v.date|date('d/m/Y') }}">{{ v.meilleur ? '★ ' }}{{ c.nombre(v.valeur) }}</span>
@@ -42,6 +46,6 @@
             </table>
         </div>
     {% else %}
-        <p class="vide">Aucun test physique pour les joueurs de {{ categorie }}. Ajoutez-en depuis la fiche de chaque joueur (bloc « Tests physiques »).</p>
+        <p class="vide">Aucun test pour les joueurs de {{ categorie }}.{% if is_granted('ROLE_TESTS_PHYSIQUES') %} <a href="{{ path('app_test_seance', {categorie: categorie.id}) }}">Faire passer des tests</a> à l'équipe.{% endif %}</p>
     {% endif %}
 {% endblock %}

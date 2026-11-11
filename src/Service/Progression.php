@@ -5,14 +5,15 @@ namespace App\Service;
 use App\Entity\Categorie;
 use App\Entity\Joueur;
 use App\Entity\Mesure;
-use App\Entity\TestPhysique;
+use App\Entity\ResultatTest;
+use App\Entity\TypeTest;
 use App\Repository\JoueurRepository;
-use App\Repository\TestPhysiqueRepository;
+use App\Repository\ResultatTestRepository;
 
 /**
- * Progression dans le temps : pour chaque épreuve (tests physiques) ou mesure (taille, poids),
- * la série des valeurs datées, le premier et le dernier résultat, l'évolution, et les coordonnées
- * d'une petite courbe SVG. Pour un temps (secondes), plus bas est meilleur.
+ * Progression dans le temps : pour chaque test du catalogue (ou mesure : taille, poids), la série des valeurs
+ * datées, le premier, le dernier et le meilleur résultat, l'évolution (bon sens ou non selon le test : un temps
+ * qui baisse est un progrès), et les coordonnées d'une petite courbe SVG.
  */
 class Progression
 {
@@ -21,39 +22,62 @@ class Progression
     public const HAUTEUR = 110;
     private const MARGE_X = 14;
     private const MARGE_Y = 16;
+    /** À droite : la place des repères (valeurs haute et basse). */
     public const GOUTTIERE = 40;
 
     /** Mesures suivies dans le temps : champ => [libellé, unité]. */
     public const MESURES = ['taille' => ['Taille', 'cm'], 'poids' => ['Poids', 'kg']];
 
     public function __construct(
-        private readonly TestPhysiqueRepository $tests,
+        private readonly ResultatTestRepository $resultats,
         private readonly JoueurRepository $joueurs,
     ) {
     }
 
     /**
-     * Séries d'un joueur : une par épreuve (ou mesure) qui a au moins une valeur.
+     * Une série par test passé par le joueur, dans l'ordre du catalogue.
      *
-     * @param list<TestPhysique|Mesure>          $releves
-     * @param array<string, array{string, string}> $champs champ => [libellé, unité]
+     * @param list<ResultatTest> $resultats
      *
      * @return list<array<string, mixed>>
      */
-    public function series(array $releves, array $champs): array
+    public function seriesTests(array $resultats): array
     {
-        usort($releves, fn ($a, $b) => $a->getDate() <=> $b->getDate());
+        $parTest = [];
+        foreach ($resultats as $r) {
+            $parTest[$r->getTest()->getId()]['test'] = $r->getTest();
+            $parTest[$r->getTest()->getId()]['points'][] = ['date' => $r->getDate(), 'valeur' => $r->getValeur()];
+        }
+        uasort($parTest, fn (array $a, array $b) => [$a['test']->getOrdre(), $a['test']->getNom()] <=> [$b['test']->getOrdre(), $b['test']->getNom()]);
         $series = [];
-        foreach ($champs as $champ => [$libelle, $unite]) {
+        foreach ($parTest as ['test' => $t, 'points' => $points]) {
+            usort($points, fn (array $a, array $b) => $a['date'] <=> $b['date']);
+            $series[] = $this->serie((string) $t->getId(), (string) $t->getNom(), (string) $t->getUnite(), $points, $t->isPlusBasMieux()) + ['famille' => $t->getFamille()];
+        }
+
+        return $series;
+    }
+
+    /**
+     * Séries des mesures (taille, poids) : pas de « bon sens », c'est la croissance.
+     *
+     * @param list<Mesure> $mesures
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function seriesMesures(array $mesures): array
+    {
+        usort($mesures, fn ($a, $b) => $a->getDate() <=> $b->getDate());
+        $series = [];
+        foreach (self::MESURES as $champ => [$libelle, $unite]) {
             $points = [];
-            foreach ($releves as $r) {
-                $v = $r->{'get' . ucfirst($champ)}();
-                if (null !== $v) {
-                    $points[] = ['date' => $r->getDate(), 'valeur' => (float) $v];
+            foreach ($mesures as $m) {
+                if (null !== ($v = $m->{'get' . ucfirst($champ)}())) {
+                    $points[] = ['date' => $m->getDate(), 'valeur' => (float) $v];
                 }
             }
             if ($points) {
-                $series[] = $this->serie($champ, $libelle, $unite, $points);
+                $series[] = ['mieux' => null] + $this->serie($champ, $libelle, $unite, $points, false);
             }
         }
 
@@ -61,66 +85,60 @@ class Progression
     }
 
     /**
-     * Vue d'équipe : pour chaque joueur actif, le dernier résultat de chaque épreuve et l'évolution
-     * depuis le précédent ; le meilleur de l'équipe est repéré.
+     * Vue d'équipe : pour chaque joueur actif, le dernier résultat de chaque test et l'évolution depuis
+     * le précédent ; le meilleur de l'équipe est repéré.
      *
-     * @return array{epreuves: array<string, array{string, string}>, lignes: list<array{joueur: Joueur, valeurs: array<string, array{valeur: float, date: \DateTimeImmutable, evolution: ?float, mieux: ?bool, meilleur: bool}>}>, testes: int}
+     * @return array{tests: list<TypeTest>, lignes: list<array{joueur: Joueur, valeurs: array<int, array{valeur: float, date: \DateTimeImmutable, evolution: ?float, mieux: ?bool, meilleur: bool}>}>, testes: int}
      */
     public function equipe(Categorie $categorie): array
     {
         $joueurs = $this->joueurs->findBy(['categorie' => $categorie, 'ancien' => false], ['nom' => 'ASC', 'prenom' => 'ASC']);
         $parJoueur = [];
-        foreach ($joueurs ? $this->tests->findBy(['joueur' => $joueurs], ['date' => 'ASC']) : [] as $t) {
-            $parJoueur[$t->getJoueur()->getId()][] = $t;
+        $tests = [];
+        foreach ($joueurs ? $this->resultats->findBy(['joueur' => $joueurs], ['date' => 'ASC', 'id' => 'ASC']) : [] as $r) {
+            $parJoueur[$r->getJoueur()->getId()][$r->getTest()->getId()][] = $r;
+            $tests[$r->getTest()->getId()] = $r->getTest();
         }
+        uasort($tests, fn (TypeTest $a, TypeTest $b) => [$a->getOrdre(), $a->getNom()] <=> [$b->getOrdre(), $b->getNom()]);
         $lignes = [];
         $meilleurs = [];
         foreach ($joueurs as $j) {
             $valeurs = [];
-            foreach (TestPhysique::EPREUVES as $champ => [, $unite]) {
-                $serie = array_values(array_filter($parJoueur[$j->getId()] ?? [], fn (TestPhysique $t) => null !== $t->{'get' . ucfirst($champ)}()));
-                if (!$serie) {
-                    continue;
-                }
+            foreach ($parJoueur[$j->getId()] ?? [] as $idTest => $serie) {
+                $t = $tests[$idTest];
                 $dernier = end($serie);
-                $v = (float) $dernier->{'get' . ucfirst($champ)}();
-                $precedent = \count($serie) > 1 ? (float) $serie[\count($serie) - 2]->{'get' . ucfirst($champ)}() : null;
-                $evolution = null !== $precedent ? $v - $precedent : null;
-                $valeurs[$champ] = ['valeur' => $v, 'date' => $dernier->getDate(), 'evolution' => $evolution, 'mieux' => self::mieux($evolution, $unite), 'meilleur' => false];
-                $plusBasMieux = 's' === $unite;
-                if (!isset($meilleurs[$champ]) || ($plusBasMieux ? $v < $meilleurs[$champ] : $v > $meilleurs[$champ])) {
-                    $meilleurs[$champ] = $v;
+                $v = $dernier->getValeur();
+                $evolution = \count($serie) > 1 ? $v - $serie[\count($serie) - 2]->getValeur() : null;
+                $valeurs[$idTest] = ['valeur' => $v, 'date' => $dernier->getDate(), 'evolution' => $evolution, 'mieux' => self::mieux($evolution, $t->isPlusBasMieux()), 'meilleur' => false];
+                if (!isset($meilleurs[$idTest]) || ($t->isPlusBasMieux() ? $v < $meilleurs[$idTest] : $v > $meilleurs[$idTest])) {
+                    $meilleurs[$idTest] = $v;
                 }
             }
             $lignes[] = ['joueur' => $j, 'valeurs' => $valeurs];
         }
         foreach ($lignes as &$l) {
-            foreach ($l['valeurs'] as $champ => &$val) {
-                $val['meilleur'] = $val['valeur'] === $meilleurs[$champ];
+            foreach ($l['valeurs'] as $idTest => &$val) {
+                $val['meilleur'] = $val['valeur'] === $meilleurs[$idTest];
             }
             unset($val);
         }
         unset($l);
 
-        return [
-            'epreuves' => array_filter(TestPhysique::EPREUVES, fn (string $champ) => isset($meilleurs[$champ]), \ARRAY_FILTER_USE_KEY),
-            'lignes' => $lignes,
-            'testes' => \count(array_filter($lignes, fn (array $l) => $l['valeurs'])),
-        ];
+        return ['tests' => array_values($tests), 'lignes' => $lignes, 'testes' => \count(array_filter($lignes, fn (array $l) => $l['valeurs']))];
     }
 
-    /** Évolution dans le bon sens ? Un temps qui baisse, une distance, une vitesse ou une hauteur qui monte. null si inchangée ou inconnue. */
-    public static function mieux(?float $evolution, string $unite): ?bool
+    /** Évolution dans le bon sens ? null si inchangée ou inconnue. */
+    public static function mieux(?float $evolution, bool $plusBasMieux): ?bool
     {
         if (null === $evolution || abs($evolution) < 1e-9) {
             return null;
         }
 
-        return 's' === $unite ? $evolution < 0 : $evolution > 0;
+        return $plusBasMieux ? $evolution < 0 : $evolution > 0;
     }
 
-    /** @param list<array{date: \DateTimeImmutable, valeur: float}> $points */
-    public function serie(string $champ, string $libelle, string $unite, array $points): array
+    /** @param list<array{date: \DateTimeImmutable, valeur: float}> $points dans l'ordre des dates */
+    public function serie(string $champ, string $libelle, string $unite, array $points, bool $plusBasMieux = false): array
     {
         $premier = $points[0];
         $dernier = end($points);
@@ -130,7 +148,6 @@ class Progression
         $ecart = $max - $min ?: max(1.0, abs($max) * 0.1);
         $t0 = $premier['date']->getTimestamp();
         $duree = max(1, $dernier['date']->getTimestamp() - $t0);
-        // À droite : la place des repères (valeurs haute et basse).
         $largeur = self::LARGEUR - self::MARGE_X - self::GOUTTIERE;
         $hauteur = self::HAUTEUR - 2 * self::MARGE_Y;
         foreach ($points as &$p) {
@@ -139,7 +156,6 @@ class Progression
             $p['y'] = round(self::MARGE_Y + ($max === $min ? $hauteur / 2 : (1 - ($p['valeur'] - $min) / $ecart) * $hauteur), 1);
         }
         unset($p);
-        $plusBasMieux = 's' === $unite;
 
         return [
             'champ' => $champ,
@@ -151,7 +167,7 @@ class Progression
             'meilleur' => $plusBasMieux ? $min : $max,
             'evolution' => $evolution,
             'pourcentage' => null !== $evolution && $premier['valeur'] ? $evolution / $premier['valeur'] * 100 : null,
-            'mieux' => self::mieux($evolution, $unite),
+            'mieux' => self::mieux($evolution, $plusBasMieux),
             'trace' => implode(' ', array_map(fn (array $p) => $p['x'] . ',' . $p['y'], $points)),
             'min' => $min,
             'max' => $max,

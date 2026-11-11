@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Résultat de test – {{ joueur.nomComplet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_joueur_voir', {id: joueur.id}) }}#physique">← Fiche de {{ joueur.prenom }}</a></p>
+    <div class="titre-page"><h1>Résultat de test <span class="compteur">{{ joueur.prenom }} {{ joueur.nom }}</span></h1></div>
+    {% if erreur %}<p class="flash flash-erreur">{{ erreur }}</p>{% endif %}
+    <form method="post" class="formulaire">
+        <input type="hidden" name="_token" value="{{ csrf_token('resultat-test' ~ joueur.id) }}">
+        <div class="carte">
+            <div class="champs">
+                <div class="champ">
+                    <label for="test">Test</label>
+                    <select id="test" name="test" required>
+                        <option value="">— Choisir —</option>
+                        {% set groupe = null %}
+                        {% for t in tests %}
+                            {% if t.convientA(age) != groupe %}
+                                {% if groupe is not null %}</optgroup>{% endif %}
+                                {% set groupe = t.convientA(age) %}
+                                <optgroup label="{{ groupe ? 'Conseillés pour son âge' : 'Autres tests' }}">
+                            {% endif %}
+                            <option value="{{ t.id }}" {{ choisi == t.id ? 'selected' }}>{{ t.nom }} ({{ t.unite }})</option>
+                        {% endfor %}
+                        {% if groupe is not null %}</optgroup>{% endif %}
+                    </select>
+                </div>
+                <div class="champ"><label for="date">Date</label><input type="date" id="date" name="date" value="{{ 'now'|date('Y-m-d') }}" required></div>
+                <div class="champ"><label for="valeur">Résultat</label><input type="text" inputmode="decimal" id="valeur" name="valeur" required placeholder="ex. : 3,45"></div>
+                <div class="champ"><label for="note">Remarque</label><input type="text" id="note" name="note" placeholder="Conditions, terrain…"></div>
+            </div>
+        </div>
+        <div class="barre-actions"><button type="submit" class="bouton principal">Enregistrer</button></div>
+    </form>
+{% endblock %}

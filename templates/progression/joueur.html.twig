@@ -7,16 +7,16 @@
     <p><a href="{{ path('app_joueur_voir', {id: joueur.id}) }}">← Fiche de {{ joueur.prenom }}</a>{% if is_granted('ROLE_TESTS_PHYSIQUES_LECTURE') and joueur.categorie %} · <a href="{{ path('app_progression_equipe', {categorie: joueur.categorie.id}) }}">Progression de l'équipe {{ joueur.categorie }}</a>{% endif %}</p>
     <div class="titre-page">
         <h1>Progression <span class="compteur">{{ joueur.prenom }} {{ joueur.nom }}</span></h1>
-        {% if is_granted('ROLE_TESTS_PHYSIQUES') %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Test physique</a>{% endif %}
+        {% if is_granted('ROLE_TESTS_PHYSIQUES') %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Résultat de test</a>{% endif %}
     </div>
     <p class="discret petit">Évolution en <span class="progression-evolution mieux">vert</span> quand elle va dans le bon sens (un temps qui baisse, une vitesse, une distance ou une hauteur qui monte), en <span class="progression-evolution moins-bien">rouge</span> sinon. Survolez un point de la courbe pour sa date et sa valeur.</p>
 
     {% if tests is not null %}
-        <h2 class="titre-bloc">Tests physiques</h2>
+        <h2 class="titre-bloc">Tests physiques et techniques</h2>
         {% if tests %}
             <div class="grille-progression">{% for s in tests %}{{ c.carte(s, largeur, hauteur) }}{% endfor %}</div>
         {% else %}
-            <p class="vide">Aucun test physique enregistré : ajoutez-en depuis la fiche du joueur, à chaque période de tests (début, milieu et fin de saison).</p>
+            <p class="vide">Aucun test enregistré. Faites passer des tests à l'équipe depuis le catalogue, à chaque période (début, milieu et fin de saison).</p>
         {% endif %}
     {% endif %}
 

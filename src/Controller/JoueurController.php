@@ -16,12 +16,14 @@ use App\Repository\PresenceRepository;
 use App\Repository\RencontreRepository;
 use App\Repository\SanctionRepository;
 use App\Repository\SemainePresenceRepository;
-use App\Repository\TestPhysiqueRepository;
+use App\Repository\ResultatTestRepository;
 use App\Security\JoueurVoter;
 use App\Service\AccesFamille;
 use App\Service\AccesMedical;
 use App\Service\ProchesJoueur;
 use App\Service\BilanJoueur;
+use App\Service\CatalogueTests;
+use App\Service\Progression;
 use App\Service\Photos;
 use Symfony\Component\Form\FormInterface;
 use Doctrine\ORM\EntityManagerInterface;
@@ -125,7 +127,9 @@ class JoueurController extends AbstractController
         PresenceRepository $presences,
         BlessureRepository $blessures,
         MesureRepository $mesures,
-        TestPhysiqueRepository $tests,
+        ResultatTestRepository $resultatsTests,
+        CatalogueTests $catalogueTests,
+        Progression $progression,
         BulletinScolaireRepository $bulletins,
         SanctionRepository $sanctions,
         DetectionRepository $detections,
@@ -146,7 +150,9 @@ class JoueurController extends AbstractController
             'blessures' => $this->isGranted('ROLE_INFIRMERIE_LECTURE') && $this->medical->estOuvert() ? $blessures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
             // Visite médicale (poids, taille...) : données de santé, droit « Visite médicale ».
             'mesures' => $this->isGranted('ROLE_VISITE_MEDICALE_LECTURE') && $this->medical->estOuvert() ? $mesures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
-            'tests' => $this->isGranted('ROLE_TESTS_PHYSIQUES_LECTURE') ? $tests->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
+            // Tests physiques et techniques : dernier résultat de chaque test et évolution (catalogue installé au besoin).
+            'tests' => $this->isGranted('ROLE_TESTS_PHYSIQUES_LECTURE') && $catalogueTests->pour($joueur->getClub())
+                ? $progression->seriesTests($resultatsTests->findBy(['joueur' => $joueur], ['date' => 'ASC'])) : [],
             'bulletins' => $scolaire ? $bulletins->findBy(['joueur' => $joueur], ['saison' => 'DESC', 'id' => 'DESC']) : [],
             // Les sanctions sont utiles aux éducateurs du joueur (suspensions), pas seulement au suivi scolaire.
             'sanctions' => $scolaire || $this->isGranted(JoueurVoter::MODIFIER, $joueur) ? $sanctions->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],

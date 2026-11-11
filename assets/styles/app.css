@@ -1175,3 +1175,15 @@ table.droits thead th.droits-nom { z-index: 3; }
 .progression-courbe .point:hover .marque { r: 6; }
 .progression-tableau summary { cursor: pointer; color: var(--gris); font-size: .85rem; }
 .progression-tableau table { margin-top: .3rem; font-size: .85rem; }
+
+/* Catalogue des tests et séance de tests. */
+.grille-tests { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.fiche-test header { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; }
+.fiche-test h3 { margin: 0; font-size: 1.02rem; }
+.fiche-test details summary { cursor: pointer; color: var(--rouge); font-size: .9rem; }
+.fiche-test .actions-test { display: flex; align-items: center; gap: .8rem; margin: .6rem 0 0; }
+.cases-tests { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .25rem .8rem; margin: .3rem 0 .6rem; }
+.cases-tests label { font-size: .92rem; }
+.cases-tests label.conseille { font-weight: 700; }
+.saisie-tests input { width: 5.5rem; text-align: right; }
+.saisie-tests th { white-space: normal; min-width: 7rem; }

@@ -6,7 +6,6 @@ use App\Entity\Joueur;
 use App\Entity\Mesure;
 use App\Entity\TestPhysique;
 use App\Form\MesureType;
-use App\Form\TestPhysiqueType;
 use App\Security\JoueurVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,15 +33,6 @@ class SuiviPhysiqueController extends AbstractController
         return $this->formulaire($request, $em, MesureType::class, $mesure, $joueur, 'Visite médicale – ' . $joueur->getNomComplet(), 'visite-medicale', 'app_dossier_medical');
     }
 
-    #[Route('/joueurs/{id}/tests/nouveau', name: 'app_test_nouveau', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
-    public function nouveauTest(Request $request, Joueur $joueur, EntityManagerInterface $em): Response
-    {
-        $this->verifier($joueur);
-        $test = (new TestPhysique())->setJoueur($joueur)->setDate(new \DateTimeImmutable('today'));
-
-        return $this->formulaire($request, $em, TestPhysiqueType::class, $test, $joueur, 'Nouveau test physique – ' . $joueur->getNomComplet(), 'physique');
-    }
-
     #[Route('/mesures/{id}/supprimer', name: 'app_mesure_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function supprimerMesure(Request $request, Mesure $mesure, EntityManagerInterface $em): Response
     {
@@ -51,13 +41,6 @@ class SuiviPhysiqueController extends AbstractController
         return $this->supprimer($request, $em, $mesure, $mesure->getJoueur(), 'mesure', 'visite-medicale', 'app_dossier_medical');
     }
 
-    #[Route('/tests/{id}/supprimer', name: 'app_test_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function supprimerTest(Request $request, TestPhysique $test, EntityManagerInterface $em): Response
-    {
-        $this->verifier($test->getJoueur());
-
-        return $this->supprimer($request, $em, $test, $test->getJoueur(), 'test', 'physique');
-    }
 
     private function formulaire(Request $request, EntityManagerInterface $em, string $type, Mesure|TestPhysique $objet, Joueur $joueur, string $titre, string $bloc, string $page = 'app_joueur_voir'): Response
     {

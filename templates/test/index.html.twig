@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Catalogue des tests{% endblock %}
+
+{% block body %}
+    {% set icones = {'Endurance': '🫁', 'Vitesse': '⚡', 'Agilité': '🔀', 'Puissance': '🦵', 'Technique': '⚽', 'Souplesse et gainage': '🧘'} %}
+    <div class="titre-page">
+        <h1>Tests physiques et techniques <span class="compteur">{{ total }}</span></h1>
+        <span class="actions">
+            <a class="bouton" href="{{ path('app_progression_equipe') }}">Progression des équipes</a>
+            {% if is_granted('ROLE_TESTS_PHYSIQUES') %}
+                <a class="bouton" href="{{ path('app_test_type_nouveau') }}">+ Créer un test</a>
+                <a class="bouton principal" href="{{ path('app_test_seance', categorie ? {categorie: categorie.id} : {}) }}">Faire passer des tests</a>
+            {% endif %}
+        </span>
+    </div>
+    <p class="discret petit">Les tests connus du football, pour tous les âges : protocole, matériel et âges conseillés. Choisissez une équipe pour ne voir que les tests adaptés à son âge. Pour les plus jeunes, privilégiez les tests ludiques (ballon, courtes distances).</p>
+
+    <form class="filtres" method="get">
+        <select name="categorie" onchange="this.form.requestSubmit()" aria-label="Équipe">
+            <option value="">Tous les âges</option>
+            {% for c in categories %}<option value="{{ c.id }}" {{ categorie and categorie.id == c.id ? 'selected' }}>Adaptés aux {{ c.nom }}</option>{% endfor %}
+        </select>
+        <select name="famille" onchange="this.form.requestSubmit()" aria-label="Famille">
+            <option value="">Toutes les familles</option>
+            {% for f in familles %}<option value="{{ f }}" {{ famille == f ? 'selected' }}>{{ f }}</option>{% endfor %}
+        </select>
+        <noscript><button type="submit" class="bouton">Filtrer</button></noscript>
+    </form>
+
+    {% for nom, tests in par_famille %}
+        <h2 class="titre-bloc">{{ icones[nom] ?? '' }} {{ nom }} <span class="discret petit">({{ tests|length }})</span></h2>
+        <div class="grille-tests">
+            {% for t in tests %}
+                <article class="carte fiche-test" id="test-{{ t.id }}">
+                    <header>
+                        <h3>{{ t.nom }}</h3>
+                        <span class="pastille">{{ t.ages }}</span>
+                    </header>
+                    {% if t.objectif %}<p>{{ t.objectif }}</p>{% endif %}
+                    <p class="discret petit">Résultat en <strong>{{ t.unite }}</strong> · {{ t.plusBasMieux ? 'le plus bas est le meilleur' : 'le plus élevé est le meilleur' }}{% if not t.code %} · <em>test du club</em>{% endif %}</p>
+                    {% if t.protocole or t.materiel %}
+                        <details>
+                            <summary>Protocole et matériel</summary>
+                            {% if t.protocole %}<p class="memo">{{ t.protocole }}</p>{% endif %}
+                            {% if t.materiel %}<p class="petit"><strong>Matériel :</strong> {{ t.materiel }}</p>{% endif %}
+                        </details>
+                    {% endif %}
+                    {% if is_granted('ROLE_TESTS_PHYSIQUES') %}
+                        <p class="actions-test">
+                            <a class="bouton petit principal" href="{{ path('app_test_seance', {tests: [t.id]} + (categorie ? {categorie: categorie.id} : {})) }}">Faire passer</a>
+                            <a class="petit" href="{{ path('app_test_type_modifier', {id: t.id}) }}">Modifier</a>
+                        </p>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="vide">Aucun test pour ces critères.</p>
+    {% endfor %}
+{% endblock %}

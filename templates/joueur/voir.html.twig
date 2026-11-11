@@ -471,39 +471,32 @@
     {% if tests_voir %}
         <section class="bloc" id="physique">
             <div class="titre-page">
-                <h2 class="titre-bloc">Tests physiques</h2>
+                <h2 class="titre-bloc">Tests physiques et techniques</h2>
                 <span class="actions">
                     <a class="bouton" href="{{ path('app_progression_joueur', {id: joueur.id}) }}">📈 Voir la progression</a>
                     {% if tests_modif %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Test</a>{% endif %}
                 </span>
             </div>
             {% if tests %}
-                {% set epreuves = constant('App\\Entity\\TestPhysique::EPREUVES') %}
+                {% import 'progression/_courbe.html.twig' as courbe %}
                 <div class="table-defile">
-                    <table class="liste chiffres liste-fiches">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                {% for champ, e in epreuves %}<th>{{ e[0] }} <span class="discret">({{ e[1] }})</span></th>{% endfor %}
-                                {% if tests_modif %}<th></th>{% endif %}
-                            </tr>
-                        </thead>
+                    <table class="liste liste-fiches">
+                        <thead><tr><th>Test</th><th class="a-droite">Dernier résultat</th><th>Date</th><th class="a-droite">Meilleur</th><th>Évolution</th></tr></thead>
                         <tbody>
-                            {% for t in tests %}
+                            {% for s in tests %}
                                 <tr>
-                                    <td class="principal etroit">{{ t.date|date('d/m/Y') }}</td>
-                                    {% for champ, e in epreuves %}
-                                        {% set v = attribute(t, champ) %}
-                                        <td data-label="{{ e[0] }} ({{ e[1] }})">{{ v is not null ? v|number_format(2, ',')|trim('0', 'right')|trim(',', 'right') }}</td>
-                                    {% endfor %}
-                                    {% if tests_modif %}<td class="a-cote">{{ m.supprimer(path('app_test_supprimer', {id: t.id}), 'supprimer-test' ~ t.id, 'Supprimer ce test ?', '×') }}</td>{% endif %}
+                                    <td class="principal">{{ s.libelle }} <span class="discret petit">{{ s.famille }}</span></td>
+                                    <td class="a-droite" data-label="dernier">{{ courbe.nombre(s.dernier.valeur) }} {{ s.unite }}</td>
+                                    <td data-label="date">{{ s.dernier.date|date('d/m/Y') }}</td>
+                                    <td class="a-droite" data-label="meilleur">{{ courbe.nombre(s.meilleur) }}</td>
+                                    <td data-label="évolution">{% if s.evolution is not null %}<span class="progression-evolution {{ s.mieux is same as(true) ? 'mieux' : (s.mieux is same as(false) ? 'moins-bien') }}">{{ s.evolution > 0 ? '+' : (s.evolution < 0 ? '−') }}{{ courbe.nombre(s.evolution|abs) }}</span> <span class="discret petit">en {{ s.points|length }} tests</span>{% else %}<span class="discret petit">1 test</span>{% endif %}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             {% else %}
-                <p class="discret">Aucun test enregistré.</p>
+                <p class="discret">Aucun test enregistré.{% if tests_modif %} <a href="{{ path('app_tests') }}">Voir le catalogue des tests</a>.{% endif %}</p>
             {% endif %}
         </section>
     {% endif %}

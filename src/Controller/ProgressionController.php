@@ -4,15 +4,16 @@ namespace App\Controller;
 
 use App\Entity\Categorie;
 use App\Entity\Joueur;
-use App\Entity\TestPhysique;
+use App\Entity\Utilisateur;
 use App\Repository\CategorieRepository;
 use App\Repository\MesureRepository;
 use App\Repository\ParticipationRepository;
 use App\Repository\RessentiRepository;
-use App\Repository\TestPhysiqueRepository;
+use App\Repository\ResultatTestRepository;
 use App\Security\JoueurVoter;
 use App\Service\AccesMedical;
 use App\Service\BilanJoueur;
+use App\Service\CatalogueTests;
 use App\Service\Progression;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,7 +32,8 @@ class ProgressionController extends AbstractController
     public function joueur(
         Joueur $joueur,
         Progression $progression,
-        TestPhysiqueRepository $tests,
+        ResultatTestRepository $resultats,
+        CatalogueTests $catalogue,
         MesureRepository $mesures,
         RessentiRepository $ressentis,
         ParticipationRepository $participations,
@@ -53,8 +55,8 @@ class ProgressionController extends AbstractController
 
         return $this->render('progression/joueur.html.twig', [
             'joueur' => $joueur,
-            'tests' => $voitTests ? $progression->series($tests->findBy(['joueur' => $joueur]), TestPhysique::EPREUVES) : null,
-            'mesures' => $voitMesures ? $progression->series($mesures->findBy(['joueur' => $joueur]), Progression::MESURES) : null,
+            'tests' => $voitTests ? $progression->seriesTests($this->resultats($catalogue, $resultats, $joueur)) : null,
+            'mesures' => $voitMesures ? $progression->seriesMesures($mesures->findBy(['joueur' => $joueur])) : null,
             'charge' => \count($semaines) > 1 ? $progression->serie('charge', 'Charge d\'entraînement par semaine', 'UA', array_values($semaines)) : null,
             'saisons' => array_filter($bilan->parSaison($joueur, $participations->parJoueur($joueur)), fn (string $s) => 'Total' !== $s, \ARRAY_FILTER_USE_KEY),
             'largeur' => Progression::LARGEUR,
@@ -64,8 +66,11 @@ class ProgressionController extends AbstractController
 
     #[Route('/progression', name: 'app_progression_equipe', methods: ['GET'])]
     #[IsGranted('ROLE_TESTS_PHYSIQUES_LECTURE')]
-    public function equipe(Request $request, CategorieRepository $categories, JoueurVoter $voter, Progression $progression): Response
+    public function equipe(Request $request, CategorieRepository $categories, JoueurVoter $voter, Progression $progression, CatalogueTests $catalogue): Response
     {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        $catalogue->pour($moi->getClub());
         $visibles = $categories->findBy(['secteur' => $voter->secteursVisibles() ?: ['-']], ['ordre' => 'ASC']);
         if (!$visibles) {
             throw $this->createAccessDeniedException();
@@ -78,5 +83,15 @@ class ProgressionController extends AbstractController
             'categorie' => $categorie,
             'tableau' => $progression->equipe($categorie),
         ]);
+    }
+
+    /** @return list<\App\Entity\ResultatTest> (le catalogue est installé au besoin, avec la reprise des anciens tests) */
+    private function resultats(CatalogueTests $catalogue, ResultatTestRepository $resultats, Joueur $joueur): array
+    {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        $catalogue->pour($moi->getClub());
+
+        return $resultats->findBy(['joueur' => $joueur], ['date' => 'ASC']);
     }
 }
