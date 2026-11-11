@@ -42,6 +42,8 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         'ROLE_SCOLAIRE' => 'Scolarité (modifier)',
         'ROLE_TESTS_PHYSIQUES_LECTURE' => 'Tests physiques (voir)',
         'ROLE_TESTS_PHYSIQUES' => 'Tests physiques (modifier)',
+        'ROLE_FINANCES_LECTURE' => 'Finances (voir)',
+        'ROLE_FINANCES' => 'Finances (modifier)',
         'ROLE_RAPPORT_MATCH' => 'Rapports de match',
     ];
 
@@ -60,6 +62,7 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         'visite_medicale' => ['libelle' => 'Visite médicale', 'lecture' => 'ROLE_VISITE_MEDICALE_LECTURE', 'modif' => 'ROLE_VISITE_MEDICALE'],
         'scolarite' => ['libelle' => 'Scolarité', 'lecture' => 'ROLE_SCOLAIRE_LECTURE', 'modif' => 'ROLE_SCOLAIRE'],
         'tests_physiques' => ['libelle' => 'Tests physiques', 'lecture' => 'ROLE_TESTS_PHYSIQUES_LECTURE', 'modif' => 'ROLE_TESTS_PHYSIQUES'],
+        'finances' => ['libelle' => 'Finances', 'lecture' => 'ROLE_FINANCES_LECTURE', 'modif' => 'ROLE_FINANCES'],
     ];
 
     /** Ce que chaque droit (ou section) ouvre, affiché sur le tableau des droits d'accès. */
@@ -75,6 +78,7 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         'visite_medicale' => 'Bloc Visite médicale de la fiche joueur : poids, taille, IMC, pointure.',
         'scolarite' => 'Page Scolarité : bulletins, discipline et sanctions.',
         'tests_physiques' => 'Bloc Tests physiques de la fiche joueur (VMA, sprints, détente…). Modifier : pour les joueurs de ses secteurs, ou tous avec l\'Infirmerie.',
+        'finances' => 'Page Finances : cotisations et paiements, recettes et dépenses (entrées des matchs, matériel…), contrats.',
         'ROLE_RAPPORT_MATCH' => 'Rédiger les rapports de tous les matchs, quel que soit le secteur.',
     ];
 

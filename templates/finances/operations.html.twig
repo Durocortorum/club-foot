@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+{% import 'finances/_macros.html.twig' as f %}
+
+{% block title %}Recettes et dépenses {{ saison }}{% endblock %}
+
+{% block body %}
+    {% set modif = is_granted('ROLE_FINANCES') %}
+    {{ f.entete('operations', saison) }}
+    <div class="titre-page">
+        <h1>Recettes et dépenses <span class="compteur">{{ saison }}</span></h1>
+        {% if modif %}
+            <span class="actions">
+                <a class="bouton" href="{{ path('app_finances_operation_nouvelle', {sens: 'recette', modele: 'entrees'}) }}" title="Nombre d'entrées × prix de la place">+ Entrées d'un match</a>
+                <a class="bouton" href="{{ path('app_finances_operation_nouvelle', {sens: 'recette'}) }}">+ Recette</a>
+                <a class="bouton principal" href="{{ path('app_finances_operation_nouvelle', {sens: 'depense'}) }}">+ Dépense</a>
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="tuiles bilan finances-tuiles">
+        <div class="tuile"><span class="tuile-valeur montant-positif">{{ f.euros(recettes) }}</span><span class="tuile-libelle">recettes</span></div>
+        <div class="tuile"><span class="tuile-valeur montant-negatif">{{ f.euros(depenses) }}</span><span class="tuile-libelle">dépenses</span></div>
+        <div class="tuile"><span class="tuile-valeur {{ recettes - depenses < 0 ? 'montant-negatif' : 'montant-positif' }}">{{ f.euros(recettes - depenses) }}</span><span class="tuile-libelle">différence (hors cotisations)</span></div>
+    </div>
+
+    <form class="filtres" method="get">
+        <select name="saison" onchange="this.form.requestSubmit()" aria-label="Saison">
+            {% for s in saisons %}<option value="{{ s }}" {{ s == saison ? 'selected' }}>Saison {{ s }}</option>{% endfor %}
+        </select>
+        <select name="sens" onchange="this.form.requestSubmit()" aria-label="Recettes ou dépenses">
+            <option value="">Recettes et dépenses</option>
+            <option value="recette" {{ sens == 'recette' ? 'selected' }}>Recettes</option>
+            <option value="depense" {{ sens == 'depense' ? 'selected' }}>Dépenses</option>
+        </select>
+        <noscript><button type="submit" class="bouton">Filtrer</button></noscript>
+    </form>
+
+    <div class="table-defile">
+        <table class="liste operations">
+            <thead><tr><th>Date</th><th>Rubrique</th><th>Libellé</th><th class="a-droite">Montant</th><th>Paiement</th><th></th></tr></thead>
+            <tbody>
+                {% for o in operations %}
+                    <tr>
+                        <td class="nowrap">{{ o.date|date('d/m/Y') }}</td>
+                        <td>{{ o.rubrique }}</td>
+                        <td>{{ o.libelle }}{% if o.nbEntrees %} <span class="discret petit">({{ o.nbEntrees }} entrées × {{ o.prixPlace|number_format(2, ',', ' ') }} €)</span>{% endif %}{% if o.tiers %}<br><span class="discret petit">{{ o.tiers }}</span>{% endif %}</td>
+                        <td class="a-droite {{ o.recette ? 'montant-positif' : 'montant-negatif' }}">{{ o.recette ? '+' : '−' }} {{ f.euros(o.montant) }}</td>
+                        <td>{{ o.mode ?? '' }}</td>
+                        <td class="nowrap a-cote">
+                            {% if o.fichier %}<a href="{{ path('app_finances_justificatif', {id: o.id}) }}" target="_blank" title="Voir le justificatif">📎</a>{% endif %}
+                            {% if modif %}<a href="{{ path('app_finances_operation_modifier', {id: o.id}) }}">Modifier</a>{% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="vide">Aucune opération pour {{ saison }}.{% if modif %} Ajoutez une recette ou une dépense avec les boutons ci-dessus.{% endif %}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="discret petit">Les cotisations sont suivies dans l'onglet « Cotisations » et ajoutées à la synthèse.</p>
+{% endblock %}

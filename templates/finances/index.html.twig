@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+{% import 'finances/_macros.html.twig' as f %}
+
+{% block title %}Finances {{ saison }}{% endblock %}
+
+{% block body %}
+    {{ f.entete('synthese', saison) }}
+    <div class="titre-page">
+        <h1>Finances <span class="compteur">{{ saison }}</span></h1>
+        {% if is_granted('ROLE_FINANCES') %}
+            <span class="actions">
+                <a class="bouton" href="{{ path('app_finances_operation_nouvelle', {sens: 'recette', modele: 'entrees'}) }}">+ Entrées d'un match</a>
+                <a class="bouton" href="{{ path('app_finances_operation_nouvelle', {sens: 'recette'}) }}">+ Recette</a>
+                <a class="bouton principal" href="{{ path('app_finances_operation_nouvelle', {sens: 'depense'}) }}">+ Dépense</a>
+            </span>
+        {% endif %}
+    </div>
+    {{ f.choix_saison(saison, saisons) }}
+
+    <div class="tuiles bilan finances-tuiles">
+        <a class="tuile" href="{{ path('app_finances_cotisations', {saison: saison}) }}">
+            <span class="tuile-valeur">{{ f.euros(cotisations.encaisse) }}</span>
+            <span class="tuile-libelle">cotisations encaissées{% if cotisations.attendu %} sur {{ f.euros(cotisations.attendu) }}{% endif %}</span>
+        </a>
+        <a class="tuile" href="{{ path('app_finances_cotisations', {saison: saison, statut: 'a_payer'}) }}">
+            <span class="tuile-valeur {{ cotisations.reste ? 'montant-negatif' }}">{{ f.euros(cotisations.reste) }}</span>
+            <span class="tuile-libelle">restent à payer · {{ cotisations.a_jour }}/{{ cotisations.joueurs }} joueurs à jour</span>
+        </a>
+        <a class="tuile" href="{{ path('app_finances_operations', {saison: saison, sens: 'recette'}) }}">
+            <span class="tuile-valeur montant-positif">{{ f.euros(recettes) }}</span>
+            <span class="tuile-libelle">autres recettes</span>
+        </a>
+        <a class="tuile" href="{{ path('app_finances_operations', {saison: saison, sens: 'depense'}) }}">
+            <span class="tuile-valeur montant-negatif">{{ f.euros(depenses) }}</span>
+            <span class="tuile-libelle">dépenses</span>
+        </a>
+        <div class="tuile">
+            <span class="tuile-valeur {{ solde < 0 ? 'montant-negatif' : 'montant-positif' }}">{{ f.euros(solde) }}</span>
+            <span class="tuile-libelle">solde de la saison (cotisations + recettes − dépenses)</span>
+        </div>
+    </div>
+
+    {% if contrats %}
+        <section class="carte bloc">
+            <h2>Contrats à échéance</h2>
+            <ul class="liste-simple">
+                {% for c in contrats %}
+                    <li><a href="{{ path('app_finances_contrat_modifier', {id: c.id}) }}"><strong>{{ c.objet }}</strong></a> · {{ c.partie }} · se termine le <strong>{{ c.fin|date('d/m/Y') }}</strong> <span class="pastille attention">dans {{ c.joursRestants }} jour{{ c.joursRestants > 1 ? 's' }}</span></li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    <div class="grille-deux">
+        {% for sens, titre in {recette: 'Recettes par rubrique', depense: 'Dépenses par rubrique'} %}
+            <section class="carte bloc">
+                <h2>{{ titre }}</h2>
+                {% set rubriques = par_rubrique[sens] %}
+                {% if sens == 'recette' and cotisations.encaisse %}{% set rubriques = {'Cotisations': cotisations.encaisse}|merge(rubriques) %}{% endif %}
+                {% if rubriques %}
+                    {% set total = rubriques|reduce((t, v) => t + v, 0) %}
+                    <table class="liste rubriques">
+                        <tbody>
+                            {% for nom, montant in rubriques %}
+                                <tr>
+                                    <td>{{ nom }}</td>
+                                    <td class="barre-cellule"><span class="barre-rubrique {{ sens }}" style="width: {{ total ? (montant / total * 100)|round : 0 }}%"></span></td>
+                                    <td class="a-droite">{{ f.euros(montant) }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot><tr><th>Total</th><th></th><th class="a-droite">{{ f.euros(total) }}</th></tr></tfoot>
+                    </table>
+                {% else %}
+                    <p class="vide">Aucune {{ sens == 'recette' ? 'recette' : 'dépense' }} pour {{ saison }}.</p>
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

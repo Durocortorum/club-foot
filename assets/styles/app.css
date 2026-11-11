@@ -601,6 +601,29 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .tuile-forme .score:hover { text-decoration: none; }
 .petit-valeur { font-size: 1.1rem; }
 .maj-classement { margin-top: 1rem; }
+/* Finances : montants, tarifs par catégorie, paiements d'une cotisation, rubriques. */
+.a-droite { text-align: right; }
+.montant-positif { color: var(--succes); }
+.montant-negatif { color: var(--danger-fonce); }
+.finances-tuiles .tuile-valeur { font-size: 1.45rem; }
+.grille-deux { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+.tarifs-cotisation > summary { cursor: pointer; }
+.tarifs-cotisation[open] > summary { margin-bottom: .6rem; }
+.grille-tarifs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .5rem .9rem; margin: .5rem 0; }
+.champ-tarif { display: flex; flex-direction: column; gap: .2rem; font-weight: 600; font-size: .9rem; }
+.saisie-euros { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; }
+.saisie-euros input { width: 6.5rem; text-align: right; }
+.detail-cotisation > summary { list-style: none; }
+.detail-cotisation > summary::-webkit-details-marker { display: none; }
+.panneau-cotisation { margin-top: .5rem; padding: .7rem; border: 1px solid var(--bordure); border-radius: 8px; background: #fafafb; min-width: min(30rem, 80vw); }
+.panneau-cotisation .paiements { list-style: none; margin: 0 0 .6rem; padding: 0; font-size: .9rem; }
+.panneau-cotisation .paiements li { padding: .2rem 0; }
+.saisie-paiement { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed var(--bordure); }
+.saisie-paiement input[type="text"]:not([inputmode]) { flex: 1 1 10rem; }
+.rubriques .barre-cellule { width: 40%; }
+.barre-rubrique { display: block; height: .55rem; border-radius: 4px; min-width: 2px; }
+.barre-rubrique.recette { background: var(--succes); }
+.barre-rubrique.depense { background: var(--danger-fonce); }
 /* Série en cours dans le classement : un point par match (vert victoire, gris nul, rouge défaite). */
 .classement td.serie { white-space: nowrap; }
 .point-serie { width: .7rem; height: .7rem; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: .3rem; cursor: help; }

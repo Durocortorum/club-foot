@@ -1,0 +1,22 @@
+{# Montant en euros : « 1 250,00 € » (espaces insécables). #}
+{% macro euros(montant) %}<span class="nowrap">{{ (montant ?? 0)|number_format(2, ',', ' ') }} €</span>{% endmacro %}
+
+{# Onglets des finances et choix de la saison (sauf pour les contrats, qui ne dépendent pas d'une saison). #}
+{% macro entete(actif, saison = null, saisons = [], extra = {}) %}
+    <nav class="onglets">
+        <a href="{{ path('app_finances', saison ? {saison: saison} : {}) }}" class="{{ actif == 'synthese' ? 'actif' }}">Synthèse</a>
+        <a href="{{ path('app_finances_cotisations', saison ? {saison: saison} : {}) }}" class="{{ actif == 'cotisations' ? 'actif' }}">Cotisations</a>
+        <a href="{{ path('app_finances_operations', saison ? {saison: saison} : {}) }}" class="{{ actif == 'operations' ? 'actif' }}">Recettes et dépenses</a>
+        <a href="{{ path('app_finances_contrats') }}" class="{{ actif == 'contrats' ? 'actif' }}">Contrats</a>
+    </nav>
+{% endmacro %}
+
+{% macro choix_saison(saison, saisons, extra = {}) %}
+    <form class="filtres" method="get">
+        <select name="saison" onchange="this.form.requestSubmit()" aria-label="Saison">
+            {% for s in saisons %}<option value="{{ s }}" {{ s == saison ? 'selected' }}>Saison {{ s }}</option>{% endfor %}
+        </select>
+        {% for nom, valeur in extra %}{% if valeur %}<input type="hidden" name="{{ nom }}" value="{{ valeur }}">{% endif %}{% endfor %}
+        <noscript><button type="submit" class="bouton">Afficher</button></noscript>
+    </form>
+{% endmacro %}

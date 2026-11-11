@@ -1,0 +1,119 @@
+{% extends 'base.html.twig' %}
+{% import 'finances/_macros.html.twig' as f %}
+
+{% block title %}Cotisations {{ saison }}{% endblock %}
+
+{% block body %}
+    {% set modif = is_granted('ROLE_FINANCES') %}
+    {% set libelles = {paye: 'Payé', partiel: 'Partiel', a_payer: 'À payer', sans: 'Pas de tarif'} %}
+    {% set classes = {paye: 'succes', partiel: 'attention', a_payer: 'alerte', sans: ''} %}
+    {{ f.entete('cotisations', saison) }}
+    <div class="titre-page">
+        <h1>Cotisations <span class="compteur">{{ saison }}</span></h1>
+    </div>
+
+    <div class="tuiles bilan finances-tuiles">
+        <div class="tuile"><span class="tuile-valeur">{{ f.euros(totaux.du) }}</span><span class="tuile-libelle">attendues</span></div>
+        <div class="tuile"><span class="tuile-valeur montant-positif">{{ f.euros(totaux.paye) }}</span><span class="tuile-libelle">encaissées</span></div>
+        <div class="tuile"><span class="tuile-valeur {{ totaux.reste ? 'montant-negatif' }}">{{ f.euros(totaux.reste) }}</span><span class="tuile-libelle">restent à payer</span></div>
+    </div>
+
+    {# Tarif de chaque catégorie : ce que doit chaque joueur, sauf montant particulier. #}
+    <details class="carte bloc tarifs-cotisation" {{ not tarifs and modif ? 'open' }}>
+        <summary><strong>Tarifs {{ saison }} par catégorie</strong> <span class="discret petit">{{ tarifs ? tarifs|length ~ ' catégorie' ~ (tarifs|length > 1 ? 's') ~ ' avec un tarif' : 'à remplir en premier' }}</span></summary>
+        <form method="post" action="{{ path('app_finances_tarifs') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('tarifs-cotisation') }}">
+            <input type="hidden" name="saison" value="{{ saison }}">
+            <p class="discret petit">Chaque joueur doit le tarif de sa catégorie. Pour une réduction (fratrie, aide…), changez son montant dans la liste ci-dessous.</p>
+            <div class="grille-tarifs">
+                {% for c in categories %}
+                    <label class="champ-tarif"><span>{{ c.nom }}</span><span class="saisie-euros"><input type="text" inputmode="decimal" name="tarifs[{{ c.id }}]" value="{{ tarifs[c.id] is defined ? tarifs[c.id]|number_format(2, ',', '') }}" placeholder="—" {{ modif ? '' : 'disabled' }}> €</span></label>
+                {% endfor %}
+            </div>
+            {% if modif %}<div class="barre-actions"><button type="submit" class="bouton principal">Enregistrer les tarifs</button></div>{% endif %}
+        </form>
+    </details>
+
+    <form class="filtres" method="get">
+        <select name="saison" onchange="this.form.requestSubmit()" aria-label="Saison">
+            {% for s in saisons %}<option value="{{ s }}" {{ s == saison ? 'selected' }}>Saison {{ s }}</option>{% endfor %}
+        </select>
+        <select name="categorie" onchange="this.form.requestSubmit()" aria-label="Catégorie">
+            <option value="">Toutes les catégories</option>
+            {% for c in categories %}<option value="{{ c.id }}" {{ categorie and categorie.id == c.id ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
+        </select>
+        <select name="statut" onchange="this.form.requestSubmit()" aria-label="Statut">
+            <option value="">Tous</option>
+            <option value="a_payer" {{ statut == 'a_payer' ? 'selected' }}>À payer (tout ou partie)</option>
+            <option value="partiel" {{ statut == 'partiel' ? 'selected' }}>Payé en partie</option>
+            <option value="paye" {{ statut == 'paye' ? 'selected' }}>Payé</option>
+        </select>
+        <noscript><button type="submit" class="bouton">Filtrer</button></noscript>
+    </form>
+
+    <div class="table-defile">
+        <table class="liste cotisations">
+            <thead><tr><th>Joueur</th><th>Catégorie</th><th class="a-droite">Dû</th><th class="a-droite">Payé</th><th class="a-droite">Reste</th><th>État</th><th></th></tr></thead>
+            <tbody>
+                {% for l in lignes %}
+                    {% set j = l.joueur %}
+                    <tr id="joueur-{{ j.id }}">
+                        <td class="fort"><a href="{{ path('app_joueur_voir', {id: j.id}) }}">{{ j.nomComplet }}</a></td>
+                        <td>{{ j.categorie ?? '—' }}</td>
+                        <td class="a-droite">{{ f.euros(l.du) }}{% if l.cotisation and l.cotisation.montant is not null %} <span class="discret petit" title="Montant particulier{{ l.cotisation.remarque ? ' : ' ~ l.cotisation.remarque }}{{ l.tarif is not null ? ' (tarif de la catégorie : ' ~ l.tarif|number_format(2, ',', ' ') ~ ' €)' }}">*</span>{% endif %}</td>
+                        <td class="a-droite">{{ f.euros(l.paye) }}</td>
+                        <td class="a-droite {{ l.reste ? 'montant-negatif' }}">{{ f.euros(l.reste) }}</td>
+                        <td><span class="pastille {{ classes[l.statut] }}">{{ libelles[l.statut] }}</span></td>
+                        <td>
+                            <details class="detail-cotisation">
+                                <summary class="bouton petit">{{ modif ? 'Paiements' : 'Détail' }}{% if l.cotisation and l.cotisation.paiements|length %} ({{ l.cotisation.paiements|length }}){% endif %}</summary>
+                                <div class="panneau-cotisation">
+                                    {% if l.cotisation and l.cotisation.paiements|length %}
+                                        <ul class="paiements">
+                                            {% for p in l.cotisation.paiements %}
+                                                <li>{{ p.date|date('d/m/Y') }} · <strong>{{ f.euros(p.montant) }}</strong> · {{ p.mode }}{{ p.note ? ' · ' ~ p.note }}
+                                                    {% if modif %}<form method="post" action="{{ path('app_finances_paiement_supprimer', {id: p.id}) }}" class="en-ligne" data-confirmation="Supprimer ce paiement de {{ p.montant|number_format(2, ',', ' ') }} € ?" data-confirmation-bouton="Supprimer">
+                                                        <input type="hidden" name="_token" value="{{ csrf_token('supprimer-paiement' ~ p.id) }}">
+                                                        <input type="hidden" name="filtre_categorie" value="{{ categorie ? categorie.id }}"><input type="hidden" name="filtre_statut" value="{{ statut }}">
+                                                        <button type="submit" class="lien-bouton" title="Supprimer ce paiement">×</button>
+                                                    </form>{% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <p class="discret petit">Aucun paiement.</p>
+                                    {% endif %}
+                                    {% if modif %}
+                                        <form method="post" action="{{ path('app_finances_paiement', {id: j.id}) }}" class="saisie-paiement">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('paiement' ~ j.id) }}">
+                                            <input type="hidden" name="saison" value="{{ saison }}">
+                                            <input type="hidden" name="filtre_categorie" value="{{ categorie ? categorie.id }}"><input type="hidden" name="filtre_statut" value="{{ statut }}">
+                                            <strong class="petit">Nouveau paiement</strong>
+                                            <span class="saisie-euros"><input type="text" inputmode="decimal" name="montant" value="{{ l.reste ? l.reste|number_format(2, ',', '') }}" placeholder="Montant" aria-label="Montant" required> €</span>
+                                            <select name="mode" aria-label="Mode de paiement">{% for m in modes %}<option>{{ m }}</option>{% endfor %}</select>
+                                            <input type="date" name="date" value="{{ 'now'|date('Y-m-d') }}" aria-label="Date">
+                                            <input type="text" name="note" placeholder="N° de chèque, remarque…" aria-label="Remarque">
+                                            <button type="submit" class="bouton principal petit">Enregistrer le paiement</button>
+                                        </form>
+                                        <form method="post" action="{{ path('app_finances_cotisation_montant', {id: j.id}) }}" class="saisie-paiement">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('montant-cotisation' ~ j.id) }}">
+                                            <input type="hidden" name="saison" value="{{ saison }}">
+                                            <input type="hidden" name="filtre_categorie" value="{{ categorie ? categorie.id }}"><input type="hidden" name="filtre_statut" value="{{ statut }}">
+                                            <strong class="petit">Montant particulier</strong>
+                                            <span class="saisie-euros"><input type="text" inputmode="decimal" name="montant" value="{{ l.cotisation and l.cotisation.montant is not null ? l.cotisation.montant|number_format(2, ',', '') }}" placeholder="{{ l.tarif is not null ? l.tarif|number_format(2, ',', '') : 'Tarif' }}" aria-label="Montant particulier"> €</span>
+                                            <input type="text" name="remarque" value="{{ l.cotisation ? l.cotisation.remarque }}" placeholder="Raison : fratrie, aide…" aria-label="Raison">
+                                            <button type="submit" class="bouton petit">Enregistrer</button>
+                                            <span class="discret petit">Vide : tarif de la catégorie.</span>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </details>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="vide">Aucun joueur pour ces critères.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

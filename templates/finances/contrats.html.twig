@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+{% import 'finances/_macros.html.twig' as f %}
+
+{% block title %}Contrats{% endblock %}
+
+{% block body %}
+    {% set modif = is_granted('ROLE_FINANCES') %}
+    {% set etats = {en_cours: ['En cours', 'succes'], bientot: ['Bientôt fini', 'attention'], termine: ['Terminé', ''], a_venir: ['À venir', '']} %}
+    {{ f.entete('contrats') }}
+    <div class="titre-page">
+        <h1>Contrats <span class="compteur">{{ contrats|length }}</span></h1>
+        {% if modif %}<a class="bouton principal" href="{{ path('app_finances_contrat_nouveau') }}">+ Nouveau contrat</a>{% endif %}
+    </div>
+
+    <form class="filtres" method="get">
+        <select name="etat" onchange="this.form.requestSubmit()" aria-label="Contrats affichés">
+            <option value="actifs" {{ etat == 'actifs' ? 'selected' }}>En cours et à venir</option>
+            <option value="termines" {{ etat == 'termines' ? 'selected' }}>Terminés</option>
+            <option value="tous" {{ etat == 'tous' ? 'selected' }}>Tous</option>
+        </select>
+        <noscript><button type="submit" class="bouton">Afficher</button></noscript>
+    </form>
+
+    <div class="table-defile">
+        <table class="liste contrats">
+            <thead><tr><th>Contrat</th><th>Type</th><th>Avec</th><th>Du</th><th>Au</th><th class="a-droite">Montant</th><th>État</th><th></th></tr></thead>
+            <tbody>
+                {% for c in contrats %}
+                    {% set e = etats[c.etat] %}
+                    <tr>
+                        <td class="fort">{{ c.objet }}{% if c.note %}<br><span class="discret petit">{{ c.note|length > 80 ? c.note|slice(0, 80) ~ '…' : c.note }}</span>{% endif %}</td>
+                        <td>{{ c.type }}</td>
+                        <td>{{ c.partie }}</td>
+                        <td class="nowrap">{{ c.debut ? c.debut|date('d/m/Y') : '—' }}</td>
+                        <td class="nowrap">{{ c.fin ? c.fin|date('d/m/Y') : '—' }}</td>
+                        <td class="a-droite">{% if c.montant is not null %}{{ f.euros(c.montant) }}{% if c.periodicite and c.periodicite != 'Une fois' %} <span class="discret petit">{{ c.periodicite|lower }}</span>{% endif %}{% endif %}</td>
+                        <td><span class="pastille {{ e[1] }}">{{ e[0] }}{% if c.etat == 'bientot' %} · {{ c.joursRestants }} j{% endif %}</span></td>
+                        <td class="nowrap a-cote">
+                            {% if c.fichier %}<a href="{{ path('app_finances_contrat_pdf', {id: c.id}) }}" target="_blank" title="Voir le contrat signé">📄 PDF</a>{% endif %}
+                            {% if modif %}<a href="{{ path('app_finances_contrat_modifier', {id: c.id}) }}">Modifier</a>{% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" class="vide">Aucun contrat{{ etat == 'termines' ? ' terminé' : '' }}.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
