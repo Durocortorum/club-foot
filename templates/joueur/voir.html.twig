@@ -472,7 +472,10 @@
         <section class="bloc" id="physique">
             <div class="titre-page">
                 <h2 class="titre-bloc">Tests physiques</h2>
-                {% if tests_modif %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Test</a>{% endif %}
+                <span class="actions">
+                    <a class="bouton" href="{{ path('app_progression_joueur', {id: joueur.id}) }}">📈 Voir la progression</a>
+                    {% if tests_modif %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Test</a>{% endif %}
+                </span>
             </div>
             {% if tests %}
                 {% set epreuves = constant('App\\Entity\\TestPhysique::EPREUVES') %}

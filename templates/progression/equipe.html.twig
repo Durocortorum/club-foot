@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+{% import 'progression/_courbe.html.twig' as c %}
+
+{% block title %}Progression {{ categorie }}{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Progression <span class="compteur">{{ categorie }}</span></h1>
+    </div>
+    <p class="discret petit">Dernier résultat de chaque joueur à chaque test, et son évolution depuis le test précédent (<span class="progression-evolution mieux">vert</span> : progrès, <span class="progression-evolution moins-bien">rouge</span> : recul). ★ : meilleur de l'équipe. Cliquez sur un joueur pour ses courbes.</p>
+
+    <form class="filtres" method="get">
+        <select name="categorie" onchange="this.form.requestSubmit()" aria-label="Équipe">
+            {% for cat in categories %}<option value="{{ cat.id }}" {{ cat.id == categorie.id ? 'selected' }}>{{ cat.nom }}</option>{% endfor %}
+        </select>
+        <noscript><button type="submit" class="bouton">Afficher</button></noscript>
+    </form>
+
+    {% if tableau.epreuves %}
+        <p class="discret">{{ tableau.testes }} joueur{{ tableau.testes > 1 ? 's' }} testé{{ tableau.testes > 1 ? 's' }} sur {{ tableau.lignes|length }}.</p>
+        <div class="table-defile">
+            <table class="liste tableau-progression">
+                <thead>
+                    <tr><th>Joueur</th>{% for champ, e in tableau.epreuves %}<th class="a-droite">{{ e[0] }} <span class="discret">({{ e[1] }})</span></th>{% endfor %}</tr>
+                </thead>
+                <tbody>
+                    {% for l in tableau.lignes %}
+                        <tr>
+                            <td class="fort"><a href="{{ path('app_progression_joueur', {id: l.joueur.id}) }}">{{ l.joueur.nom }} {{ l.joueur.prenom }}</a></td>
+                            {% for champ, e in tableau.epreuves %}
+                                {% set v = l.valeurs[champ] ?? null %}
+                                <td class="a-droite nowrap">
+                                    {% if v %}
+                                        <span title="Test du {{ v.date|date('d/m/Y') }}">{{ v.meilleur ? '★ ' }}{{ c.nombre(v.valeur) }}</span>
+                                        {% if v.evolution is not null and v.mieux is not null %}<br><small class="progression-evolution {{ v.mieux ? 'mieux' : 'moins-bien' }}">{{ v.evolution > 0 ? '+' : '−' }}{{ c.nombre(v.evolution|abs) }}</small>{% endif %}
+                                    {% else %}<span class="discret">–</span>{% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="vide">Aucun test physique pour les joueurs de {{ categorie }}. Ajoutez-en depuis la fiche de chaque joueur (bloc « Tests physiques »).</p>
+    {% endif %}
+{% endblock %}

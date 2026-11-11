@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+{% import 'progression/_courbe.html.twig' as c %}
+
+{% block title %}Progression – {{ joueur.nomComplet }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_joueur_voir', {id: joueur.id}) }}">← Fiche de {{ joueur.prenom }}</a>{% if is_granted('ROLE_TESTS_PHYSIQUES_LECTURE') and joueur.categorie %} · <a href="{{ path('app_progression_equipe', {categorie: joueur.categorie.id}) }}">Progression de l'équipe {{ joueur.categorie }}</a>{% endif %}</p>
+    <div class="titre-page">
+        <h1>Progression <span class="compteur">{{ joueur.prenom }} {{ joueur.nom }}</span></h1>
+        {% if is_granted('ROLE_TESTS_PHYSIQUES') %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Test physique</a>{% endif %}
+    </div>
+    <p class="discret petit">Évolution en <span class="progression-evolution mieux">vert</span> quand elle va dans le bon sens (un temps qui baisse, une vitesse, une distance ou une hauteur qui monte), en <span class="progression-evolution moins-bien">rouge</span> sinon. Survolez un point de la courbe pour sa date et sa valeur.</p>
+
+    {% if tests is not null %}
+        <h2 class="titre-bloc">Tests physiques</h2>
+        {% if tests %}
+            <div class="grille-progression">{% for s in tests %}{{ c.carte(s, largeur, hauteur) }}{% endfor %}</div>
+        {% else %}
+            <p class="vide">Aucun test physique enregistré : ajoutez-en depuis la fiche du joueur, à chaque période de tests (début, milieu et fin de saison).</p>
+        {% endif %}
+    {% endif %}
+
+    {% if mesures %}
+        <h2 class="titre-bloc">Croissance <span class="discret petit">(visite médicale)</span></h2>
+        <div class="grille-progression">{% for s in mesures %}{{ c.carte(s, largeur, hauteur) }}{% endfor %}</div>
+    {% endif %}
+
+    {% if charge %}
+        <h2 class="titre-bloc">Charge d'entraînement ressentie</h2>
+        <p class="discret petit">Somme des notes d'effort × minutes, semaine par semaine (12 dernières semaines), d'après l'autoévaluation du joueur.</p>
+        <div class="grille-progression">{{ c.carte(charge|merge({mieux: null}), largeur, hauteur) }}</div>
+    {% endif %}
+
+    {% if saisons %}
+        <h2 class="titre-bloc">Saison après saison</h2>
+        <div class="table-defile">
+            <table class="liste">
+                <thead><tr><th>Saison</th><th class="a-droite">Matchs</th><th class="a-droite">Titulaire</th><th class="a-droite">Minutes</th><th class="a-droite">Temps de jeu</th><th class="a-droite">Buts</th><th class="a-droite">Passes déc.</th><th class="a-droite">Note moy.</th></tr></thead>
+                <tbody>
+                    {% for saison, b in saisons %}
+                        <tr>
+                            <td class="fort">{{ saison }}</td>
+                            <td class="a-droite">{{ b.matchs }}</td>
+                            <td class="a-droite">{{ b.titularisations }}</td>
+                            <td class="a-droite">{{ b.minutes|number_format(0, ',', ' ') }}</td>
+                            <td class="a-droite">{{ b.minutesPossibles ? (b.minutes / b.minutesPossibles * 100)|round ~ ' %' : '–' }}</td>
+                            <td class="a-droite">{{ b.buts }}</td>
+                            <td class="a-droite">{{ b.passes }}</td>
+                            <td class="a-droite">{{ b.note ? b.note|number_format(1, ',') : '–' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if not tests and not mesures and not charge and not saisons %}
+        <p class="vide">Pas encore de données pour suivre la progression de {{ joueur.prenom }}.</p>
+    {% endif %}
+{% endblock %}

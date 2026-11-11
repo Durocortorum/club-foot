@@ -1154,3 +1154,24 @@ table.droits thead th.droits-nom { z-index: 3; }
 .ressenti-details input[type="text"] { flex: 1 1 14rem; }
 .tableau-rpe .centre { text-align: center; }
 .tableau-rpe tr.charge-alerte td { background: #fff1f0; }
+
+/* Suivi de progression : une petite courbe par test (une seule série, couleur du club). */
+.grille-progression { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.progression-serie header { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+.progression-serie h3 { margin: 0; font-size: 1rem; }
+.progression-evolution { font-weight: 700; color: var(--gris); white-space: nowrap; }
+.progression-evolution.mieux { color: var(--succes); }
+.progression-evolution.moins-bien { color: var(--danger-fonce); }
+.progression-valeurs { display: flex; gap: 1.2rem; margin: .5rem 0; }
+.progression-valeurs span { display: flex; flex-direction: column; }
+.progression-valeurs strong { font-size: 1.25rem; color: var(--encre); }
+.progression-valeurs small { color: var(--gris); font-size: .75rem; }
+.progression-courbe { width: 100%; height: auto; display: block; overflow: visible; }
+.progression-courbe .repere { stroke: var(--bordure); stroke-width: 1; stroke-dasharray: 3 3; }
+.progression-courbe .repere-texte { fill: var(--gris); font-size: 10px; }
+.progression-courbe .trace { fill: none; stroke: var(--rouge); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.progression-courbe .marque { fill: var(--rouge); stroke: #fff; stroke-width: 2; }
+.progression-courbe .zone { fill: transparent; cursor: help; }
+.progression-courbe .point:hover .marque { r: 6; }
+.progression-tableau summary { cursor: pointer; color: var(--gris); font-size: .85rem; }
+.progression-tableau table { margin-top: .3rem; font-size: .85rem; }

@@ -1,0 +1,54 @@
+{# Nombre sans zéros inutiles : 3,40 → 3,4 ; 12,00 → 12. #}
+{% macro nombre(v) %}{{ v|number_format(2, ',', ' ')|trim('0', 'right')|trim(',', 'right') }}{% endmacro %}
+
+{#
+   Carte d'une série (voir App\Service\Progression::serie) : premier et dernier résultat, évolution colorée
+   selon le bon sens (temps qui baisse, distance qui monte), et petite courbe dans le temps.
+   Une seule série par courbe : pas de légende, le titre la nomme. Survol d'un point : date et valeur.
+#}
+{% macro carte(s, largeur, hauteur) %}
+    {% import _self as c %}
+    <article class="carte progression-serie">
+        <header>
+            <h3>{{ s.libelle }} <span class="discret">({{ s.unite }})</span></h3>
+            {% if s.evolution is not null %}
+                <span class="progression-evolution {{ s.mieux is same as(true) ? 'mieux' : (s.mieux is same as(false) ? 'moins-bien' : '') }}"
+                      title="Depuis le {{ s.premier.date|date('d/m/Y') }}">
+                    {{ s.evolution > 0 ? '+' : (s.evolution < 0 ? '−' : '') }}{{ c.nombre(s.evolution|abs) }} {{ s.unite }}
+                    {% if s.pourcentage is not null %}<small>({{ s.pourcentage > 0 ? '+' : (s.pourcentage < 0 ? '−' : '') }}{{ s.pourcentage|abs|round }} %)</small>{% endif %}
+                </span>
+            {% endif %}
+        </header>
+        <p class="progression-valeurs">
+            <span><small>{{ s.points|length > 1 ? 'Premier' : 'Seul test' }}</small><strong>{{ c.nombre(s.premier.valeur) }}</strong><small>{{ s.premier.date|date('d/m/Y') }}</small></span>
+            {% if s.points|length > 1 %}
+                <span><small>Dernier</small><strong>{{ c.nombre(s.dernier.valeur) }}</strong><small>{{ s.dernier.date|date('d/m/Y') }}</small></span>
+                <span><small>Meilleur</small><strong>{{ c.nombre(s.meilleur) }}</strong></span>
+            {% endif %}
+        </p>
+        {% if s.points|length > 1 %}
+            <svg class="progression-courbe" viewBox="0 0 {{ largeur }} {{ hauteur }}" role="img" aria-label="{{ s.libelle }} : de {{ c.nombre(s.premier.valeur) }} à {{ c.nombre(s.dernier.valeur) }} {{ s.unite }}">
+                {# Repères discrets : valeur la plus haute et la plus basse. #}
+                {% set fin_trace = largeur - constant('App\\Service\\Progression::GOUTTIERE') + 8 %}
+                <line x1="0" x2="{{ fin_trace }}" y1="16" y2="16" class="repere"/>
+                <line x1="0" x2="{{ fin_trace }}" y1="{{ hauteur - 16 }}" y2="{{ hauteur - 16 }}" class="repere"/>
+                <text x="{{ largeur - 2 }}" y="20" class="repere-texte" text-anchor="end">{{ c.nombre(s.max) }}</text>
+                <text x="{{ largeur - 2 }}" y="{{ hauteur - 12 }}" class="repere-texte" text-anchor="end">{{ c.nombre(s.min) }}</text>
+                <polyline points="{{ s.trace }}" class="trace"/>
+                {% for p in s.points %}
+                    <g class="point">
+                        <circle cx="{{ p.x }}" cy="{{ p.y }}" r="11" class="zone"/>
+                        <circle cx="{{ p.x }}" cy="{{ p.y }}" r="4.5" class="marque"/>
+                        <title>{{ p.date|date('d/m/Y') }} : {{ c.nombre(p.valeur) }} {{ s.unite }}</title>
+                    </g>
+                {% endfor %}
+            </svg>
+            <details class="progression-tableau">
+                <summary>Valeurs</summary>
+                <table class="liste">
+                    <tbody>{% for p in s.points|reverse %}<tr><td>{{ p.date|date('d/m/Y') }}</td><td class="a-droite">{{ c.nombre(p.valeur) }} {{ s.unite }}</td></tr>{% endfor %}</tbody>
+                </table>
+            </details>
+        {% endif %}
+    </article>
+{% endmacro %}
