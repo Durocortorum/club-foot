@@ -6,9 +6,12 @@ use App\Entity\AbsenceEntrainement;
 use App\Entity\Convoque;
 use App\Entity\Entrainement;
 use App\Entity\Joueur;
+use App\Entity\Ressenti;
 use App\Entity\Stage;
 use App\Entity\Tache;
+use App\Repository\RessentiRepository;
 use App\Repository\StageRepository;
+use App\Service\SuiviRessenti;
 use App\Repository\TacheRepository;
 use App\Service\AvisTaches;
 use App\Entity\Utilisateur;
@@ -57,6 +60,8 @@ class EspaceController extends AbstractController
         EvenementRepository $evenements,
         TacheRepository $taches,
         StageRepository $stages,
+        RessentiRepository $ressentis,
+        SuiviRessenti $suiviRessenti,
     ): Response
     {
         /** @var Utilisateur $moi */
@@ -90,6 +95,12 @@ class EspaceController extends AbstractController
             $tachesParJoueur[$t->getJoueur()->getId()][] = $t;
         }
 
+        // Autoévaluation : ressentis des 14 derniers jours, et séances encore à noter.
+        $parJoueur = [];
+        foreach ($ressentis->recents($moi->getJoueurs()->toArray(), new \DateTimeImmutable('today -14 days')) as $r) {
+            $parJoueur[$r->getJoueur()->getId()][] = $r;
+        }
+
         $enfants = [];
         foreach ($moi->getJoueurs() as $j) {
             $mesConvocations = $convocations[$j->getId()] ?? [];
@@ -98,6 +109,8 @@ class EspaceController extends AbstractController
                 'joueur' => $j,
                 'convocations' => $mesConvocations,
                 'taches' => $tachesParJoueur[$j->getId()] ?? [],
+                'ressentis' => $parJoueur[$j->getId()] ?? [],
+                'a_noter' => $suiviRessenti->aNoter($j, $parJoueur[$j->getId()] ?? []),
                 // Stages à venir de son équipe (ou de tout le club).
                 'stages' => $j->getCategorie() ? $stages->entre(new \DateTimeImmutable('today'), new \DateTimeImmutable('2100-01-01'), [$j->getCategorie()]) : [],
                 'entrainements' => array_values(array_filter($entrainements, fn (Entrainement $e) => $e->getCategorie() === $j->getCategorie())),
@@ -116,6 +129,7 @@ class EspaceController extends AbstractController
             'enfants' => $enfants,
             'motifs' => Convoque::MOTIFS,
             'motifs_entrainement' => array_keys(AbsenceEntrainement::MOTIFS),
+            'echelle_rpe' => Ressenti::ECHELLE,
         ]);
     }
 
@@ -206,6 +220,51 @@ class EspaceController extends AbstractController
         }
 
         return $this->redirect($this->generateUrl('app_espace') . '#entrainements-' . $joueur->getId());
+    }
+
+    /**
+     * Autoévaluation : le joueur (ou sa famille) note l'effort ressenti après un entraînement ou un match
+     * des derniers jours, de 1 à 10, avec la durée. Une note déjà donnée peut être corrigée.
+     */
+    #[Route('/espace/ressenti/{joueur}', name: 'app_espace_ressenti', requirements: ['joueur' => '\d+'], methods: ['POST'])]
+    public function ressenti(Request $request, Joueur $joueur, EntityManagerInterface $em, RessentiRepository $ressentis): Response
+    {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        $p = $request->getPayload();
+        if (!$moi->isFamille() || !$moi->suit($joueur) || !$this->isCsrfTokenValid('ressenti' . $joueur->getId(), $p->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        $retour = $this->redirect($this->generateUrl('app_espace') . '#ressenti-' . $joueur->getId());
+        [$type, $id] = array_pad(explode('-', $p->getString('seance'), 2), 2, '');
+        $seance = match ($type) {
+            'e' => $em->getRepository(Entrainement::class)->find((int) $id),
+            'r' => $em->getRepository(\App\Entity\Rencontre::class)->find((int) $id),
+            default => null,
+        };
+        $rpe = $p->getInt('rpe');
+        $limite = new \DateTimeImmutable('today -' . Ressenti::DELAI_JOURS . ' days');
+        if (!$seance || $seance->getCategorie() !== $joueur->getCategorie() || $seance->getDate() < $limite || $seance->getDate() > new \DateTimeImmutable('today')) {
+            $this->addFlash('erreur', 'Cette séance ne peut plus être notée.');
+
+            return $retour;
+        }
+        if ($rpe < 1 || $rpe > 10) {
+            $this->addFlash('erreur', 'Choisissez une note de 1 à 10.');
+
+            return $retour;
+        }
+        $duree = ctype_digit($d = trim($p->getString('duree'))) && (int) $d > 0 ? (int) $d : Ressenti::dureeDe($seance);
+        $existant = $ressentis->findOneBy(['joueur' => $joueur, $seance instanceof Entrainement ? 'entrainement' : 'rencontre' => $seance]);
+        if ($existant) {
+            $existant->modifier($rpe, $duree, $p->getString('commentaire'));
+        } else {
+            $em->persist((new Ressenti($joueur, $seance, $rpe, $duree, $p->getString('commentaire')))->setClub($joueur->getClub()));
+        }
+        $em->flush();
+        $this->addFlash('succes', \sprintf('Merci ! Effort noté %d/10 (%s) pour %s.', $rpe, mb_strtolower(Ressenti::ECHELLE[$rpe]), $joueur->getPrenom()));
+
+        return $retour;
     }
 
     /** Réponse de la famille à une convocation, jusqu'au jour du match. */

@@ -109,6 +109,36 @@
                 </ul>
             {% endif %}
 
+            {# Autoévaluation : effort ressenti après les séances des derniers jours (RPE de 1 à 10). #}
+            {% if e.a_noter or e.ressentis %}
+                <h3 id="ressenti-{{ j.id }}">Effort ressenti</h3>
+                {% for s in e.a_noter %}
+                    {% set est_match = s.adversaire is defined %}
+                    {% set cle = (est_match ? 'r-' : 'e-') ~ s.id %}
+                    <form method="post" action="{{ path('app_espace_ressenti', {joueur: j.id}) }}" class="ressenti-saisie">
+                        <input type="hidden" name="_token" value="{{ csrf_token('ressenti' ~ j.id) }}">
+                        <input type="hidden" name="seance" value="{{ cle }}">
+                        <p><strong>{{ est_match ? 'Match contre ' ~ s.adversaire : 'Entraînement' }}</strong> <span class="discret">du {{ ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][s.date|date('w')] }} {{ s.date|date('d/m') }}</span> : comment {{ j.prenom }} a-t-il (elle) ressenti l'effort ?</p>
+                        <div class="echelle-rpe" role="radiogroup" aria-label="Effort ressenti, de 1 (très facile) à 10 (maximum)">
+                            {% for n, libelle in echelle_rpe %}
+                                <label class="rpe-{{ n }}" title="{{ libelle }}"><input type="radio" name="rpe" value="{{ n }}" required><span>{{ n }}</span></label>
+                            {% endfor %}
+                        </div>
+                        <p class="discret petit echelle-legende"><span>1 = très facile</span><span>5 = dur</span><span>10 = maximum</span></p>
+                        <div class="ressenti-details">
+                            <label>Durée <input type="number" name="duree" min="1" max="300" placeholder="{{ est_match ? 'temps joué' : 'minutes' }}" aria-label="Durée en minutes"> min</label>
+                            <input type="text" name="commentaire" maxlength="255" placeholder="Une douleur, une remarque ? (facultatif)" aria-label="Commentaire">
+                            <button type="submit" class="bouton principal petit">Envoyer</button>
+                        </div>
+                    </form>
+                {% endfor %}
+                {% if e.ressentis %}
+                    <p class="discret petit">Derniers ressentis :
+                        {% for r in e.ressentis|slice(0, 6) %}<span class="pastille-rpe rpe-{{ r.rpe }}" title="{{ r.libelle }}{{ r.commentaire ? ' – ' ~ r.commentaire }}">{{ r.date|date('d/m') }} · {{ r.rpe }}/10</span>{% endfor %}
+                    </p>
+                {% endif %}
+            {% endif %}
+
             {% if e.convocations %}
                 <h3>Convocations</h3>
                 {% for c in e.convocations %}

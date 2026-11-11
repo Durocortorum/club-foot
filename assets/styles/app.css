@@ -1132,3 +1132,25 @@ table.droits thead th.droits-nom { z-index: 3; }
 .recapitulatif-frais h1 { font-size: 1.4rem; }
 .recapitulatif-frais .signatures { display: flex; justify-content: space-between; gap: 2rem; margin-top: 2.5rem; }
 .recapitulatif-frais .signatures p { flex: 1; min-height: 6rem; border-top: 1px solid var(--bordure); padding-top: .5rem; }
+
+/* Autoévaluation (RPE 1 à 10) : du vert (facile) au rouge (maximum). */
+.rpe-1, .rpe-2 { --rpe: #2e9d5b; }
+.rpe-3, .rpe-4 { --rpe: #8bbf3c; }
+.rpe-5, .rpe-6 { --rpe: #e0b000; }
+.rpe-7, .rpe-8 { --rpe: #e8720c; }
+.rpe-9, .rpe-10 { --rpe: #d1242f; }
+.pastille-rpe { display: inline-block; min-width: 1.9rem; padding: .15rem .45rem; border-radius: 999px; background: var(--rpe, #8e8e93); color: #fff; font-weight: 700; text-align: center; font-size: .85rem; margin: 0 .15rem .15rem 0; }
+.ressenti-saisie { padding: .7rem 0; border-bottom: 1px solid var(--bordure); }
+.ressenti-saisie p { margin: 0 0 .4rem; }
+.echelle-rpe { display: grid; grid-template-columns: repeat(10, minmax(2rem, 1fr)); gap: .3rem; max-width: 34rem; }
+.echelle-rpe label { cursor: pointer; }
+.echelle-rpe input { position: absolute; opacity: 0; pointer-events: none; }
+.echelle-rpe span { display: flex; align-items: center; justify-content: center; height: 2.4rem; border-radius: 8px; border: 2px solid var(--rpe); color: var(--rpe); font-weight: 800; background: #fff; }
+.echelle-rpe input:checked + span { background: var(--rpe); color: #fff; }
+.echelle-rpe input:focus-visible + span { outline: 3px solid var(--encre); outline-offset: 2px; }
+.echelle-legende { display: flex; justify-content: space-between; max-width: 34rem; margin: .2rem 0 .5rem !important; }
+.ressenti-details { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.ressenti-details input[type="number"] { width: 5.5rem; }
+.ressenti-details input[type="text"] { flex: 1 1 14rem; }
+.tableau-rpe .centre { text-align: center; }
+.tableau-rpe tr.charge-alerte td { background: #fff1f0; }

@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Effort ressenti {{ categorie }}{% endblock %}
+
+{% block body %}
+    {% set jours = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'] %}
+    <p><a href="{{ path('app_seance_index') }}">← Entraînements</a></p>
+    <div class="titre-page">
+        <h1>Effort ressenti <span class="compteur">{{ categorie }}</span></h1>
+    </div>
+    <p class="discret petit">Après chaque entraînement ou match, les joueurs notent l'effort ressenti de 1 (très facile) à 10 (maximum) depuis leur espace, pendant {{ constant('App\\Entity\\Ressenti::DELAI_JOURS') }} jours. La <strong>charge</strong> d'une séance est la note × les minutes ; celle de la semaine est signalée quand elle dépasse {{ seuil|number_format(1, ',') }} fois la moyenne des quatre semaines précédentes (risque de blessure).</p>
+
+    <form class="filtres" method="get">
+        <select name="categorie" onchange="this.form.requestSubmit()" aria-label="Équipe">
+            {% for c in categories %}<option value="{{ c.id }}" {{ c.id == categorie.id ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
+        </select>
+        <input type="hidden" name="semaine" value="{{ lundi|date('Y-m-d') }}">
+        <noscript><button type="submit" class="bouton">Afficher</button></noscript>
+    </form>
+
+    <div class="calendrier-entete">
+        <a class="bouton petit" href="{{ path('app_ressenti', {categorie: categorie.id, semaine: precedente|date('Y-m-d')}) }}" aria-label="Semaine précédente">←</a>
+        <h2>Semaine du {{ lundi|date('d/m') }} au {{ lundi|date_modify('+6 days')|date('d/m/Y') }}</h2>
+        <a class="bouton petit" href="{{ path('app_ressenti', {categorie: categorie.id, semaine: suivante|date('Y-m-d')}) }}" aria-label="Semaine suivante">→</a>
+        {% if lundi|date('Y-m-d') != 'monday this week'|date('Y-m-d') %}<a class="bouton petit" href="{{ path('app_ressenti', {categorie: categorie.id}) }}">Cette semaine</a>{% endif %}
+    </div>
+
+    {% if not tableau.seances %}
+        <p class="vide">Pas d'entraînement ni de match cette semaine pour {{ categorie }}.</p>
+    {% else %}
+        <p class="discret">{{ tableau.reponses }} note{{ tableau.reponses > 1 ? 's' }} reçue{{ tableau.reponses > 1 ? 's' }}.</p>
+        <div class="table-defile">
+            <table class="liste tableau-rpe">
+                <thead>
+                    <tr>
+                        <th>Joueur</th>
+                        {% for s in tableau.seances %}
+                            {% set o = s.objet %}
+                            <th class="centre" title="{{ o.adversaire is defined ? 'Match contre ' ~ o.adversaire : 'Entraînement' }}">{{ o.adversaire is defined ? '⚽' : '🏃' }}<br>{{ jours[o.date|date('w')] }} {{ o.date|date('d/m') }}</th>
+                        {% endfor %}
+                        <th class="a-droite" title="Somme des RPE × minutes de la semaine">Charge</th>
+                        <th class="a-droite" title="Moyenne des 4 semaines précédentes">Moy. 4 sem.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in tableau.lignes %}
+                        <tr class="{{ l.alerte ? 'charge-alerte' }}">
+                            <td class="fort"><a href="{{ path('app_joueur_voir', {id: l.joueur.id}) }}">{{ l.joueur.nom }} {{ l.joueur.prenom }}</a></td>
+                            {% for s in tableau.seances %}
+                                {% set r = l.notes[s.cle] ?? null %}
+                                <td class="centre">{% if r %}<span class="pastille-rpe rpe-{{ r.rpe }}" title="{{ r.libelle }} · {{ r.duree }} min{{ r.commentaire ? ' · ' ~ r.commentaire }}">{{ r.rpe }}{% if r.commentaire %}*{% endif %}</span>{% else %}<span class="discret">–</span>{% endif %}</td>
+                            {% endfor %}
+                            <td class="a-droite">{{ l.charge ?: '–' }}{% if l.alerte %} <span class="pastille alerte" title="{{ (l.ratio * 100)|round }} % de la moyenne des 4 semaines précédentes">↑ {{ l.ratio|number_format(1, ',') }}×</span>{% endif %}</td>
+                            <td class="a-droite discret">{{ l.moyenne4 ? l.moyenne4|round : '–' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Moyenne de la séance</th>
+                        {% for s in tableau.seances %}
+                            <th class="centre">{% if s.moyenne %}<span class="pastille-rpe rpe-{{ s.moyenne|round }}">{{ s.moyenne|number_format(1, ',') }}</span><br><span class="discret petit">{{ s.reponses }} rép.</span>{% else %}–{% endif %}</th>
+                        {% endfor %}
+                        <th></th><th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <p class="discret petit">* : le joueur a laissé un commentaire (survolez la note pour le lire).</p>
+    {% endif %}
+{% endblock %}
