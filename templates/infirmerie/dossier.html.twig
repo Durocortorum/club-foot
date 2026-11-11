@@ -73,9 +73,9 @@
                             {% for b in blessures %}
                                 <tr>
                                     <td class="nowrap">{{ b.date ? b.date|date('d/m/Y') : '?' }}</td>
-                                    <td class="principal etroit">{{ b.libelle }}{% if b.enCours %} <span class="pastille alerte">en cours</span>{% endif %}</td>
+                                    <td class="principal etroit">{{ b.libelle }}{% if b.statut == 'arret' %} <span class="pastille alerte">en cours</span>{% elseif b.statut == 'entrainement' %} <span class="pastille attention" title="Reprend l'entraînement, pas encore les matchs">entraînement seul</span>{% endif %}</td>
                                     <td>{{ b.lieu }}{% if b.avecArret is not null %} · {{ b.avecArret ? 'avec arrêt' : 'sans arrêt' }}{% endif %}</td>
-                                    <td class="nowrap" data-label="reprise">{{ b.dateReprise ? b.dateReprise|date('d/m/Y') }}{% if not b.dateReprise and b.repriseEnvisagee %}<span class="discret" title="Arrêt envisagé : {{ b.arretPrevuLibelle }}">prévue vers le {{ b.repriseEnvisagee|date('d/m/Y') }}</span>{% endif %}</td>
+                                    <td class="nowrap" data-label="reprise">{% include 'infirmerie/_reprise.html.twig' with {b: b} only %}</td>
                                     <td data-label="durée">{% if b.duree is not null %}{{ b.duree }} j{% elseif b.arretPrevuLibelle %}<span class="discret" title="Arrêt envisagé">≈ {{ b.arretPrevuLibelle }}</span>{% endif %}</td>
                                     {% if inf_modif %}<td class="a-cote"><a href="{{ path('app_blessure_modifier', {id: b.id}) }}">Modifier</a></td>{% endif %}
                                 </tr>

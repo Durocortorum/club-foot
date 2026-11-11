@@ -68,7 +68,8 @@ class BlessureType extends AbstractType
             ->add('avecArret', ChoiceType::class, ['label' => 'Arrêt', 'choices' => ['Avec arrêt' => true, 'Sans arrêt' => false], 'required' => false, 'placeholder' => '—'])
             ->add('arretPrevu', IntegerType::class, ['label' => 'Arrêt envisagé', 'required' => false, 'attr' => ['min' => 1, 'max' => 365, 'placeholder' => 'ex. : 6']])
             ->add('uniteArret', ChoiceType::class, ['label' => 'Unité de l\'arrêt envisagé', 'choices' => ['jours' => 'jours', 'semaines' => 'semaines', 'mois' => 'mois'], 'required' => false, 'placeholder' => false])
-            ->add('dateReprise', DateType::class, ['label' => 'Date de reprise', 'help' => 'Laisser vide tant que le joueur est indisponible.'] + $date)
+            ->add('dateReprise', DateType::class, ['label' => 'Reprise de l\'entraînement', 'help' => 'Retour à l\'entraînement avec le groupe. Laisser vide tant que le joueur est arrêté.'] + $date)
+            ->add('dateRepriseMatch', DateType::class, ['label' => 'Reprise des matchs', 'help' => 'Apte à jouer en match. Laisser vide s\'il rejoue en même temps qu\'il reprend l\'entraînement.'] + $date)
             ->add('equipe', null, ['label' => 'Équipe au moment de la blessure', 'required' => false])
             ->add('commentaire', TextareaType::class, ['required' => false]);
     }

@@ -35,7 +35,8 @@ class BlessureRepository extends ServiceEntityRepository
             ->setMaxResults(self::PAR_PAGE);
 
         if ('en_cours' === $statut) {
-            $qb->andWhere('b.dateReprise IS NULL OR b.dateReprise > CURRENT_DATE()')
+            // Pas encore apte aux matchs : arrêté, ou reprise de l'entraînement seulement.
+            $qb->andWhere('b.dateReprise IS NULL OR b.dateReprise > CURRENT_DATE() OR b.dateRepriseMatch > CURRENT_DATE()')
                 ->andWhere('j.ancien = false');
         }
         if ($texte) {

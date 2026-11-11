@@ -12,6 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[ORM\Entity(repositoryClass: BlessureRepository::class)]
 #[Assert\Expression('!this.getDate() or !this.getDateReprise() or this.getDateReprise() >= this.getDate()', message: 'La reprise ne peut pas précéder la blessure.')]
+#[Assert\Expression('!this.getDateRepriseMatch() or ((!this.getDate() or this.getDateRepriseMatch() >= this.getDate()) and (!this.getDateReprise() or this.getDateRepriseMatch() >= this.getDateReprise()))', message: 'La reprise des matchs ne peut pas précéder la blessure ni la reprise de l\'entraînement.')]
 class Blessure implements AppartientAuClub
 {
     use ClubTrait;
@@ -37,8 +38,13 @@ class Blessure implements AppartientAuClub
     #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $date = null;
 
+    /** Reprise de l'entraînement (reprise sportive, avec le groupe). */
     #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $dateReprise = null;
+
+    /** Reprise des matchs (apte à la compétition) ; vide : en même temps que l'entraînement. */
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $dateRepriseMatch = null;
 
     #[ORM\Column(length: 60, nullable: true)]
     private ?string $type = null;
@@ -115,6 +121,38 @@ class Blessure implements AppartientAuClub
         $this->dateReprise = $dateReprise;
 
         return $this;
+    }
+
+    public function getDateRepriseMatch(): ?\DateTimeImmutable
+    {
+        return $this->dateRepriseMatch;
+    }
+
+    public function setDateRepriseMatch(?\DateTimeImmutable $dateRepriseMatch): static
+    {
+        $this->dateRepriseMatch = $dateRepriseMatch;
+
+        return $this;
+    }
+
+    /** Date à laquelle le joueur peut rejouer en match : la reprise des matchs, sinon celle de l'entraînement. */
+    public function getRepriseMatchEffective(): ?\DateTimeImmutable
+    {
+        return $this->dateRepriseMatch ?? $this->dateReprise;
+    }
+
+    /**
+     * Où en est le joueur aujourd'hui : « arret » (ni entraînement ni match), « entrainement » (reprise
+     * de l'entraînement, pas encore des matchs) ou « apte » (rejoue en match).
+     */
+    public function getStatut(): string
+    {
+        $aujourdhui = new \DateTimeImmutable('today');
+        if (null === $this->dateReprise || $this->dateReprise > $aujourdhui) {
+            return 'arret';
+        }
+
+        return null !== $this->dateRepriseMatch && $this->dateRepriseMatch > $aujourdhui ? 'entrainement' : 'apte';
     }
 
     public function getType(): ?string
@@ -267,10 +305,10 @@ class Blessure implements AppartientAuClub
         return $this->date->modify(\sprintf('+%d days', $this->arretPrevu * ('semaines' === $this->uniteArret ? 7 : 1)));
     }
 
-    /** Joueur toujours indisponible : pas de date de reprise, ou reprise à venir. */
+    /** Joueur pas encore apte aux matchs : arrêté, ou repris l'entraînement seulement. */
     public function isEnCours(): bool
     {
-        return null === $this->dateReprise || $this->dateReprise > new \DateTimeImmutable('today');
+        return 'apte' !== $this->getStatut();
     }
 
     /** Durée d'indisponibilité en jours, si les deux dates sont connues. */

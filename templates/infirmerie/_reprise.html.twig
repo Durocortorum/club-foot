@@ -1,0 +1,13 @@
+{# Cellule « Reprise » d'une blessure : entraînement puis matchs (si la date diffère), ou reprise envisagée.
+   Variables : b (Blessure), pastille (afficher où en est le joueur aujourd'hui). #}
+{% if b.dateReprise %}
+    <span title="Reprise de l'entraînement">Entraîn. {{ b.dateReprise|date('d/m/Y') }}</span>
+    {% if b.dateRepriseMatch and b.dateRepriseMatch != b.dateReprise %}<br><span title="Reprise des matchs">Matchs {{ b.dateRepriseMatch|date('d/m/Y') }}</span>{% endif %}
+{% elseif b.repriseEnvisagee %}
+    <span class="discret" title="Arrêt envisagé : {{ b.arretPrevuLibelle }}">prévue vers le {{ b.repriseEnvisagee|date('d/m/Y') }}</span>
+    {% if b.dateRepriseMatch %}<br><span title="Reprise des matchs">Matchs {{ b.dateRepriseMatch|date('d/m/Y') }}</span>{% endif %}
+{% endif %}
+{% if pastille ?? false %}
+    {% if b.statut == 'arret' %} <span class="pastille alerte">indisponible</span>
+    {% elseif b.statut == 'entrainement' %} <span class="pastille attention" title="Reprend l'entraînement, pas encore les matchs">entraînement seul</span>{% endif %}
+{% endif %}

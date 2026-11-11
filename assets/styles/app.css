@@ -186,6 +186,7 @@ dd { margin: 0; word-break: break-word; }
 .bouton.petit { padding: .2rem .55rem; font-size: .85rem; }
 .pastille.alerte { background: var(--danger-clair); color: var(--danger-fonce); }
 .pastille.succes { background: #e5f4ea; color: var(--succes); }
+.pastille.attention { background: #fff4d6; color: #7a5300; }
 .liste-simple li.avec-actions { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 ul.liste-simple.carte { padding: .3rem 1.2rem; }
 .case-filtre { display: flex; align-items: center; gap: .4rem; white-space: nowrap; }
