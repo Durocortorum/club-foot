@@ -168,6 +168,13 @@ class RencontreController extends AbstractController
                 $this->addFlash('erreur', 'Aucun match reconnu : chaque match doit avoir une date (« dim. 23 août 2026 » ou « 23/08/2026 ») suivie des deux équipes.');
                 $analyse = null;
             } else {
+                // Page d'une poule collée ici : seuls les matchs du club sont gardés, les autres vont dans « Championnat ».
+                $duClub = array_values(array_filter($analyse['matchs'], fn (array $m) => Rencontre::estLeClub($m['domicile']) || Rencontre::estLeClub($m['exterieur'])));
+                if ($duClub && \count($duClub) < \count($analyse['matchs'])) {
+                    $ignores = \count($analyse['matchs']) - \count($duClub);
+                    $this->addFlash('info', \sprintf('%d %s entre d\'autres équipes %s : ils se mettent dans « Championnat » (matchs de la poule).', $ignores, $ignores > 1 ? 'matchs' : 'match', $ignores > 1 ? 'sont ignorés' : 'est ignoré'));
+                    $analyse['matchs'] = array_map(fn (array $m) => ['aDomicile' => Rencontre::estLeClub($m['domicile']), 'adversaire' => $import->sansCategorie(Rencontre::estLeClub($m['domicile']) ? $m['exterieur'] : $m['domicile'])] + $m, $duClub);
+                }
                 foreach ($analyse['matchs'] as $i => $m) {
                     if ($existant = $rencontres->findOneBy(['categorie' => $categorie, 'date' => $m['date']])) {
                         $deja[$i] = $existant;

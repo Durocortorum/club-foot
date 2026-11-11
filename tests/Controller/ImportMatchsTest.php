@@ -64,6 +64,31 @@ class ImportMatchsTest extends WebTestCase
         );
     }
 
+    /** Page de la poule collée par erreur dans « Importer des matchs » : seuls les matchs du club sont proposés. */
+    public function testPageDePouleNeGardeQueLesMatchsDuClub(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Coach');
+        $club = (new Club())->setNom('Stade de Reims');
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $categorie = $em->getRepository(Categorie::class)->findOneBy(['club' => $club, 'nom' => 'U19']);
+        $texte = "dim 09 mai 2027 - 15h00\nRC STRASBOURG ALSACE\nRC STRASBOURG ALSACE\n15:00\nAS NANCY LORRAINE\nAS NANCY LORRAINE\n"
+            . "dim 09 mai 2027 - 15h00\nDIJON FCO\nDIJON FCO\n15:00\nPARIS FC\nPARIS FC\n"
+            . "dim 09 mai 2027 - 15h00\nAJ AUXERRE\nAJ AUXERRE\n15:00\nSTADE DE REIMS\nSTADE DE REIMS\n";
+
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', '/matchs/importer?categorie=' . $categorie->getId());
+        $crawler = $this->client->submit($crawler->selectButton('Lire le calendrier')->form(['texte' => $texte]));
+        self::assertSelectorTextContains('.flash-info', '2 matchs entre d\'autres équipes sont ignorés');
+        self::assertCount(1, $crawler->filter('input[name="lignes[]"]'));
+        $this->client->submit($crawler->selectButton('Importer les matchs cochés')->form());
+        $em->clear();
+        $matchs = $em->getRepository(Rencontre::class)->findBy(['categorie' => $categorie->getId()]);
+        self::assertSame([['AJ AUXERRE', 'STADE DE REIMS']], array_map(fn (Rencontre $r) => [$r->getDomicile(), $r->getExterieur()], $matchs));
+    }
+
     public function testImporterUnCalendrier(): void
     {
         $id = bin2hex(random_bytes(4));

@@ -177,7 +177,7 @@ class ImportMatchs
     }
 
     /** Adversaire sans la catégorie ni le numéro d'équipe en fin de nom : « AJ AUXERRE U19 » ou « PARIS FC 2 » → nom seul. */
-    private function sansCategorie(string $equipe): string
+    public function sansCategorie(string $equipe): string
     {
         return trim(preg_replace('/(\s+(U\d{1,2}|NAT|N\d|\d))+$/u', '', $equipe) ?? $equipe) ?: $equipe;
     }
