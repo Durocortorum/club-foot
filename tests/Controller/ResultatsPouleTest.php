@@ -22,7 +22,7 @@ class ResultatsPouleTest extends WebTestCase
     {
         if ($this->clubId) {
             $connexion = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
-            foreach (['resultat_poule', 'classement', 'utilisateur', 'categorie'] as $table) {
+            foreach (['resultat_poule', 'classement', 'rencontre', 'utilisateur', 'categorie'] as $table) {
                 $connexion->executeStatement("DELETE FROM $table WHERE club_id = ?", [$this->clubId]);
             }
             $connexion->executeStatement('DELETE FROM club WHERE id = ?', [$this->clubId]);
@@ -48,7 +48,7 @@ class ResultatsPouleTest extends WebTestCase
         $client->loginUser($admin);
         $crawler = $client->request('GET', '/championnat?categorie=' . $u19->getId() . '&saison=' . $saison);
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('Officiel', $crawler->filter('.carte.bloc')->first()->text());
+        self::assertStringContainsString('Officiel', $crawler->filter('section.carte.bloc:not(.import-fff-unique)')->first()->text());
         // Saisie : Troyes perd 0-2 contre Annecy, le lendemain du classement officiel ; une ligne incomplète est signalée.
         $form = $crawler->selectButton('Enregistrer les matchs')->form();
         $client->submit($form, [
@@ -61,7 +61,7 @@ class ResultatsPouleTest extends WebTestCase
         self::assertStringContainsString('ligne 2', $crawler->filter('.flash-erreur')->text());
         $equipes = $crawler->filter('table.classement tbody tr td.fort')->each(fn ($n) => $n->text());
         self::assertSame(["FC D'ANNECY", 'ESTAC TROYES', 'PARIS FC'], $equipes, 'Annecy 25 pts passe devant Troyes 24');
-        self::assertStringContainsString('Recalculé avec 1 résultat', $crawler->filter('.carte.bloc')->first()->text());
+        self::assertStringContainsString('Recalculé avec 1 résultat', $crawler->filter('section.carte.bloc:not(.import-fff-unique)')->first()->text());
 
         // Pénalité de 2 points pour Paris : affichée à côté des points.
         $client->submit($crawler->filter('form.ajustement')->last()->form(['equipe' => 'PARIS FC', 'points' => '-2']));
@@ -105,9 +105,12 @@ class ResultatsPouleTest extends WebTestCase
         $client->loginUser($admin);
         $url = '/championnat?categorie=' . $u19->getId() . '&saison=' . $saison;
         $crawler = $client->request('GET', $url);
-        $client->submit($crawler->selectButton('Importer les matchs de la poule')->form(['texte' => $texte]));
+        $client->submit($crawler->selectButton('Importer')->form(['texte' => $texte]));
         $crawler = $client->followRedirect();
-        self::assertStringContainsString('3 matchs ajoutés', $crawler->filter('.flash-succes')->text());
+        // Même case : le match du club va dans « Matchs », les autres dans le calendrier de la poule.
+        self::assertStringContainsString('Vos matchs : 1 ajouté, 0 score ajouté · matchs de la poule : 3 ajoutés', $crawler->filter('.flash-succes')->text());
+        $reims = $em->getRepository(\App\Entity\Rencontre::class)->findBy(['categorie' => $u19->getId()]);
+        self::assertSame([['STADE DE REIMS', 'CLERMONT FOOT 63', '11h00']], array_map(fn ($r) => [$r->getDomicile(), $r->getExterieur(), $r->getHeure()], $reims));
         self::assertSame(['Journée 11', 'Journée 12'], $crawler->filter('details.journee summary strong')->each(fn ($n) => $n->text()));
         self::assertSame(2, $crawler->filter('details.journee')->first()->filter('input[name$="[bd]"]')->count(), 'match du club exclu');
 
@@ -125,9 +128,9 @@ class ResultatsPouleTest extends WebTestCase
 
         // Nouveau copier-coller avec un score : le match existant est complété, pas recréé.
         $texte2 = implode("\n", ['Journée 12', $date($jour->modify('+7 days')) . ' - 15h00', 'ESTAC TROYES', 'ESTAC TROYES', '1', '-', '1', 'PARIS FC', 'PARIS FC']);
-        $client->submit($crawler->selectButton('Importer les matchs de la poule')->form(['texte' => $texte2]));
+        $client->submit($crawler->selectButton('Importer')->form(['texte' => $texte2]));
         $crawler = $client->followRedirect();
-        self::assertStringContainsString('0 match ajouté, 1 score mis à jour', $crawler->filter('.flash-succes')->text());
+        self::assertStringContainsString('Matchs de la poule : 0 ajouté, 1 score mis à jour', $crawler->filter('.flash-succes')->text());
         self::assertCount(3, $em->getRepository(ResultatPoule::class)->findBy(['club' => $this->clubId]));
     }
 }

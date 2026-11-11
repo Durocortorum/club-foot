@@ -75,13 +75,11 @@ class ChampionnatTest extends WebTestCase
             . "2\n1\n$nous\n$nous\n20\n10\n6\n2\n2\n0\n0\n19\n11\n8\n"
             . "3\n1\nFC METZ\nFC METZ\n16\n10\n4\n4\n2\n0\n0\n18\n12\n6\n"
             . "Mentions légales\n";
-        $crawler = $this->client->submit($crawler->selectButton('Lire le classement')->form(['texte' => $copie]));
-        self::assertSelectorTextContains('#apercu-classement h3', '3 équipes reconnues');
-        self::assertNull($em->getRepository(Classement::class)->findOneBy(['categorie' => $equipe->getId()]), 'rien d\'enregistré avant confirmation');
-
-        $this->client->submit($crawler->selectButton('Enregistrer ce classement')->form());
+        // Une seule case « Importer depuis la FFF » : le classement est reconnu et enregistré, sans le relire comme des matchs.
+        $this->client->submit($crawler->selectButton('Importer')->form(['texte' => $copie]));
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('.flash-succes', 'Classement ' . $equipe->getNom() . ' enregistré (3 équipes)');
+        self::assertSelectorTextContains('.flash-succes', 'Classement enregistré (3 équipes)');
+        self::assertCount(4, $em->getRepository(Rencontre::class)->findBy(['categorie' => $equipe->getId()]));
         self::assertSame(['1', '2', '3'], $crawler->filter('.classement tbody td.rang-classement')->each(fn ($n) => $n->text()));
         self::assertStringContainsString($nous, $crawler->filter('.classement tr.nous')->text());
 

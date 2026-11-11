@@ -153,57 +153,117 @@ class ChampionnatController extends AbstractController
     }
 
     /**
-     * Calendrier de la poule copié depuis la FFF (page de la compétition : une ou plusieurs journées) :
-     * les matchs des autres équipes sont ajoutés, ceux déjà connus reçoivent leur score. Les matchs du club
-     * et les matchs amicaux ou de coupe sont ignorés (ils sont dans « Matchs »).
+     * Une seule case pour tout ce qui vient de la FFF : le site reconnaît ce qui est collé.
+     * – un classement : il remplace le classement officiel ;
+     * – des matchs (page de l'équipe ou page de la poule) : ceux du club vont dans « Matchs » (sans doublon,
+     *   le score est ajouté s'il manquait), ceux des autres équipes dans le calendrier de la poule.
      */
-    #[Route('/championnat/poule/importer', name: 'app_championnat_poule_importer', methods: ['POST'])]
-    public function importerPoule(Request $request, CategorieRepository $categories, ResultatPouleRepository $resultats, ImportMatchs $import, EntityManagerInterface $em): Response
-    {
+    #[Route('/championnat/importer', name: 'app_championnat_importer', methods: ['POST'])]
+    public function importer(
+        Request $request,
+        CategorieRepository $categories,
+        ClassementRepository $classements,
+        RencontreRepository $rencontres,
+        ResultatPouleRepository $resultats,
+        ImportClassement $importClassement,
+        ImportMatchs $importMatchs,
+        EntityManagerInterface $em,
+    ): Response {
         [$categorie, $saison] = $this->equipeEtSaison($request, $categories);
         $p = $request->getPayload();
-        if ($this->isCsrfTokenValid('importer-poule', $p->getString('_token'))) {
-            $lus = $import->analyser($p->getString('texte'))['matchs'];
+        if (!$this->isCsrfTokenValid('importer-fff', $p->getString('_token'))) {
+            return $this->retour($categorie, $saison, 'importer');
+        }
+        $texte = $p->getString('texte');
+        $bilan = [];
+
+        // Classement : reconnu à ses colonnes (points, joués, gagnés…), qui doivent toutes tenir debout.
+        if ($lignes = $importClassement->analyser($texte)) {
+            $classement = $classements->findOneBy(['categorie' => $categorie, 'saison' => $saison])
+                ?? (new Classement($categorie, $saison))->setClub($categorie->getClub());
+            $em->persist($classement->setLignes($lignes));
+            $bilan[] = \sprintf('classement enregistré (%d équipes)', \count($lignes));
+        } else {
+            // Matchs (une page de classement n'en contient pas : on ne la relit pas comme des matchs).
+            $lus = $importMatchs->analyser($texte)['matchs'];
+            [$debut, $fin] = Rencontre::bornesSaison($saison);
+            $lus = array_values(array_filter($lus, fn (array $m) => $m['date'] >= $debut && $m['date'] <= $fin));
+            $nom = mb_strtoupper((string) $categorie->getClub()->getNom());
+            $club = ['ajoutes' => 0, 'scores' => 0];
+            $poule = ['ajoutes' => 0, 'scores' => 0];
             $existants = $resultats->findBy(['categorie' => $categorie, 'saison' => $saison]);
-            $ajoutes = $completes = 0;
             foreach ($lus as $m) {
-                if (Rencontre::estLeClub($m['domicile']) || Rencontre::estLeClub($m['exterieur']) || \in_array($m['competition'], ['Amical', 'Coupe', 'Tournoi'], true)) {
-                    continue;
-                }
-                // Même match : mêmes équipes, même journée (ou même date si la journée n'est pas connue).
-                $existant = null;
-                foreach ($existants as $e) {
-                    if ($e->getDomicile() === $m['domicile'] && $e->getExterieur() === $m['exterieur']
-                        && (null !== $m['journee'] && null !== $e->getJournee() ? $e->getJournee() === $m['journee'] : $e->getDate() == $m['date'])) {
-                        $existant = $e;
-                        break;
-                    }
-                }
-                if ($existant) {
-                    $existant->setDate($m['date'])->setJournee($m['journee'] ?? $existant->getJournee());
-                    if (null !== $m['butsDomicile'] && [$m['butsDomicile'], $m['butsExterieur']] !== [$existant->getButsDomicile(), $existant->getButsExterieur()]) {
-                        $existant->setScore($m['butsDomicile'], $m['butsExterieur']);
-                        ++$completes;
-                    }
-                } else {
-                    $nouveau = (new ResultatPoule($categorie, $saison, $m['date'], $m['domicile'], $m['exterieur'], $m['butsDomicile'], $m['butsExterieur']))
-                        ->setJournee($m['journee'])->setClub($categorie->getClub());
-                    $em->persist($nouveau);
-                    $existants[] = $nouveau;
-                    ++$ajoutes;
+                $domicileClub = Rencontre::estLeClub($m['domicile']);
+                if ($domicileClub || Rencontre::estLeClub($m['exterieur'])) {
+                    $this->matchDuClub($m, $domicileClub, $nom, $categorie, $rencontres, $importMatchs, $em, $club);
+                } elseif (!\in_array($m['competition'], ['Amical', 'Coupe', 'Tournoi'], true)) {
+                    $this->matchDeLaPoule($m, $categorie, $saison, $existants, $em, $poule);
                 }
             }
-            $em->flush();
-            if ($ajoutes || $completes) {
-                $this->addFlash('succes', \sprintf('Calendrier de la poule : %d %s, %d %s.', $ajoutes, $ajoutes > 1 ? 'matchs ajoutés' : 'match ajouté', $completes, $completes > 1 ? 'scores mis à jour' : 'score mis à jour'));
-            } else {
+            if ($club['ajoutes'] || $club['scores']) {
+                $bilan[] = \sprintf('vos matchs : %d %s, %d %s', $club['ajoutes'], $club['ajoutes'] > 1 ? 'ajoutés' : 'ajouté', $club['scores'], $club['scores'] > 1 ? 'scores ajoutés' : 'score ajouté');
+            }
+            if ($poule['ajoutes'] || $poule['scores']) {
+                $bilan[] = \sprintf('matchs de la poule : %d %s, %d %s', $poule['ajoutes'], $poule['ajoutes'] > 1 ? 'ajoutés' : 'ajouté', $poule['scores'], $poule['scores'] > 1 ? 'scores mis à jour' : 'score mis à jour');
+            }
+            if (!$bilan) {
                 $this->addFlash($lus ? 'info' : 'erreur', $lus
                     ? 'Rien de nouveau : ces matchs et leurs scores étaient déjà enregistrés.'
-                    : 'Aucun match reconnu : copiez la page de la compétition sur la FFF (Ctrl+A, Ctrl+C), avec les dates et les équipes.');
+                    : 'Rien de reconnu : sur la FFF, ouvrez la page « Classement » ou la page des matchs (de l\'équipe ou de la poule), faites Ctrl+A puis Ctrl+C, et collez ici.');
             }
         }
+        $em->flush();
+        if ($bilan) {
+            $this->addFlash('succes', ucfirst(implode(' · ', $bilan)) . '.');
+        }
 
-        return $this->retour($categorie, $saison, 'resultats-poule');
+        return $this->retour($categorie, $saison, 'importer');
+    }
+
+    /** Match du club : créé s'il n'existe pas ce jour-là, sinon seulement son score ajouté s'il manquait. */
+    private function matchDuClub(array $m, bool $aDomicile, string $nom, Categorie $categorie, RencontreRepository $rencontres, ImportMatchs $import, EntityManagerInterface $em, array &$compte): void
+    {
+        if ($existant = $rencontres->findOneBy(['categorie' => $categorie, 'date' => $m['date']])) {
+            if (null !== $m['butsDomicile'] && null === $existant->getButsDomicile() && null === $existant->getButsExterieur()) {
+                $existant->setButsDomicile($m['butsDomicile'])->setButsExterieur($m['butsExterieur']);
+                ++$compte['scores'];
+            }
+
+            return;
+        }
+        $adversaire = $import->sansCategorie($aDomicile ? $m['exterieur'] : $m['domicile']);
+        $em->persist((new Rencontre())->setClub($categorie->getClub())->setCategorie($categorie)->setDate($m['date'])->setHeure($m['heure'])
+            ->setCompetition($m['competition'] ?? 'Championnat')
+            ->setDomicile($aDomicile ? $nom : $adversaire)->setExterieur($aDomicile ? $adversaire : $nom)
+            ->setButsDomicile($m['butsDomicile'])->setButsExterieur($m['butsExterieur']));
+        ++$compte['ajoutes'];
+    }
+
+    /**
+     * Match entre deux autres équipes : même match = mêmes équipes et même journée (ou même date si la journée
+     * n'est pas connue) ; il reçoit alors seulement son score.
+     *
+     * @param list<ResultatPoule> $existants
+     */
+    private function matchDeLaPoule(array $m, Categorie $categorie, string $saison, array &$existants, EntityManagerInterface $em, array &$compte): void
+    {
+        foreach ($existants as $e) {
+            if ($e->getDomicile() === $m['domicile'] && $e->getExterieur() === $m['exterieur']
+                && (null !== $m['journee'] && null !== $e->getJournee() ? $e->getJournee() === $m['journee'] : $e->getDate() == $m['date'])) {
+                $e->setDate($m['date'])->setJournee($m['journee'] ?? $e->getJournee());
+                if (null !== $m['butsDomicile'] && [$m['butsDomicile'], $m['butsExterieur']] !== [$e->getButsDomicile(), $e->getButsExterieur()]) {
+                    $e->setScore($m['butsDomicile'], $m['butsExterieur']);
+                    ++$compte['scores'];
+                }
+
+                return;
+            }
+        }
+        $nouveau = (new ResultatPoule($categorie, $saison, $m['date'], $m['domicile'], $m['exterieur'], $m['butsDomicile'], $m['butsExterieur']))
+            ->setJournee($m['journee'])->setClub($categorie->getClub());
+        $em->persist($nouveau);
+        $existants[] = $nouveau;
+        ++$compte['ajoutes'];
     }
 
     /** Scores d'une journée tapés dans les cases (deux cases vides : match pas encore joué). */

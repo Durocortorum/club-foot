@@ -73,6 +73,25 @@
         </div>
     {% endif %}
 
+    {# Une seule case pour tout ce qui vient de la FFF : classement, matchs du club, matchs de la poule. #}
+    <section class="carte bloc import-fff-unique" id="importer">
+        <details {{ not lignes and not resultats and not matchs ? 'open' }}>
+            <summary class="bouton principal">Importer depuis la FFF (classement, matchs, calendrier)</summary>
+            <form method="post" action="{{ path('app_championnat_importer') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('importer-fff') }}">
+                <input type="hidden" name="categorie" value="{{ categorie.id }}">
+                <input type="hidden" name="saison" value="{{ saison }}">
+                <ol class="petit etapes-poule">
+                    <li>Sur le site de la FFF, ouvrez la page que vous voulez : <strong>Classement</strong>, les <strong>matchs de l'équipe</strong> (onglet « Saison ») ou la <strong>page de la poule</strong> (tous les matchs du groupe).</li>
+                    <li>Faites <strong>Ctrl+A</strong> puis <strong>Ctrl+C</strong>.</li>
+                    <li>Collez ici (<strong>Ctrl+V</strong>) et cliquez sur « Importer ». Le site reconnaît tout seul ce que vous avez collé.</li>
+                </ol>
+                <textarea name="texte" rows="6" required placeholder="Collez ici la page de la FFF"></textarea>
+                <div class="barre-actions"><button type="submit" class="bouton principal">Importer</button></div>
+                <p class="discret petit">Rien n'est créé en double : un match déjà enregistré reçoit seulement son score. Un classement collé remplace l'ancien. Les matchs de {{ categorie }} vont dans « Matchs », ceux des autres équipes dans le calendrier de la poule.</p>
+            </form>
+        </details>
+    </section>
     <section class="carte bloc">
         <div class="titre-page">
             <h2>Classement</h2>
@@ -87,59 +106,30 @@
             {{ t.tableau(lignes) }}
             {% if not nous %}<p class="discret petit">Votre équipe n'a pas été reconnue dans ce classement : vérifiez le nom du club dans « Apparence ».</p>{% endif %}
         {% else %}
-            <p class="vide">Pas encore de classement pour {{ categorie }} en {{ saison }}. Collez-le ci-dessous depuis la FFF ou Transfermarkt.</p>
+            <p class="vide">Pas encore de classement pour {{ categorie }} en {{ saison }}. Importez-le depuis la FFF avec le bouton ci-dessus.</p>
         {% endif %}
 
-        {# Sans Turbo : l'aperçu est une page ordinaire (pas une redirection), que Turbo n'afficherait pas. #}
-        <details class="maj-classement" {{ apercu is not null or not lignes ? 'open' }}>
-            <summary class="bouton">{{ lignes ? 'Mettre à jour le classement' : 'Ajouter le classement' }}</summary>
-            <form method="post" action="{{ path('app_championnat') }}#apercu-classement" data-turbo="false">
+        {# Aperçu d'un classement envoyé par le bouton « ➜ Club Foot » (page sans Turbo, pas une redirection). #}
+        {% if apercu %}
+            <form method="post" action="{{ path('app_championnat') }}" data-turbo="false" id="apercu-classement">
                 <input type="hidden" name="_token" value="{{ csrf_token('classement') }}">
                 <input type="hidden" name="categorie" value="{{ categorie.id }}">
                 <input type="hidden" name="saison" value="{{ saison }}">
-                <p class="discret petit">Sur la page « Classement » de l'équipe (FFF) ou le tableau de Transfermarkt : Ctrl+A pour tout sélectionner, Ctrl+C pour copier, puis Ctrl+V ici.</p>
-                <p class="petit">Ou, plus simple : <a href="{{ path('app_import_fff') }}">le bouton « ➜ Club Foot » sur la page de la FFF</a>.</p>
-                <textarea name="texte" rows="8" required placeholder="Collez ici la page du classement">{{ texte }}</textarea>
+                <textarea name="texte" hidden>{{ texte }}</textarea>
+                <h3>{{ apercu|length }} équipes reconnues</h3>
+                <p class="discret petit">Vérifiez avant d'enregistrer : le classement actuel sera remplacé.</p>
+                {{ t.tableau(apercu) }}
                 <div class="barre-actions">
-                    <button type="submit" name="action" value="lire" class="bouton{{ apercu ? '' : ' principal' }}">Lire le classement</button>
+                    <button type="submit" name="action" value="enregistrer" class="bouton principal">Enregistrer ce classement</button>
                 </div>
-
-                {% if apercu %}
-                    <div id="apercu-classement">
-                        <h3>{{ apercu|length }} équipes reconnues</h3>
-                        <p class="discret petit">Vérifiez avant d'enregistrer : le classement actuel sera remplacé.</p>
-                        {{ t.tableau(apercu) }}
-                        <div class="barre-actions">
-                            <button type="submit" name="action" value="enregistrer" class="bouton principal">Enregistrer ce classement</button>
-                        </div>
-                    </div>
-                {% endif %}
             </form>
-        </details>
+        {% endif %}
     </section>
 
     {# Calendrier de la poule par journée : scores des autres équipes, classement recalculé sans attendre la FFF. #}
     <section class="carte bloc" id="resultats-poule">
         <h2>Matchs de la poule, journée par journée</h2>
-        <p class="discret">Tous les matchs de la poule : tapez les scores dans les cases, ou copiez-collez la page de la FFF. Le classement se recalcule aussitôt. Les matchs de {{ categorie }} viennent de « Matchs ».{% if officiel %} Seuls les matchs joués après le {{ classement.misAJourLe|date('d/m') }} (dernier classement officiel) comptent : les précédents y sont déjà.{% endif %}</p>
-
-        {# Copier-coller du calendrier de la poule depuis la FFF. #}
-        <details class="import-poule" {{ not resultats ? 'open' }}>
-            <summary class="bouton">{{ resultats ? 'Mettre à jour depuis la FFF (copier-coller)' : 'Ajouter les matchs de la poule depuis la FFF (copier-coller)' }}</summary>
-            <form method="post" action="{{ path('app_championnat_poule_importer') }}">
-                <input type="hidden" name="_token" value="{{ csrf_token('importer-poule') }}">
-                <input type="hidden" name="categorie" value="{{ categorie.id }}">
-                <input type="hidden" name="saison" value="{{ saison }}">
-                <ol class="petit etapes-poule">
-                    <li>Sur le site de la FFF, page de l'équipe, cliquez sur le nom du championnat (par exemple « CHAMPIONNAT NATIONAL U19 ») au-dessus d'un match : la page de la poule s'ouvre.</li>
-                    <li>Affichez ses résultats et son calendrier (une journée ou toute la saison).</li>
-                    <li>Ctrl+A puis Ctrl+C, et collez ici (Ctrl+V).</li>
-                </ol>
-                <textarea name="texte" rows="6" required placeholder="Collez ici la page de la poule"></textarea>
-                <div class="barre-actions"><button type="submit" class="bouton principal">Importer les matchs de la poule</button></div>
-                <p class="discret petit">Les matchs déjà enregistrés ne sont pas recréés : ils reçoivent seulement leur score.</p>
-            </form>
-        </details>
+        <p class="discret">Tous les matchs de la poule : tapez les scores dans les cases, ou importez la page de la poule depuis la FFF (bouton en haut). Le classement se recalcule aussitôt. Les matchs de {{ categorie }} viennent de « Matchs ».{% if officiel %} Seuls les matchs joués après le {{ classement.misAJourLe|date('d/m') }} (dernier classement officiel) comptent : les précédents y sont déjà.{% endif %}</p>
 
         {# Journée en cours ouverte : la première qui n'est pas finie, sinon la dernière. #}
         {% set ouverte = null %}
@@ -189,7 +179,7 @@
                 {% endif %}
             </details>
         {% else %}
-            <p class="vide">Aucun match de la poule pour l'instant : copiez-collez la page de la poule depuis la FFF (ci-dessus), ou ajoutez les matchs à la main (ci-dessous).</p>
+            <p class="vide">Aucun match de la poule pour l'instant : importez la page de la poule depuis la FFF (bouton en haut de la page), ou ajoutez les matchs à la main (ci-dessous).</p>
         {% endfor %}
 
         {# Saisie à la main : matchs absents du calendrier importé. #}
