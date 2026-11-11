@@ -8,8 +8,8 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Score d'un match de la poule entre deux autres équipes (les matchs du club sont ses rencontres),
- * saisi pour recalculer le classement sans attendre la mise à jour de la FFF.
+ * Match de la poule entre deux autres équipes (les matchs du club sont ses rencontres) : importé du
+ * calendrier de la poule (FFF) ou saisi ; son score, une fois connu, sert à recalculer le classement.
  */
 #[ORM\Entity(repositoryClass: ResultatPouleRepository::class)]
 #[ORM\Index(columns: ['saison'])]
@@ -41,15 +41,20 @@ class ResultatPoule implements AppartientAuClub
     #[Assert\NotBlank]
     private string $exterieur;
 
-    #[ORM\Column(type: Types::SMALLINT)]
+    /** Score : vide tant que le match n'est pas joué. */
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
     #[Assert\Range(min: 0, max: 99)]
-    private int $butsDomicile;
+    private ?int $butsDomicile;
 
-    #[ORM\Column(type: Types::SMALLINT)]
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
     #[Assert\Range(min: 0, max: 99)]
-    private int $butsExterieur;
+    private ?int $butsExterieur;
 
-    public function __construct(Categorie $categorie, string $saison, \DateTimeImmutable $date, string $domicile, string $exterieur, int $butsDomicile, int $butsExterieur)
+    /** Numéro de la journée (calendrier FFF) ; vide si inconnu (les matchs sont alors groupés par date). */
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $journee = null;
+
+    public function __construct(Categorie $categorie, string $saison, \DateTimeImmutable $date, string $domicile, string $exterieur, ?int $butsDomicile = null, ?int $butsExterieur = null)
     {
         $this->categorie = $categorie;
         $this->saison = $saison;
@@ -90,13 +95,45 @@ class ResultatPoule implements AppartientAuClub
         return $this->exterieur;
     }
 
-    public function getButsDomicile(): int
+    public function getButsDomicile(): ?int
     {
         return $this->butsDomicile;
     }
 
-    public function getButsExterieur(): int
+    public function getButsExterieur(): ?int
     {
         return $this->butsExterieur;
+    }
+
+    /** Score saisi (les deux ou aucun) ; un seul côté rempli est ignoré. */
+    public function setScore(?int $domicile, ?int $exterieur): static
+    {
+        [$this->butsDomicile, $this->butsExterieur] = null === $domicile || null === $exterieur ? [null, null] : [$domicile, $exterieur];
+
+        return $this;
+    }
+
+    public function isJoue(): bool
+    {
+        return null !== $this->butsDomicile && null !== $this->butsExterieur;
+    }
+
+    public function getJournee(): ?int
+    {
+        return $this->journee;
+    }
+
+    public function setJournee(?int $journee): static
+    {
+        $this->journee = $journee;
+
+        return $this;
+    }
+
+    public function setDate(\DateTimeImmutable $date): static
+    {
+        $this->date = $date;
+
+        return $this;
     }
 }

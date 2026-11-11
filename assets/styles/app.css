@@ -1062,3 +1062,18 @@ table.droits thead th.droits-nom { z-index: 3; }
 .score-rapide-cases { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; font-weight: 700; }
 .score-rapide-cases input { width: 4.5rem; text-align: center; font-size: 1.3rem; font-weight: 800; }
 .score-rapide-cases .tiret { color: var(--gris); }
+
+/* Championnat : matchs de la poule par journée. */
+.import-poule, .ajout-manuel { margin: .8rem 0; }
+.import-poule textarea { width: 100%; }
+.etapes-poule { margin: .6rem 0; padding-left: 1.2rem; }
+.ajout-manuel summary, .journee summary { cursor: pointer; }
+.journee { border: 1px solid var(--bordure); border-radius: var(--rayon); padding: .5rem .8rem; margin: .5rem 0; background: #fff; }
+.journee[open] { border-color: color-mix(in srgb, var(--rouge) 35%, var(--bordure)); }
+.journee summary { padding: .2rem 0; }
+.journee-matchs { width: 100%; margin-top: .4rem; }
+.journee-matchs td.dom { text-align: right; width: 38%; }
+.journee-matchs td.ext { width: 38%; }
+.journee-matchs .match-club td { background: color-mix(in srgb, var(--rouge) 6%, transparent); font-weight: 600; }
+.journee-matchs .score-club { text-align: center; }
+.journee-matchs tr.deja-compte { opacity: .65; }

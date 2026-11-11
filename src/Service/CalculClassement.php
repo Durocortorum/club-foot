@@ -36,6 +36,9 @@ class CalculClassement
         $dejaComptes = 0;
 
         foreach ($resultats as $r) {
+            if (!$r->isJoue()) {
+                continue; // match à venir : pas encore de score
+            }
             if (!$apres($r->getDate())) {
                 ++$dejaComptes;
                 continue;

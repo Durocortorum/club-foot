@@ -13,6 +13,7 @@ use App\Repository\ResultatPouleRepository;
 use App\Service\CalculClassement;
 use App\Security\ActiviteVoter;
 use App\Service\ImportClassement;
+use App\Service\ImportMatchs;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -101,6 +102,7 @@ class ChampionnatController extends AbstractController
             'officiel' => $classement?->getLignes() ?? [],
             'recalcul' => $recalcul,
             'resultats' => $resultats,
+            'journees' => self::journees($resultats, $matchs),
             'equipes' => $this->equipesDeLaPoule($classement, $resultats),
             'apercu' => $apercu ? $this->marquerLeClub($apercu) : null,
             'texte' => $texte,
@@ -129,20 +131,103 @@ class ChampionnatController extends AbstractController
                 if ('' === $dom && '' === $ext && '' === $bd && '' === $be) {
                     continue;
                 }
-                if ('' === $dom || '' === $ext || !ctype_digit($bd) || !ctype_digit($be) || $dom === $ext || (int) $bd > 99 || (int) $be > 99) {
+                $sansScore = '' === $bd && '' === $be;
+                if ('' === $dom || '' === $ext || $dom === $ext || (!$sansScore && (!ctype_digit($bd) || !ctype_digit($be) || (int) $bd > 99 || (int) $be > 99))) {
                     $erreurs[] = 'ligne ' . ((int) $i + 1);
                     continue;
                 }
-                $em->persist((new ResultatPoule($categorie, $saison, $date, $dom, $ext, (int) $bd, (int) $be))->setClub($categorie->getClub()));
+                $em->persist((new ResultatPoule($categorie, $saison, $date, $dom, $ext, $sansScore ? null : (int) $bd, $sansScore ? null : (int) $be))
+                    ->setJournee(ctype_digit($n = trim($p->getString('journee'))) ? ((int) $n ?: null) : null)->setClub($categorie->getClub()));
                 ++$ajoutes;
             }
             $em->flush();
             if ($ajoutes) {
-                $this->addFlash('succes', \sprintf('%d %s du %s %s : classement recalculé.', $ajoutes, $ajoutes > 1 ? 'résultats' : 'résultat', $date->format('d/m'), $ajoutes > 1 ? 'enregistrés' : 'enregistré'));
+                $this->addFlash('succes', \sprintf('%d %s du %s %s : classement recalculé.', $ajoutes, $ajoutes > 1 ? 'matchs' : 'match', $date->format('d/m'), $ajoutes > 1 ? 'enregistrés' : 'enregistré'));
             }
             if ($erreurs) {
-                $this->addFlash('erreur', 'Incomplet ou incorrect, non enregistré (' . implode(', ', $erreurs) . ') : choisissez deux équipes différentes et un score pour chacune.');
+                $this->addFlash('erreur', 'Incomplet ou incorrect, non enregistré (' . implode(', ', $erreurs) . ') : choisissez deux équipes différentes, et les deux scores ou aucun.');
             }
+        }
+
+        return $this->retour($categorie, $saison, 'resultats-poule');
+    }
+
+    /**
+     * Calendrier de la poule copié depuis la FFF (page de la compétition : une ou plusieurs journées) :
+     * les matchs des autres équipes sont ajoutés, ceux déjà connus reçoivent leur score. Les matchs du club
+     * et les matchs amicaux ou de coupe sont ignorés (ils sont dans « Matchs »).
+     */
+    #[Route('/championnat/poule/importer', name: 'app_championnat_poule_importer', methods: ['POST'])]
+    public function importerPoule(Request $request, CategorieRepository $categories, ResultatPouleRepository $resultats, ImportMatchs $import, EntityManagerInterface $em): Response
+    {
+        [$categorie, $saison] = $this->equipeEtSaison($request, $categories);
+        $p = $request->getPayload();
+        if ($this->isCsrfTokenValid('importer-poule', $p->getString('_token'))) {
+            $lus = $import->analyser($p->getString('texte'))['matchs'];
+            $existants = $resultats->findBy(['categorie' => $categorie, 'saison' => $saison]);
+            $ajoutes = $completes = 0;
+            foreach ($lus as $m) {
+                if (Rencontre::estLeClub($m['domicile']) || Rencontre::estLeClub($m['exterieur']) || \in_array($m['competition'], ['Amical', 'Coupe', 'Tournoi'], true)) {
+                    continue;
+                }
+                // Même match : mêmes équipes, même journée (ou même date si la journée n'est pas connue).
+                $existant = null;
+                foreach ($existants as $e) {
+                    if ($e->getDomicile() === $m['domicile'] && $e->getExterieur() === $m['exterieur']
+                        && (null !== $m['journee'] && null !== $e->getJournee() ? $e->getJournee() === $m['journee'] : $e->getDate() == $m['date'])) {
+                        $existant = $e;
+                        break;
+                    }
+                }
+                if ($existant) {
+                    $existant->setDate($m['date'])->setJournee($m['journee'] ?? $existant->getJournee());
+                    if (null !== $m['butsDomicile'] && [$m['butsDomicile'], $m['butsExterieur']] !== [$existant->getButsDomicile(), $existant->getButsExterieur()]) {
+                        $existant->setScore($m['butsDomicile'], $m['butsExterieur']);
+                        ++$completes;
+                    }
+                } else {
+                    $nouveau = (new ResultatPoule($categorie, $saison, $m['date'], $m['domicile'], $m['exterieur'], $m['butsDomicile'], $m['butsExterieur']))
+                        ->setJournee($m['journee'])->setClub($categorie->getClub());
+                    $em->persist($nouveau);
+                    $existants[] = $nouveau;
+                    ++$ajoutes;
+                }
+            }
+            $em->flush();
+            if ($ajoutes || $completes) {
+                $this->addFlash('succes', \sprintf('Calendrier de la poule : %d %s, %d %s.', $ajoutes, $ajoutes > 1 ? 'matchs ajoutés' : 'match ajouté', $completes, $completes > 1 ? 'scores mis à jour' : 'score mis à jour'));
+            } else {
+                $this->addFlash($lus ? 'info' : 'erreur', $lus
+                    ? 'Rien de nouveau : ces matchs et leurs scores étaient déjà enregistrés.'
+                    : 'Aucun match reconnu : copiez la page de la compétition sur la FFF (Ctrl+A, Ctrl+C), avec les dates et les équipes.');
+            }
+        }
+
+        return $this->retour($categorie, $saison, 'resultats-poule');
+    }
+
+    /** Scores d'une journée tapés dans les cases (deux cases vides : match pas encore joué). */
+    #[Route('/championnat/poule/scores', name: 'app_championnat_poule_scores', methods: ['POST'])]
+    public function scoresPoule(Request $request, CategorieRepository $categories, ResultatPouleRepository $resultats, EntityManagerInterface $em): Response
+    {
+        [$categorie, $saison] = $this->equipeEtSaison($request, $categories);
+        $p = $request->getPayload();
+        if ($this->isCsrfTokenValid('scores-poule', $p->getString('_token'))) {
+            $changes = 0;
+            foreach ($p->all('scores') as $id => $score) {
+                $match = $resultats->findOneBy(['id' => (int) $id, 'categorie' => $categorie]);
+                if (!$match) {
+                    continue;
+                }
+                $nombre = fn ($v) => ctype_digit(trim((string) $v)) && (int) $v <= 99 ? (int) $v : null;
+                [$bd, $be] = [$nombre($score['bd'] ?? ''), $nombre($score['be'] ?? '')];
+                if ([$bd, $be] !== [$match->getButsDomicile(), $match->getButsExterieur()]) {
+                    $match->setScore($bd, $be);
+                    ++$changes;
+                }
+            }
+            $em->flush();
+            $this->addFlash('succes', $changes ? \sprintf('%d %s : classement recalculé.', $changes, $changes > 1 ? 'scores enregistrés' : 'score enregistré') : 'Aucun score modifié.');
         }
 
         return $this->retour($categorie, $saison, 'resultats-poule');
@@ -208,6 +293,49 @@ class ChampionnatController extends AbstractController
     private function retour(Categorie $categorie, string $saison, string $ancre): Response
     {
         return $this->redirectToRoute('app_championnat', ['categorie' => $categorie->getId(), 'saison' => $saison, '_fragment' => $ancre]);
+    }
+
+    /**
+     * Matchs de la poule regroupés par journée (numéro FFF, sinon week-end), du plus ancien au plus récent ;
+     * le match du club de ce week-end-là y est ajouté (lecture seule : il se modifie depuis « Matchs »).
+     *
+     * @param list<ResultatPoule> $resultats
+     * @param list<Rencontre>     $matchsClub
+     *
+     * @return list<array{numero: int|null, date: \DateTimeImmutable, matchs: list<ResultatPoule>, club: list<Rencontre>, joues: int}>
+     */
+    private static function journees(array $resultats, array $matchsClub): array
+    {
+        $groupes = [];
+        foreach ($resultats as $r) {
+            // Sans numéro : regroupé par week-end (le lundi de la semaine).
+            $cle = null !== $r->getJournee() ? 'J' . $r->getJournee() : 'S' . $r->getDate()->modify('monday this week')->format('Y-m-d');
+            $groupes[$cle] ??= ['numero' => $r->getJournee(), 'date' => $r->getDate(), 'matchs' => [], 'club' => [], 'joues' => 0];
+            $groupes[$cle]['matchs'][] = $r;
+            $groupes[$cle]['date'] = min($groupes[$cle]['date'], $r->getDate());
+            $groupes[$cle]['joues'] += (int) $r->isJoue();
+        }
+        foreach ($matchsClub as $m) {
+            // Rangé dans la journée de la même semaine, ou dans une journée à lui s'il n'y en a pas.
+            $semaine = $m->getDate()->modify('monday this week');
+            $cle = null;
+            foreach ($groupes as $c => $g) {
+                if ($g['date']->modify('monday this week') == $semaine) {
+                    $cle = $c;
+                    break;
+                }
+            }
+            $cle ??= 'S' . $semaine->format('Y-m-d');
+            $groupes[$cle] ??= ['numero' => null, 'date' => $m->getDate(), 'matchs' => [], 'club' => [], 'joues' => 0];
+            $groupes[$cle]['club'][] = $m;
+        }
+        $groupes = array_values($groupes);
+        usort($groupes, fn (array $a, array $b) => [$a['date'], $a['numero']] <=> [$b['date'], $b['numero']]);
+        foreach ($groupes as &$g) {
+            usort($g['matchs'], fn (ResultatPoule $a, ResultatPoule $b) => [$a->getDate(), $a->getDomicile()] <=> [$b->getDate(), $b->getDomicile()]);
+        }
+
+        return $groupes;
     }
 
     /**

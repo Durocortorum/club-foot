@@ -26,13 +26,14 @@ class ImportMatchs
     private const PAS_UNE_EQUIPE = '/^(journ[ée]e|date|heure|domicile|ext[ée]rieur|r[ée]sultat|score|spectateurs?|syst[èe]me.*|entra[îi]neur.*|inconnu|report[ée]|annul[ée]|exempt|j\s*\d+|\d+e? journ[ée]e)$|championnat|coupe|groupe|poule|phase|tour\b|journ[ée]e|r[ée]gional|d[ée]partemental|district|division/iu';
 
     /**
-     * @return array{nous: string|null, matchs: list<array{date: \DateTimeImmutable, heure: string|null, domicile: string, exterieur: string, butsDomicile: int|null, butsExterieur: int|null, aDomicile: bool, competition: string|null, adversaire: string}>}
+     * @return array{nous: string|null, matchs: list<array{date: \DateTimeImmutable, heure: string|null, domicile: string, exterieur: string, butsDomicile: int|null, butsExterieur: int|null, aDomicile: bool, competition: string|null, journee: int|null, adversaire: string}>}
      */
     public function analyser(string $texte): array
     {
         $cellules = preg_split('/\t|\r?\n|\s\|\s/u', $texte) ?: [];
         $bruts = [];
         $courant = null;
+        $journee = null;
         foreach ($cellules as $cellule) {
             $cellule = trim(preg_replace('/\s+/u', ' ', $cellule) ?? '');
             if ('' === $cellule) {
@@ -42,8 +43,15 @@ class ImportMatchs
                 if ($courant) {
                     $bruts[] = $courant;
                 }
-                $courant = ['date' => $date, 'heure' => $this->heure($cellule), 'equipes' => [], 'score' => null, 'buts' => [], 'competition' => null];
+                $courant = ['date' => $date, 'heure' => $this->heure($cellule), 'equipes' => [], 'score' => null, 'buts' => [], 'competition' => null, 'journee' => $journee];
                 continue;
+            }
+            // « Journée 11 » : en titre au-dessus des matchs (page d'une poule) ou sur la ligne d'un match.
+            if (preg_match('/journ[ée]e\s*(\d{1,2})\b/iu', $cellule, $j)) {
+                $journee = (int) $j[1];
+                if ($courant && !$courant['equipes']) {
+                    $courant['journee'] = $journee;
+                }
             }
             if (!$courant) {
                 continue;
@@ -97,6 +105,7 @@ class ImportMatchs
                 'butsExterieur' => $b['score'][1] ?? null,
                 'aDomicile' => $aDomicile,
                 'competition' => $b['competition'],
+                'journee' => $b['journee'],
                 'adversaire' => $this->sansCategorie($aDomicile ? $exterieur : $domicile),
             ];
         }

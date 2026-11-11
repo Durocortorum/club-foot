@@ -118,57 +118,113 @@
         </details>
     </section>
 
-    {# Scores des autres matchs de la poule : le classement est recalculé sans attendre la FFF. #}
+    {# Calendrier de la poule par journée : scores des autres équipes, classement recalculé sans attendre la FFF. #}
     <section class="carte bloc" id="resultats-poule">
-        <h2>Résultats de la poule</h2>
-        <p class="discret">Tapez les scores des autres matchs de la journée : le classement se recalcule aussitôt. Les matchs de {{ categorie }} sont repris de vos feuilles de match.{% if officiel %} Seuls les matchs joués après le {{ classement.misAJourLe|date('d/m') }} (dernier classement officiel) comptent : les précédents y sont déjà.{% endif %}</p>
-        {% if equipes|length < 2 %}
-            <p class="vide">Ajoutez d'abord le classement (ci-dessus) : ses équipes seront proposées ici.</p>
-        {% else %}
-            {% set nb_lignes = max(1, ((equipes|length + 1) / 2)|round(0, 'floor')) %}
-            <form method="post" action="{{ path('app_championnat_resultats') }}" class="saisie-poule">
-                <input type="hidden" name="_token" value="{{ csrf_token('resultats-poule') }}">
+        <h2>Matchs de la poule, journée par journée</h2>
+        <p class="discret">Tous les matchs de la poule : tapez les scores dans les cases, ou copiez-collez la page de la FFF. Le classement se recalcule aussitôt. Les matchs de {{ categorie }} viennent de « Matchs ».{% if officiel %} Seuls les matchs joués après le {{ classement.misAJourLe|date('d/m') }} (dernier classement officiel) comptent : les précédents y sont déjà.{% endif %}</p>
+
+        {# Copier-coller du calendrier de la poule depuis la FFF. #}
+        <details class="import-poule" {{ not resultats ? 'open' }}>
+            <summary class="bouton">{{ resultats ? 'Mettre à jour depuis la FFF (copier-coller)' : 'Ajouter les matchs de la poule depuis la FFF (copier-coller)' }}</summary>
+            <form method="post" action="{{ path('app_championnat_poule_importer') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('importer-poule') }}">
                 <input type="hidden" name="categorie" value="{{ categorie.id }}">
                 <input type="hidden" name="saison" value="{{ saison }}">
-                <div class="champ"><label for="poule-date">Journée du</label><input type="date" id="poule-date" name="date" value="{{ 'now'|date('Y-m-d') }}" required></div>
-                <div class="table-defile">
-                    <table class="liste saisie-scores">
-                        <thead><tr><th>Domicile</th><th colspan="3">Score</th><th>Extérieur</th></tr></thead>
-                        <tbody>
-                            {% for i in 0..(nb_lignes - 1) %}
-                                <tr>
-                                    <td><select name="matchs[{{ i }}][domicile]" aria-label="Équipe à domicile, match {{ i + 1 }}"><option value="">—</option>{% for e in equipes %}<option>{{ e }}</option>{% endfor %}</select></td>
-                                    <td><input type="number" name="matchs[{{ i }}][bd]" min="0" max="99" inputmode="numeric" aria-label="Buts à domicile, match {{ i + 1 }}"></td>
-                                    <td class="tiret">–</td>
-                                    <td><input type="number" name="matchs[{{ i }}][be]" min="0" max="99" inputmode="numeric" aria-label="Buts à l'extérieur, match {{ i + 1 }}"></td>
-                                    <td><select name="matchs[{{ i }}][exterieur]" aria-label="Équipe à l'extérieur, match {{ i + 1 }}"><option value="">—</option>{% for e in equipes %}<option>{{ e }}</option>{% endfor %}</select></td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <p class="discret petit">Laissez vides les lignes inutiles.</p>
-                <div class="barre-actions"><button type="submit" class="bouton principal">Enregistrer les scores</button></div>
+                <ol class="petit etapes-poule">
+                    <li>Sur le site de la FFF, page de l'équipe, cliquez sur le nom du championnat (par exemple « CHAMPIONNAT NATIONAL U19 ») au-dessus d'un match : la page de la poule s'ouvre.</li>
+                    <li>Affichez ses résultats et son calendrier (une journée ou toute la saison).</li>
+                    <li>Ctrl+A puis Ctrl+C, et collez ici (Ctrl+V).</li>
+                </ol>
+                <textarea name="texte" rows="6" required placeholder="Collez ici la page de la poule"></textarea>
+                <div class="barre-actions"><button type="submit" class="bouton principal">Importer les matchs de la poule</button></div>
+                <p class="discret petit">Les matchs déjà enregistrés ne sont pas recréés : ils reçoivent seulement leur score.</p>
             </form>
-        {% endif %}
+        </details>
 
-        {% if resultats %}
-            <h3>Scores saisis</h3>
-            <ul class="scores-saisis">
-                {% for r in resultats %}
-                    <li class="{{ officiel and r.date|date('Y-m-d') <= classement.misAJourLe|date('Y-m-d') ? 'deja-compte' }}">
-                        <span class="discret">{{ r.date|date('d/m') }}</span>
-                        <span>{{ r.domicile }} <strong>{{ r.butsDomicile }} – {{ r.butsExterieur }}</strong> {{ r.exterieur }}</span>
-                        {% if officiel and r.date|date('Y-m-d') <= classement.misAJourLe|date('Y-m-d') %}<span class="pastille" title="Joué avant le dernier classement officiel, qui le compte déjà">déjà dans l'officiel</span>{% endif %}
-                        <form method="post" action="{{ path('app_championnat_resultat_supprimer', {id: r.id}) }}" class="en-ligne" data-confirmation="Supprimer ce score ?" data-confirmation-bouton="Supprimer">
+        {# Journée en cours ouverte : la première qui n'est pas finie, sinon la dernière. #}
+        {% set ouverte = null %}
+        {% for j in journees %}{% if ouverte is null and j.joues < j.matchs|length %}{% set ouverte = loop.index0 %}{% endif %}{% endfor %}
+        {% set ouverte = ouverte ?? (journees|length - 1) %}
+        {% for j in journees %}
+            <details class="journee" {{ loop.index0 == ouverte ? 'open' }}>
+                <summary>
+                    <strong>{{ j.numero ? 'Journée ' ~ j.numero : 'Semaine du ' ~ j.date|date('d/m') }}</strong>
+                    <span class="discret">· {{ j.date|date('d/m/Y') }}{% if j.matchs %} · {{ j.joues }}/{{ j.matchs|length }} {{ j.joues > 1 ? 'joués' : 'joué' }}{% endif %}</span>
+                </summary>
+                <table class="liste saisie-scores journee-matchs">
+                    <tbody>
+                        {% for r in j.club %}
+                            <tr class="match-club">
+                                <td class="dom">{{ r.domicile }}</td>
+                                <td colspan="3" class="score-club">{% if r.resultat %}<span class="score resultat-{{ r.resultat }}">{{ r.butsDomicile }} – {{ r.butsExterieur }}</span>{% else %}<span class="discret">{{ r.heure ?? 'à jouer' }}</span>{% endif %}</td>
+                                <td class="ext">{{ r.exterieur }}</td>
+                                <td><a class="bouton petit" href="{{ path('app_rencontre_modifier', {id: r.id}) }}" title="Votre match : le score se note sur le match">Score</a></td>
+                            </tr>
+                        {% endfor %}
+                        {% for r in j.matchs %}
+                            {% set compte_deja = officiel and r.date|date('Y-m-d') <= classement.misAJourLe|date('Y-m-d') %}
+                            <tr class="{{ compte_deja ? 'deja-compte' }}">
+                                <td class="dom">{{ r.domicile }}</td>
+                                <td><input type="number" form="scores-{{ loop.parent.loop.index }}" name="scores[{{ r.id }}][bd]" value="{{ r.butsDomicile }}" min="0" max="99" inputmode="numeric" aria-label="Buts de {{ r.domicile }}"></td>
+                                <td class="tiret">–</td>
+                                <td><input type="number" form="scores-{{ loop.parent.loop.index }}" name="scores[{{ r.id }}][be]" value="{{ r.butsExterieur }}" min="0" max="99" inputmode="numeric" aria-label="Buts de {{ r.exterieur }}"></td>
+                                <td class="ext">{{ r.exterieur }}{% if compte_deja and r.joue %} <span class="pastille" title="Joué avant le dernier classement officiel, qui le compte déjà">déjà dans l'officiel</span>{% endif %}</td>
+                                <td><button class="bouton petit" form="supprimer-{{ r.id }}" title="Retirer ce match">×</button></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if j.matchs %}
+                    <form method="post" action="{{ path('app_championnat_poule_scores') }}" id="scores-{{ loop.index }}" class="barre-actions">
+                        <input type="hidden" name="_token" value="{{ csrf_token('scores-poule') }}">
+                        <input type="hidden" name="categorie" value="{{ categorie.id }}">
+                        <input type="hidden" name="saison" value="{{ saison }}">
+                        <button type="submit" class="bouton principal">Enregistrer la journée</button>
+                    </form>
+                    {% for r in j.matchs %}
+                        <form method="post" action="{{ path('app_championnat_resultat_supprimer', {id: r.id}) }}" id="supprimer-{{ r.id }}" hidden data-confirmation="Retirer le match {{ r.domicile }} – {{ r.exterieur }} ?" data-confirmation-bouton="Retirer">
                             <input type="hidden" name="_token" value="{{ csrf_token('supprimer-resultat' ~ r.id) }}">
-                            <button class="bouton petit" title="Supprimer ce score">×</button>
                         </form>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </details>
+        {% else %}
+            <p class="vide">Aucun match de la poule pour l'instant : copiez-collez la page de la poule depuis la FFF (ci-dessus), ou ajoutez les matchs à la main (ci-dessous).</p>
+        {% endfor %}
 
+        {# Saisie à la main : matchs absents du calendrier importé. #}
+        {% if equipes|length >= 2 %}
+            {% set nb_lignes = max(1, ((equipes|length + 1) / 2)|round(0, 'floor')) %}
+            <details class="ajout-manuel">
+                <summary>Ajouter des matchs à la main</summary>
+                <form method="post" action="{{ path('app_championnat_resultats') }}" class="saisie-poule">
+                    <input type="hidden" name="_token" value="{{ csrf_token('resultats-poule') }}">
+                    <input type="hidden" name="categorie" value="{{ categorie.id }}">
+                    <input type="hidden" name="saison" value="{{ saison }}">
+                    <div class="champs">
+                        <div class="champ"><label for="poule-journee">Journée n°</label><input type="number" id="poule-journee" name="journee" min="1" max="60"></div>
+                        <div class="champ"><label for="poule-date">Date</label><input type="date" id="poule-date" name="date" value="{{ 'now'|date('Y-m-d') }}" required></div>
+                    </div>
+                    <div class="table-defile">
+                        <table class="liste saisie-scores">
+                            <thead><tr><th>Domicile</th><th colspan="3">Score (vide si pas joué)</th><th>Extérieur</th></tr></thead>
+                            <tbody>
+                                {% for i in 0..(nb_lignes - 1) %}
+                                    <tr>
+                                        <td><select name="matchs[{{ i }}][domicile]" aria-label="Équipe à domicile, match {{ i + 1 }}"><option value="">—</option>{% for e in equipes %}<option>{{ e }}</option>{% endfor %}</select></td>
+                                        <td><input type="number" name="matchs[{{ i }}][bd]" min="0" max="99" inputmode="numeric" aria-label="Buts à domicile, match {{ i + 1 }}"></td>
+                                        <td class="tiret">–</td>
+                                        <td><input type="number" name="matchs[{{ i }}][be]" min="0" max="99" inputmode="numeric" aria-label="Buts à l'extérieur, match {{ i + 1 }}"></td>
+                                        <td><select name="matchs[{{ i }}][exterieur]" aria-label="Équipe à l'extérieur, match {{ i + 1 }}"><option value="">—</option>{% for e in equipes %}<option>{{ e }}</option>{% endfor %}</select></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="barre-actions"><button type="submit" class="bouton principal">Enregistrer les matchs</button></div>
+                </form>
+            </details>
+        {% endif %}
         {% if officiel %}
             <details class="ajustements">
                 <summary>Pénalités, points retirés ou ajoutés{% if classement.ajustements %} ({{ classement.ajustements|length }}){% endif %}</summary>
