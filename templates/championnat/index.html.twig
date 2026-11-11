@@ -87,6 +87,7 @@
                     <li>Faites <strong>Ctrl+A</strong> puis <strong>Ctrl+C</strong>.</li>
                     <li>Collez ici (<strong>Ctrl+V</strong>) et cliquez sur « Importer ». Le site reconnaît tout seul ce que vous avez collé.</li>
                 </ol>
+                <p class="petit rappel-import"><strong>À refaire régulièrement</strong>, par exemple chaque dimanche soir après les matchs : le classement officiel, les scores et le calendrier (matchs reportés, horaires) restent ainsi à jour.{% if officiel %} Dernière mise à jour du classement : <strong>{{ classement.misAJourLe|date('d/m/Y') }}</strong>.{% endif %}</p>
                 <textarea name="texte" rows="6" required placeholder="Collez ici la page de la FFF"></textarea>
                 <div class="barre-actions"><button type="submit" class="bouton principal">Importer</button></div>
                 <p class="discret petit">Rien n'est créé en double : un match déjà enregistré reçoit seulement son score. Un classement collé remplace l'ancien. Les matchs de {{ categorie }} vont dans « Matchs », ceux des autres équipes dans le calendrier de la poule.</p>
