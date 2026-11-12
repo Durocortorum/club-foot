@@ -1,0 +1,99 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Effectifs{% endblock %}
+
+{% macro ecart(paire, suffixe = '') %}{% if paire %}{{ paire[0] == paire[1] ? paire[0] : paire[0] ~ '–' ~ paire[1] }}{{ suffixe }}{% endif %}{% endmacro %}
+
+{% block body %}
+    {% import _self as e %}
+    <div class="impression-a4">
+    <p class="sans-impression"><a href="{{ path('app_joueur_index') }}">← Joueurs</a></p>
+    <div class="titre-page">
+        <h1>Effectifs <span class="compteur">{{ total }} {{ accord(total, 'joueur') }}</span></h1>
+        <span class="actions sans-impression">
+            <button type="button" class="bouton" onclick="window.print()">Imprimer</button>
+            <a class="bouton" href="{{ path('app_joueur_listing') }}">Listing des joueurs</a>
+        </span>
+    </div>
+    <p class="discret petit">Joueurs actifs (anciens joueurs exclus){{ secteurs|length > 1 ? ', des secteurs que vous pouvez voir' }}. Saison {{ saison }}.</p>
+
+    <section class="carte bloc">
+        <h2>Par catégorie</h2>
+        <div class="table-defile">
+            <table class="liste effectifs">
+                <thead>
+                    <tr>
+                        <th>Catégorie</th>
+                        <th class="a-droite">Joueurs</th>
+                        <th>Années de naissance</th>
+                        <th>Âges</th>
+                        <th class="a-droite">Âge moyen</th>
+                        <th class="sans-impression"></th>
+                    </tr>
+                </thead>
+                {% for s in secteurs %}
+                    <tbody>
+                        {% if secteurs|length > 1 %}
+                            <tr class="effectifs-secteur"><th colspan="6">{{ s.libelle }} <span class="discret">· {{ s.total }} {{ accord(s.total, 'joueur') }}</span></th></tr>
+                        {% endif %}
+                        {% for l in s.lignes %}
+                            <tr>
+                                <td class="fort">{{ l.categorie.nom }}</td>
+                                <td class="a-droite fort">{{ l.total }}</td>
+                                <td>{{ e.ecart(l.annees) }}{% if l.sans_date %} <span class="discret petit">({{ l.sans_date }} sans date de naissance)</span>{% endif %}</td>
+                                <td>{{ e.ecart(l.ages, ' ans') }}</td>
+                                <td class="a-droite">{{ l.age_moyen is not null ? l.age_moyen|number_format(1, ',', ' ') ~ ' ans' }}</td>
+                                <td class="sans-impression a-droite">
+                                    {% if l.total %}<a href="{{ path('app_joueur_listing', {categorie: l.categorie.id}) }}">Listing</a>{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                {% endfor %}
+                <tfoot><tr><th>Total</th><th class="a-droite">{{ total }}</th><th colspan="4"></th></tr></tfoot>
+            </table>
+        </div>
+    </section>
+
+    <section class="carte bloc">
+        <h2>Par année de naissance</h2>
+        <p class="discret petit">La catégorie d'âge est celle de la saison {{ saison }} (règle de la FFF : U15 = né en {{ saison[5:4] - 15 }}). La dernière colonne montre où jouent ces joueurs dans le club.</p>
+        <div class="table-defile">
+            <table class="liste effectifs">
+                <thead>
+                    <tr>
+                        <th>Né en</th>
+                        <th>Catégorie d'âge</th>
+                        <th>Âge</th>
+                        <th class="a-droite">Joueurs</th>
+                        <th class="sans-impression effectifs-barre-col"></th>
+                        <th>Équipes du club</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in par_annee %}
+                        <tr>
+                            <td class="fort">{{ a.annee }}</td>
+                            <td>{{ a.u > 19 ? 'Seniors' : 'U' ~ a.u }}</td>
+                            <td>{{ e.ecart(a.ages, ' ans') }}</td>
+                            <td class="a-droite fort">{{ a.total }}</td>
+                            <td class="sans-impression effectifs-barre-col"><span class="effectifs-barre" style="width: {{ (a.total / max_annee * 100)|round }}%"></span></td>
+                            <td class="petit">{% for nom, n in a.equipes %}{{ nom }} : {{ n }}{{ not loop.last ? ' · ' }}{% endfor %}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6" class="vide">Aucune date de naissance renseignée.</td></tr>
+                    {% endfor %}
+                    {% if sans_date %}
+                        <tr>
+                            <td colspan="3" class="discret">Date de naissance non renseignée</td>
+                            <td class="a-droite fort">{{ sans_date|length }}</td>
+                            <td class="sans-impression effectifs-barre-col"></td>
+                            <td class="petit">{% for j in sans_date|slice(0, 15) %}<a href="{{ path('app_joueur_voir', {id: j.id}) }}">{{ j.nomComplet }}</a>{{ not loop.last ? ', ' }}{% endfor %}{{ sans_date|length > 15 ? '…' }}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    </div>
+{% endblock %}

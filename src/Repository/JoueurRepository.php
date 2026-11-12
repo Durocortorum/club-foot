@@ -129,6 +129,32 @@ class JoueurRepository extends ServiceEntityRepository
     }
 
     /**
+     * Joueurs actifs des secteurs visibles (d'une seule catégorie si $categorieId), par catégorie puis par nom.
+     *
+     * @param list<string> $secteurs
+     *
+     * @return list<Joueur>
+     */
+    public function actifs(array $secteurs, ?int $categorieId = null): array
+    {
+        $qb = $this->createQueryBuilder('j')
+            ->addSelect('c')
+            ->join('j.categorie', 'c')
+            ->andWhere('c.secteur IN (:secteurs)')
+            ->andWhere('j.ancien = false')
+            ->setParameter('secteurs', $secteurs ?: ['-'])
+            ->orderBy('c.ordre')
+            ->addOrderBy('c.nom')
+            ->addOrderBy('j.nom')
+            ->addOrderBy('j.prenom');
+        if ($categorieId) {
+            $qb->andWhere('c.id = :cat')->setParameter('cat', $categorieId);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
      * Nombre de joueurs actifs par catégorie.
      *
      * @return list<array{id: int, nom: string, secteur: string, total: int}>

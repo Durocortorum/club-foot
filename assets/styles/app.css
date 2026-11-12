@@ -190,6 +190,8 @@ dd { margin: 0; word-break: break-word; }
 .liste-simple li.avec-actions { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 ul.liste-simple.carte { padding: .3rem 1.2rem; }
 .case-filtre { display: flex; align-items: center; gap: .4rem; white-space: nowrap; }
+.case-filtre.case-longue { align-items: flex-start; white-space: normal; }
+.case-filtre.case-longue input { flex-shrink: 0; margin-top: .25rem; }
 details.grille { border: 1px solid var(--bordure); border-radius: 8px; padding: .6rem .9rem; margin-bottom: .6rem; }
 details.grille summary { cursor: pointer; font-weight: 600; }
 details.grille[open] summary { margin-bottom: .7rem; }
@@ -711,8 +713,36 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 @media (max-width: 800px) {
     .exercice-corps { grid-template-columns: 1fr; }
 }
+/* Effectifs et listing des joueurs */
+.effectifs .effectifs-secteur th { background: var(--fond); color: var(--encre); padding: .45rem .8rem; }
+.effectifs tfoot th { border-top: 2px solid var(--bordure); color: var(--encre); }
+.effectifs th.a-droite { text-align: right; }
+.effectifs-barre-col { width: 22%; min-width: 80px; }
+.effectifs-barre { display: block; height: .55rem; border-radius: 99px; background: var(--rouge); opacity: .75; }
+.sans-retour { white-space: nowrap; }
+
 @media print {
+    @page { size: A4; margin: 12mm 10mm; }
+    body { background: #fff; }
     .entete, .sans-impression, .flash { display: none !important; }
+    .table-defile { overflow: visible; }
+    /* Effectifs et listing sur A4 : pleine largeur, sans cadre ni fond, texte serré. */
+    .impression-a4 { font-size: 10pt; }
+    .impression-a4 h1 { font-size: 15pt; margin: 0 0 .2rem; }
+    .impression-a4 h2 { font-size: 12pt; margin: 0 0 .3rem; }
+    .impression-a4 .titre-page { margin-bottom: .3rem; }
+    .impression-a4 .carte { border: 0; padding: 0; background: none; box-shadow: none; }
+    .impression-a4 .bloc { margin: 0 0 6mm; }
+    .impression-a4 .table-defile { border: 0; border-radius: 0; }
+    .impression-a4 .liste { font-size: 9pt; }
+    .impression-a4 .liste th, .impression-a4 .liste td { padding: .2rem .35rem; border-color: #bbb; }
+    .impression-a4 .liste th { color: #000; white-space: normal; }
+    .impression-a4 .liste tr { break-inside: avoid; }
+    .impression-a4 .liste thead { display: table-header-group; }
+    .impression-a4 .liste tfoot { display: table-row-group; }
+    .impression-a4 .effectifs td:nth-child(n+3) { white-space: nowrap; }
+    .impression-a4 .effectifs td:last-child { white-space: normal; }
+    .impression-a4 .liste .petit { font-size: inherit; }
     .contenu { max-width: none; padding: 0; }
     .exercice { break-inside: avoid; border: 1px solid #999; }
     .schema-terrain { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

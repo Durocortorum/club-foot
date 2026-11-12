@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Listing {{ categorie ? categorie.nom : 'des joueurs' }}{% endblock %}
+
+{% block body %}
+    <div class="impression-a4">
+    <p class="sans-impression"><a href="{{ path('app_joueur_effectifs') }}">← Effectifs</a></p>
+    <div class="titre-page">
+        <h1>
+            {{ app.user.club.nom ?? '' }} · {{ categorie ? categorie.nom : 'Tous les joueurs' }}
+            <span class="compteur">{{ joueurs|length }} {{ accord(joueurs|length, 'joueur') }}</span>
+        </h1>
+        <span class="actions sans-impression">
+            <button type="button" class="bouton" onclick="window.print()">Imprimer</button>
+            <a class="bouton" href="{{ path('app_joueur_listing', {categorie: categorie ? categorie.id, format: 'csv'}|filter(v => v)) }}">Ouvrir dans Excel</a>
+        </span>
+    </div>
+
+    <form class="filtres sans-impression" method="get">
+        <select name="categorie" onchange="this.form.requestSubmit()">
+            <option value="">Toutes les catégories</option>
+            {% for c in categories %}
+                <option value="{{ c.id }}" {{ categorie and categorie.id == c.id ? 'selected' }}>{{ c.nom }}</option>
+            {% endfor %}
+        </select>
+        <noscript><button type="submit" class="bouton">Afficher</button></noscript>
+    </form>
+    <p class="discret petit">Joueurs actifs, au {{ 'now'|date('d/m/Y') }}.</p>
+
+    <div class="table-defile">
+        <table class="liste listing">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Prénom</th>
+                    {% if not categorie %}<th>Catégorie</th>{% endif %}
+                    <th>Né le</th>
+                    <th>Âge</th>
+                    <th>Adresse</th>
+                    <th>Téléphone</th>
+                    <th>N° de licence</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for j in joueurs %}
+                    <tr>
+                        <td class="fort"><a href="{{ path('app_joueur_voir', {id: j.id}) }}">{{ j.nom }}</a></td>
+                        <td>{{ j.prenom }}</td>
+                        {% if not categorie %}<td>{{ j.categorie }}</td>{% endif %}
+                        <td>{{ j.dateNaissance ? j.dateNaissance|date('d/m/Y') }}</td>
+                        <td>{{ j.age is not null ? j.age ~ ' ans' }}</td>
+                        <td>{{ j.adresse }}{% if j.codePostal or j.ville %}{{ j.adresse ? ', ' }}{{ [j.codePostal, j.ville]|filter(v => v)|join(' ') }}{% endif %}</td>
+                        <td>
+                            {% for t in [j.telJoueur, j.telPortable1, j.telPortable2]|filter(v => v) %}
+                                <span class="sans-retour">{{ t }}</span>{% if not loop.last %}<br>{% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>{{ j.licence }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" class="vide">Aucun joueur actif.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="discret petit sans-impression">Téléphones : celui du joueur puis ceux des parents. Le fichier Excel donne aussi l'e-mail.</p>
+    </div>
+{% endblock %}
