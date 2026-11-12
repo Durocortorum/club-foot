@@ -45,6 +45,21 @@ class Deplacement implements AppartientAuClub
     #[ORM\JoinColumn(onDelete: 'SET NULL')]
     private ?Categorie $categorie = null;
 
+    /** Match pour lequel on se déplace : affiché dans sa convocation et dans l'espace des familles. */
+    #[ORM\ManyToOne(inversedBy: 'deplacements')]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?Rencontre $rencontre = null;
+
+    /** Heure de départ (« 12h30 »). */
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Assert\Length(max: 10)]
+    private ?string $heureDepart = null;
+
+    /** Lieu de départ (« parking du stade »). */
+    #[ORM\Column(length: 120, nullable: true)]
+    #[Assert\Length(max: 120)]
+    private ?string $lieuDepart = null;
+
     #[ORM\Column(length: 40)]
     #[Assert\Choice(choices: self::MOYENS)]
     private string $moyen = self::VOITURE;
@@ -123,6 +138,57 @@ class Deplacement implements AppartientAuClub
         $this->categorie = $categorie;
 
         return $this;
+    }
+
+    public function getRencontre(): ?Rencontre
+    {
+        return $this->rencontre;
+    }
+
+    public function setRencontre(?Rencontre $rencontre): static
+    {
+        $this->rencontre = $rencontre;
+
+        return $this;
+    }
+
+    public function getHeureDepart(): ?string
+    {
+        return $this->heureDepart;
+    }
+
+    public function setHeureDepart(?string $heureDepart): static
+    {
+        $this->heureDepart = null === $heureDepart ? null : (trim($heureDepart) ?: null);
+
+        return $this;
+    }
+
+    public function getLieuDepart(): ?string
+    {
+        return $this->lieuDepart;
+    }
+
+    public function setLieuDepart(?string $lieuDepart): static
+    {
+        $this->lieuDepart = null === $lieuDepart ? null : (trim($lieuDepart) ?: null);
+
+        return $this;
+    }
+
+    /**
+     * Ce que les familles en voient : moyen, conducteur, départ (« Car de société · départ 12h30, parking du stade »).
+     * Ni frais ni kilomètres.
+     */
+    public function getResumeFamilles(): string
+    {
+        $moyen = self::VOITURE === $this->moyen ? 'Voiture' : $this->moyen;
+        $depart = trim(($this->heureDepart ? 'départ ' . $this->heureDepart : '') . ($this->lieuDepart ? ($this->heureDepart ? ', ' : 'départ : ') . $this->lieuDepart : ''));
+
+        return implode(' · ', array_filter([
+            $moyen . ($this->conducteur && 'Car de société' !== $this->moyen && 'Train' !== $this->moyen ? ' de ' . $this->conducteur : ''),
+            $depart,
+        ]));
     }
 
     public function getMoyen(): string

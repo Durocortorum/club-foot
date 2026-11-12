@@ -8,6 +8,9 @@ Bonjour,
 {% if convocation.rdvHeure or convocation.rdvLieu %}
 Rendez-vous{% if convocation.rdvHeure %} à {{ convocation.rdvHeure }}{% endif %}{% if convocation.rdvLieu %}, {{ convocation.rdvLieu }}{% endif %}.
 {% endif %}
+{% for d in r.deplacements %}
+Déplacement : {{ d.resumeFamilles }}.
+{% endfor %}
 {% if convocation.message %}
 
 {{ convocation.message }}

@@ -1,0 +1,20 @@
+{# Activer les notifications sur ce téléphone (voir assets/controllers/notifications_controller.js). Rien si elles ne sont pas réglées sur le site. #}
+{% set cle = notifications_cle() %}
+{% if cle %}
+    <section class="carte bloc notifications" data-controller="notifications"
+             data-notifications-cle-value="{{ cle }}"
+             data-notifications-abonner-value="{{ path('app_notifications_abonner') }}"
+             data-notifications-desabonner-value="{{ path('app_notifications_desabonner') }}"
+             data-notifications-essai-value="{{ path('app_notifications_essai') }}"
+             data-notifications-jeton-value="{{ csrf_token('notifications') }}">
+        <h2>🔔 Notifications sur ce téléphone</h2>
+        <p class="petit">{{ texte ?? 'Recevez une alerte pour les convocations, les messages du club et les entraînements annulés, même application fermée.' }}</p>
+        <p class="notifications-etat" data-notifications-target="etat">…</p>
+        <p class="actions-ligne">
+            <button type="button" class="bouton principal" data-notifications-target="activer" data-action="notifications#activer" hidden>Activer les notifications</button>
+            <button type="button" class="bouton" data-notifications-target="essai" data-action="notifications#essai" hidden>Envoyer un essai</button>
+            <button type="button" class="bouton" data-notifications-target="desactiver" data-action="notifications#desactiver" hidden>Désactiver</button>
+        </p>
+        <p class="discret petit">iPhone : ajoutez d'abord l'application à l'écran d'accueil (bouton Partager → « Sur l'écran d'accueil »), puis ouvrez-la depuis cette icône. Android : activez directement.</p>
+    </section>
+{% endif %}

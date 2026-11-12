@@ -15,9 +15,12 @@
         </a>
     {% endfor %}
     {% set non_lus = messages_non_lus() %}
-    {% if non_lus %}
-        <p><a class="bouton" href="{{ path('app_espace_messages') }}">{{ non_lus }} {{ accord(non_lus, 'message') }} non {{ accord(non_lus, 'lu') }}</a></p>
-    {% endif %}
+    <p class="actions">
+        <a class="bouton" href="{{ path('app_espace_calendrier') }}">📅 Calendrier du mois</a>
+        {% if non_lus %}<a class="bouton" href="{{ path('app_espace_messages') }}">{{ non_lus }} {{ accord(non_lus, 'message') }} non {{ accord(non_lus, 'lu') }}</a>{% endif %}
+    </p>
+
+    {% include 'commun/_notifications.html.twig' %}
 
     {% if evenements %}
         <section class="carte bloc" id="evenements">
@@ -166,6 +169,9 @@
                         {% if cv.rdvHeure or cv.rdvLieu %}
                             <div>Rendez-vous{% if cv.rdvHeure %} à <strong>{{ cv.rdvHeure }}</strong>{% endif %}{% if cv.rdvLieu %}, {{ cv.rdvLieu }}{% endif %}</div>
                         {% endif %}
+                        {% for d in r.deplacements %}
+                            <div>🚌 {{ d.resumeFamilles }}</div>
+                        {% endfor %}
                         {% if cv.message %}<p class="memo petit">{{ cv.message }}</p>{% endif %}
 
                         <p>

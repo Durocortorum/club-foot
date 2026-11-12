@@ -16,6 +16,7 @@ use App\Repository\DeplacementRepository;
 use App\Repository\RencontreRepository;
 use App\Repository\TournoiRepository;
 use App\Repository\VehiculeRepository;
+use App\Security\ActiviteVoter;
 use App\Security\JoueurVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -78,7 +79,7 @@ class TransportController extends AbstractController
         $d = (new Deplacement())->setDate(new \DateTimeImmutable('today'));
         // Depuis un match ou un tournoi : date, équipe et objet déjà remplis.
         if (ctype_digit($id = $request->query->getString('match')) && $m = $rencontres->find((int) $id)) {
-            $d->setDate($m->getDate())->setCategorie($m->getCategorie())->setObjet('Match ' . $m->getEquipeAffichee() . ' : ' . $m->getDomicile() . ' – ' . $m->getExterieur());
+            $d->setDate($m->getDate())->setCategorie($m->getCategorie())->setRencontre($m)->setObjet('Match ' . $m->getEquipeAffichee() . ' : ' . $m->getDomicile() . ' – ' . $m->getExterieur());
         } elseif (ctype_digit($id = $request->query->getString('tournoi')) && $t = $tournois->find((int) $id)) {
             $d->setDate($t->getDebut())->setCategorie($t->getCategorie())->setObjet('Tournoi : ' . $t->getNom() . ($t->getLieu() ? ' (' . $t->getLieu() . ')' : ''));
         }
@@ -334,6 +335,11 @@ class TransportController extends AbstractController
             $this->em->flush();
             $this->addFlash('succes', 'Déplacement enregistré' . ($deplacement->isVoiture() ? \sprintf(' : %s € de frais pour %s.', number_format($deplacement->getMontant(), 2, ',', ' '), $deplacement->getConducteur()) : '.'));
             $this->verifierConducteur($deplacement);
+
+            // Déplacement d'un match : retour à sa convocation, où il est affiché aux familles.
+            if ($deplacement->getRencontre() && $this->isGranted(ActiviteVoter::GERER, $deplacement->getRencontre())) {
+                return $this->redirectToRoute('app_convocation', ['id' => $deplacement->getRencontre()->getId(), '_fragment' => 'deplacement']);
+            }
 
             return $this->redirectToRoute('app_transport', ['saison' => Rencontre::saisonDe($deplacement->getDate())]);
         }

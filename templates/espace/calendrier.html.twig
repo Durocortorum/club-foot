@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Calendrier{% endblock %}
+
+{% block body %}
+    <div class="titre-page">
+        <h1>Calendrier</h1>
+        {% if equipes %}<span class="discret">{{ equipes|map(c => c.nom)|join(', ') }}</span>{% endif %}
+    </div>
+
+    <div class="calendrier-entete">
+        <a class="bouton petit" href="{{ path('app_espace_calendrier', {mois: precedent}) }}" aria-label="Mois précédent">←</a>
+        <h2>{{ titre }}</h2>
+        <a class="bouton petit" href="{{ path('app_espace_calendrier', {mois: suivant}) }}" aria-label="Mois suivant">→</a>
+        {% if mois|date('Y-m') != aujourdhui|date('Y-m') %}
+            <a class="bouton petit" href="{{ path('app_espace_calendrier') }}">Aujourd'hui</a>
+        {% endif %}
+        <span class="calendrier-legende">
+            <span class="cal-activite cal-match">Match</span>
+            <span class="cal-activite cal-entrainement">Entraînement</span>
+            <span class="cal-activite cal-evenement">Événement</span>
+            <span class="cal-activite cal-stage">Stage</span>
+            <span class="cal-activite cal-tournoi">Tournoi</span>
+        </span>
+    </div>
+
+    {% include 'calendrier/_grille.html.twig' with {famille: true, avec_equipe: equipes|length > 1} %}
+    {% if not jours %}
+        <p class="vide">Rien de prévu ce mois-ci.</p>
+    {% endif %}
+    <p class="discret petit">Les convocations et les réponses se font depuis <a href="{{ path('app_espace') }}">Mon espace</a>. Un match marqué « convoqué » attend votre réponse s'il n'en a pas encore.</p>
+{% endblock %}

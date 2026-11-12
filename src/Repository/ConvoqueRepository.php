@@ -26,6 +26,32 @@ class ConvoqueRepository extends ServiceEntityRepository
      *
      * @return list<Convoque>
      */
+    /**
+     * Convocations envoyées de ces joueurs pour les matchs entre deux dates (calendrier de l'espace famille).
+     *
+     * @param list<\App\Entity\Joueur> $joueurs
+     *
+     * @return list<\App\Entity\Convoque>
+     */
+    public function pourMatchs(array $joueurs, \DateTimeImmutable $debut, \DateTimeImmutable $fin): array
+    {
+        if (!$joueurs) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('cq')
+            ->addSelect('c', 'r', 'j')
+            ->join('cq.convocation', 'c')
+            ->join('c.rencontre', 'r')
+            ->join('cq.joueur', 'j')
+            ->andWhere('cq.joueur IN (:joueurs)')->setParameter('joueurs', $joueurs)
+            ->andWhere('c.envoyeeLe IS NOT NULL')
+            ->andWhere('r.date BETWEEN :debut AND :fin')
+            ->setParameter('debut', $debut, Types::DATE_IMMUTABLE)->setParameter('fin', $fin, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getResult();
+    }
+
     public function aVenir(iterable $joueurs): array
     {
         $joueurs = [...$joueurs];

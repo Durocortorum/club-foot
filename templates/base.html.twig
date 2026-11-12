@@ -12,6 +12,12 @@
         {% set club = apparence.club %}
         {% set logo_club = club.logo ? path('app_club_logo', {version: club.version}) : asset('images/logo.svg') %}
         {% if club.logo %}<link rel="icon" type="image/png" href="{{ path('app_club_icone', {version: club.version}) }}">{% else %}<link rel="icon" type="image/svg+xml" href="{{ asset('images/logo.svg') }}">{% endif %}
+        {# Application installable sur l'écran d'accueil (nécessaire aux notifications sur iPhone). #}
+        <link rel="manifest" href="{{ path('app_manifeste') }}" crossorigin="use-credentials">
+        <meta name="theme-color" content="{{ club.couleur }}">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="{{ club.nom|slice(0, 12) }}">
+        {% if club.logo %}<link rel="apple-touch-icon" href="{{ path('app_club_logo', {version: club.version}) }}">{% endif %}
         {% block stylesheets %}{% endblock %}
         {% block javascripts %}
             {% block importmap %}{{ importmap('app') }}{% endblock %}
@@ -42,6 +48,7 @@
                 {% elseif not is_granted('ROLE_ENCADREMENT') %}
                 <nav class="menu" id="navigation">
                     <a href="{{ path('app_espace') }}" class="{{ route == 'app_espace' ? 'actif' }}">Mon espace</a>
+                    <a href="{{ path('app_espace_calendrier') }}" class="{{ route == 'app_espace_calendrier' ? 'actif' }}">Calendrier</a>
                     {% set non_lus = messages_non_lus() %}
                     <a href="{{ path('app_espace_messages') }}" class="{{ route starts with 'app_espace_message' ? 'actif' }}">Messages <span class="pastille alerte" data-controller="nouvelles" data-nouvelles-url-value="{{ path('app_messages_etat') }}" {{ non_lus ? '' : 'hidden' }}>{{ non_lus ?: '' }}</span></a>
                 </nav>

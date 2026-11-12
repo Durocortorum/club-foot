@@ -28,6 +28,12 @@
                 <td style="padding: 4px 12px 10px; font-size: 14px;"><strong>Rendez-vous{% if convocation.rdvHeure %} à {{ convocation.rdvHeure }}{% endif %}{% if convocation.rdvLieu %}, {{ convocation.rdvLieu }}{% endif %}</strong></td>
             </tr>
         {% endif %}
+        {% if r.deplacements is not empty %}
+            <tr>
+                <td style="padding: 4px 12px 10px; color: #6b6b72; font-size: 13px; white-space: nowrap; vertical-align: top;">Déplacement</td>
+                <td style="padding: 4px 12px 10px; font-size: 14px;">{% for d in r.deplacements %}{{ d.resumeFamilles }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+            </tr>
+        {% endif %}
     </table>
 
     {% if convocation.message %}<p style="margin: 0 0 12px; white-space: pre-line;">{{ convocation.message }}</p>{% endif %}

@@ -25,6 +25,8 @@ class DeplacementType extends AbstractType
             ->add('date', DateType::class, ['widget' => 'single_text', 'input' => 'datetime_immutable'])
             ->add('objet', null, ['label' => 'Objet', 'attr' => ['placeholder' => 'ex. : Match U15 à Sedan, tournoi de Pâques']])
             ->add('categorie', EntityType::class, ['label' => 'Équipe', 'class' => Categorie::class, 'choices' => $options['categories'], 'required' => false, 'placeholder' => '— Aucune —'])
+            ->add('heureDepart', null, ['label' => 'Heure de départ', 'required' => false, 'attr' => ['placeholder' => 'ex. : 12h30', 'maxlength' => 10], 'help' => 'Affichée aux familles dans la convocation du match.'])
+            ->add('lieuDepart', null, ['label' => 'Lieu de départ', 'required' => false, 'attr' => ['placeholder' => 'ex. : parking du stade', 'maxlength' => 120]])
             ->add('moyen', ChoiceType::class, ['label' => 'Moyen de transport', 'choices' => array_combine(Deplacement::MOYENS, Deplacement::MOYENS)])
             ->add('vehicule', EntityType::class, ['label' => 'Minibus', 'class' => Vehicule::class, 'required' => false, 'placeholder' => '—', 'help' => 'Pour un minibus du club.'])
             ->add('conducteur', ListeOuverteType::class, ['label' => 'Conducteur', 'suggestions' => $options['conducteurs'], 'attr' => ['placeholder' => 'Prénom Nom'], 'help' => 'Choisissez dans la liste des conducteurs (permis contrôlé). Voiture personnelle : les frais sont regroupés par conducteur.'])

@@ -6,6 +6,8 @@
 {% block body %}
     <h1>Mon compte</h1>
 
+    {% include 'commun/_notifications.html.twig' with {texte: moi.famille ? null : 'Recevez une alerte quand une famille ou un collègue vous répond, même application fermée.'} %}
+
     <div class="grille-fiches">
         <section class="carte">
             <h2>Mes informations</h2>

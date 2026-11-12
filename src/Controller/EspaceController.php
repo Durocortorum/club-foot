@@ -25,6 +25,7 @@ use App\Repository\EvenementRepository;
 use App\Repository\ParticipationRepository;
 use App\Repository\PresenceRepository;
 use App\Service\BilanJoueur;
+use App\Service\CalendrierMois;
 use App\Repository\JoueurRepository;
 use App\Service\PlanningEntrainements;
 use App\Repository\RencontreRepository;
@@ -140,6 +141,52 @@ class EspaceController extends AbstractController
             'motifs' => Convoque::MOTIFS,
             'motifs_entrainement' => array_keys(AbsenceEntrainement::MOTIFS),
             'echelle_rpe' => Ressenti::ECHELLE,
+        ]);
+    }
+
+    /**
+     * Calendrier du mois pour la famille : matchs et entraînements des équipes de ses enfants, événements (hors réunions
+     * internes), stages et tournois de ces équipes ou de tout le club ; les matchs où un enfant est convoqué sont signalés.
+     */
+    #[Route('/espace/calendrier', name: 'app_espace_calendrier', methods: ['GET'])]
+    public function calendrier(Request $request, CalendrierMois $calendrier, ConvoqueRepository $convoques): Response
+    {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        if (!$moi->isFamille()) {
+            return $this->redirectToRoute('app_calendrier');
+        }
+        $equipes = [];
+        foreach ($moi->getJoueurs() as $j) {
+            if ($c = $j->getCategorie()) {
+                $equipes[$c->getId()] = $c;
+            }
+        }
+        $equipes = array_values($equipes);
+        $grille = $calendrier->grille($request->query->getString('mois'));
+        $calendrier->planifier($equipes, $grille['fin']);
+        $jours = $equipes ? $calendrier->jours($equipes, $grille['debut'], $grille['fin'], $equipes, true) : [];
+
+        // Convocations envoyées des enfants pour les matchs de la grille : qui est convoqué.
+        $convoquesParMatch = [];
+        foreach ($convoques->pourMatchs($moi->getJoueurs()->toArray(), $grille['debut'], $grille['fin']) as $cq) {
+            $convoquesParMatch[$cq->getConvocation()->getRencontre()->getId()][] = $cq->getJoueur()->getPrenom();
+        }
+        $plusieurs = $moi->getJoueurs()->count() > 1;
+        foreach ($jours as &$activites) {
+            foreach ($activites as &$a) {
+                if ('match' === $a['type'] && isset($convoquesParMatch[$a['objet']->getId()])) {
+                    $a['details'] = ['convoque' => true, 'qui' => $plusieurs ? implode(', ', $convoquesParMatch[$a['objet']->getId()]) : null];
+                }
+            }
+            unset($a);
+        }
+        unset($activites);
+
+        return $this->render('espace/calendrier.html.twig', $grille + [
+            'jours' => $jours,
+            'equipes' => $equipes,
+            'aujourdhui' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
         ]);
     }
 

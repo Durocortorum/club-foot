@@ -139,11 +139,23 @@ class Rencontre implements AppartientAuClub
     #[Assert\Valid]
     private Collection $remplacements;
 
+    /** @var Collection<int, Deplacement> déplacements prévus pour ce match (module Transport) */
+    #[ORM\OneToMany(targetEntity: Deplacement::class, mappedBy: 'rencontre')]
+    #[ORM\OrderBy(['heureDepart' => 'ASC', 'id' => 'ASC'])]
+    private Collection $deplacements;
+
     public function __construct()
     {
         $this->participations = new ArrayCollection();
         $this->buts = new ArrayCollection();
         $this->remplacements = new ArrayCollection();
+        $this->deplacements = new ArrayCollection();
+    }
+
+    /** @return Collection<int, Deplacement> */
+    public function getDeplacements(): Collection
+    {
+        return $this->deplacements;
     }
 
     public function getId(): ?int

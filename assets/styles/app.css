@@ -661,6 +661,11 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .cal-activite span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .calendrier-legende .cal-activite { display: inline-block; padding: .15rem .5rem; }
 .cal-match { background: #fde8eb; border-color: #d62839; color: #7a1020; }
+.cal-match.convoque { box-shadow: inset 0 0 0 2px #d62839; }
+/* Notifications sur le téléphone : seuls les boutons utiles à l'état de l'appareil sont montrés (assets/controllers/notifications_controller.js). */
+.notifications .bouton[hidden] { display: none; }
+.notifications-etat { font-weight: 600; margin: .4rem 0; }
+.cal-convoque { display: block; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
 .cal-entrainement { background: #e5f4e8; border-color: #2e8b44; color: #1d5a2c; }
 .cal-seance { background: #e6eefb; border-color: #1f5fd1; color: #173f87; }
 .cal-entrainement.annule { background: #f1f1f3; border-color: #a0a3aa; color: #6b6e75; }

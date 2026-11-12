@@ -25,6 +25,7 @@ class Messagerie
         private readonly CourrielClub $courriel,
         private readonly UrlGeneratorInterface $urls,
         private readonly LoggerInterface $logger,
+        private readonly NotificationsTelephone $notifications,
     ) {
     }
 
@@ -62,6 +63,12 @@ class Messagerie
         $this->em->persist($message);
         $this->em->flush();
 
+        // Notification sur le téléphone de chaque destinataire abonné (lien vers le message, selon son côté).
+        foreach ($prevenus as $compte) {
+            $this->notifications->envoyer([$compte], ($message->isImportant() ? 'Important · ' : '') . $message->getSujet(),
+                $message->getAuteurNom() . ' : ' . preg_replace('/\s+/u', ' ', (string) $message->getCorps()), $this->lien($message, $compte));
+        }
+
         if ($parEmail && $this->acces->emailActif()) {
             foreach ($prevenus as $compte) {
                 $this->envoyerEmail($message, $compte, \sprintf('%s : %s%s', $message->getClub()->getNom(), $message->isImportant() ? 'IMPORTANT – ' : '', $message->getSujet()), [
@@ -80,10 +87,17 @@ class Messagerie
     /** Une réponse vient d'être écrite : on prévient l'autre côté du fil par e-mail. */
     public function avertir(MessageReponse $reponse): void
     {
+        $message = $reponse->getMessage();
+        // Notification sur le téléphone de l'autre côté du fil.
+        $destinataire = $reponse->isDeLEncadrement() ? $reponse->getFamille() : $message->getAuteur();
+        if ($destinataire) {
+            $this->notifications->envoyer([$destinataire], 'Réponse de ' . $reponse->getAuteurNom(),
+                preg_replace('/\s+/u', ' ', $reponse->getCorps()),
+                $this->lien($message, $destinataire) . ($destinataire->isFamille() ? '' : '#fil-' . $reponse->getFamille()->getId()));
+        }
         if (!$this->acces->emailActif()) {
             return;
         }
-        $message = $reponse->getMessage();
         $club = $message->getClub()->getNom();
         $sansSuite = ['emails' => 0, 'sans_compte' => [], 'echecs' => []];
         if ($reponse->isDeLEncadrement()) {

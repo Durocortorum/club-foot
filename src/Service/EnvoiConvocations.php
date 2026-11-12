@@ -32,6 +32,7 @@ class EnvoiConvocations
         #[Autowire('%env(MAILER_EXPEDITEUR)%')]
         private readonly string $expediteur,
         private readonly CourrielClub $courriel,
+        private readonly NotificationsTelephone $notifications,
     ) {
     }
 
@@ -51,6 +52,11 @@ class EnvoiConvocations
                 continue;
             }
             $comptes = array_filter($this->acces->comptes($c->getJoueur()), fn ($u) => null !== $u->getPassword());
+            $r = $convocation->getRencontre();
+            $this->notifications->envoyer($comptes,
+                \sprintf('%s%s convoqué(e)', $relance ? 'Rappel : ' : '', $c->getJoueur()->getPrenom()),
+                \sprintf('%s – %s, %s %s%s. Répondez présent ou absent.', $r->getEquipeAffichee(), $r->getAdversaire(), self::JOURS[(int) $r->getDate()->format('w')], $r->getDate()->format('d/m'), $r->getHeure() ? ' à ' . $r->getHeure() : ''),
+                $espace);
             if (!$comptes || !$this->acces->emailActif()) {
                 $resultat['sans_compte'][] = $c->getJoueur();
                 continue;
@@ -104,31 +110,35 @@ class EnvoiConvocations
     /** Un e-mail à chaque compte famille actif des joueurs de la catégorie de l'entraînement. */
     private function annoncer(Entrainement $entrainement, string $etat, string $texte): int
     {
-        if (!$this->acces->emailActif()) {
-            return 0;
-        }
         $club = $entrainement->getClub();
         $envoyes = 0;
         $deja = [];
         foreach ($this->joueurs->findBy(['categorie' => $entrainement->getCategorie(), 'ancien' => false]) as $j) {
             foreach ($this->acces->comptes($j) as $compte) {
-                if (null === $compte->getPassword() || isset($deja[$compte->getId()])) {
-                    continue;
+                if (null !== $compte->getPassword()) {
+                    $deja[$compte->getId()] ??= $compte;
                 }
-                $deja[$compte->getId()] = true;
-                try {
-                    // Première ligne du message (« ENTRAÎNEMENT ANNULÉ – U13 ») : titre ; la suite : le détail.
-                    $lignes = explode("\n", $texte);
-                    $this->mailer->send($this->courriel->message($club, (string) $compte->getEmail(),
-                        \sprintf('%s : entraînement %s %s', $club->getNom(), $this->quand($entrainement), $etat), [
-                            'titre' => \sprintf('Entraînement %s – %s', $etat, $entrainement->getCategorie()),
-                            'paragraphes' => \array_slice($lignes, 1),
-                            'bouton' => ['libelle' => 'Voir mon espace', 'url' => $this->urls->generate('app_espace', [], UrlGeneratorInterface::ABSOLUTE_URL)],
-                        ]));
-                    ++$envoyes;
-                } catch (TransportExceptionInterface $e) {
-                    $this->logger->error('Annulation non envoyée à {email} : {erreur}', ['email' => $compte->getEmail(), 'erreur' => $e->getMessage()]);
-                }
+            }
+        }
+        // Notification sur le téléphone : première ligne en titre, la suite en texte.
+        $lignes = explode("\n", $texte);
+        $this->notifications->envoyer($deja, \sprintf('Entraînement %s – %s', $etat, $entrainement->getCategorie()), implode(' ', \array_slice($lignes, 1)),
+            $this->urls->generate('app_espace', [], UrlGeneratorInterface::ABSOLUTE_URL));
+        if (!$this->acces->emailActif()) {
+            return 0;
+        }
+        foreach ($deja as $compte) {
+            try {
+                // Première ligne du message (« ENTRAÎNEMENT ANNULÉ – U13 ») : titre ; la suite : le détail.
+                $this->mailer->send($this->courriel->message($club, (string) $compte->getEmail(),
+                    \sprintf('%s : entraînement %s %s', $club->getNom(), $this->quand($entrainement), $etat), [
+                        'titre' => \sprintf('Entraînement %s – %s', $etat, $entrainement->getCategorie()),
+                        'paragraphes' => \array_slice($lignes, 1),
+                        'bouton' => ['libelle' => 'Voir mon espace', 'url' => $this->urls->generate('app_espace', [], UrlGeneratorInterface::ABSOLUTE_URL)],
+                    ]));
+                ++$envoyes;
+            } catch (TransportExceptionInterface $e) {
+                $this->logger->error('Annulation non envoyée à {email} : {erreur}', ['email' => $compte->getEmail(), 'erreur' => $e->getMessage()]);
             }
         }
 
@@ -159,6 +169,9 @@ class EnvoiConvocations
         ];
         if ($convocation->getRdvHeure() || $convocation->getRdvLieu()) {
             $lignes[] = 'Rendez-vous : ' . trim(($convocation->getRdvHeure() ? $convocation->getRdvHeure() : '') . ($convocation->getRdvLieu() ? ', ' . $convocation->getRdvLieu() : ''), ' ,');
+        }
+        foreach ($r->getDeplacements() as $d) {
+            $lignes[] = 'Déplacement : ' . $d->getResumeFamilles();
         }
         if ($convocation->getMessage()) {
             $lignes[] = $convocation->getMessage();
