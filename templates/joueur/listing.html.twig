@@ -1,31 +1,43 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Listing {{ categorie ? categorie.nom : 'des joueurs' }}{% endblock %}
+{% block title %}Listing – {{ titre }}{% endblock %}
 
 {% block body %}
+    {% set avec_groupe = categorie is null and qui in ['joueurs', 'encadrement', 'tous'] %}
+    {% set avec_fonction = qui != 'joueurs' %}
     <div class="impression-a4">
     <p class="sans-impression"><a href="{{ path('app_joueur_effectifs') }}">← Effectifs</a></p>
     <div class="titre-page">
         <h1>
-            {{ app.user.club.nom ?? '' }} · {{ categorie ? categorie.nom : 'Tous les joueurs' }}
-            <span class="compteur">{{ joueurs|length }} {{ accord(joueurs|length, 'joueur') }}</span>
+            {{ app.user.club.nom ?? '' }} · {{ titre }}
+            <span class="compteur">{{ lignes|length }} {{ accord(lignes|length, qui == 'joueurs' ? 'joueur' : 'personne') }}</span>
         </h1>
         <span class="actions sans-impression">
             <button type="button" class="bouton" onclick="window.print()">Imprimer</button>
-            <a class="bouton" href="{{ path('app_joueur_listing', {categorie: categorie ? categorie.id, format: 'csv'}|filter(v => v)) }}">Ouvrir dans Excel</a>
+            <a class="bouton" href="{{ path('app_joueur_listing', {qui: qui, categorie: categorie ? categorie.id, format: 'csv'}|filter(v => v)) }}">Ouvrir dans Excel</a>
         </span>
     </div>
 
     <form class="filtres sans-impression" method="get">
-        <select name="categorie" onchange="this.form.requestSubmit()">
-            <option value="">Toutes les catégories</option>
-            {% for c in categories %}
-                <option value="{{ c.id }}" {{ categorie and categorie.id == c.id ? 'selected' }}>{{ c.nom }}</option>
+        <select name="qui" onchange="this.form.categorie && (this.form.categorie.value = ''); this.form.requestSubmit()">
+            <option value="joueurs" {{ qui == 'joueurs' ? 'selected' }}>Joueurs</option>
+            {% for type, t in types %}
+                <option value="{{ type }}" {{ qui == type ? 'selected' }}>{{ t.libelle }}</option>
             {% endfor %}
+            <option value="encadrement" {{ qui == 'encadrement' ? 'selected' }}>Tout l'encadrement</option>
+            <option value="tous" {{ qui == 'tous' ? 'selected' }}>Tout le club (joueurs et encadrement)</option>
         </select>
+        {% if qui == 'joueurs' %}
+            <select name="categorie" onchange="this.form.requestSubmit()">
+                <option value="">Toutes les catégories</option>
+                {% for c in categories %}
+                    <option value="{{ c.id }}" {{ categorie and categorie.id == c.id ? 'selected' }}>{{ c.nom }}</option>
+                {% endfor %}
+            </select>
+        {% endif %}
         <noscript><button type="submit" class="bouton">Afficher</button></noscript>
     </form>
-    <p class="discret petit">Joueurs actifs, au {{ 'now'|date('d/m/Y') }}.</p>
+    <p class="discret petit">{{ qui == 'joueurs' ? 'Joueurs actifs' : 'Personnes en activité' }}, au {{ 'now'|date('d/m/Y') }}.</p>
 
     <div class="table-defile">
         <table class="liste listing">
@@ -33,7 +45,8 @@
                 <tr>
                     <th>Nom</th>
                     <th>Prénom</th>
-                    {% if not categorie %}<th>Catégorie</th>{% endif %}
+                    {% if avec_groupe %}<th>{{ qui == 'joueurs' ? 'Catégorie' : (qui == 'tous' ? 'Catégorie ou rôle' : 'Rôle') }}</th>{% endif %}
+                    {% if avec_fonction %}<th>{{ qui == 'tous' ? 'Poste ou fonction' : 'Fonction' }}</th>{% endif %}
                     <th>Né le</th>
                     <th>Âge</th>
                     <th>Adresse</th>
@@ -42,27 +55,31 @@
                 </tr>
             </thead>
             <tbody>
-                {% for j in joueurs %}
+                {% for l in lignes %}
                     <tr>
-                        <td class="fort"><a href="{{ path('app_joueur_voir', {id: j.id}) }}">{{ j.nom }}</a></td>
-                        <td>{{ j.prenom }}</td>
-                        {% if not categorie %}<td>{{ j.categorie }}</td>{% endif %}
-                        <td>{{ j.dateNaissance ? j.dateNaissance|date('d/m/Y') }}</td>
-                        <td>{{ j.age is not null ? j.age ~ ' ans' }}</td>
-                        <td>{{ j.adresse }}{% if j.codePostal or j.ville %}{{ j.adresse ? ', ' }}{{ [j.codePostal, j.ville]|filter(v => v)|join(' ') }}{% endif %}</td>
+                        <td class="fort"><a href="{{ l.lien }}">{{ l.nom }}</a></td>
+                        <td>{{ l.prenom }}</td>
+                        {% if avec_groupe %}<td>{{ l.groupe }}</td>{% endif %}
+                        {% if avec_fonction %}<td>{{ l.fonction }}</td>{% endif %}
+                        <td class="sans-retour">{{ l.ne ? l.ne|date('d/m/Y') }}</td>
+                        <td class="sans-retour">{{ l.age is not null ? l.age ~ ' ans' }}</td>
+                        <td>{{ l.adresse }}{% if l.cp or l.ville %}{{ l.adresse ? ', ' }}{{ [l.cp, l.ville]|filter(v => v)|join(' ') }}{% endif %}</td>
                         <td>
-                            {% for t in [j.telJoueur, j.telPortable1, j.telPortable2]|filter(v => v) %}
+                            {% for t in l.tels|filter(v => v) %}
                                 <span class="sans-retour">{{ t }}</span>{% if not loop.last %}<br>{% endif %}
                             {% endfor %}
                         </td>
-                        <td>{{ j.licence }}</td>
+                        <td>{{ l.licence }}</td>
                     </tr>
                 {% else %}
-                    <tr><td colspan="8" class="vide">Aucun joueur actif.</td></tr>
+                    <tr><td colspan="9" class="vide">Personne dans cette liste.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    <p class="discret petit sans-impression">Téléphones : celui du joueur puis ceux des parents. Le fichier Excel donne aussi l'e-mail.</p>
+    <p class="discret petit sans-impression">
+        Téléphones : {{ qui == 'joueurs' ? 'celui du joueur puis ceux des parents' : (qui == 'tous' ? 'pour un joueur, le sien puis ceux des parents ; pour l\'encadrement, les portables puis le fixe' : 'les portables puis le fixe') }}.
+        Le fichier Excel donne aussi l'e-mail.
+    </p>
     </div>
 {% endblock %}

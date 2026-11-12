@@ -12,7 +12,7 @@
         <h1>Effectifs <span class="compteur">{{ total }} {{ accord(total, 'joueur') }}</span></h1>
         <span class="actions sans-impression">
             <button type="button" class="bouton" onclick="window.print()">Imprimer</button>
-            <a class="bouton" href="{{ path('app_joueur_listing') }}">Listing des joueurs</a>
+            <a class="bouton" href="{{ path('app_joueur_listing') }}">Listings</a>
         </span>
     </div>
     <p class="discret petit">Joueurs actifs (anciens joueurs exclus){{ secteurs|length > 1 ? ', des secteurs que vous pouvez voir' }}. Saison {{ saison }}.</p>
@@ -94,6 +94,27 @@
                 </tbody>
             </table>
         </div>
+    </section>
+
+    {% set total_encadrement = encadrement|reduce((s, t) => s + t.total, 0) %}
+    <section class="carte bloc">
+        <h2>Encadrement</h2>
+        <div class="table-defile">
+            <table class="liste effectifs">
+                <thead><tr><th>Fonction</th><th class="a-droite">Personnes</th><th class="sans-impression"></th></tr></thead>
+                <tbody>
+                    {% for t in encadrement %}
+                        <tr>
+                            <td class="fort">{{ t.libelle }}</td>
+                            <td class="a-droite fort">{{ t.total }}</td>
+                            <td class="sans-impression a-droite">{% if t.total %}<a href="{{ path('app_joueur_listing', {qui: t.type}) }}">Listing</a>{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot><tr><th>Total</th><th class="a-droite">{{ total_encadrement }}</th><th class="sans-impression a-droite"><a href="{{ path('app_joueur_listing', {qui: 'encadrement'}) }}">Listing</a></th></tr></tfoot>
+            </table>
+        </div>
+        <p class="discret petit">Personnes en activité (anciens exclus). Une même personne inscrite à deux titres (éducateur et dirigeant, par exemple) compte deux fois. Club complet : {{ total }} {{ accord(total, 'joueur') }} et {{ total_encadrement }} dans l'encadrement · <a class="sans-impression" href="{{ path('app_joueur_listing', {qui: 'tous'}) }}">listing de tout le club</a>.</p>
     </section>
     </div>
 {% endblock %}

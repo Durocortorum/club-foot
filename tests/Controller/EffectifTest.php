@@ -4,6 +4,8 @@ namespace App\Tests\Controller;
 
 use App\Entity\Categorie;
 use App\Entity\Club;
+use App\Entity\Dirigeant;
+use App\Entity\Educateur;
 use App\Entity\Joueur;
 use App\Entity\Rencontre;
 use App\Entity\Utilisateur;
@@ -23,7 +25,7 @@ class EffectifTest extends WebTestCase
     {
         if ($this->clubId) {
             $connexion = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
-            foreach (['utilisateur', 'joueur', 'categorie'] as $table) {
+            foreach (['utilisateur', 'joueur', 'categorie', 'educateur', 'dirigeant'] as $table) {
                 $connexion->executeStatement("DELETE FROM $table WHERE club_id = ?", [$this->clubId]);
             }
             $connexion->executeStatement('DELETE FROM club WHERE id = ?', [$this->clubId]);
@@ -88,6 +90,38 @@ class EffectifTest extends WebTestCase
         self::assertStringStartsWith("\xEF\xBB\xBF\"Nom\";\"Prénom\"", $csv);
         self::assertCount(5, array_filter(explode("\r\n", $csv)));
         self::assertStringContainsString('"MARTIN";"Noé";"U17"', $csv);
-        self::assertStringContainsString('attachment; filename="effectif-club-', $client->getResponse()->headers->get('Content-Disposition'));
+        self::assertStringContainsString('attachment; filename="listing-tous-les-joueurs-', $client->getResponse()->headers->get('Content-Disposition'));
+
+        // Encadrement : compté sur la page des effectifs, listing par type, de tout l'encadrement ou de tout le club.
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $club = $em->find(Club::class, $this->clubId);
+        $em->persist((new Educateur())->setClub($club)->setNom('Coach')->setPrenom('Karim')->setFonction('U15')->setTelPortable1('07 00 00 00 01'));
+        $em->persist((new Dirigeant())->setClub($club)->setNom('Président')->setPrenom('Anne')->setFonction('Présidente'));
+        $em->persist((new Dirigeant())->setClub($club)->setNom('Parti')->setPrenom('Jean')->setAncien(true));
+        $em->flush();
+        $crawler = $client->request('GET', '/joueurs/effectifs');
+        $encadrement = $crawler->filter('table.effectifs')->eq(2);
+        self::assertStringContainsString('Éducateurs 1', $encadrement->text());
+        self::assertStringContainsString('Dirigeants 1', $encadrement->text());
+        self::assertSame('2', $encadrement->filter('tfoot th')->eq(1)->text());
+
+        $crawler = $client->request('GET', '/joueurs/listing?qui=educateurs');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('table.listing tbody tr'));
+        self::assertSelectorTextContains('table.listing', '07 00 00 00 01');
+
+        $crawler = $client->request('GET', '/joueurs/listing?qui=encadrement');
+        self::assertCount(2, $crawler->filter('table.listing tbody tr'));
+        self::assertSelectorTextContains('table.listing', 'Présidente');
+        self::assertSelectorTextNotContains('table.listing', 'PARTI');
+
+        $crawler = $client->request('GET', '/joueurs/listing?qui=tous');
+        self::assertSelectorTextContains('h1', '6 personnes');
+
+        $client->request('GET', '/joueurs/listing?qui=dirigeants&format=csv');
+        $csv = $client->getResponse()->getContent();
+        self::assertStringContainsString('"Rôle";"Fonction"', $csv);
+        self::assertStringContainsString('"Dirigeant";"Présidente"', $csv);
+        self::assertStringContainsString('filename="listing-dirigeants-', $client->getResponse()->headers->get('Content-Disposition'));
     }
 }

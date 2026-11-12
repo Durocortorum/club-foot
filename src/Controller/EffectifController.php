@@ -3,11 +3,14 @@
 namespace App\Controller;
 
 use App\Entity\Categorie;
+use App\Entity\Intervenant;
 use App\Entity\Joueur;
 use App\Entity\Rencontre;
 use App\Repository\CategorieRepository;
 use App\Repository\JoueurRepository;
 use App\Security\JoueurVoter;
+use App\Service\Encadrement;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,14 +24,11 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/joueurs')]
 class EffectifController extends AbstractController
 {
-    /** Colonnes du listing et de l'export. */
-    private const COLONNES = ['Nom', 'Prénom', 'Catégorie', 'Né le', 'Âge', 'Adresse', 'Code postal', 'Ville',
-        'Tél. joueur', 'Tél. parent 1', 'Tél. parent 2', 'E-mail', 'N° de licence'];
-
     public function __construct(
         private readonly JoueurVoter $voter,
         private readonly JoueurRepository $joueurs,
         private readonly CategorieRepository $categories,
+        private readonly EntityManagerInterface $em,
     ) {
     }
 
@@ -92,48 +92,124 @@ class EffectifController extends AbstractController
             'total' => \count($actifs),
             'saison' => $saison,
             'max_annee' => $parAnnee ? max(array_column($parAnnee, 'total')) : 0,
+            'encadrement' => array_map(fn (string $type) => [
+                'type' => $type,
+                'libelle' => Encadrement::TYPES[$type]['libelle'],
+                'total' => $this->em->getRepository(Encadrement::TYPES[$type]['classe'])->count(['ancien' => false]),
+            ], array_keys(Encadrement::TYPES)),
         ]);
     }
 
-    /** Listing à imprimer ; ?format=csv : le même, en fichier pour Excel. */
+    /**
+     * Listing à imprimer ; ?format=csv : le même, en fichier pour Excel.
+     * ?qui= joueurs (d'une catégorie avec ?categorie=), un type d'encadrement (educateurs, dirigeants…),
+     * encadrement (tous les types) ou tous (joueurs et encadrement).
+     */
     #[Route('/listing', name: 'app_joueur_listing', methods: ['GET'])]
     public function listing(Request $request): Response
     {
         $secteurs = $this->voter->secteursVisibles();
         $visibles = $this->categories->findBy(['secteur' => $secteurs], ['ordre' => 'ASC', 'nom' => 'ASC']);
+        $qui = $request->query->getString('qui', 'joueurs');
+        if (!\in_array($qui, ['joueurs', 'encadrement', 'tous', ...array_keys(Encadrement::TYPES)], true)) {
+            $qui = 'joueurs';
+        }
         $categorie = null;
-        foreach ($visibles as $c) {
+        foreach ('joueurs' === $qui ? $visibles : [] as $c) {
             if ($c->getId() === $request->query->getInt('categorie')) {
                 $categorie = $c;
             }
         }
-        $liste = $this->joueurs->actifs($secteurs, $categorie?->getId());
+
+        $lignes = [];
+        if (\in_array($qui, ['joueurs', 'tous'], true)) {
+            foreach ($this->joueurs->actifs($secteurs, $categorie?->getId()) as $j) {
+                $lignes[] = $this->ligneJoueur($j);
+            }
+        }
+        foreach (Encadrement::TYPES as $type => $t) {
+            if (\in_array($qui, [$type, 'encadrement', 'tous'], true)) {
+                foreach ($this->em->getRepository($t['classe'])->findBy(['ancien' => false], ['nom' => 'ASC', 'prenom' => 'ASC']) as $i) {
+                    $lignes[] = $this->ligneEncadrement($i, $type, rtrim($t['libelle'], 's'));
+                }
+            }
+        }
+        $titre = match (true) {
+            null !== $categorie => (string) $categorie->getNom(),
+            'joueurs' === $qui => 'Tous les joueurs',
+            'encadrement' === $qui => 'Tout l\'encadrement',
+            'tous' === $qui => 'Tout le club',
+            default => Encadrement::TYPES[$qui]['libelle'],
+        };
 
         if ('csv' === $request->query->getString('format')) {
-            return $this->csv($liste, $categorie);
+            return $this->csv($lignes, $qui, $titre);
         }
 
         return $this->render('joueur/listing.html.twig', [
-            'joueurs' => $liste,
+            'lignes' => $lignes,
+            'qui' => $qui,
+            'titre' => $titre,
             'categorie' => $categorie,
             'categories' => $visibles,
+            'types' => Encadrement::TYPES,
+            'telephones' => self::telephones($qui),
         ]);
     }
 
-    /** @param list<Joueur> $liste */
-    private function csv(array $liste, ?Categorie $categorie): Response
+    /** Intitulés des trois téléphones : ceux d'un joueur, de l'encadrement, ou neutres si la liste mélange les deux. */
+    private static function telephones(string $qui): array
+    {
+        return match ($qui) {
+            'joueurs' => ['Tél. joueur', 'Tél. parent 1', 'Tél. parent 2'],
+            'tous' => ['Téléphone 1', 'Téléphone 2', 'Téléphone 3'],
+            default => ['Portable 1', 'Portable 2', 'Tél. fixe'],
+        };
+    }
+
+    /** @return array<string, mixed> ligne commune du listing */
+    private function ligneJoueur(Joueur $j): array
+    {
+        return [
+            'lien' => $this->generateUrl('app_joueur_voir', ['id' => $j->getId()]),
+            'nom' => $j->getNom(), 'prenom' => $j->getPrenom(), 'groupe' => (string) $j->getCategorie(), 'fonction' => $j->getPoste(),
+            'ne' => $j->getDateNaissance(), 'age' => $j->getAge(),
+            'adresse' => $j->getAdresse(), 'cp' => $j->getCodePostal(), 'ville' => $j->getVille(),
+            'tels' => [$j->getTelJoueur(), $j->getTelPortable1(), $j->getTelPortable2()],
+            'email' => $j->getEmailJoueur() ?: $j->getEmailParent1(), 'licence' => $j->getLicence(),
+        ];
+    }
+
+    /** @return array<string, mixed> ligne commune du listing */
+    private function ligneEncadrement(Intervenant $i, string $type, string $role): array
+    {
+        return [
+            'lien' => $this->generateUrl('app_intervenant_voir', ['type' => $type, 'id' => $i->getId()]),
+            'nom' => $i->getNom(), 'prenom' => $i->getPrenom(), 'groupe' => $role,
+            'fonction' => implode(', ', array_filter([$i->getFonction(), $i->getFonction2()])),
+            'ne' => $i->getDateNaissance(), 'age' => $i->getDateNaissance()?->diff(new \DateTimeImmutable())->y,
+            'adresse' => $i->getAdresse(), 'cp' => $i->getCodePostal(), 'ville' => $i->getVille(),
+            'tels' => [$i->getTelPortable1(), $i->getTelPortable2(), $i->getTelFixe()],
+            'email' => $i->getEmail(), 'licence' => $i->getLicence(),
+        ];
+    }
+
+    /** @param list<array<string, mixed>> $lignes */
+    private function csv(array $lignes, string $qui, string $titre): Response
     {
         $ligne = fn (array $cellules) => implode(';', array_map(fn ($c) => '"' . str_replace('"', '""', (string) $c) . '"', $cellules));
-        $lignes = [$ligne(self::COLONNES)];
-        foreach ($liste as $j) {
-            $lignes[] = $ligne([
-                $j->getNom(), $j->getPrenom(), $j->getCategorie(), $j->getDateNaissance()?->format('d/m/Y'), $j->getAge(),
-                $j->getAdresse(), $j->getCodePostal(), $j->getVille(),
-                $j->getTelJoueur(), $j->getTelPortable1(), $j->getTelPortable2(),
-                $j->getEmailJoueur() ?: $j->getEmailParent1(), $j->getLicence(),
+        $groupe = match ($qui) { 'joueurs' => 'Catégorie', 'tous' => 'Catégorie ou rôle', default => 'Rôle' };
+        $sortie = [$ligne(['Nom', 'Prénom', $groupe, match ($qui) { 'joueurs' => 'Poste', 'tous' => 'Poste ou fonction', default => 'Fonction' }, 'Né le', 'Âge', 'Adresse', 'Code postal', 'Ville',
+            ...self::telephones($qui), 'E-mail', 'N° de licence'])];
+        foreach ($lignes as $l) {
+            $sortie[] = $ligne([
+                $l['nom'], $l['prenom'], $l['groupe'], $l['fonction'], $l['ne']?->format('d/m/Y'), $l['age'],
+                $l['adresse'], $l['cp'], $l['ville'], ...$l['tels'], $l['email'], $l['licence'],
             ]);
         }
-        $nom = 'effectif-' . ($categorie ? strtolower((string) preg_replace('/[^A-Za-z0-9]+/', '-', (string) $categorie->getNom())) : 'club') . '-' . date('Y-m-d') . '.csv';
+        $lignes = $sortie;
+        $ascii = strtolower(trim((string) preg_replace('/[^A-Za-z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT', $titre) ?: $qui), '-'));
+        $nom = 'listing-' . $ascii . '-' . date('Y-m-d') . '.csv';
 
         // BOM UTF-8 et point-virgule : Excel ouvre le fichier directement, accents compris.
         return new Response("\xEF\xBB\xBF" . implode("\r\n", $lignes) . "\r\n", 200, [

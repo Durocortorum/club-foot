@@ -15,9 +15,12 @@
 
     <div class="titre-page">
         <h1>{{ libelles.pluriel }} <span class="compteur">{{ intervenants|length }}</span></h1>
-        {% if is_granted('ROLE_ADMIN') %}
-            <a class="bouton principal" href="{{ path('app_intervenant_nouveau', {type: type}) }}">+ {{ libelles.nouveau }} {{ libelles.singulier }}</a>
-        {% endif %}
+        <span class="actions">
+            <a class="bouton" href="{{ path('app_joueur_listing', {qui: type}) }}">Listing</a>
+            {% if is_granted('ROLE_ADMIN') %}
+                <a class="bouton principal" href="{{ path('app_intervenant_nouveau', {type: type}) }}">+ {{ libelles.nouveau }} {{ libelles.singulier }}</a>
+            {% endif %}
+        </span>
     </div>
 
     <form class="filtres" method="get">
