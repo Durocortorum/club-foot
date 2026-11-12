@@ -54,6 +54,10 @@ class Categorie implements AppartientAuClub
     #[ORM\Column]
     private int $ordre = 0;
 
+    /** Équipe féminine (U15 F, Seniors F…). */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $feminine = false;
+
     /** Durée d'un match en minutes (deux mi-temps), null si la catégorie ne joue pas de matchs à feuille. */
     #[ORM\Column(type: 'smallint', nullable: true)]
     #[Assert\Range(min: 10, max: 120)]
@@ -140,6 +144,24 @@ class Categorie implements AppartientAuClub
         $age = $this->getAge();
 
         return 99 === $age ? $autre->getAge() >= 17 : $autre->getAge() >= $age - 2 && $autre->getAge() <= $age;
+    }
+
+    public function isFeminine(): bool
+    {
+        return $this->feminine;
+    }
+
+    public function setFeminine(bool $feminine): static
+    {
+        $this->feminine = $feminine;
+
+        return $this;
+    }
+
+    /** Nom qui désigne une équipe féminine : « Féminines », « U15 F », « Seniors F », « U13 Filles »… */
+    public static function nomFeminin(?string $nom): bool
+    {
+        return (bool) preg_match('/f[ée]minin|\bfilles?\b|\bf\d*$/iu', trim((string) $nom));
     }
 
     public function getDureeMatch(): ?int

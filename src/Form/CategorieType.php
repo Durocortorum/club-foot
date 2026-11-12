@@ -4,6 +4,7 @@ namespace App\Form;
 
 use App\Entity\Categorie;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -35,13 +36,21 @@ class CategorieType extends AbstractType
                 'attr' => ['min' => 10, 'max' => 120, 'placeholder' => 'ex. : 60', 'class' => 'court'],
                 'help' => 'Les deux mi-temps, sans les arrêts de jeu : U11 50, U13 60, U15 80, au-delà 90. '
                     . 'Sert aux minutes des buts et au score par mi-temps des rapports de match. Laissé vide : proposée d\'après le nom.',
+            ])
+            ->add('feminine', CheckboxType::class, [
+                'label' => 'Équipe féminine',
+                'required' => false,
+                'help' => 'Cochée d\'office pour un nom comme « Féminines », « U15 F » ou « U13 Filles ».',
             ]);
 
-        // Durée laissée vide : celle d'usage pour ce nom de catégorie.
+        // Durée laissée vide : celle d'usage pour ce nom de catégorie. Nouvelle catégorie au nom féminin : cochée.
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
             $categorie = $event->getData();
             if ($categorie instanceof Categorie && null === $categorie->getDureeMatch()) {
                 $categorie->setDureeMatch(Categorie::dureeParDefaut($categorie->getNom()));
+            }
+            if ($categorie instanceof Categorie && null === $categorie->getId() && Categorie::nomFeminin($categorie->getNom())) {
+                $categorie->setFeminine(true);
             }
         });
     }

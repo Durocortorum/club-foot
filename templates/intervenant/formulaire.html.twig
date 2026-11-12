@@ -26,7 +26,15 @@
 
         <fieldset class="carte">
             <legend>Club</legend>
-            {{ m.groupe(form, ['fonction', 'fonction2', 'niveau', 'diplome', 'licence', 'equipement', 'ancien']) }}
+            {{ m.groupe(form, ['fonction', 'fonction2', 'niveau', 'diplome', 'dateDiplome', 'licence', 'permis', 'equipement', 'ancien']) }}
+            {% if form.equipes is defined %}
+                <div class="champ large">
+                    {{ form_label(form.equipes) }}
+                    <div class="cases-equipes">{{ form_widget(form.equipes) }}</div>
+                    {{ form_help(form.equipes) }}
+                    {{ form_errors(form.equipes) }}
+                </div>
+            {% endif %}
         </fieldset>
 
         <fieldset class="carte">

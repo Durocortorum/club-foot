@@ -67,6 +67,10 @@ class Joueur implements AppartientAuClub
     #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $dateArrivee = null;
 
+    /** Club d'où vient le joueur. */
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $ancienClub = null;
+
     #[ORM\Column]
     private bool $selectionne = false;
 
@@ -126,6 +130,14 @@ class Joueur implements AppartientAuClub
 
     #[ORM\Column]
     private bool $transportParent = false;
+
+    /** Autorisation des parents : faire soigner l'enfant et, en urgence, le faire hospitaliser ou opérer. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $autorisationSoins = false;
+
+    /** Autorisé à repartir seul après l'entraînement ou le match. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $partirSeul = false;
 
     // --- Scolarité
     #[ORM\Column(length: 255, nullable: true)]
@@ -574,6 +586,42 @@ class Joueur implements AppartientAuClub
     public function setTransportParent(bool $transportParent): static
     {
         $this->transportParent = $transportParent;
+
+        return $this;
+    }
+
+    public function isAutorisationSoins(): bool
+    {
+        return $this->autorisationSoins;
+    }
+
+    public function setAutorisationSoins(bool $autorisationSoins): static
+    {
+        $this->autorisationSoins = $autorisationSoins;
+
+        return $this;
+    }
+
+    public function isPartirSeul(): bool
+    {
+        return $this->partirSeul;
+    }
+
+    public function setPartirSeul(bool $partirSeul): static
+    {
+        $this->partirSeul = $partirSeul;
+
+        return $this;
+    }
+
+    public function getAncienClub(): ?string
+    {
+        return $this->ancienClub;
+    }
+
+    public function setAncienClub(?string $ancienClub): static
+    {
+        $this->ancienClub = null === $ancienClub ? null : (trim($ancienClub) ?: null);
 
         return $this;
     }

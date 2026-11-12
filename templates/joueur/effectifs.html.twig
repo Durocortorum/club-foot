@@ -38,7 +38,7 @@
                         {% endif %}
                         {% for l in s.lignes %}
                             <tr>
-                                <td class="fort">{{ l.categorie.nom }}</td>
+                                <td class="fort">{{ l.categorie.nom }}{% if l.categorie.feminine %}<span class="pastille feminine" title="Équipe féminine">F</span>{% endif %}</td>
                                 <td class="a-droite fort">{{ l.total }}</td>
                                 <td>{{ e.ecart(l.annees) }}{% if l.sans_date %} <span class="discret petit">({{ l.sans_date }} sans date de naissance)</span>{% endif %}</td>
                                 <td>{{ e.ecart(l.ages, ' ans') }}</td>

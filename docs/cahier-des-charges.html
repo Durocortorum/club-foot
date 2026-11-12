@@ -91,7 +91,7 @@
     <tr><td>Convocation / match</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Rendez-vous, lieu, message ; envoi par e-mail, messagerie, WhatsApp et SMS ; réponse présent/absent sur le téléphone, relances ; joueurs des niveaux voisins, double convocation le même jour refusée ; feuille de match préremplie. Le transport viendra avec le module Transport.</td></tr>
     <tr><td>Composition</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Système de jeu et postes ; schéma du terrain : titulaires placés d'après le système et leur poste, déplaçables à la souris ou au doigt, remplaçants sur le banc.</td></tr>
     <tr><td>Présence</td><td class="etat"><span class="f">Fait</span></td><td>Par semaine et par créneau, avec motifs (dont « Discipline ») et pourcentage ; reliée au planning et à la feuille d'appel.</td></tr>
-    <tr><td>Catégories (U5 à séniors)</td><td class="etat"><span class="f">Fait</span></td><td>Durée de match par catégorie ; distinguer les féminines.</td></tr>
+    <tr><td>Catégories (U5 à séniors)</td><td class="etat"><span class="f">Fait</span></td><td>Durée de match par catégorie ; équipes féminines distinguées (pastille F).</td></tr>
     <tr><td>Archives</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Saisons, anciens joueurs, éducateurs, dirigeants, administratifs, bénévoles, arbitres et sponsors.</td></tr>
     <tr><td>Organigramme</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Schéma en arbre : postes (président, bureau, responsables…), personne de chaque poste choisie parmi les fiches de l'encadrement (photo, téléphone) ou saisie ; organigramme type pour démarrer.</td></tr>
     <tr><td>Application joueur</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td><td>Espace du joueur et de sa famille, pensé pour le téléphone : matchs, convocations, entraînements, statistiques, messagerie. Le joueur majeur décide lui-même de l'accès de ses contacts. Notifications sur le téléphone à venir.</td></tr>
@@ -157,10 +157,10 @@
 <table>
   <thead><tr><th>Module</th><th>Contenu prévu</th><th>État</th></tr></thead>
   <tbody>
-    <tr><td>Catégories</td><td>U7 à seniors, féminines</td><td class="etat"><span class="p">En partie</span></td></tr>
-    <tr><td>Joueurs</td><td>Nom, âge, catégorie, poste, pied, statistiques, discipline, scolaire, parents si mineur, droit à l'image, autorisations, adresse, ancien club, infirmerie. Manquent : ancien club, autorisations.</td><td class="etat"><span class="p">En partie</span></td></tr>
-    <tr><td>Éducateurs</td><td>Nom, âge, catégories et équipes, adresse, diplômes avec date, permis de conduire. Manquent : date du diplôme, permis, équipes.</td><td class="etat"><span class="p">En partie</span></td></tr>
-    <tr><td>Dirigeants</td><td>Nom, âge, adresse, permis de conduire, diplômes, équipes</td><td class="etat"><span class="p">En partie</span></td></tr>
+    <tr><td>Catégories</td><td>U7 à seniors ; équipes féminines (case « Équipe féminine », cochée d'office pour « Féminines », « U15 F », « U13 Filles » ; pastille F sur l'accueil, les catégories, les effectifs et les fiches)</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Joueurs</td><td>Nom, âge, catégorie, poste, pied, statistiques, discipline, scolaire, parents si mineur, droit à l'image, autorisations, adresse, ancien club, infirmerie. Autorisations : droit à l'image, transport par un éducateur ou un parent, soins et intervention d'urgence, départ seul après l'entraînement ou le match.</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Éducateurs</td><td>Nom, âge, catégories et équipes, adresse, diplômes avec date, permis de conduire (relié au contrôle des conducteurs du module Transport), équipes cochées parmi les catégories du club.</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Dirigeants</td><td>Nom, âge, adresse, permis de conduire, diplômes avec date, équipes (comme les éducateurs)</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Entraînement</td><td>Fiche, créer une séance, terrain, date, heure, catégorie ; planning, appel, bibliothèque d'exercices animés</td><td class="etat"><span class="f">Fait</span></td></tr>
     <tr><td>Rapport de match</td><td>Météo, terrain, score mi-temps et final, titulaires, entrées, sorties, lieu, horaire, niveau, buteurs et façon de marquer, passeurs, cartons, appréciation, note sur 10</td><td class="etat"><span class="f">Fait</span></td></tr>
     <tr><td>Statistiques</td><td>Titulaire, entré, sorti, buts, passes, pas entré, non convoqué ou repos, buts marqués et encaissés par quart d'heure, arrêts de jeu, cartons, moyenne des notes</td><td class="etat"><span class="f">Fait</span></td></tr>
@@ -259,8 +259,8 @@
 <div class="phase">
   <h3>Phase 2 – Compléter la partie sportive <span class="etat"><span class="p">Prochaine étape</span></span></h3>
   <ul>
-    <li>Retouches : catégories féminines, ancien club, autorisations, date du diplôme, permis, montant d'amende, reprise sportive et reprise match.</li>
-    <li>Listings imprimables et export Excel : faits pour les joueurs (statistiques d'équipe et schéma de composition : faits aussi).</li>
+    <li>Retouches : catégories féminines, ancien club, autorisations, date du diplôme, permis et équipes de l'encadrement, reprise sportive et reprise match : faits ; reste le montant d'amende.</li>
+    <li>Listings imprimables et export Excel : faits pour les joueurs, l'encadrement et les extérieurs (statistiques d'équipe et schéma de composition : faits aussi).</li>
     <li>Numéros utiles, tableaux d'effectifs, organigramme et tâches : faits.</li>
   </ul>
 </div>

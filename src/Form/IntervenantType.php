@@ -3,6 +3,9 @@
 namespace App\Form;
 
 use App\Entity\Arbitre;
+use App\Entity\Categorie;
+use App\Entity\Dirigeant;
+use App\Entity\Educateur;
 use App\Entity\Intervenant;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Doctrine\ORM\EntityRepository;
@@ -31,6 +34,8 @@ class IntervenantType extends AbstractType
             ->add('fonction', null, ['label' => 'Équipe ou fonction', 'required' => false])
             ->add('fonction2', null, ['label' => 'Seconde équipe ou fonction', 'required' => false])
             ->add('diplome', null, ['label' => 'Diplôme', 'required' => false])
+            ->add('dateDiplome', DateType::class, ['label' => 'Diplôme obtenu le', 'widget' => 'single_text', 'input' => 'datetime_immutable', 'required' => false])
+            ->add('permis', null, ['label' => 'Permis de conduire', 'required' => false, 'attr' => ['maxlength' => 30, 'placeholder' => 'ex. : B, ou B et D1'], 'help' => 'Catégories du permis ; vide si pas de permis. Le contrôle du permis se fait dans Transport → Conducteurs.'])
             ->add('licence', null, ['label' => 'N° de licence', 'required' => false])
             ->add('ancien', CheckboxType::class, ['label' => 'A quitté le club', 'required' => false])
             ->add('adresse', null, ['required' => false])
@@ -42,6 +47,20 @@ class IntervenantType extends AbstractType
             ->add('telProfessionnel', TelType::class, ['label' => 'Tél. professionnel', 'required' => false])
             ->add('email', EmailType::class, ['label' => 'E-mail', 'required' => false])
             ->add('memo', TextareaType::class, ['label' => 'Mémo', 'required' => false]);
+
+        // Éducateur, dirigeant : équipes dont il s'occupe.
+        if (is_a($options['data_class'], Educateur::class, true) || is_a($options['data_class'], Dirigeant::class, true)) {
+            $builder->add('equipes', EntityType::class, [
+                'class' => Categorie::class,
+                'label' => 'Équipes',
+                'multiple' => true,
+                'expanded' => true,
+                'required' => false,
+                'by_reference' => false,
+                'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('c')->orderBy('c.ordre')->addOrderBy('c.nom'),
+                'help' => 'Les équipes dont il s\'occupe cette saison.',
+            ]);
+        }
 
         // Arbitre : niveau et équipement fourni par le club.
         if (is_a($options['data_class'], Arbitre::class, true)) {

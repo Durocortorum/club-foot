@@ -33,7 +33,7 @@
                 <div>
                     <strong>{{ i.prenom }} {{ i.nom }}</strong>
                     {% if i.ancien %}<span class="pastille">ancien</span>{% endif %}
-                    <div class="discret">{{ [type == 'arbitres' ? i.niveau : null, i.fonction, i.fonction2]|filter(v => v)|join(' · ') ?: '—' }}</div>
+                    <div class="discret">{{ [type == 'arbitres' ? i.niveau : null, i.equipes is defined ? i.equipes|map(c => c.nom)|join(', ') : null, i.fonction, i.fonction2]|filter(v => v)|join(' · ') ?: '—' }}</div>
                     <div class="discret petit">{{ i.telPortable1 ?? i.telFixe }}</div>
                 </div>
             </a>

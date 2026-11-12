@@ -47,6 +47,7 @@ class AccueilController extends AbstractController
             $secteurs[$c->getSecteur()][] = [
                 'id' => $c->getId(),
                 'nom' => $c->getNom(),
+                'feminine' => $c->isFeminine(),
                 'total' => (int) ($effectifs[$c->getId()] ?? 0),
                 'prochain' => $donnees['prochains'][$c->getId()] ?? null,
             ];

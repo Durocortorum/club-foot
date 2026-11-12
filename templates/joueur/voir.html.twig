@@ -105,6 +105,7 @@
                 {{ f.essentiel('Poste', joueur.poste) }}
                 {{ f.essentiel('Pied fort', joueur.pied) }}
                 {{ m.ligne("Arrivé le", joueur.dateArrivee ? joueur.dateArrivee|date('d/m/Y')) }}
+                {{ m.ligne('Ancien club', joueur.ancienClub) }}
                 {{ f.oui_non('Sélectionné', joueur.selectionne) }}
             </dl>
         </section>
@@ -136,6 +137,8 @@
                 {{ f.oui_non('Transport éducateur', joueur.transportEducateur) }}
                 {% if joueur.avecParents %}
                     {{ f.oui_non('Transport parent', joueur.transportParent) }}
+                    {{ f.oui_non('Soins d\'urgence', joueur.autorisationSoins) }}
+                    {{ f.oui_non('Repart seul', joueur.partirSeul) }}
                 {% endif %}
             </dl>
             {# Joueur majeur : personnes à contacter, gérées par le joueur dans son espace (et par son encadrement ici). #}

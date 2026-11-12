@@ -30,14 +30,32 @@
         <section class="carte">
             <h2>Club</h2>
             <dl>
+                {% if intervenant.equipes is defined and intervenant.equipes is not empty %}
+                    <dt>Équipes</dt>
+                    <dd>{% for c in intervenant.equipes %}<a href="{{ path('app_joueur_index', {categorie: c.id}) }}">{{ c.nom }}</a>{% if c.feminine %}<span class="pastille feminine" title="Équipe féminine">F</span>{% endif %}{{ not loop.last ? ', ' }}{% endfor %}</dd>
+                {% endif %}
                 {{ m.ligne('Équipe / fonction', intervenant.fonction) }}
                 {{ m.ligne('Seconde équipe', intervenant.fonction2) }}
                 {% if type == 'arbitres' %}
                     {{ m.ligne('Niveau', intervenant.niveau) }}
                     {{ m.ligne('Équipement fourni', intervenant.equipement) }}
                 {% endif %}
-                {{ m.ligne('Diplôme', intervenant.diplome) }}
+                {{ m.ligne('Diplôme', intervenant.diplome ? intervenant.diplome ~ (intervenant.dateDiplome ? ' (obtenu le ' ~ intervenant.dateDiplome|date('d/m/Y') ~ ')') : null) }}
+                {% if not intervenant.diplome and intervenant.dateDiplome %}{{ m.ligne('Diplôme obtenu le', intervenant.dateDiplome|date('d/m/Y')) }}{% endif %}
                 {{ m.ligne('N° de licence', intervenant.licence) }}
+                {% if intervenant.permis or conducteur %}
+                    <dt>Permis</dt>
+                    <dd>
+                        {{ intervenant.permis ?? conducteur.categoriesPermis }}
+                        {% if conducteur %}
+                            {% set libelle_etat = {ok: 'contrôlé', bientot: 'contrôle à refaire bientôt', a_controler: 'contrôle à faire', expire: 'permis plus valable'}[conducteur.etat] %}
+                            · <span class="pastille {{ conducteur.etat in ['ok', 'bientot'] ? 'succes' : 'alerte' }}">conducteur du club : {{ libelle_etat }}</span>
+                            {% if conducteur.controleLe %}<span class="discret petit">le {{ conducteur.controleLe|date('d/m/Y') }}</span>{% endif %}
+                        {% elseif is_granted('ROLE_ADMIN') %}
+                            · <a class="petit" href="{{ path('app_transport_conducteur_nouveau', {nom: intervenant.prenom ~ ' ' ~ intervenant.nom}) }}">l'ajouter aux conducteurs (contrôle du permis)</a>
+                        {% endif %}
+                    </dd>
+                {% endif %}
                 {{ m.ligne('Date de naissance', intervenant.dateNaissance ? intervenant.dateNaissance|date('d/m/Y')) }}
             </dl>
         </section>

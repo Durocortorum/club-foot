@@ -8,4 +8,5 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: EducateurRepository::class)]
 class Educateur extends Intervenant
 {
+    use EquipesTrait;
 }

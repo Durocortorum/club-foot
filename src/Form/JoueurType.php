@@ -54,6 +54,7 @@ class JoueurType extends AbstractType
             ->add('poste', ChoiceType::class, ['choices' => $choix(Joueur::POSTES), 'required' => false, 'placeholder' => '—'])
             ->add('pied', ChoiceType::class, ['label' => 'Pied fort', 'choices' => $choix(Joueur::PIEDS), 'required' => false, 'placeholder' => '—'])
             ->add('dateArrivee', DateType::class, ['label' => "Date d'arrivée au club"] + $date)
+            ->add('ancienClub', null, ['label' => 'Ancien club', 'required' => false, 'attr' => ['maxlength' => 120, 'placeholder' => 'Club précédent']])
             ->add('selectionne', CheckboxType::class, ['label' => 'Sélectionné', 'required' => false])
             ->add('ancien', CheckboxType::class, ['label' => 'Ancien joueur (a quitté le club)', 'required' => false])
             ->add('memo', TextareaType::class, ['label' => 'Mémo', 'required' => false])
@@ -75,6 +76,8 @@ class JoueurType extends AbstractType
             ->add('droitImage', CheckboxType::class, ["label" => "Droit à l'image", 'required' => false])
             ->add('transportEducateur', CheckboxType::class, ['label' => 'Transport par un éducateur autorisé', 'required' => false])
             ->add('transportParent', CheckboxType::class, ['label' => 'Transport par un parent autorisé', 'required' => false])
+            ->add('autorisationSoins', CheckboxType::class, ['label' => 'Soins et intervention d\'urgence autorisés', 'required' => false, 'help' => 'Les parents autorisent le club à faire soigner l\'enfant et, en urgence, à le faire hospitaliser.'])
+            ->add('partirSeul', CheckboxType::class, ['label' => 'Peut repartir seul après l\'entraînement ou le match', 'required' => false])
             // Scolarité
             ->add('niveauScolaire', null, ['label' => 'Classe', 'required' => false])
             ->add('ecole', null, ['label' => 'École', 'required' => false])

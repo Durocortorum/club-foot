@@ -68,6 +68,14 @@ abstract class Intervenant implements AppartientAuClub
     #[ORM\Column(length: 255, nullable: true)]
     protected ?string $diplome = null;
 
+    /** Date d'obtention du diplôme. */
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    protected ?\DateTimeImmutable $dateDiplome = null;
+
+    /** Catégories du permis de conduire (« B », « B, D1 »…) ; vide : pas de permis ou non renseigné. */
+    #[ORM\Column(length: 30, nullable: true)]
+    protected ?string $permis = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     protected ?string $memo = null;
 
@@ -259,6 +267,30 @@ abstract class Intervenant implements AppartientAuClub
     public function setDiplome(?string $diplome): static
     {
         $this->diplome = $diplome;
+
+        return $this;
+    }
+
+    public function getDateDiplome(): ?\DateTimeImmutable
+    {
+        return $this->dateDiplome;
+    }
+
+    public function setDateDiplome(?\DateTimeImmutable $dateDiplome): static
+    {
+        $this->dateDiplome = $dateDiplome;
+
+        return $this;
+    }
+
+    public function getPermis(): ?string
+    {
+        return $this->permis;
+    }
+
+    public function setPermis(?string $permis): static
+    {
+        $this->permis = null === $permis ? null : (mb_strtoupper(trim($permis)) ?: null);
 
         return $this;
     }

@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Administratif;
 use App\Entity\Arbitre;
 use App\Entity\Benevole;
+use App\Entity\Conducteur;
 use App\Entity\Dirigeant;
 use App\Entity\Educateur;
 use App\Entity\Intervenant;
@@ -75,11 +76,21 @@ class IntervenantController extends AbstractController
     public function voir(string $type, int $id): Response
     {
         $intervenant = $this->trouver($type, $id);
+        // Conducteur du club au même nom (Transport) : état du contrôle de son permis.
+        $noms = array_map(fn (string $n) => mb_strtolower(preg_replace('/\s+/u', ' ', trim($n)) ?? $n), [
+            $intervenant->getPrenom() . ' ' . $intervenant->getNom(),
+            $intervenant->getNom() . ' ' . $intervenant->getPrenom(),
+        ]);
+        $conducteur = current(array_filter(
+            $this->em->getRepository(Conducteur::class)->findAll(),
+            fn (Conducteur $c) => \in_array(mb_strtolower((string) $c->getNom()), $noms, true),
+        )) ?: null;
 
         return $this->render('intervenant/voir.html.twig', [
             'type' => $type,
             'libelles' => self::TYPES[$type],
             'intervenant' => $intervenant,
+            'conducteur' => $conducteur,
             // Joueurs suivis : seul l'éducateur est rattaché aux fiches joueurs dans Access.
             'joueurs' => $intervenant instanceof Educateur
                 ? $this->em->getRepository(Joueur::class)->findBy(['educateur' => $intervenant, 'ancien' => false], ['nom' => 'ASC'])
