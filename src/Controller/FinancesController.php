@@ -63,6 +63,13 @@ class FinancesController extends AbstractController
         if ($km > 0) {
             $parRubrique['depense']['Frais kilométriques (remboursés)'] = $km;
         }
+        // Amendes de discipline payées pendant la saison (page Discipline) : des recettes du club.
+        $amendes = (float) $this->em->createQueryBuilder()->select('SUM(s.amende)')->from(\App\Entity\Sanction::class, 's')
+            ->andWhere('s.amendePayeeLe BETWEEN :debut AND :fin')->setParameter('debut', $debut->format('Y-m-d'))->setParameter('fin', $fin->format('Y-m-d'))
+            ->getQuery()->getSingleScalarResult();
+        if ($amendes > 0) {
+            $parRubrique['recette']['Amendes de discipline (encaissées)'] = $amendes;
+        }
         arsort($parRubrique['recette']);
         arsort($parRubrique['depense']);
         $encaisse = array_sum(array_column($lignes, 'paye'));

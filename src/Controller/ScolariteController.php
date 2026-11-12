@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\BulletinScolaire;
+use App\Entity\Rencontre;
 use App\Entity\Sanction;
 use App\Form\BulletinScolaireType;
 use App\Form\SanctionType;
@@ -112,14 +113,44 @@ class ScolariteController extends AbstractController
     }
 
     #[Route('/discipline', name: 'app_discipline_index', methods: ['GET'])]
-    public function discipline(SanctionRepository $sanctions): Response
+    public function discipline(Request $request, SanctionRepository $sanctions): Response
     {
+        $toutes = $sanctions->createQueryBuilder('s')
+            ->addSelect('j', 'c')->join('s.joueur', 'j')->leftJoin('j.categorie', 'c')
+            ->orderBy('s.date', 'DESC')
+            ->getQuery()->getResult();
+        // Amendes : infligées et encaissées pendant la saison en cours, reste à payer (toutes saisons).
+        $saison = Rencontre::saisonDe(new \DateTimeImmutable('today'));
+        [$debut, $fin] = Rencontre::bornesSaison($saison);
+        $dansSaison = fn (?\DateTimeImmutable $d) => null !== $d && $d >= $debut && $d <= $fin;
+        $amendes = [
+            'saison' => $saison,
+            'infligees' => array_sum(array_map(fn (Sanction $s) => $dansSaison($s->getDate()) ? (float) $s->getAmende() : 0, $toutes)),
+            'encaissees' => array_sum(array_map(fn (Sanction $s) => $dansSaison($s->getAmendePayeeLe()) ? (float) $s->getAmende() : 0, $toutes)),
+            'a_payer' => array_sum(array_map(fn (Sanction $s) => $s->isAmendeAPayer() ? $s->getAmende() : 0, $toutes)),
+            'nb_a_payer' => \count(array_filter($toutes, fn (Sanction $s) => $s->isAmendeAPayer())),
+        ];
+        $filtre = 'a_payer' === $request->query->getString('amendes') ? 'a_payer' : null;
+
         return $this->render('scolarite/discipline.html.twig', [
-            'sanctions' => $sanctions->createQueryBuilder('s')
-                ->addSelect('j', 'c')->join('s.joueur', 'j')->leftJoin('j.categorie', 'c')
-                ->orderBy('s.date', 'DESC')
-                ->getQuery()->getResult(),
+            'sanctions' => $filtre ? array_values(array_filter($toutes, fn (Sanction $s) => $s->isAmendeAPayer())) : $toutes,
+            'amendes' => $amendes,
+            'filtre' => $filtre,
         ]);
+    }
+
+    /** L'amende est payée aujourd'hui (bouton de la page Discipline). */
+    #[IsGranted('ROLE_SCOLAIRE')]
+    #[Route('/discipline/{id}/amende-payee', name: 'app_sanction_amende_payee', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function amendePayee(Request $request, Sanction $sanction): Response
+    {
+        if ($sanction->isAmendeAPayer() && $this->isCsrfTokenValid('amende-payee' . $sanction->getId(), $request->getPayload()->getString('_token'))) {
+            $sanction->setAmendePayeeLe(new \DateTimeImmutable('today'));
+            $this->em->flush();
+            $this->addFlash('succes', \sprintf('Amende de %s notée payée.', $sanction->getJoueur()->getNomComplet()));
+        }
+
+        return $this->redirect($this->generateUrl('app_discipline_index', array_filter(['amendes' => $request->getPayload()->getString('filtre') ?: null])));
     }
 
     #[IsGranted('ROLE_SCOLAIRE')]

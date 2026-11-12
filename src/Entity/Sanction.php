@@ -49,6 +49,14 @@ class Sanction implements AppartientAuClub
     #[Assert\Range(min: 1, max: 3)]
     private ?int $gravite = null;
 
+    /** Amende infligée au joueur, en euros. */
+    #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2, nullable: true)]
+    private ?string $amende = null;
+
+    /** Date à laquelle l'amende a été payée ; vide tant qu'elle ne l'est pas. */
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $amendePayeeLe = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -141,5 +149,38 @@ class Sanction implements AppartientAuClub
     public function getGraviteLibelle(): ?string
     {
         return self::GRAVITES[$this->gravite] ?? null;
+    }
+
+    public function getAmende(): ?float
+    {
+        return null === $this->amende ? null : (float) $this->amende;
+    }
+
+    public function setAmende(?float $amende): static
+    {
+        $this->amende = null === $amende || $amende <= 0 ? null : number_format($amende, 2, '.', '');
+        if (null === $this->amende) {
+            $this->amendePayeeLe = null;
+        }
+
+        return $this;
+    }
+
+    public function getAmendePayeeLe(): ?\DateTimeImmutable
+    {
+        return $this->amendePayeeLe;
+    }
+
+    public function setAmendePayeeLe(?\DateTimeImmutable $date): static
+    {
+        $this->amendePayeeLe = null === $this->amende ? null : $date;
+
+        return $this;
+    }
+
+    /** Une amende est infligée et pas encore payée. */
+    public function isAmendeAPayer(): bool
+    {
+        return null !== $this->amende && null === $this->amendePayeeLe;
     }
 }

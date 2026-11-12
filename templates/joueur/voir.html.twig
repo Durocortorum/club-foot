@@ -377,7 +377,7 @@
             {% if sanctions %}
                 <div class="table-defile">
                     <table class="liste liste-fiches">
-                        <thead><tr><th>Date</th><th>Lieu</th><th>Motif</th><th>Sanction sportive</th><th>Sanction scolaire</th><th>Gravité</th>{% if scol_modif %}<th></th>{% endif %}</tr></thead>
+                        <thead><tr><th>Date</th><th>Lieu</th><th>Motif</th><th>Sanction sportive</th><th>Sanction scolaire</th><th>Gravité</th><th>Amende</th>{% if scol_modif %}<th></th>{% endif %}</tr></thead>
                         <tbody>
                             {% for s in sanctions %}
                                 <tr>
@@ -387,6 +387,7 @@
                                     <td data-label="sportive :">{{ s.sanctionSportive }}</td>
                                     <td data-label="scolaire :">{{ s.sanctionScolaire }}</td>
                                     <td data-label="gravité">{{ s.graviteLibelle }}</td>
+                                    <td data-label="amende :" class="nowrap">{% if s.amende %}{{ s.amende|number_format(2, ',', ' ') }} € <span class="pastille {{ s.amendePayeeLe ? 'succes' : 'alerte' }}">{{ s.amendePayeeLe ? 'payée le ' ~ s.amendePayeeLe|date('d/m/Y') : 'à payer' }}</span>{% endif %}</td>
                                     {% if scol_modif %}<td class="a-cote"><a href="{{ path('app_sanction_modifier', {id: s.id}) }}">Modifier</a></td>{% endif %}
                                 </tr>
                             {% endfor %}
