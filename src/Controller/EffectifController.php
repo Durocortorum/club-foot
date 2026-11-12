@@ -11,6 +11,7 @@ use App\Entity\Sponsor;
 use App\Repository\CategorieRepository;
 use App\Repository\JoueurRepository;
 use App\Security\JoueurVoter;
+use App\Service\AccesMedical;
 use App\Service\Encadrement;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,6 +32,7 @@ class EffectifController extends AbstractController
         private readonly JoueurRepository $joueurs,
         private readonly CategorieRepository $categories,
         private readonly EntityManagerInterface $em,
+        private readonly AccesMedical $medical,
     ) {
     }
 
@@ -106,6 +108,8 @@ class EffectifController extends AbstractController
                     ? $this->em->getRepository(ContactMedical::class)->count([])
                     : $this->em->getRepository(Sponsor::class)->count(['ancien' => false]),
             ], array_keys($this->exterieursVisibles())),
+            // Droit sur l'infirmerie mais accès médical fermé : les contacts médicaux attendent le code e-mail.
+            'medical_a_ouvrir' => $this->isGranted('ROLE_INFIRMERIE_LECTURE') && !$this->medical->estOuvert(),
         ]);
     }
 
@@ -197,14 +201,15 @@ class EffectifController extends AbstractController
 
     /**
      * Listes de personnes extérieures que l'utilisateur peut voir, comme sur leurs pages :
-     * contacts médicaux (accès à l'infirmerie) et partenaires (administration).
+     * contacts médicaux (accès à l'infirmerie, ouvert par le code e-mail comme la page des contacts)
+     * et partenaires (administration).
      *
      * @return array<string, string> clé => libellé
      */
     private function exterieursVisibles(): array
     {
         return array_filter([
-            'medical' => $this->isGranted('ROLE_INFIRMERIE_LECTURE') ? 'Contacts médicaux' : null,
+            'medical' => $this->isGranted('ROLE_INFIRMERIE_LECTURE') && $this->medical->estOuvert() ? 'Contacts médicaux' : null,
             'partenaires' => $this->isGranted('ROLE_ADMIN') ? 'Partenaires' : null,
         ]);
     }

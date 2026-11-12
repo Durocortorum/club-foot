@@ -49,7 +49,7 @@
                 <nav class="menu" id="navigation">
                     <a href="{{ path('app_accueil') }}" class="{{ route == 'app_accueil' ? 'actif' }}">Accueil</a>
                     <a href="{{ path('app_joueur_index') }}" class="{{ route starts with 'app_joueur' or route starts with 'app_mesure' or route in ['app_test_nouveau', 'app_progression_joueur'] ? 'actif' }}">Joueurs</a>
-                    <a href="{{ path('app_intervenant_index', {type: 'educateurs'}) }}" class="{{ route starts with 'app_intervenant' or route starts with 'app_organigramme' ? 'actif' }}">Encadrement</a>
+                    <a href="{{ path('app_intervenant_index', {type: 'educateurs'}) }}" class="{{ route starts with 'app_intervenant' or route starts with 'app_organigramme' or route starts with 'app_numero_utile' ? 'actif' }}">Encadrement</a>
                     <a href="{{ path('app_calendrier') }}" class="{{ route == 'app_calendrier' ? 'actif' }}">Calendrier</a>
                     <a href="{{ path('app_rencontre_index') }}" class="{{ route starts with 'app_rencontre' ? 'actif' }}">Matchs</a>
                     <a href="{{ path('app_statistiques') }}" class="{{ route == 'app_statistiques' ? 'actif' }}">Statistiques</a>

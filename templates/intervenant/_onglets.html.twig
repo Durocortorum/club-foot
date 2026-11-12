@@ -1,0 +1,10 @@
+{# Onglets de la rubrique Encadrement ; « actif » : type d'encadrement, 'organigramme' ou 'numeros'. #}
+<nav class="onglets">
+    <a href="{{ path('app_intervenant_index', {type: 'educateurs'}) }}" class="{{ actif == 'educateurs' ? 'actif' }}">Éducateurs</a>
+    <a href="{{ path('app_intervenant_index', {type: 'dirigeants'}) }}" class="{{ actif == 'dirigeants' ? 'actif' }}">Dirigeants</a>
+    <a href="{{ path('app_intervenant_index', {type: 'administratifs'}) }}" class="{{ actif == 'administratifs' ? 'actif' }}">Administratifs</a>
+    <a href="{{ path('app_intervenant_index', {type: 'benevoles'}) }}" class="{{ actif == 'benevoles' ? 'actif' }}">Bénévoles</a>
+    <a href="{{ path('app_intervenant_index', {type: 'arbitres'}) }}" class="{{ actif == 'arbitres' ? 'actif' }}">Arbitres</a>
+    <a href="{{ path('app_organigramme') }}" class="{{ actif == 'organigramme' ? 'actif' }}">Organigramme</a>
+    <a href="{{ path('app_numero_utile_index') }}" class="{{ actif == 'numeros' ? 'actif' }}">Numéros utiles</a>
+</nav>

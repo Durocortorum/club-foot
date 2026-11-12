@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Numéros utiles{% endblock %}
+
+{% macro tel(numero) %}{% if numero %}<a class="sans-retour" href="tel:{{ numero|replace({' ': '', '.': ''}) }}">{{ numero }}</a>{% endif %}{% endmacro %}
+
+{% block body %}
+    {% import _self as n %}
+    {% set admin = is_granted('ROLE_ADMIN') %}
+    {% set club = app.user.club %}
+    <div class="sans-impression">{% include 'intervenant/_onglets.html.twig' with {actif: 'numeros'} %}</div>
+
+    <div class="impression-a4">
+    <div class="titre-page">
+        <h1>Numéros utiles</h1>
+        <span class="actions sans-impression">
+            <button type="button" class="bouton" onclick="window.print()">Imprimer</button>
+            {% if admin %}<a class="bouton principal" href="{{ path('app_numero_utile_nouveau') }}">+ Nouveau numéro</a>{% endif %}
+        </span>
+    </div>
+
+    <section class="carte bloc" id="club">
+        <h2>{{ club.nom }}</h2>
+        <div class="table-defile">
+            <table class="liste numeros">
+                <tbody>
+                    {% if club.telephone or club.emailContact or club.adresse or club.siteWeb %}
+                        <tr>
+                            <td class="fort">Le club</td>
+                            <td>{{ club.adresse }}</td>
+                            <td>{{ n.tel(club.telephone) }}</td>
+                            <td>{% if club.emailContact %}<a href="mailto:{{ club.emailContact }}">{{ club.emailContact }}</a>{% endif %}{% if club.siteWeb %}<br><span class="petit">{{ club.siteWeb }}</span>{% endif %}</td>
+                            <td class="sans-impression"></td>
+                        </tr>
+                    {% endif %}
+                    {% for b in bureau %}
+                        <tr>
+                            <td class="fort">{{ b.poste.titre }}</td>
+                            {% if b.fiche %}
+                                <td><a href="{{ path('app_intervenant_voir', {type: b.poste.personneType, id: b.fiche.id}) }}">{{ b.fiche.prenom }} {{ b.fiche.nom }}</a></td>
+                                <td>{% for t in [b.fiche.telPortable1, b.fiche.telPortable2, b.fiche.telFixe]|filter(v => v) %}{{ n.tel(t) }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+                                <td>{% if b.fiche.email %}<a href="mailto:{{ b.fiche.email }}">{{ b.fiche.email }}</a>{% endif %}</td>
+                            {% else %}
+                                <td>{{ b.poste.nomLibre }}</td><td></td><td></td>
+                            {% endif %}
+                            <td class="sans-impression"></td>
+                        </tr>
+                    {% endfor %}
+                    {% for c in rubriques.club ?? [] %}
+                        {{ block('ligne') }}
+                    {% endfor %}
+                    {% if not bureau and not (club.telephone or club.emailContact or club.adresse or club.siteWeb) and rubriques.club is not defined %}
+                        <tr><td colspan="5" class="vide">Rien pour l'instant.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <p class="discret petit sans-impression">
+            Le bureau vient de l'<a href="{{ path('app_organigramme') }}">organigramme</a>, avec les téléphones des fiches de l'encadrement{{ admin ? ' ; les coordonnées du club, des paramètres du club' }}.
+        </p>
+    </section>
+
+    {% for cle, liste in rubriques|filter((l, cle) => cle != 'club') %}
+        <section class="carte bloc" id="{{ cle }}">
+            <h2>{{ constant('App\\Entity\\ContactUtile::RUBRIQUES')[cle] }}</h2>
+            <div class="table-defile">
+                <table class="liste numeros">
+                    <tbody>
+                        {% for c in liste %}{{ block('ligne') }}{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endfor %}
+
+    {% if admin %}
+        <div class="sans-impression">
+            {% if urgences_manquantes %}
+                <form method="post" action="{{ path('app_numero_utile_urgences') }}" class="en-ligne">
+                    <input type="hidden" name="_token" value="{{ csrf_token('numeros-urgence') }}">
+                    <button class="bouton">Ajouter les numéros d'urgence ({{ urgences_manquantes|map(u => u[1])|join(', ') }})</button>
+                </form>
+            {% endif %}
+            {% if rubriques|length < 3 %}
+                <p class="discret petit">Idées : stade et gardien, gymnase, mairie (service des sports), district, ligue, comptable, assurance du club, transporteur, hôpital le plus proche, médecin de garde.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+    </div>
+{% endblock %}
+
+{% block ligne %}
+    <tr>
+        <td class="fort">{{ c.libelle }}</td>
+        <td>{{ c.nom }}{% if c.adresse %}{% if c.nom %}<br>{% endif %}<span class="petit">{{ c.adresse }}</span>{% endif %}</td>
+        <td>{% for t in [c.telephone, c.telephone2]|filter(v => v) %}<a class="sans-retour" href="tel:{{ t|replace({' ': '', '.': ''}) }}">{{ t }}</a>{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+        <td>{% if c.email %}<a href="mailto:{{ c.email }}">{{ c.email }}</a>{% endif %}{% if c.note %}{% if c.email %}<br>{% endif %}<span class="petit discret">{{ c.note }}</span>{% endif %}</td>
+        <td class="sans-impression a-droite">{% if is_granted('ROLE_ADMIN') %}<a href="{{ path('app_numero_utile_modifier', {id: c.id}) }}">Modifier</a>{% endif %}</td>
+    </tr>
+{% endblock %}

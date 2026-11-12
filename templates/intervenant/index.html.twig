@@ -4,14 +4,7 @@
 {% block title %}{{ libelles.pluriel }}{% endblock %}
 
 {% block body %}
-    <nav class="onglets">
-        <a href="{{ path('app_intervenant_index', {type: 'educateurs'}) }}" class="{{ type == 'educateurs' ? 'actif' }}">Éducateurs</a>
-        <a href="{{ path('app_intervenant_index', {type: 'dirigeants'}) }}" class="{{ type == 'dirigeants' ? 'actif' }}">Dirigeants</a>
-        <a href="{{ path('app_intervenant_index', {type: 'administratifs'}) }}" class="{{ type == 'administratifs' ? 'actif' }}">Administratifs</a>
-        <a href="{{ path('app_intervenant_index', {type: 'benevoles'}) }}" class="{{ type == 'benevoles' ? 'actif' }}">Bénévoles</a>
-        <a href="{{ path('app_intervenant_index', {type: 'arbitres'}) }}" class="{{ type == 'arbitres' ? 'actif' }}">Arbitres</a>
-        <a href="{{ path('app_organigramme') }}">Organigramme</a>
-    </nav>
+    {% include 'intervenant/_onglets.html.twig' with {actif: type} %}
 
     <div class="titre-page">
         <h1>{{ libelles.pluriel }} <span class="compteur">{{ intervenants|length }}</span></h1>

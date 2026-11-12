@@ -720,6 +720,19 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .effectifs-barre-col { width: 22%; min-width: 80px; }
 .effectifs-barre { display: block; height: .55rem; border-radius: 99px; background: var(--rouge); opacity: .75; }
 .sans-retour { white-space: nowrap; }
+/* Numéros utiles : mêmes colonnes d'une rubrique à l'autre */
+.liste.numeros { table-layout: fixed; }
+.liste.numeros td:nth-child(1) { width: 24%; }
+.liste.numeros td:nth-child(2) { width: 26%; }
+.liste.numeros td:nth-child(3) { width: 17%; }
+.liste.numeros td:nth-child(5) { width: 5.5rem; }
+.liste.numeros td { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+    .liste.numeros, .liste.numeros tbody, .liste.numeros tr, .liste.numeros td { display: block; width: auto !important; }
+    .liste.numeros tr { padding: .5rem .8rem; border-bottom: 1px solid var(--bordure); }
+    .liste.numeros td { padding: .1rem 0; border: 0; }
+    .liste.numeros td:empty { display: none; }
+}
 
 @media print {
     @page { size: A4; margin: 12mm 10mm; }

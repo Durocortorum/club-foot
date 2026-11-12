@@ -21,6 +21,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 class EffectifTest extends WebTestCase
 {
+    use OuvertureMedicaleTrait;
+
     private ?int $clubId = null;
 
     protected function tearDown(): void
@@ -132,6 +134,13 @@ class EffectifTest extends WebTestCase
         $em->persist((new ContactMedical())->setClub($club)->setNom('Soigne')->setPrenom('Marie')->setProfession('Kiné')->setTelephone('03 26 11 22 33'));
         $em->persist((new Sponsor())->setClub($club)->setNom('Boulangerie Dupain')->setContact('M. Dupain')->setTelephone('03 26 44 55 66'));
         $em->flush();
+        // Contacts médicaux : cachés tant que l'accès médical n'est pas ouvert par le code e-mail.
+        $crawler = $client->request('GET', '/joueurs/effectifs');
+        self::assertStringContainsString('ouvrir l\'accès médical', $crawler->text());
+        self::assertStringNotContainsString('Contacts médicaux 1', $crawler->filter('table.effectifs')->eq(3)->text());
+        $crawler = $client->request('GET', '/joueurs/listing?qui=medical');
+        self::assertSelectorTextContains('h1', 'Tous les joueurs');
+        $this->ouvrirMedical($client);
         $crawler = $client->request('GET', '/joueurs/effectifs');
         self::assertStringContainsString('Contacts médicaux 1', $crawler->filter('table.effectifs')->eq(3)->text());
         self::assertStringContainsString('Partenaires 1', $crawler->filter('table.effectifs')->eq(3)->text());

@@ -45,6 +45,7 @@
 {% block title %}Organigramme{% endblock %}
 
 {% block body %}
+    {% include 'intervenant/_onglets.html.twig' with {actif: 'organigramme'} %}
     <div class="titre-page">
         <h1>Organigramme du club</h1>
         {% if is_granted('ROLE_ADMIN') and not vide %}
