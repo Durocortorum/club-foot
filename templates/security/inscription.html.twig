@@ -27,7 +27,7 @@
                     <div class="champ">{{ form_label(form.motDePasse.first) }}{{ form_widget(form.motDePasse.first) }}{{ form_help(form.motDePasse.first) }}{{ form_errors(form.motDePasse.first) }}</div>
                     <div class="champ">{{ form_label(form.motDePasse.second) }}{{ form_widget(form.motDePasse.second) }}{{ form_errors(form.motDePasse.second) }}</div>
                 </div>
-                <div class="champ case-filtre">{{ form_widget(form.conditions) }}{{ form_label(form.conditions) }}</div>
+                <div class="champ case-filtre case-longue">{{ form_widget(form.conditions) }}{{ form_label(form.conditions) }}</div>
                 {{ form_errors(form.conditions) }}
                 <div class="piege" aria-hidden="true">{{ form_widget(form.site) }}</div>
 
