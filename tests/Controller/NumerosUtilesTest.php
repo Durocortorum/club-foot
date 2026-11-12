@@ -71,12 +71,18 @@ class NumerosUtilesTest extends WebTestCase
         $crawler = $client->followRedirect();
         self::assertStringContainsString('Stade municipal – gardien M. Durand 03 26 00 11 22 Portail : code 1234', $crawler->filter('#installations')->text());
 
-        // Numéros d'urgence : ajoutés une fois, le bouton disparaît ensuite.
-        $client->submit($crawler->selectButton('Ajouter les numéros d\'urgence (15, 17, 18, 112, 114)')->form());
-        $crawler = $client->followRedirect();
+        // Numéros d'urgence : affichés d'office en tête ; un numéro d'urgence du club s'y ajoute.
         self::assertCount(5, $crawler->filter('#urgences tr'));
         self::assertStringContainsString('SAMU 15', $crawler->filter('#urgences')->text());
-        self::assertCount(0, $crawler->filter('button:contains("numéros d\'urgence")'));
+        self::assertSame('tel:15', $crawler->filter('#urgences a[href^="tel:"]')->first()->attr('href'));
+        $crawler = $client->request('GET', '/numeros-utiles/nouveau?rubrique=urgences');
+        $client->submit($crawler->selectButton('Enregistrer')->form([
+            'contact_utile[libelle]' => 'Hôpital de Reims – urgences',
+            'contact_utile[telephone]' => '03 26 78 78 78',
+        ]));
+        $crawler = $client->followRedirect();
+        self::assertCount(6, $crawler->filter('#urgences tr'));
+        self::assertStringContainsString('Hôpital de Reims', $crawler->filter('#urgences')->text());
 
         // Modification puis suppression.
         $crawler = $client->click($crawler->filter('#installations a:contains("Modifier")')->link());

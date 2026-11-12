@@ -27,7 +27,7 @@ class ContactUtile implements AppartientAuClub
         'autres' => 'Autres',
     ];
 
-    /** Numéros d'urgence proposés en un clic. */
+    /** Numéros d'urgence nationaux, affichés d'office en tête de la page. */
     public const URGENCES = [
         ['SAMU', '15'],
         ['Police secours', '17'],

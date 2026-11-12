@@ -61,7 +61,7 @@ class ContactUtileController extends AbstractController
         return $this->render('contact_utile/index.html.twig', [
             'bureau' => $bureau,
             'rubriques' => array_filter($parRubrique),
-            'urgences_manquantes' => $this->urgencesManquantes(),
+            'urgences_nationales' => $this->urgencesManquantes(),
         ]);
     }
 
@@ -112,23 +112,12 @@ class ContactUtileController extends AbstractController
         return $this->redirectToRoute('app_numero_utile_index');
     }
 
-    /** Ajoute en une fois les numéros d'urgence nationaux qui manquent. */
-    #[Route('/urgences', name: 'app_numero_utile_urgences', methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
-    public function urgences(Request $request): Response
-    {
-        if ($this->isCsrfTokenValid('numeros-urgence', $request->getPayload()->getString('_token'))) {
-            foreach ($this->urgencesManquantes() as [$libelle, $numero]) {
-                $this->em->persist((new ContactUtile())->setRubrique('urgences')->setLibelle($libelle)->setTelephone($numero));
-            }
-            $this->em->flush();
-            $this->addFlash('succes', 'Numéros d\'urgence ajoutés.');
-        }
-
-        return $this->redirectToRoute('app_numero_utile_index', ['_fragment' => 'urgences']);
-    }
-
-    /** @return list<array{0: string, 1: string}> numéros d'urgence nationaux pas encore dans la liste */
+    /**
+     * Numéros d'urgence nationaux, toujours affichés en tête de page
+     * (sauf ceux que le club a déjà saisis lui-même dans la rubrique Urgences).
+     *
+     * @return list<array{0: string, 1: string}>
+     */
     private function urgencesManquantes(): array
     {
         $presents = array_map(fn (ContactUtile $c) => $c->getTelephone(), $this->contacts->findBy(['rubrique' => 'urgences']));

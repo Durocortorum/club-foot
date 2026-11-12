@@ -19,6 +19,29 @@
         </span>
     </div>
 
+    <section class="carte bloc" id="urgences">
+        <h2>Urgences</h2>
+        <div class="table-defile">
+            <table class="liste numeros numeros-urgence">
+                <tbody>
+                    {% for u in urgences_nationales %}
+                        <tr>
+                            <td class="fort">{{ u[0] }}</td>
+                            <td></td>
+                            <td>{{ n.tel(u[1]) }}</td>
+                            <td></td>
+                            <td class="sans-impression"></td>
+                        </tr>
+                    {% endfor %}
+                    {% for c in rubriques.urgences ?? [] %}{{ block('ligne') }}{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if admin %}
+            <p class="discret petit sans-impression">Ajoutez l'hôpital le plus proche, le médecin de garde, le centre antipoison de votre région… : <a href="{{ path('app_numero_utile_nouveau', {rubrique: 'urgences'}) }}">+ Ajouter un numéro d'urgence</a></p>
+        {% endif %}
+    </section>
+
     <section class="carte bloc" id="club">
         <h2>{{ club.nom }}</h2>
         <div class="table-defile">
@@ -60,7 +83,7 @@
         </p>
     </section>
 
-    {% for cle, liste in rubriques|filter((l, cle) => cle != 'club') %}
+    {% for cle, liste in rubriques|filter((l, cle) => cle not in ['club', 'urgences']) %}
         <section class="carte bloc" id="{{ cle }}">
             <h2>{{ constant('App\\Entity\\ContactUtile::RUBRIQUES')[cle] }}</h2>
             <div class="table-defile">
@@ -73,18 +96,8 @@
         </section>
     {% endfor %}
 
-    {% if admin %}
-        <div class="sans-impression">
-            {% if urgences_manquantes %}
-                <form method="post" action="{{ path('app_numero_utile_urgences') }}" class="en-ligne">
-                    <input type="hidden" name="_token" value="{{ csrf_token('numeros-urgence') }}">
-                    <button class="bouton">Ajouter les numéros d'urgence ({{ urgences_manquantes|map(u => u[1])|join(', ') }})</button>
-                </form>
-            {% endif %}
-            {% if rubriques|length < 3 %}
-                <p class="discret petit">Idées : stade et gardien, gymnase, mairie (service des sports), district, ligue, comptable, assurance du club, transporteur, hôpital le plus proche, médecin de garde.</p>
-            {% endif %}
-        </div>
+    {% if admin and rubriques|filter((l, cle) => cle not in ['club', 'urgences'])|length < 2 %}
+        <p class="discret petit sans-impression">Idées : stade et gardien, gymnase, mairie (service des sports), district, ligue, comptable, assurance du club, transporteur. <a href="{{ path('app_numero_utile_nouveau') }}">+ Nouveau numéro</a></p>
     {% endif %}
     </div>
 {% endblock %}

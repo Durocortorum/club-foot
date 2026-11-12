@@ -727,6 +727,8 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .liste.numeros td:nth-child(3) { width: 17%; }
 .liste.numeros td:nth-child(5) { width: 5.5rem; }
 .liste.numeros td { overflow-wrap: anywhere; }
+.numeros-urgence td:nth-child(3) a { font-size: 1.15rem; font-weight: 700; color: var(--danger); }
+#urgences { border-left: 4px solid var(--danger); }
 @media (max-width: 600px) {
     .liste.numeros, .liste.numeros tbody, .liste.numeros tr, .liste.numeros td { display: block; width: auto !important; }
     .liste.numeros tr { padding: .5rem .8rem; border-bottom: 1px solid var(--bordure); }
