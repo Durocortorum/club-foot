@@ -3,7 +3,8 @@
 {% block title %}Listing – {{ titre }}{% endblock %}
 
 {% block body %}
-    {% set avec_groupe = categorie is null and qui in ['joueurs', 'encadrement', 'tous'] %}
+    {% set externe = qui in ['medical', 'partenaires', 'exterieurs'] %}
+    {% set avec_groupe = categorie is null and qui in ['joueurs', 'encadrement', 'tous', 'exterieurs'] %}
     {% set avec_fonction = qui != 'joueurs' %}
     <div class="impression-a4">
     <p class="sans-impression"><a href="{{ path('app_joueur_effectifs') }}">← Effectifs</a></p>
@@ -26,6 +27,12 @@
             {% endfor %}
             <option value="encadrement" {{ qui == 'encadrement' ? 'selected' }}>Tout l'encadrement</option>
             <option value="tous" {{ qui == 'tous' ? 'selected' }}>Tout le club (joueurs et encadrement)</option>
+            {% for cle, libelle in exterieurs %}
+                <option value="{{ cle }}" {{ qui == cle ? 'selected' }}>{{ libelle }}</option>
+            {% endfor %}
+            {% if exterieurs|length > 1 %}
+                <option value="exterieurs" {{ qui == 'exterieurs' ? 'selected' }}>Tous les extérieurs</option>
+            {% endif %}
         </select>
         {% if qui == 'joueurs' %}
             <select name="categorie" onchange="this.form.requestSubmit()">
@@ -37,7 +44,7 @@
         {% endif %}
         <noscript><button type="submit" class="bouton">Afficher</button></noscript>
     </form>
-    <p class="discret petit">{{ qui == 'joueurs' ? 'Joueurs actifs' : 'Personnes en activité' }}, au {{ 'now'|date('d/m/Y') }}.</p>
+    <p class="discret petit">{{ qui == 'joueurs' ? 'Joueurs actifs' : (qui == 'medical' ? 'Médecins, kinés et spécialistes avec qui travaille l\'infirmerie' : (externe ? 'Contacts extérieurs du club' : 'Personnes en activité')) }}, au {{ 'now'|date('d/m/Y') }}.</p>
 
     <div class="table-defile">
         <table class="liste listing">
@@ -46,12 +53,11 @@
                     <th>Nom</th>
                     <th>Prénom</th>
                     {% if avec_groupe %}<th>{{ qui == 'joueurs' ? 'Catégorie' : (qui == 'tous' ? 'Catégorie ou rôle' : 'Rôle') }}</th>{% endif %}
-                    {% if avec_fonction %}<th>{{ qui == 'tous' ? 'Poste ou fonction' : 'Fonction' }}</th>{% endif %}
-                    <th>Né le</th>
-                    <th>Âge</th>
+                    {% if avec_fonction %}<th>{{ qui == 'tous' ? 'Poste ou fonction' : (externe ? 'Profession ou type' : 'Fonction') }}</th>{% endif %}
+                    {% if not externe %}<th>Né le</th><th>Âge</th>{% endif %}
                     <th>Adresse</th>
                     <th>Téléphone</th>
-                    <th>N° de licence</th>
+                    {% if not externe %}<th>N° de licence</th>{% else %}<th>E-mail</th>{% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -61,15 +67,17 @@
                         <td>{{ l.prenom }}</td>
                         {% if avec_groupe %}<td>{{ l.groupe }}</td>{% endif %}
                         {% if avec_fonction %}<td>{{ l.fonction }}</td>{% endif %}
-                        <td class="sans-retour">{{ l.ne ? l.ne|date('d/m/Y') }}</td>
-                        <td class="sans-retour">{{ l.age is not null ? l.age ~ ' ans' }}</td>
+                        {% if not externe %}
+                            <td class="sans-retour">{{ l.ne ? l.ne|date('d/m/Y') }}</td>
+                            <td class="sans-retour">{{ l.age is not null ? l.age ~ ' ans' }}</td>
+                        {% endif %}
                         <td>{{ l.adresse }}{% if l.cp or l.ville %}{{ l.adresse ? ', ' }}{{ [l.cp, l.ville]|filter(v => v)|join(' ') }}{% endif %}</td>
                         <td>
                             {% for t in l.tels|filter(v => v) %}
                                 <span class="sans-retour">{{ t }}</span>{% if not loop.last %}<br>{% endif %}
                             {% endfor %}
                         </td>
-                        <td>{{ l.licence }}</td>
+                        <td>{{ externe ? l.email : l.licence }}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="9" class="vide">Personne dans cette liste.</td></tr>
@@ -78,8 +86,8 @@
         </table>
     </div>
     <p class="discret petit sans-impression">
-        Téléphones : {{ qui == 'joueurs' ? 'celui du joueur puis ceux des parents' : (qui == 'tous' ? 'pour un joueur, le sien puis ceux des parents ; pour l\'encadrement, les portables puis le fixe' : 'les portables puis le fixe') }}.
-        Le fichier Excel donne aussi l'e-mail.
+        {% if not externe %}Téléphones : {{ qui == 'joueurs' ? 'celui du joueur puis ceux des parents' : (qui == 'tous' ? 'pour un joueur, le sien puis ceux des parents ; pour l\'encadrement, les portables puis le fixe' : 'les portables puis le fixe') }}.
+        Le fichier Excel donne aussi l'e-mail.{% endif %}
     </p>
     </div>
 {% endblock %}

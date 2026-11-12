@@ -5,7 +5,9 @@ namespace App\Controller;
 use App\Entity\Categorie;
 use App\Entity\Intervenant;
 use App\Entity\Joueur;
+use App\Entity\ContactMedical;
 use App\Entity\Rencontre;
+use App\Entity\Sponsor;
 use App\Repository\CategorieRepository;
 use App\Repository\JoueurRepository;
 use App\Security\JoueurVoter;
@@ -97,6 +99,13 @@ class EffectifController extends AbstractController
                 'libelle' => Encadrement::TYPES[$type]['libelle'],
                 'total' => $this->em->getRepository(Encadrement::TYPES[$type]['classe'])->count(['ancien' => false]),
             ], array_keys(Encadrement::TYPES)),
+            'exterieurs' => array_map(fn (string $cle) => [
+                'cle' => $cle,
+                'libelle' => $this->exterieursVisibles()[$cle],
+                'total' => 'medical' === $cle
+                    ? $this->em->getRepository(ContactMedical::class)->count([])
+                    : $this->em->getRepository(Sponsor::class)->count(['ancien' => false]),
+            ], array_keys($this->exterieursVisibles())),
         ]);
     }
 
@@ -111,7 +120,12 @@ class EffectifController extends AbstractController
         $secteurs = $this->voter->secteursVisibles();
         $visibles = $this->categories->findBy(['secteur' => $secteurs], ['ordre' => 'ASC', 'nom' => 'ASC']);
         $qui = $request->query->getString('qui', 'joueurs');
-        if (!\in_array($qui, ['joueurs', 'encadrement', 'tous', ...array_keys(Encadrement::TYPES)], true)) {
+        $exterieurs = $this->exterieursVisibles();
+        $choix = ['joueurs', 'encadrement', 'tous', ...array_keys(Encadrement::TYPES), ...array_keys($exterieurs)];
+        if ($exterieurs) {
+            $choix[] = 'exterieurs';
+        }
+        if (!\in_array($qui, $choix, true)) {
             $qui = 'joueurs';
         }
         $categorie = null;
@@ -134,11 +148,34 @@ class EffectifController extends AbstractController
                 }
             }
         }
+        if (\in_array($qui, ['medical', 'exterieurs'], true) && isset($exterieurs['medical'])) {
+            foreach ($this->em->getRepository(ContactMedical::class)->findBy([], ['profession' => 'ASC', 'nom' => 'ASC']) as $c) {
+                $lignes[] = [
+                    'lien' => $this->generateUrl('app_contact_index'),
+                    'nom' => $c->getNom(), 'prenom' => $c->getPrenom(), 'groupe' => 'Contact médical', 'fonction' => $c->getProfession(),
+                    'ne' => null, 'age' => null, 'adresse' => $c->getAdresse(), 'cp' => $c->getCodePostal(), 'ville' => $c->getVille(),
+                    'tels' => [$c->getTelephone(), null, null], 'email' => null, 'licence' => null,
+                ];
+            }
+        }
+        if (\in_array($qui, ['partenaires', 'exterieurs'], true) && isset($exterieurs['partenaires'])) {
+            foreach ($this->em->getRepository(Sponsor::class)->findBy(['ancien' => false], ['nom' => 'ASC']) as $s) {
+                $lignes[] = [
+                    'lien' => $this->generateUrl('app_sponsor_voir', ['id' => $s->getId()]),
+                    'nom' => $s->getNom(), 'prenom' => null, 'groupe' => 'Partenaire',
+                    'fonction' => $s->getType() . ($s->getContact() ? ' · contact : ' . $s->getContact() : ''),
+                    'ne' => null, 'age' => null, 'adresse' => $s->getAdresse(), 'cp' => $s->getCodePostal(), 'ville' => $s->getVille(),
+                    'tels' => [$s->getTelephone(), null, null], 'email' => $s->getEmail(), 'licence' => null,
+                ];
+            }
+        }
         $titre = match (true) {
             null !== $categorie => (string) $categorie->getNom(),
             'joueurs' === $qui => 'Tous les joueurs',
             'encadrement' === $qui => 'Tout l\'encadrement',
             'tous' === $qui => 'Tout le club',
+            'exterieurs' === $qui => 'Extérieurs',
+            isset($exterieurs[$qui]) => $exterieurs[$qui],
             default => Encadrement::TYPES[$qui]['libelle'],
         };
 
@@ -153,7 +190,22 @@ class EffectifController extends AbstractController
             'categorie' => $categorie,
             'categories' => $visibles,
             'types' => Encadrement::TYPES,
+            'exterieurs' => $exterieurs,
             'telephones' => self::telephones($qui),
+        ]);
+    }
+
+    /**
+     * Listes de personnes extérieures que l'utilisateur peut voir, comme sur leurs pages :
+     * contacts médicaux (accès à l'infirmerie) et partenaires (administration).
+     *
+     * @return array<string, string> clé => libellé
+     */
+    private function exterieursVisibles(): array
+    {
+        return array_filter([
+            'medical' => $this->isGranted('ROLE_INFIRMERIE_LECTURE') ? 'Contacts médicaux' : null,
+            'partenaires' => $this->isGranted('ROLE_ADMIN') ? 'Partenaires' : null,
         ]);
     }
 
@@ -163,6 +215,7 @@ class EffectifController extends AbstractController
         return match ($qui) {
             'joueurs' => ['Tél. joueur', 'Tél. parent 1', 'Tél. parent 2'],
             'tous' => ['Téléphone 1', 'Téléphone 2', 'Téléphone 3'],
+            'medical', 'partenaires', 'exterieurs' => ['Téléphone'],
             default => ['Portable 1', 'Portable 2', 'Tél. fixe'],
         };
     }
@@ -199,12 +252,13 @@ class EffectifController extends AbstractController
     {
         $ligne = fn (array $cellules) => implode(';', array_map(fn ($c) => '"' . str_replace('"', '""', (string) $c) . '"', $cellules));
         $groupe = match ($qui) { 'joueurs' => 'Catégorie', 'tous' => 'Catégorie ou rôle', default => 'Rôle' };
+        $telephones = self::telephones($qui);
         $sortie = [$ligne(['Nom', 'Prénom', $groupe, match ($qui) { 'joueurs' => 'Poste', 'tous' => 'Poste ou fonction', default => 'Fonction' }, 'Né le', 'Âge', 'Adresse', 'Code postal', 'Ville',
-            ...self::telephones($qui), 'E-mail', 'N° de licence'])];
+            ...$telephones, 'E-mail', 'N° de licence'])];
         foreach ($lignes as $l) {
             $sortie[] = $ligne([
                 $l['nom'], $l['prenom'], $l['groupe'], $l['fonction'], $l['ne']?->format('d/m/Y'), $l['age'],
-                $l['adresse'], $l['cp'], $l['ville'], ...$l['tels'], $l['email'], $l['licence'],
+                $l['adresse'], $l['cp'], $l['ville'], ...\array_slice($l['tels'], 0, \count($telephones)), $l['email'], $l['licence'],
             ]);
         }
         $lignes = $sortie;

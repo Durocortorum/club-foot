@@ -116,5 +116,26 @@
         </div>
         <p class="discret petit">Personnes en activité (anciens exclus). Une même personne inscrite à deux titres (éducateur et dirigeant, par exemple) compte deux fois. Club complet : {{ total }} {{ accord(total, 'joueur') }} et {{ total_encadrement }} dans l'encadrement · <a class="sans-impression" href="{{ path('app_joueur_listing', {qui: 'tous'}) }}">listing de tout le club</a>.</p>
     </section>
+
+    {% if exterieurs %}
+        <section class="carte bloc">
+            <h2>Extérieurs</h2>
+            <div class="table-defile">
+                <table class="liste effectifs">
+                    <thead><tr><th>Contacts</th><th class="a-droite">Nombre</th><th class="sans-impression"></th></tr></thead>
+                    <tbody>
+                        {% for x in exterieurs %}
+                            <tr>
+                                <td class="fort">{{ x.libelle }}</td>
+                                <td class="a-droite fort">{{ x.total }}</td>
+                                <td class="sans-impression a-droite">{% if x.total %}<a href="{{ path('app_joueur_listing', {qui: x.cle}) }}">Listing</a>{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="discret petit">Médecins, kinés et spécialistes de l'infirmerie ; partenaires et sponsors en cours.</p>
+        </section>
+    {% endif %}
     </div>
 {% endblock %}

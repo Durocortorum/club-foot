@@ -4,6 +4,8 @@ namespace App\Tests\Controller;
 
 use App\Entity\Categorie;
 use App\Entity\Club;
+use App\Entity\ContactMedical;
+use App\Entity\Sponsor;
 use App\Entity\Dirigeant;
 use App\Entity\Educateur;
 use App\Entity\Joueur;
@@ -25,7 +27,7 @@ class EffectifTest extends WebTestCase
     {
         if ($this->clubId) {
             $connexion = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
-            foreach (['utilisateur', 'joueur', 'categorie', 'educateur', 'dirigeant'] as $table) {
+            foreach (['utilisateur', 'joueur', 'categorie', 'educateur', 'dirigeant', 'contact_medical', 'sponsor'] as $table) {
                 $connexion->executeStatement("DELETE FROM $table WHERE club_id = ?", [$this->clubId]);
             }
             $connexion->executeStatement('DELETE FROM club WHERE id = ?', [$this->clubId]);
@@ -123,5 +125,27 @@ class EffectifTest extends WebTestCase
         self::assertStringContainsString('"Rôle";"Fonction"', $csv);
         self::assertStringContainsString('"Dirigeant";"Présidente"', $csv);
         self::assertStringContainsString('filename="listing-dirigeants-', $client->getResponse()->headers->get('Content-Disposition'));
+
+        // Extérieurs : contacts médicaux et partenaires, à part de « tout le club ».
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $club = $em->find(Club::class, $this->clubId);
+        $em->persist((new ContactMedical())->setClub($club)->setNom('Soigne')->setPrenom('Marie')->setProfession('Kiné')->setTelephone('03 26 11 22 33'));
+        $em->persist((new Sponsor())->setClub($club)->setNom('Boulangerie Dupain')->setContact('M. Dupain')->setTelephone('03 26 44 55 66'));
+        $em->flush();
+        $crawler = $client->request('GET', '/joueurs/effectifs');
+        self::assertStringContainsString('Contacts médicaux 1', $crawler->filter('table.effectifs')->eq(3)->text());
+        self::assertStringContainsString('Partenaires 1', $crawler->filter('table.effectifs')->eq(3)->text());
+
+        $crawler = $client->request('GET', '/joueurs/listing?qui=exterieurs');
+        self::assertCount(2, $crawler->filter('table.listing tbody tr'));
+        self::assertSelectorTextContains('table.listing', 'Kiné');
+        self::assertSelectorTextContains('table.listing', 'contact : M. Dupain');
+        self::assertSelectorTextNotContains('table.listing thead', 'licence');
+
+        $crawler = $client->request('GET', '/joueurs/listing?qui=tous');
+        self::assertSelectorTextContains('h1', '6 personnes');
+
+        $client->request('GET', '/joueurs/listing?qui=medical&format=csv');
+        self::assertStringContainsString('"Marie";"Contact médical";"Kiné"', $client->getResponse()->getContent());
     }
 }
