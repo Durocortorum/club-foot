@@ -30,7 +30,11 @@
             {% if form.equipes is defined %}
                 <div class="champ large">
                     {{ form_label(form.equipes) }}
-                    <div class="cases-equipes">{{ form_widget(form.equipes) }}</div>
+                    <div class="cases-equipes">
+                        {% for case in form.equipes %}
+                            <label class="case-equipe">{{ form_widget(case) }} {{ case.vars.label }}</label>
+                        {% endfor %}
+                    </div>
                     {{ form_help(form.equipes) }}
                     {{ form_errors(form.equipes) }}
                 </div>
