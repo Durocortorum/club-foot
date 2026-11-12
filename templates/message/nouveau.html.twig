@@ -11,8 +11,14 @@
 {% endmacro %}
 
 {% block body %}
-    <p><a href="{{ path('app_message_index') }}">← Messages</a></p>
-    <h1>Nouveau message aux familles</h1>
+    {% if compte_rendu %}
+        <p><a href="{{ path('app_rencontre_voir', {id: compte_rendu.id}) }}">← Le match</a></p>
+        <h1>Compte rendu du match aux familles</h1>
+        <p class="flash flash-info">Score et buts sont repris de la feuille de match ; le rapport interne et les notes ne le sont pas. Complétez « Le mot de l'éducateur » puis envoyez : les familles le liront dans leur espace{{ email_actif ? ' et le recevront par e-mail' }}.</p>
+    {% else %}
+        <p><a href="{{ path('app_message_index') }}">← Messages</a></p>
+        <h1>Nouveau message aux familles</h1>
+    {% endif %}
 
     {% if not email_actif %}
         <p class="flash flash-info">L'envoi d'e-mails n'est pas réglé sur ce site : les familles verront le message dans leur espace, sans en être prévenues par e-mail.</p>

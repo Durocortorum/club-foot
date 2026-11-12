@@ -13,6 +13,7 @@ use App\Repository\ButRepository;
 use App\Repository\CategorieRepository;
 use App\Repository\ConvocationRepository;
 use App\Repository\JoueurRepository;
+use App\Repository\MessageRepository;
 use App\Repository\ParticipationRepository;
 use App\Repository\RencontreRepository;
 use App\Security\ActiviteVoter;
@@ -298,12 +299,13 @@ class RencontreController extends AbstractController
 
     #[Route('/matchs/{id}', name: 'app_rencontre_voir', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted(ActiviteVoter::GERER, 'rencontre')]
-    public function voir(Rencontre $rencontre, ConvocationRepository $convocations, CompositionTerrain $terrain): Response
+    public function voir(Rencontre $rencontre, ConvocationRepository $convocations, CompositionTerrain $terrain, MessageRepository $messages): Response
     {
         return $this->render('rencontre/voir.html.twig', [
             'rencontre' => $rencontre,
             'convocation' => $convocations->pour($rencontre),
             'compo' => $terrain->placer($rencontre),
+            'comptes_rendus' => $messages->comptesRendus($rencontre),
         ]);
     }
 

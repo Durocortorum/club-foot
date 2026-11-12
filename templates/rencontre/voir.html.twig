@@ -26,9 +26,14 @@
             {% if rencontre.butsDomicileMiTemps is not null %}
                 <p class="discret">Mi-temps : {{ rencontre.butsDomicileMiTemps }} – {{ rencontre.butsExterieurMiTemps }}</p>
             {% endif %}
+            {% if comptes_rendus %}
+                <p class="petit"><span class="pastille succes">Compte rendu envoyé aux familles</span>
+                    <a href="{{ path('app_message_voir', {id: (comptes_rendus|first).id}) }}">le {{ (comptes_rendus|first).creeLe|date('d/m à H:i', 'Europe/Paris') }}</a>{{ comptes_rendus|length > 1 ? ' (' ~ comptes_rendus|length ~ ' envois)' }}</p>
+            {% endif %}
         </div>
         <div class="actions">
             <a class="bouton" href="{{ path('app_convocation', {id: rencontre.id}) }}">{{ convocation ? 'Convocation' : 'Convoquer' }}</a>
+            {% if rencontre.butsPour is not null %}<a class="bouton" href="{{ path('app_message_nouveau', {compte_rendu: rencontre.id}) }}" title="Envoyer le score et les buteurs aux familles de l'équipe, avec votre mot">Compte rendu aux familles</a>{% endif %}
             {% if not rencontre.aDomicile %}<a class="bouton" href="{{ path('app_transport_nouveau', {match: rencontre.id}) }}" title="Noter le déplacement : car, minibus, voitures et frais kilométriques">Transport</a>{% endif %}
             <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Modifier</a>
             {{ m.supprimer(path('app_rencontre_supprimer', {id: rencontre.id}), 'supprimer-match' ~ rencontre.id, 'Supprimer ce match et sa feuille de match ?') }}

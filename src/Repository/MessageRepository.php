@@ -5,7 +5,9 @@ namespace App\Repository;
 use App\Entity\Message;
 use App\Entity\MessageDestinataire;
 use App\Entity\MessageReponse;
+use App\Entity\Rencontre;
 use App\Entity\Utilisateur;
+use App\Service\CompteRenduMatch;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -16,6 +18,20 @@ use Doctrine\Persistence\ManagerRegistry;
 class MessageRepository extends ServiceEntityRepository
 {
     public const PAR_PAGE = 30;
+
+    /**
+     * Comptes rendus de ce match déjà envoyés aux familles, du plus récent au plus ancien.
+     *
+     * @return list<Message>
+     */
+    public function comptesRendus(Rencontre $rencontre): array
+    {
+        return $this->createQueryBuilder('m')
+            ->andWhere('m.rencontre = :r')->setParameter('r', $rencontre)
+            ->andWhere('m.sujet LIKE :p')->setParameter('p', CompteRenduMatch::PREFIXE . '%')
+            ->orderBy('m.creeLe', 'DESC')
+            ->getQuery()->getResult();
+    }
 
     public function __construct(ManagerRegistry $registry)
     {

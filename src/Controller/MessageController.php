@@ -8,6 +8,7 @@ use App\Entity\Convoque;
 use App\Entity\Joueur;
 use App\Entity\Message;
 use App\Entity\MessageReponse;
+use App\Entity\Rencontre;
 use App\Entity\Utilisateur;
 use App\Repository\CategorieRepository;
 use App\Repository\ConvocationRepository;
@@ -17,6 +18,7 @@ use App\Repository\UtilisateurRepository;
 use App\Security\ActiviteVoter;
 use App\Security\JoueurVoter;
 use App\Service\AccesFamille;
+use App\Service\CompteRenduMatch;
 use App\Service\Messagerie;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
@@ -86,7 +88,7 @@ class MessageController extends AbstractController
     }
 
     #[Route('/nouveau', name: 'app_message_nouveau', methods: ['GET', 'POST'])]
-    public function nouveau(Request $request, CategorieRepository $categories, ConvocationRepository $convocations, JoueurRepository $joueurs, Messagerie $messagerie, AccesFamille $acces, UtilisateurRepository $utilisateurs): Response
+    public function nouveau(Request $request, CategorieRepository $categories, ConvocationRepository $convocations, JoueurRepository $joueurs, Messagerie $messagerie, AccesFamille $acces, UtilisateurRepository $utilisateurs, CompteRenduMatch $compteRendu): Response
     {
         // Collègues : tous les comptes de l'encadrement du club (éducateurs, dirigeants, médecin, kiné...), sauf soi.
         $collegues = array_values(array_filter(
@@ -132,6 +134,16 @@ class MessageController extends AbstractController
         }
         $donnees['personnes'] ??= [];
         $donnees['categorie'] ??= current(array_filter($mesCategories, fn (Categorie $c) => $c->getId() === $q->getInt('categorie'))) ?: null;
+        // Compte rendu d'un match pour les familles : toute l'équipe, objet et texte proposés (score, buts).
+        $matchCompteRendu = null;
+        if ($q->getInt('compte_rendu') && ($r = $this->em->find(Rencontre::class, $q->getInt('compte_rendu'))) && $this->isGranted(ActiviteVoter::GERER, $r)) {
+            $matchCompteRendu = $r;
+            $donnees['sujet'] = $compteRendu->sujet($r);
+            $donnees['corps'] = $compteRendu->texte($r);
+            if (isset($cibles['categorie']) && \in_array($r->getCategorie(), $mesCategories, true)) {
+                $donnees = ['cible' => 'categorie', 'categorie' => $r->getCategorie()] + $donnees;
+            }
+        }
 
         $form = $this->createFormBuilder($donnees)
             ->add('cible', ChoiceType::class, ['label' => 'Destinataires', 'choices' => array_flip($cibles), 'expanded' => true])
@@ -163,7 +175,7 @@ class MessageController extends AbstractController
             [$destinataires, $libelle, $categorie, $rencontre, $personnes] = $this->destinataires($d, $form, $joueurs) + [4 => []];
             $message = (new Message())->setAuteur($this->moi())->setSujet($d['sujet'])->setCorps($d['corps'])
                 ->setImportant((bool) $d['important'])->setCible($d['cible'])->setCibleLibelle($libelle)
-                ->setCategorie($categorie)->setRencontre($rencontre);
+                ->setCategorie($categorie)->setRencontre($rencontre ?? $matchCompteRendu);
             if ('' === trim((string) $d['sujet'])) {
                 $form->get('sujet')->addError(new FormError('Indiquez l\'objet du message.'));
             }
@@ -187,6 +199,7 @@ class MessageController extends AbstractController
         return $this->render('message/nouveau.html.twig', [
             'form' => $form,
             'email_actif' => $acces->emailActif(),
+            'compte_rendu' => $matchCompteRendu,
         ]);
     }
 
