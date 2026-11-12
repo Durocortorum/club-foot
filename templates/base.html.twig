@@ -64,7 +64,10 @@
                         <a href="{{ path('app_detection_index') }}" class="{{ route starts with 'app_detection' or route starts with 'app_observe' or route starts with 'app_candidature' ? 'actif' }}">Recrutement</a>
                     {% endif %}
                     {% if is_granted('ROLE_SCOLAIRE_LECTURE') %}
-                        <a href="{{ path('app_scolarite_index') }}" class="{{ route starts with 'app_scolarite' or route starts with 'app_bulletin' or route starts with 'app_discipline' or route starts with 'app_sanction' ? 'actif' }}">Scolarité</a>
+                        <a href="{{ path('app_scolarite_index') }}" class="{{ route starts with 'app_scolarite' or route starts with 'app_bulletin' ? 'actif' }}">Scolarité</a>
+                    {% endif %}
+                    {% if is_granted('ROLE_DISCIPLINE_LECTURE') %}
+                        <a href="{{ path('app_discipline_index') }}" class="{{ route starts with 'app_discipline' or route starts with 'app_sanction' ? 'actif' }}">Discipline</a>
                     {% endif %}
                     {% if is_granted('ROLE_INFIRMERIE_LECTURE') %}
                         <a href="{{ path('app_infirmerie_index') }}" class="{{ route starts with 'app_infirmerie' or route starts with 'app_blessure' or route starts with 'app_contact' ? 'actif' }}">Infirmerie</a>

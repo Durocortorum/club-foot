@@ -53,7 +53,7 @@ class AmendesTest extends WebTestCase
         $client->loginUser($admin);
 
         // Nouvel incident avec une amende de 20 € (Tom).
-        $crawler = $client->request('GET', '/scolarite/discipline/nouvelle?joueur=' . $tom->getId());
+        $crawler = $client->request('GET', '/discipline/nouvelle?joueur=' . $tom->getId());
         $client->submit($crawler->selectButton('Enregistrer')->form([
             'sanction[motif]' => 'Carton rouge pour contestation',
             'sanction[amende]' => '20',
@@ -61,15 +61,15 @@ class AmendesTest extends WebTestCase
         self::assertResponseRedirects();
 
         // Page Discipline : totaux de la saison, reste à payer, puis « Payée ».
-        $crawler = $client->request('GET', '/scolarite/discipline');
+        $crawler = $client->request('GET', '/discipline');
         $tuiles = $crawler->filter('.tuiles.amendes')->text();
         self::assertMatchesRegularExpression('/Amendes \d{4}\/\d{4}\s*30,00 €/u', $tuiles);
         self::assertMatchesRegularExpression('/Encaissées \d{4}\/\d{4}\s*10,00 €/u', $tuiles);
         self::assertStringContainsString('Reste à payer20,00 € 1 amende', $tuiles);
-        $crawler = $client->request('GET', '/scolarite/discipline?amendes=a_payer');
+        $crawler = $client->request('GET', '/discipline?amendes=a_payer');
         self::assertCount(1, $crawler->filter('table.liste tbody tr'));
         $client->submit($crawler->selectButton('Payée')->form());
-        self::assertResponseRedirects('/scolarite/discipline?amendes=a_payer');
+        self::assertResponseRedirects('/discipline?amendes=a_payer');
         $crawler = $client->followRedirect();
         self::assertStringContainsString('Aucune amende à payer.', $crawler->filter('table.liste')->text());
 
@@ -80,5 +80,60 @@ class AmendesTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Amendes de discipline (encaissées)', $crawler->text());
         self::assertMatchesRegularExpression('/Amendes de discipline \(encaissées\)\s*30,00 €/u', $crawler->text());
+    }
+
+    /**
+     * Joueur majeur : l'éducateur des seniors, avec le seul droit « Discipline » (pas la Scolarité), lui met
+     * une amende pour retards ; le joueur la voit dans son espace. Sans le droit Discipline : page refusée.
+     */
+    public function testAmendeJoueurMajeur(): void
+    {
+        $client = static::createClient();
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Admin');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $seniors = $em->getRepository(Categorie::class)->findOneBy(['club' => $club, 'nom' => 'SENIORS']);
+        $paul = (new Joueur())->setClub($club)->setCategorie($seniors)->setNom('Martin')->setPrenom('Paul')
+            ->setDateNaissance(new \DateTimeImmutable('1998-05-02'))->setEmailJoueur("paul-$id@exemple.test");
+        $em->persist($paul);
+        $coach = (new Utilisateur())->setClub($club)->setEmail("coach-$id@exemple.test")->setNom('Coach')->setPrenom('Seniors')
+            ->setRolesAttribues(['ROLE_ELITE', 'ROLE_DISCIPLINE'])->setPassword('x');
+        $sansDroit = (new Utilisateur())->setClub($club)->setEmail("autre-$id@exemple.test")->setNom('Autre')->setPrenom('Coach')
+            ->setRolesAttribues(['ROLE_ELITE'])->setPassword('x');
+        $compte = (new Utilisateur())->setClub($club)->setFamille(true)->setEmail("paul-$id@exemple.test")->setNom('Martin')->setPrenom('Paul')
+            ->setPassword('x')->addJoueur($paul);
+        foreach ([$coach, $sansDroit, $compte] as $u) {
+            $em->persist($u);
+        }
+        $em->flush();
+
+        // Sans le droit Discipline : pas de page Discipline ni d'entrée de menu.
+        $client->loginUser($sansDroit);
+        $client->request('GET', '/discipline');
+        self::assertResponseStatusCodeSame(403);
+
+        // L'éducateur des seniors : menu Discipline, amende de 15 € pour retards répétés.
+        $client->loginUser($coach);
+        $crawler = $client->request('GET', '/joueurs/' . $paul->getId());
+        self::assertSelectorExists('nav a[href="/discipline"]');
+        self::assertSelectorNotExists('nav a[href="/scolarite"]');
+        $crawler = $client->click($crawler->selectLink('+ Incident')->link());
+        $client->submit($crawler->selectButton('Enregistrer')->form([
+            'sanction[motif]' => 'Retards répétés à l\'entraînement',
+            'sanction[lieu]' => 'Entraînement',
+            'sanction[amende]' => '15',
+        ]));
+        self::assertResponseRedirects();
+
+        // Le joueur majeur voit son amende à payer dans son espace.
+        $client->loginUser($compte);
+        $crawler = $client->request('GET', '/espace');
+        self::assertResponseIsSuccessful();
+        $amendes = $crawler->filter('#amendes-' . $paul->getId())->text();
+        self::assertStringContainsString('15,00 € à payer', $amendes);
+        self::assertStringContainsString('Retards répétés à l\'entraînement', $crawler->text());
     }
 }

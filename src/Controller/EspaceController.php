@@ -6,7 +6,10 @@ use App\Entity\AbsenceEntrainement;
 use App\Entity\Convoque;
 use App\Entity\Entrainement;
 use App\Entity\Joueur;
+use App\Entity\Rencontre;
 use App\Entity\Ressenti;
+use App\Entity\Sanction;
+use App\Repository\SanctionRepository;
 use App\Entity\Stage;
 use App\Entity\Tache;
 use App\Repository\RessentiRepository;
@@ -62,6 +65,7 @@ class EspaceController extends AbstractController
         StageRepository $stages,
         RessentiRepository $ressentis,
         SuiviRessenti $suiviRessenti,
+        SanctionRepository $sanctions,
     ): Response
     {
         /** @var Utilisateur $moi */
@@ -101,6 +105,7 @@ class EspaceController extends AbstractController
             $parJoueur[$r->getJoueur()->getId()][] = $r;
         }
 
+        [$debutSaison] = Rencontre::bornesSaison(Rencontre::saisonDe(new \DateTimeImmutable('today')));
         $enfants = [];
         foreach ($moi->getJoueurs() as $j) {
             $mesConvocations = $convocations[$j->getId()] ?? [];
@@ -120,6 +125,11 @@ class EspaceController extends AbstractController
                 'proches' => $acces->decideAccesParents($moi, $j) ? $proches->avecAcces($j) : null,
                 // Statistiques : joueur mineur et ses parents ; joueur majeur et les contacts qu'il autorise.
                 'stats' => $proches->voitStatistiques($moi, $j) ? self::statistiques($j, $bilan, $participations, $presences) : null,
+                // Amendes (mêmes personnes que les statistiques) : à payer, et payées depuis le début de la saison.
+                'amendes' => $proches->voitStatistiques($moi, $j) ? array_values(array_filter(
+                    $sanctions->findBy(['joueur' => $j], ['date' => 'DESC']),
+                    fn (Sanction $s) => $s->isAmendeAPayer() || ($s->getAmendePayeeLe() && $s->getAmendePayeeLe() >= $debutSaison),
+                )) : [],
             ];
         }
 

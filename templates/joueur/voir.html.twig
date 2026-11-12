@@ -39,6 +39,7 @@
     {% set vm_voir, vm_modif = vm_droit and medical, is_granted('ROLE_VISITE_MEDICALE') and medical %}
     {% set medical_verrouille = (inf_droit or vm_droit) and not medical %}
     {% set scol_voir, scol_modif = is_granted('ROLE_SCOLAIRE_LECTURE'), is_granted('ROLE_SCOLAIRE') %}
+    {% set disc_voir, disc_modif = is_granted('ROLE_DISCIPLINE_LECTURE'), is_granted('ROLE_DISCIPLINE') %}
     {# Tests physiques : modifier seulement pour les joueurs de ses secteurs, ou tous avec l'infirmerie. #}
     {% set tests_voir = is_granted('ROLE_TESTS_PHYSIQUES_LECTURE') %}
     {% set tests_modif = is_granted('ROLE_TESTS_PHYSIQUES') and (peut_modifier or is_granted('ROLE_INFIRMERIE')) %}
@@ -73,7 +74,7 @@
         <a href="#matchs">Matchs</a>
         <a href="#presences">Présences</a>
         {% if famille %}<a href="#famille">Accès famille</a>{% endif %}
-        {% if scol_voir or sanctions %}<a href="#scolarite">Scolarité et discipline</a>{% endif %}
+        {% if scol_voir or disc_voir or sanctions %}<a href="#scolarite">{{ scol_voir ? 'Scolarité et discipline' : 'Discipline' }}</a>{% endif %}
         {% if medical_verrouille %}<a href="#medical-verrou">🔒 Médical</a>{% endif %}
         {% if not (inf_droit and vm_droit) %}<a href="{{ path('app_demande_medicale', {section: inf_droit ? 'visite_medicale' : 'infirmerie'}) }}" title="Demander au médecin du club l'accès aux données médicales">🔒 Demander l'accès médical</a>{% endif %}
         {% if inf_voir %}<a href="#infirmerie">Infirmerie</a>{% endif %}
@@ -343,7 +344,7 @@
 
     {# ---------- Scolarité et discipline ---------- #}
     {# Droit Scolarité : « voir » ou « modifier ». Les éducateurs du joueur voient aussi ses sanctions (suspensions). #}
-    {% if scol_voir or sanctions %}
+    {% if scol_voir or disc_voir or sanctions %}
         <section class="bloc" id="scolarite">
             {% if scol_voir %}
                 <div class="titre-page">
@@ -372,12 +373,12 @@
 
             <div class="titre-page">
                 <h2 class="titre-bloc">Discipline</h2>
-                {% if scol_modif %}<a class="bouton" href="{{ path('app_sanction_nouvelle', {joueur: joueur.id}) }}">+ Incident</a>{% endif %}
+                {% if disc_modif %}<a class="bouton" href="{{ path('app_sanction_nouvelle', {joueur: joueur.id}) }}">+ Incident</a>{% endif %}
             </div>
             {% if sanctions %}
                 <div class="table-defile">
                     <table class="liste liste-fiches">
-                        <thead><tr><th>Date</th><th>Lieu</th><th>Motif</th><th>Sanction sportive</th><th>Sanction scolaire</th><th>Gravité</th><th>Amende</th>{% if scol_modif %}<th></th>{% endif %}</tr></thead>
+                        <thead><tr><th>Date</th><th>Lieu</th><th>Motif</th><th>Sanction sportive</th><th>Sanction scolaire</th><th>Gravité</th><th>Amende</th>{% if disc_modif %}<th></th>{% endif %}</tr></thead>
                         <tbody>
                             {% for s in sanctions %}
                                 <tr>
@@ -388,7 +389,7 @@
                                     <td data-label="scolaire :">{{ s.sanctionScolaire }}</td>
                                     <td data-label="gravité">{{ s.graviteLibelle }}</td>
                                     <td data-label="amende :" class="nowrap">{% if s.amende %}{{ s.amende|number_format(2, ',', ' ') }} € <span class="pastille {{ s.amendePayeeLe ? 'succes' : 'alerte' }}">{{ s.amendePayeeLe ? 'payée le ' ~ s.amendePayeeLe|date('d/m/Y') : 'à payer' }}</span>{% endif %}</td>
-                                    {% if scol_modif %}<td class="a-cote"><a href="{{ path('app_sanction_modifier', {id: s.id}) }}">Modifier</a></td>{% endif %}
+                                    {% if disc_modif %}<td class="a-cote"><a href="{{ path('app_sanction_modifier', {id: s.id}) }}">Modifier</a></td>{% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>

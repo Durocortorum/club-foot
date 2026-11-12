@@ -155,7 +155,7 @@ class JoueurController extends AbstractController
                 ? $progression->seriesTests($resultatsTests->findBy(['joueur' => $joueur], ['date' => 'ASC'])) : [],
             'bulletins' => $scolaire ? $bulletins->findBy(['joueur' => $joueur], ['saison' => 'DESC', 'id' => 'DESC']) : [],
             // Les sanctions sont utiles aux éducateurs du joueur (suspensions), pas seulement au suivi scolaire.
-            'sanctions' => $scolaire || $this->isGranted(JoueurVoter::MODIFIER, $joueur) ? $sanctions->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
+            'sanctions' => $this->isGranted('ROLE_DISCIPLINE_LECTURE') || $this->isGranted(JoueurVoter::MODIFIER, $joueur) ? $sanctions->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
             'detection' => $detections->findOneBy(['joueur' => $joueur]),
             'famille' => $this->isGranted(JoueurVoter::MODIFIER, $joueur) ? $acces->etat($joueur) : null,
             // Joueur majeur : personnes à contacter (les parents de la fiche y sont repris la première fois).

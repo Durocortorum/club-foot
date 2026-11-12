@@ -4,11 +4,7 @@
 {% block title %}Discipline{% endblock %}
 
 {% block body %}
-    {% set modif = is_granted('ROLE_SCOLAIRE') %}
-    <nav class="onglets">
-        <a href="{{ path('app_scolarite_index') }}">Bulletins</a>
-        <a href="{{ path('app_discipline_index') }}" class="actif">Discipline</a>
-    </nav>
+    {% set modif = is_granted('ROLE_DISCIPLINE') %}
 
     <div class="titre-page">
         <h1>Discipline <span class="compteur">{{ sanctions|length }}</span></h1>

@@ -3,10 +3,6 @@
 {% block title %}Bulletins scolaires{% endblock %}
 
 {% block body %}
-    <nav class="onglets">
-        <a href="{{ path('app_scolarite_index') }}" class="actif">Bulletins</a>
-        <a href="{{ path('app_discipline_index') }}">Discipline</a>
-    </nav>
 
     <div class="titre-page">
         <h1>Bulletins scolaires <span class="compteur">{{ bulletins|length }}</span></h1>

@@ -109,6 +109,22 @@
                 </ul>
             {% endif %}
 
+            {# Amendes de discipline : celles à payer, et celles payées depuis le début de la saison. #}
+            {% if e.amendes %}
+                {% set a_payer = e.amendes|filter(s => s.amendeAPayer) %}
+                <h3 id="amendes-{{ j.id }}">Amendes{% if a_payer %} <span class="pastille alerte">{{ a_payer|reduce((t, s) => t + s.amende, 0)|number_format(2, ',', ' ') }} € à payer</span>{% endif %}</h3>
+                <ul class="liste-simple">
+                    {% for s in e.amendes %}
+                        <li>
+                            <strong class="nowrap">{{ s.amende|number_format(2, ',', ' ') }} €</strong>
+                            · {{ s.motif }} <span class="discret petit">({{ s.date|date('d/m/Y') }})</span>
+                            {% if s.amendePayeeLe %}<span class="pastille succes">payée le {{ s.amendePayeeLe|date('d/m') }}</span>{% else %}<span class="pastille alerte">à payer</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% if a_payer %}<p class="discret petit">À régler auprès du club.</p>{% endif %}
+            {% endif %}
+
             {# Autoévaluation : effort ressenti après les séances des derniers jours (RPE de 1 à 10). #}
             {% if e.a_noter or e.ressentis %}
                 <h3 id="ressenti-{{ j.id }}">Effort ressenti</h3>
