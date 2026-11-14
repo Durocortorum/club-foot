@@ -1,0 +1,128 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Boutique{% endblock %}
+
+{% macro euros(montant) %}<span class="sans-retour">{{ montant|number_format(2, ',', ' ') }} €</span>{% endmacro %}
+
+{% block body %}
+    {% import _self as b %}
+    {% set jeton = csrf_token('boutique') %}
+    <div class="titre-page">
+        <h1>Boutique du club</h1>
+        {% if panier %}<a class="bouton principal" href="#panier">🛒 Panier ({{ panier|reduce((n, l) => n + l.quantite, 0) }}) · {{ b.euros(total) }}</a>{% endif %}
+    </div>
+    <p class="discret">Commandez ici, retrait au club.{{ en_ligne ? ' Règlement en ligne par carte (HelloAsso) ou au club.' : ' Règlement au club.' }}</p>
+
+    {% if articles %}
+        <div class="grille-articles">
+            {% for a in articles %}
+                <article class="carte article-boutique{{ a.epuise ? ' epuise' }}">
+                    {% if a.photo %}<img src="{{ path('app_boutique_photo', {nom: a.photo|replace({'.jpg': ''})}) }}" alt="{{ a.nom }}" loading="lazy">{% else %}<div class="article-sans-photo" aria-hidden="true">👕</div>{% endif %}
+                    <h2>{{ a.nom }}</h2>
+                    <p class="article-prix">{{ b.euros(a.prix) }}</p>
+                    {% if a.description %}<p class="petit discret">{{ a.description|nl2br }}</p>{% endif %}
+                    {% if a.epuise %}
+                        <p><span class="pastille alerte">épuisé</span></p>
+                    {% else %}
+                        <form method="post" action="{{ path('app_espace_boutique_ajouter', {id: a.id}) }}" class="ajout-panier">
+                            <input type="hidden" name="_token" value="{{ jeton }}">
+                            {% if a.tailles|length > 1 %}
+                                <select name="taille" aria-label="Taille" required>
+                                    {% for t in a.tailles %}
+                                        {% set dispo = a.disponible(t) %}
+                                        <option value="{{ t }}" {{ dispo is same as(0) ? 'disabled' }}>{{ t }}{{ dispo is same as(0) ? ' (épuisé)' : (dispo is not null and dispo <= 3 ? ' (plus que ' ~ dispo ~ ')') }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <input type="hidden" name="taille" value="{{ a.tailles|first }}">
+                            {% endif %}
+                            <select name="quantite" aria-label="Quantité">
+                                {% for q in 1..quantite_max %}<option value="{{ q }}">{{ q }}</option>{% endfor %}
+                            </select>
+                            <button type="submit" class="bouton principal">Ajouter</button>
+                        </form>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="vide">La boutique n'est pas encore ouverte.</p>
+    {% endif %}
+
+    <section class="carte bloc" id="panier">
+        <h2>🛒 Mon panier</h2>
+        {% if panier %}
+            <table class="liste">
+                <tbody>
+                    {% for l in panier %}
+                        <tr>
+                            <td class="fort">{{ l.article.nom }}{% if l.taille != constant('App\\Entity\\ArticleBoutique::TAILLE_UNIQUE') %} <span class="discret">· {{ l.taille }}</span>{% endif %}</td>
+                            <td class="a-droite">{{ l.quantite }} × {{ b.euros(l.article.prix) }}</td>
+                            <td class="a-droite fort">{{ b.euros(l.montant) }}</td>
+                            <td class="a-droite">
+                                <form method="post" action="{{ path('app_espace_boutique_retirer') }}" class="en-ligne">
+                                    <input type="hidden" name="_token" value="{{ jeton }}">
+                                    <input type="hidden" name="cle" value="{{ l.cle }}">
+                                    <button class="bouton petit" title="Retirer du panier">×</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot><tr><th>Total</th><th></th><th class="a-droite">{{ b.euros(total) }}</th><th></th></tr></tfoot>
+            </table>
+            <form method="post" action="{{ path('app_espace_boutique_commander') }}" class="formulaire commander" data-turbo="false">
+                <input type="hidden" name="_token" value="{{ jeton }}">
+                {% if joueurs|length > 1 %}
+                    <div class="champ">
+                        <label for="joueur">Pour</label>
+                        <select id="joueur" name="joueur" required>
+                            {% for j in joueurs %}<option value="{{ j.id }}">{{ j.prenom }} {{ j.nom }}</option>{% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+                <div class="champ">
+                    <label for="note">Remarque (facultatif)</label>
+                    <input type="text" id="note" name="note" maxlength="255" placeholder="ex. : flocage du prénom, retrait samedi">
+                </div>
+                <p class="actions-ligne">
+                    {% if en_ligne %}<button type="submit" name="reglement" value="en_ligne" class="bouton principal">💳 Commander et payer en ligne</button>{% endif %}
+                    <button type="submit" name="reglement" value="club" class="bouton {{ en_ligne ? '' : 'principal' }}">Commander et régler au club</button>
+                </p>
+            </form>
+        {% else %}
+            <p class="discret">Votre panier est vide.</p>
+        {% endif %}
+    </section>
+
+    {% if commandes %}
+        <section class="carte bloc" id="commandes">
+            <h2>Mes commandes</h2>
+            <ul class="liste-simple commandes-famille">
+                {% for c in commandes %}
+                    <li>
+                        <div>
+                            <strong>Commande n° {{ c.numero }}</strong> <span class="discret petit">du {{ c.creeLe|date('d/m/Y') }}{% if c.joueur %} · pour {{ c.joueur.prenom }}{% endif %}</span>
+                            <span class="pastille {{ c.statut in ['prete'] ? 'succes' : (c.statut in ['a_regler'] ? 'alerte' : '') }}">{{ c.statutLibelle }}</span>
+                            <br><span class="petit">{% for l in c.lignes %}{{ l.quantite }} × {{ l.libelle }}{% if l.taille != constant('App\\Entity\\ArticleBoutique::TAILLE_UNIQUE') %} ({{ l.taille }}){% endif %}{{ not loop.last ? ', ' }}{% endfor %} · <strong>{{ b.euros(c.totalEuros) }}</strong></span>
+                        </div>
+                        {% if c.aRegler %}
+                            <div class="actions-ligne">
+                                {% if en_ligne %}
+                                    <form method="post" action="{{ path('app_espace_boutique_payer', {id: c.id}) }}" class="en-ligne" data-turbo="false">
+                                        <input type="hidden" name="_token" value="{{ jeton }}">
+                                        <button class="bouton petit principal">💳 Payer en ligne</button>
+                                    </form>
+                                {% endif %}
+                                <form method="post" action="{{ path('app_espace_boutique_annuler', {id: c.id}) }}" class="en-ligne" data-confirmation="Annuler la commande n° {{ c.numero }} ?" data-confirmation-bouton="Annuler la commande">
+                                    <input type="hidden" name="_token" value="{{ jeton }}">
+                                    <button class="bouton petit">Annuler</button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+{% endblock %}

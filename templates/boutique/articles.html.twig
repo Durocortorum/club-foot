@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+{% import 'finances/_macros.html.twig' as f %}
+
+{% block title %}Boutique – articles{% endblock %}
+
+{% block body %}
+    {% include 'boutique/_onglets.html.twig' with {actif: 'articles'} %}
+    <div class="titre-page">
+        <h1>Articles de la boutique <span class="compteur">{{ articles|length }}</span></h1>
+        {% if is_granted('ROLE_FINANCES') %}<a class="bouton principal" href="{{ path('app_boutique_article_nouveau') }}">+ Nouvel article</a>{% endif %}
+    </div>
+
+    {% if articles %}
+        <div class="table-defile">
+            <table class="liste liste-fiches">
+                <thead><tr><th></th><th>Article</th><th class="a-droite">Prix</th><th>Tailles et stock</th><th></th></tr></thead>
+                <tbody>
+                    {% for a in articles %}
+                        <tr>
+                            <td>{% if a.photo %}<img class="vignette-article" src="{{ path('app_boutique_photo', {nom: a.photo|replace({'.jpg': ''})}) }}" alt="">{% endif %}</td>
+                            <td class="principal"><strong>{{ a.nom }}</strong>{% if not a.enVente %} <span class="pastille">pas en vente</span>{% elseif a.epuise %} <span class="pastille alerte">épuisé</span>{% endif %}</td>
+                            <td class="a-droite fort">{{ f.euros(a.prix) }}</td>
+                            <td class="petit">
+                                {% for t in a.tailles %}
+                                    {{ t }}{% if a.suiviStock %} : <strong class="{{ a.disponible(t) == 0 ? 'montant-negatif' }}">{{ a.disponible(t) }}</strong>{% endif %}{{ not loop.last ? ' · ' }}
+                                {% endfor %}
+                                {% if not a.suiviStock %}<span class="discret">(stock non suivi)</span>{% endif %}
+                            </td>
+                            <td class="a-cote">{% if is_granted('ROLE_FINANCES') %}<a href="{{ path('app_boutique_article_modifier', {id: a.id}) }}">Modifier</a>{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="vide">Aucun article. Ajoutez le premier : les familles le verront dans leur espace, rubrique Boutique.</p>
+    {% endif %}
+{% endblock %}

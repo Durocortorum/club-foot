@@ -102,6 +102,10 @@ class EspacePaiementController extends AbstractController
             $this->addFlash('info', 'Paiement en cours de traitement chez HelloAsso : il apparaîtra ici dans quelques minutes.');
         }
 
+        if (PaiementEnLigne::BOUTIQUE === $paiement->getObjet()) {
+            return $this->redirectToRoute('app_espace_boutique', ['_fragment' => 'commandes']);
+        }
+
         return $this->redirectToRoute('app_espace', ['_fragment' => (PaiementEnLigne::STAGE === $paiement->getObjet() ? 'stages-' : 'cotisation-') . $paiement->getJoueur()->getId()]);
     }
 

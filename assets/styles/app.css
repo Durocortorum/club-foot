@@ -671,6 +671,28 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .cotisation-famille .montants strong { font-size: 1.1rem; }
 .cotisation-famille form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .cotisation-famille select { width: auto; }
+/* Boutique */
+.grille-articles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.2rem; }
+.article-boutique { display: flex; flex-direction: column; gap: .4rem; }
+.article-boutique img, .article-sans-photo { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 8px; background: var(--fond); }
+.article-sans-photo { display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+.article-boutique h2 { font-size: 1.05rem; margin: .2rem 0 0; }
+.article-prix { font-size: 1.2rem; font-weight: 700; color: var(--rouge); margin: 0; }
+.article-boutique.epuise img { opacity: .5; }
+.ajout-panier { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: auto; }
+.ajout-panier select { width: auto; flex: 1; min-width: 4rem; }
+.ajout-panier select[name="taille"] { flex: 2 1 6.5rem; }
+.ajout-panier select[name="quantite"] { flex: 0 0 4.2rem; }
+.liste th.a-droite { text-align: right; }
+.commandes-famille li { display: flex; justify-content: space-between; align-items: center; gap: .8rem; flex-wrap: wrap; }
+.filtres-pastilles { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+.filtres-pastilles .pastille { margin: 0; padding: .3rem .7rem; font-size: .85rem; text-decoration: none; }
+.filtres-pastilles .pastille.active { background: var(--rouge); color: var(--sur-rouge); font-weight: 600; }
+.vignette-article { width: 48px; height: 48px; object-fit: contain; border-radius: 6px; background: var(--fond); }
+.vignette-article.grande { width: 120px; height: 120px; }
+.stock-tailles { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+.commande-club .titre-page h2 { font-size: 1.05rem; margin: 0; }
+.commande-club select { width: auto; }
 /* Notifications sur le téléphone : seuls les boutons utiles à l'état de l'appareil sont montrés (assets/controllers/notifications_controller.js). */
 .notifications .bouton[hidden] { display: none; }
 .notifications-etat { font-weight: 600; margin: .4rem 0; }

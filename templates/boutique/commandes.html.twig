@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+{% import 'finances/_macros.html.twig' as f %}
+
+{% block title %}Boutique – commandes{% endblock %}
+
+{% block body %}
+    {% set modif = is_granted('ROLE_FINANCES') %}
+    {% include 'boutique/_onglets.html.twig' with {actif: 'commandes'} %}
+    <div class="titre-page">
+        <h1>Commandes de la boutique</h1>
+        <span class="discret">Ventes de la saison : <strong>{{ f.euros(ventes_saison) }}</strong></span>
+    </div>
+
+    <nav class="filtres-pastilles">
+        {% for cle, ff in filtres %}
+            <a href="{{ path('app_boutique', {filtre: cle}) }}" class="pastille {{ cle == filtre ? 'active' }}">{{ ff[0] }} ({{ compte[cle] }})</a>
+        {% endfor %}
+    </nav>
+
+    {% for c in commandes %}
+        <section class="carte bloc commande-club" id="commande-{{ c.id }}">
+            <div class="titre-page">
+                <div>
+                    <h2>N° {{ c.numero }} · {{ c.client }}{% if c.joueur %} <span class="discret">pour {{ c.joueur.prenom }} {{ c.joueur.nom }} ({{ c.joueur.categorie }})</span>{% endif %}</h2>
+                    <p class="discret petit">Commandée le {{ c.creeLe|date('d/m/Y à H:i', 'Europe/Paris') }}{% if c.payeeLe %} · réglée le {{ c.payeeLe|date('d/m', 'Europe/Paris') }} ({{ c.modeReglement }}){% endif %}{% if c.remiseLe %} · remise le {{ c.remiseLe|date('d/m', 'Europe/Paris') }}{% endif %}</p>
+                </div>
+                <span class="pastille {{ c.statut == 'a_regler' ? 'alerte' : (c.statut in ['payee', 'prete'] ? 'succes' : '') }}">{{ c.statutLibelle }}</span>
+            </div>
+            <table class="liste">
+                <tbody>
+                    {% for l in c.lignes %}
+                        <tr><td>{{ l.quantite }} × <strong>{{ l.libelle }}</strong>{% if l.taille != constant('App\\Entity\\ArticleBoutique::TAILLE_UNIQUE') %} · {{ l.taille }}{% endif %}</td><td class="a-droite">{{ f.euros(l.montant / 100) }}</td></tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot><tr><th>Total</th><th class="a-droite">{{ f.euros(c.totalEuros) }}</th></tr></tfoot>
+            </table>
+            {% if c.note %}<p class="memo petit">{{ c.note }}</p>{% endif %}
+            {% if modif and c.statut not in ['remise', 'annulee'] %}
+                <div class="actions-ligne">
+                    {% if c.aRegler %}
+                        <form method="post" action="{{ path('app_boutique_commande', {id: c.id, action: 'payee'}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('commande' ~ c.id) }}">
+                            <input type="hidden" name="filtre" value="{{ filtre }}">
+                            <select name="mode" aria-label="Mode de règlement">{% for m in modes %}<option>{{ m }}</option>{% endfor %}</select>
+                            <button class="bouton petit principal">Réglée au club</button>
+                        </form>
+                    {% elseif c.statut == 'payee' %}
+                        <form method="post" action="{{ path('app_boutique_commande', {id: c.id, action: 'prete'}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('commande' ~ c.id) }}">
+                            <input type="hidden" name="filtre" value="{{ filtre }}">
+                            <button class="bouton petit principal" title="La famille est prévenue (notification et e-mail)">Prête à retirer</button>
+                        </form>
+                    {% endif %}
+                    {% if c.payee %}
+                        <form method="post" action="{{ path('app_boutique_commande', {id: c.id, action: 'remise'}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('commande' ~ c.id) }}">
+                            <input type="hidden" name="filtre" value="{{ filtre }}">
+                            <button class="bouton petit">Remise à la famille</button>
+                        </form>
+                    {% endif %}
+                    <form method="post" action="{{ path('app_boutique_commande', {id: c.id, action: 'annuler'}) }}" class="en-ligne" data-confirmation="Annuler la commande n° {{ c.numero }} ? Les articles reviennent en stock.{{ c.payee ? ' Elle est déjà réglée : il faudra rembourser la famille.' }}" data-confirmation-bouton="Annuler la commande">
+                        <input type="hidden" name="_token" value="{{ csrf_token('commande' ~ c.id) }}">
+                        <input type="hidden" name="filtre" value="{{ filtre }}">
+                        <button class="bouton petit danger">Annuler</button>
+                    </form>
+                </div>
+            {% endif %}
+        </section>
+    {% else %}
+        <p class="vide">Aucune commande{{ filtre != 'en_cours' ? ' dans cette liste' : ' en cours' }}.</p>
+    {% endfor %}
+{% endblock %}

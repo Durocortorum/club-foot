@@ -49,6 +49,7 @@
                 <nav class="menu" id="navigation">
                     <a href="{{ path('app_espace') }}" class="{{ route == 'app_espace' ? 'actif' }}">Mon espace</a>
                     <a href="{{ path('app_espace_calendrier') }}" class="{{ route == 'app_espace_calendrier' ? 'actif' }}">Calendrier</a>
+                    {% if boutique_ouverte() %}<a href="{{ path('app_espace_boutique') }}" class="{{ route starts with 'app_espace_boutique' ? 'actif' }}">Boutique</a>{% endif %}
                     {% set non_lus = messages_non_lus() %}
                     <a href="{{ path('app_espace_messages') }}" class="{{ route starts with 'app_espace_message' ? 'actif' }}">Messages <span class="pastille alerte" data-controller="nouvelles" data-nouvelles-url-value="{{ path('app_messages_etat') }}" {{ non_lus ? '' : 'hidden' }}>{{ non_lus ?: '' }}</span></a>
                 </nav>
@@ -82,6 +83,8 @@
                     <a href="{{ path('app_transport') }}" class="{{ route starts with 'app_transport' ? 'actif' }}">Transport</a>
                     {% if is_granted('ROLE_FINANCES_LECTURE') %}
                         <a href="{{ path('app_finances') }}" class="{{ route starts with 'app_finances' ? 'actif' }}">Finances</a>
+                        {% set a_traiter = boutique_a_traiter() %}
+                        <a href="{{ path('app_boutique') }}" class="{{ route starts with 'app_boutique' and route != 'app_boutique_photo' ? 'actif' }}">Boutique{% if a_traiter %} <span class="pastille" title="{{ a_traiter }} commande{{ a_traiter > 1 ? 's' }} à régler ou à préparer">{{ a_traiter }}</span>{% endif %}</a>
                     {% endif %}
                 </nav>
                 {% endif %}

@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ article.id ? article.nom : 'Nouvel article' }}{% endblock %}
+
+{% block body %}
+    <p><a href="{{ path('app_boutique_articles') }}">← Articles</a></p>
+    <div class="titre-page">
+        <h1>{{ article.id ? article.nom : 'Nouvel article' }}</h1>
+        {% if article.id %}
+            {{ m.supprimer(path('app_boutique_article_supprimer', {id: article.id}), 'supprimer-article' ~ article.id, 'Supprimer « ' ~ article.nom ~ ' » ? Les commandes déjà passées gardent son nom et son prix.') }}
+        {% endif %}
+    </div>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+        <fieldset class="carte">
+            <legend>Article</legend>
+            <div class="avec-photo">
+                {% if article.photo %}<img class="vignette-article grande" src="{{ path('app_boutique_photo', {nom: article.photo|replace({'.jpg': ''})}) }}" alt="">{% endif %}
+                {{ m.groupe(form, ['nom', 'prix', 'taillesTexte', 'photo']) }}
+            </div>
+            {{ m.groupe(form, ['description', 'enVente']) }}
+        </fieldset>
+        <fieldset class="carte" id="stock">
+            <legend>Stock</legend>
+            {{ m.groupe(form, ['suiviStock']) }}
+            {% if article.id and article.suiviStock %}
+                <div class="champs stock-tailles">
+                    {% for t in article.tailles %}
+                        <div class="champ">
+                            <label for="stock-{{ loop.index }}">{{ t }}</label>
+                            <input type="number" id="stock-{{ loop.index }}" name="stock[{{ t }}]" min="0" max="9999" value="{{ article.disponible(t) }}" class="court">
+                        </div>
+                    {% endfor %}
+                </div>
+                <p class="discret petit">Quantités disponibles aujourd'hui. Après un changement de tailles, enregistrez puis revenez ici pour le stock des nouvelles.</p>
+            {% elseif article.id %}
+                <p class="discret petit">Cochez la case puis enregistrez : une case par taille apparaîtra pour indiquer le stock.</p>
+            {% endif %}
+        </fieldset>
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

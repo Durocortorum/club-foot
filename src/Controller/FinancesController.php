@@ -78,6 +78,14 @@ class FinancesController extends AbstractController
         if ($stages > 0) {
             $parRubrique['recette']['Stages (inscriptions réglées)'] = $stages;
         }
+        // Boutique : commandes réglées pendant la saison (en ligne ou au club), hors commandes annulées.
+        $boutique = (float) $this->em->createQueryBuilder()->select('SUM(c.total)')->from(\App\Entity\CommandeBoutique::class, 'c')
+            ->andWhere('c.statut IN (:payees)')->setParameter('payees', [\App\Entity\CommandeBoutique::PAYEE, \App\Entity\CommandeBoutique::PRETE, \App\Entity\CommandeBoutique::REMISE])
+            ->andWhere('c.payeeLe BETWEEN :debut AND :fin')->setParameter('debut', $debut->format('Y-m-d 00:00:00'))->setParameter('fin', $fin->format('Y-m-d 23:59:59'))
+            ->getQuery()->getSingleScalarResult() / 100;
+        if ($boutique > 0) {
+            $parRubrique['recette']['Boutique (commandes réglées)'] = $boutique;
+        }
         arsort($parRubrique['recette']);
         arsort($parRubrique['depense']);
         $encaisse = array_sum(array_column($lignes, 'paye'));

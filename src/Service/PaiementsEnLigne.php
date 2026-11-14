@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Club;
+use App\Entity\CommandeBoutique;
 use App\Entity\ConnexionHelloAsso;
 use App\Entity\Cotisation;
 use App\Entity\InscriptionStage;
@@ -123,6 +124,28 @@ class PaiementsEnLigne
     }
 
     /**
+     * Lance le paiement en ligne d'une commande de la boutique (en une fois).
+     *
+     * @param callable(PaiementEnLigne): array{retour: string, erreur: string, abandon: string} $adresses
+     *
+     * @return array{paiement: PaiementEnLigne, redirection: string}
+     *
+     * @throws ErreurHelloAsso
+     */
+    public function payerCommande(CommandeBoutique $commande, Utilisateur $payeur, callable $adresses): array
+    {
+        $joueur = $commande->getJoueur() ?? $payeur->getJoueurs()->first() ?: throw new ErreurHelloAsso('Commande sans joueur.');
+        $connexion = $this->connexion($commande->getClub()) ?? throw new ErreurHelloAsso('Le paiement en ligne n\'est pas ouvert pour ce club.');
+        if (!$commande->isARegler() || $commande->getTotal() < 100) {
+            throw new ErreurHelloAsso('Cette commande n\'est pas à régler en ligne.');
+        }
+        $paiement = (new PaiementEnLigne(PaiementEnLigne::BOUTIQUE, $joueur, \sprintf('Boutique – commande n° %s (%d article%s)', $commande->getNumero(), $commande->getNombreArticles(), $commande->getNombreArticles() > 1 ? 's' : ''), $commande->getTotal(), 1, $payeur))
+            ->setCommande($commande);
+
+        return $this->lancer($connexion, $paiement, $payeur, $commande->getTotal(), [], $adresses);
+    }
+
+    /**
      * Enregistre le paiement, crée l'intention chez HelloAsso et renvoie l'adresse de sa page de paiement.
      *
      * @param list<array{amount: int, date: string}> $suivantes
@@ -176,6 +199,12 @@ class PaiementsEnLigne
         $paiement->marquerPaye((int) $commande['id']);
         if (PaiementEnLigne::STAGE === $paiement->getObjet()) {
             $paiement->getInscriptionStage()?->setPaye(true);
+            $this->em->flush();
+
+            return true;
+        }
+        if (PaiementEnLigne::BOUTIQUE === $paiement->getObjet()) {
+            $paiement->getCommande()?->marquerPayee(Cotisation::MODE_EN_LIGNE);
             $this->em->flush();
 
             return true;
