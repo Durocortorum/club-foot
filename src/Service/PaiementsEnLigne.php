@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Entity\Club;
 use App\Entity\ConnexionHelloAsso;
 use App\Entity\Cotisation;
+use App\Entity\InscriptionStage;
 use App\Entity\Joueur;
 use App\Entity\Paiement;
 use App\Entity\PaiementEnLigne;
@@ -86,8 +87,6 @@ class PaiementsEnLigne
         $paiement = (new PaiementEnLigne(PaiementEnLigne::COTISATION, $joueur,
             \sprintf('Cotisation %s – %s %s', $situation['saison'], $joueur->getPrenom(), $joueur->getNom()), $total, $echeances, $payeur))
             ->setCotisation($cotisation);
-        $this->em->persist($paiement);
-        $this->em->flush();
 
         // Échéances : la première aujourd'hui (elle garde les centimes en trop), les suivantes de mois en mois.
         $part = intdiv($total, $echeances);
@@ -95,12 +94,51 @@ class PaiementsEnLigne
         for ($i = 1; $i < $echeances; ++$i) {
             $suivantes[] = ['amount' => $part, 'date' => (new \DateTimeImmutable("today +$i month"))->format(\DATE_ATOM)];
         }
+
+        return $this->lancer($connexion, $paiement, $payeur, $total - $part * ($echeances - 1), $suivantes, $adresses);
+    }
+
+    /**
+     * Lance le paiement en ligne d'une inscription à un stage payant (en une fois).
+     *
+     * @param callable(PaiementEnLigne): array{retour: string, erreur: string, abandon: string} $adresses
+     *
+     * @return array{paiement: PaiementEnLigne, redirection: string}
+     *
+     * @throws ErreurHelloAsso
+     */
+    public function payerStage(InscriptionStage $inscription, Utilisateur $payeur, callable $adresses): array
+    {
+        $stage = $inscription->getStage();
+        $joueur = $inscription->getJoueur();
+        $connexion = $this->connexion($joueur->getClub()) ?? throw new ErreurHelloAsso('Le paiement en ligne n\'est pas ouvert pour ce club.');
+        if ($inscription->isPaye() || !$stage->isPayant()) {
+            throw new ErreurHelloAsso('Cette inscription n\'est pas à régler.');
+        }
+        $total = (int) round((float) $stage->getTarif() * 100);
+        $paiement = (new PaiementEnLigne(PaiementEnLigne::STAGE, $joueur, \sprintf('Stage « %s » – %s %s', $stage->getTitre(), $joueur->getPrenom(), $joueur->getNom()), $total, 1, $payeur))
+            ->setInscriptionStage($inscription);
+
+        return $this->lancer($connexion, $paiement, $payeur, $total, [], $adresses);
+    }
+
+    /**
+     * Enregistre le paiement, crée l'intention chez HelloAsso et renvoie l'adresse de sa page de paiement.
+     *
+     * @param list<array{amount: int, date: string}> $suivantes
+     *
+     * @return array{paiement: PaiementEnLigne, redirection: string}
+     */
+    private function lancer(ConnexionHelloAsso $connexion, PaiementEnLigne $paiement, Utilisateur $payeur, int $premier, array $suivantes, callable $adresses): array
+    {
+        $this->em->persist($paiement);
+        $this->em->flush();
         $urls = $adresses($paiement);
         $nomPayeur = $payeur->isFamille() && 'Famille' === $payeur->getPrenom() ? [] : ['firstName' => $payeur->getPrenom(), 'lastName' => $payeur->getNom()];
         try {
-            $intention = $this->helloAsso->creerPaiement($connexion, $paiement->getLibelle(), $total, $total - $part * ($echeances - 1), $suivantes,
+            $intention = $this->helloAsso->creerPaiement($connexion, $paiement->getLibelle(), $paiement->getMontant(), $premier, $suivantes,
                 $nomPayeur + ['email' => $payeur->getEmail()], $urls['retour'], $urls['erreur'], $urls['abandon'],
-                ['paiement' => $paiement->getId(), 'objet' => PaiementEnLigne::COTISATION, 'joueur' => $joueur->getId()]);
+                ['paiement' => $paiement->getId(), 'objet' => $paiement->getObjet(), 'joueur' => $paiement->getJoueur()->getId()]);
         } catch (ErreurHelloAsso $e) {
             $paiement->abandonner();
             $this->em->flush();
@@ -113,8 +151,8 @@ class PaiementsEnLigne
     }
 
     /**
-     * Relit le paiement chez HelloAsso : commande créée → payé ; chaque échéance encaissée est ajoutée
-     * une seule fois aux paiements de la cotisation (Finances).
+     * Relit le paiement chez HelloAsso : commande créée → payé. Cotisation : chaque échéance encaissée est ajoutée
+     * une seule fois aux paiements de la cotisation (Finances). Stage : l'inscription est marquée réglée.
      *
      * @return bool le paiement est (au moins en partie) encaissé
      */
@@ -136,6 +174,12 @@ class PaiementsEnLigne
             return false;
         }
         $paiement->marquerPaye((int) $commande['id']);
+        if (PaiementEnLigne::STAGE === $paiement->getObjet()) {
+            $paiement->getInscriptionStage()?->setPaye(true);
+            $this->em->flush();
+
+            return true;
+        }
         $cotisation = $paiement->getCotisation();
         foreach ($commande['payments'] ?? [] as $p) {
             $id = (int) ($p['id'] ?? 0);

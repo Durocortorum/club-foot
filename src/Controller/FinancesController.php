@@ -70,6 +70,14 @@ class FinancesController extends AbstractController
         if ($amendes > 0) {
             $parRubrique['recette']['Amendes de discipline (encaissées)'] = $amendes;
         }
+        // Stages de la saison : inscriptions réglées (en ligne ou notées « payé » sur la page du stage).
+        $stages = (float) $this->em->createQueryBuilder()->select('SUM(st.tarif)')->from(\App\Entity\InscriptionStage::class, 'i')->join('i.stage', 'st')
+            ->andWhere('i.paye = true')
+            ->andWhere('st.debut BETWEEN :debut AND :fin')->setParameter('debut', $debut->format('Y-m-d'))->setParameter('fin', $fin->format('Y-m-d'))
+            ->getQuery()->getSingleScalarResult();
+        if ($stages > 0) {
+            $parRubrique['recette']['Stages (inscriptions réglées)'] = $stages;
+        }
         arsort($parRubrique['recette']);
         arsort($parRubrique['depense']);
         $encaisse = array_sum(array_column($lignes, 'paye'));

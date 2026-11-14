@@ -6,9 +6,11 @@ use App\Entity\Categorie;
 use App\Entity\Club;
 use App\Entity\ConnexionHelloAsso;
 use App\Entity\Cotisation;
+use App\Entity\InscriptionStage;
 use App\Entity\Joueur;
 use App\Entity\PaiementEnLigne;
 use App\Entity\Rencontre;
+use App\Entity\Stage;
 use App\Entity\TarifCotisation;
 use App\Entity\Utilisateur;
 use App\Tests\Simulation\HelloAssoSimule;
@@ -28,7 +30,7 @@ class PaiementEnLigneTest extends WebTestCase
     {
         if ($this->clubId) {
             $connexion = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
-            foreach (['paiement_en_ligne', 'paiement', 'cotisation', 'tarif_cotisation', 'connexion_hello_asso', 'utilisateur', 'joueur', 'categorie'] as $table) {
+            foreach (['paiement_en_ligne', 'stage', 'paiement', 'cotisation', 'tarif_cotisation', 'connexion_hello_asso', 'utilisateur', 'joueur', 'categorie'] as $table) {
                 $connexion->executeStatement("DELETE FROM $table WHERE club_id = ?", [$this->clubId]);
             }
             $connexion->executeStatement('DELETE FROM club WHERE id = ?', [$this->clubId]);
@@ -142,6 +144,35 @@ class PaiementEnLigneTest extends WebTestCase
         $cotisation = $em->getRepository(Cotisation::class)->findOneBy(['joueur' => $lea->getId(), 'saison' => $saison]);
         self::assertSame(120.0, $cotisation->getPaye());
         self::assertCount(2, $cotisation->getPaiements());
+
+        // Stage payant (45 €) où Léa est inscrite : réglé en ligne, inscription marquée réglée, recette du stage dans les Finances.
+        $club = $em->find(Club::class, $this->clubId);
+        $lea = $em->find(Joueur::class, $lea->getId());
+        $stage = (new Stage())->setClub($club)->setTitre('Stage de Toussaint')->setDebut(new \DateTimeImmutable('+10 days'))->setTarif('45');
+        $em->persist($stage);
+        $inscription = $stage->inscrire($lea, true);
+        $em->persist($inscription);
+        $em->flush();
+        $crawler = $client->request('GET', '/espace');
+        $client->submit($crawler->selectButton('💳 Régler en ligne (45,00 €)')->form());
+        self::assertResponseRedirects();
+        $intentionStage = array_key_last(HelloAssoSimule::$intentions);
+        self::assertSame(4500, HelloAssoSimule::$intentions[$intentionStage]['corps']['totalAmount']);
+        self::assertArrayNotHasKey('terms', HelloAssoSimule::$intentions[$intentionStage]['corps']);
+        $paiementStage = $em->getRepository(PaiementEnLigne::class)->findOneBy(['checkoutIntentId' => $intentionStage]);
+        HelloAssoSimule::payer($intentionStage);
+        $client->request('GET', '/espace/paiement/' . $paiementStage->getId() . '/retour');
+        self::assertResponseRedirects('/espace#stages-' . $lea->getId());
+        $crawler = $client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'Merci');
+        self::assertStringContainsString('réglé', $crawler->filter('.stage-famille')->text());
+        self::assertCount(0, $crawler->filter('.payer-stage'));
+        $em->clear();
+        self::assertTrue($em->find(InscriptionStage::class, $inscription->getId())->isPaye());
+        $client->loginUser($em->getRepository(Utilisateur::class)->findOneBy(['email' => "president-$id@exemple.test"]));
+        $client->request('GET', '/finances');
+        self::assertMatchesRegularExpression('/Stages \(inscriptions réglées\)\s*45,00 €/u', $client->getCrawler()->text());
+        $client->loginUser($em->getRepository(Utilisateur::class)->findOneBy(['email' => "parent-$id@exemple.test"]));
 
         // Option retirée par le club : plus de bouton de paiement.
         $club = $em->find(Club::class, $this->clubId);

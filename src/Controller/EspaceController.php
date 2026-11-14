@@ -147,6 +147,7 @@ class EspaceController extends AbstractController
             'motifs_entrainement' => array_keys(AbsenceEntrainement::MOTIFS),
             'echelle_rpe' => Ressenti::ECHELLE,
             'echeances_max' => $paiementEnLigne?->getEcheancesMax() ?? 1,
+            'paiement_en_ligne' => null !== $paiementEnLigne,
         ]);
     }
 

@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\ConnexionHelloAsso;
+use App\Entity\InscriptionStage;
 use App\Entity\Joueur;
 use App\Entity\PaiementEnLigne;
 use App\Entity\Utilisateur;
@@ -40,11 +41,7 @@ class EspacePaiementController extends AbstractController
             throw $this->createAccessDeniedException();
         }
         try {
-            $r = $this->paiements->payerCotisation($joueur, $moi, $request->getPayload()->getInt('echeances', 1), fn (PaiementEnLigne $p) => [
-                'retour' => $this->generateUrl('app_espace_paiement_retour', ['id' => $p->getId()], UrlGeneratorInterface::ABSOLUTE_URL),
-                'erreur' => $this->generateUrl('app_espace_paiement_retour', ['id' => $p->getId(), 'erreur' => 1], UrlGeneratorInterface::ABSOLUTE_URL),
-                'abandon' => $this->generateUrl('app_espace_paiement_retour', ['id' => $p->getId(), 'abandon' => 1], UrlGeneratorInterface::ABSOLUTE_URL),
-            ]);
+            $r = $this->paiements->payerCotisation($joueur, $moi, $request->getPayload()->getInt('echeances', 1), fn (PaiementEnLigne $p) => $this->adresses($p));
         } catch (ErreurHelloAsso $e) {
             $this->addFlash('erreur', 'Paiement en ligne impossible pour le moment : ' . $e->getMessage());
 
@@ -52,6 +49,35 @@ class EspacePaiementController extends AbstractController
         }
 
         return $this->redirect($r['redirection']);
+    }
+
+    /** La famille règle en ligne l'inscription de l'enfant à un stage payant. */
+    #[Route('/espace/paiement/stage/{id}', name: 'app_espace_payer_stage', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function payerStage(Request $request, InscriptionStage $inscription, ProchesJoueur $proches): Response
+    {
+        $moi = $this->moi();
+        if (!$moi->isFamille() || !$proches->voitStatistiques($moi, $inscription->getJoueur()) || !$this->isCsrfTokenValid('payer-stage' . $inscription->getId(), $request->getPayload()->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        try {
+            $r = $this->paiements->payerStage($inscription, $moi, fn (PaiementEnLigne $p) => $this->adresses($p));
+        } catch (ErreurHelloAsso $e) {
+            $this->addFlash('erreur', 'Paiement en ligne impossible pour le moment : ' . $e->getMessage());
+
+            return $this->redirectToRoute('app_espace', ['_fragment' => 'stages-' . $inscription->getJoueur()->getId()]);
+        }
+
+        return $this->redirect($r['redirection']);
+    }
+
+    /** @return array{retour: string, erreur: string, abandon: string} adresses de retour depuis la page HelloAsso */
+    private function adresses(PaiementEnLigne $p): array
+    {
+        return [
+            'retour' => $this->generateUrl('app_espace_paiement_retour', ['id' => $p->getId()], UrlGeneratorInterface::ABSOLUTE_URL),
+            'erreur' => $this->generateUrl('app_espace_paiement_retour', ['id' => $p->getId(), 'erreur' => 1], UrlGeneratorInterface::ABSOLUTE_URL),
+            'abandon' => $this->generateUrl('app_espace_paiement_retour', ['id' => $p->getId(), 'abandon' => 1], UrlGeneratorInterface::ABSOLUTE_URL),
+        ];
     }
 
     /** Retour de la page HelloAsso (paiement fait, abandonné ou en erreur) : l'état est relu chez HelloAsso. */
@@ -76,7 +102,7 @@ class EspacePaiementController extends AbstractController
             $this->addFlash('info', 'Paiement en cours de traitement chez HelloAsso : il apparaîtra ici dans quelques minutes.');
         }
 
-        return $this->redirectToRoute('app_espace', ['_fragment' => 'cotisation-' . $paiement->getJoueur()->getId()]);
+        return $this->redirectToRoute('app_espace', ['_fragment' => (PaiementEnLigne::STAGE === $paiement->getObjet() ? 'stages-' : 'cotisation-') . $paiement->getJoueur()->getId()]);
     }
 
     /**

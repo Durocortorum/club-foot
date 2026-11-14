@@ -18,6 +18,7 @@ class PaiementEnLigne implements AppartientAuClub
     use ClubTrait;
 
     public const COTISATION = 'cotisation';
+    public const STAGE = 'stage';
 
     public const EN_COURS = 'en_cours';
     public const PAYE = 'paye';
@@ -38,6 +39,10 @@ class PaiementEnLigne implements AppartientAuClub
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(onDelete: 'SET NULL')]
     private ?Cotisation $cotisation = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?InscriptionStage $inscriptionStage = null;
 
     #[ORM\Column(length: 250)]
     private string $libelle;
@@ -107,6 +112,18 @@ class PaiementEnLigne implements AppartientAuClub
     public function setCotisation(?Cotisation $cotisation): static
     {
         $this->cotisation = $cotisation;
+
+        return $this;
+    }
+
+    public function getInscriptionStage(): ?InscriptionStage
+    {
+        return $this->inscriptionStage;
+    }
+
+    public function setInscriptionStage(?InscriptionStage $inscription): static
+    {
+        $this->inscriptionStage = $inscription;
 
         return $this;
     }

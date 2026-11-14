@@ -98,6 +98,13 @@
                             {% if inscrit and s.payant %}<span class="pastille {{ inscrit.paye ? 'succes' : 'alerte' }}">{{ inscrit.paye ? 'réglé' : 'à régler' }}</span>{% endif %}
                             <br><span class="discret petit">{{ resume_stage.quand(s) }} · {{ resume_stage.tarif(s) }}{% if s.raison %} · {{ s.raison }}{% endif %}</span>
                             {% if s.description %}<br><span class="petit">{{ s.description|nl2br }}</span>{% endif %}
+                            {# Bouton pour ceux qui peuvent payer (paiement en ligne ouvert, mêmes droits que la cotisation). #}
+                            {% if e.cotisation is not null and inscrit and s.payant and not inscrit.paye %}
+                                <form method="post" action="{{ path('app_espace_payer_stage', {id: inscrit.id}) }}" data-turbo="false" class="payer-stage">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('payer-stage' ~ inscrit.id) }}">
+                                    <button type="submit" class="bouton petit principal">💳 Régler en ligne ({{ s.tarif|number_format(2, ',', ' ') }} €)</button>
+                                </form>
+                            {% endif %}
                         </div>
                         {% if s.inscriptionOuverte %}
                             {% if inscrit or not s.complet %}
