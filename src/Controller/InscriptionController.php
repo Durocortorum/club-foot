@@ -38,10 +38,16 @@ class InscriptionController extends AbstractController
             if ($utilisateurs->tousClubs(['email' => $email])) {
                 $form->get('email')->addError(new FormError('Un compte existe déjà avec cette adresse e-mail. Connectez-vous, ou utilisez une autre adresse.'));
             } else {
-                $club = (new Club())->setNom($donnees['club']);
+                $club = (new Club())->setNom($donnees['club'])->setPaiementEnLigne((bool) $donnees['paiementEnLigne']);
                 $administrateur = (new Utilisateur())->setEmail($email)->setPrenom(trim($donnees['prenom']))->setNom(trim($donnees['nom']));
                 $creation->creer($club, $administrateur, $donnees['motDePasse']);
                 $security->login($administrateur, 'form_login', 'main');
+                if ($club->isPaiementEnLigne()) {
+                    // Option paiement en ligne : dernière étape, la connexion du compte HelloAsso du club.
+                    $this->addFlash('succes', 'Bienvenue ! Votre club « ' . $club->getNom() . ' » est créé. Dernière étape : connectez le compte HelloAsso du club pour le paiement en ligne (vous pouvez aussi le faire plus tard).');
+
+                    return $this->redirectToRoute('app_paiement_en_ligne');
+                }
                 $this->addFlash('succes', 'Bienvenue ! Votre club « ' . $club->getNom() . ' » est créé. Suivez les premiers pas ci-dessous pour démarrer.');
 
                 return $this->redirectToRoute('app_accueil');

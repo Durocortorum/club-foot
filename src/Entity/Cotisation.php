@@ -19,7 +19,9 @@ class Cotisation implements AppartientAuClub
 {
     use ClubTrait;
 
-    public const MODES = ['Espèces', 'Chèque', 'Virement', 'Carte bancaire', 'Pass\'Sport', 'Coupons sport / ANCV', 'Autre'];
+    /** Paiement fait par la famille depuis son espace (HelloAsso), enregistré automatiquement. */
+    public const MODE_EN_LIGNE = 'En ligne (HelloAsso)';
+    public const MODES = ['Espèces', 'Chèque', 'Virement', 'Carte bancaire', self::MODE_EN_LIGNE, 'Pass\'Sport', 'Coupons sport / ANCV', 'Autre'];
 
     #[ORM\Id]
     #[ORM\GeneratedValue]

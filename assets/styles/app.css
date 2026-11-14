@@ -662,6 +662,15 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .calendrier-legende .cal-activite { display: inline-block; padding: .15rem .5rem; }
 .cal-match { background: #fde8eb; border-color: #d62839; color: #7a1020; }
 .cal-match.convoque { box-shadow: inset 0 0 0 2px #d62839; }
+/* Paiement en ligne (HelloAsso) */
+.etat-helloasso.connecte { border-left: 4px solid var(--succes); }
+.guide-helloasso summary { cursor: pointer; }
+.guide-helloasso ol, .guide-helloasso ul { padding-left: 1.2rem; }
+.adresse-notification { overflow-wrap: anywhere; }
+.cotisation-famille { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.2rem; }
+.cotisation-famille .montants strong { font-size: 1.1rem; }
+.cotisation-famille form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.cotisation-famille select { width: auto; }
 /* Notifications sur le téléphone : seuls les boutons utiles à l'état de l'appareil sont montrés (assets/controllers/notifications_controller.js). */
 .notifications .bouton[hidden] { display: none; }
 .notifications-etat { font-weight: 600; margin: .4rem 0; }

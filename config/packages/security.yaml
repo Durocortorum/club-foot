@@ -58,6 +58,8 @@ security:
         - { path: ^/$, roles: ROLE_USER }
         # Manifeste de l'application installable (écran d'accueil) : lu par le navigateur, connecté ou non.
         - { path: ^/manifest\.webmanifest$, roles: PUBLIC_ACCESS }
+        # Notifications de HelloAsso (paiements en ligne) : appelées par HelloAsso, protégées par le jeton de l'adresse.
+        - { path: ^/helloasso/notification/, roles: PUBLIC_ACCESS }
         # Comptes qui n'ont que du médical (médecin, kiné...) : Infirmerie et dossiers médicaux seulement
         # (plus, pour un médecin, le tableau des droits médicaux et les demandes d'accès).
         - { path: ^/(infirmerie|medical|photos)(/|$), roles: [ROLE_ENCADREMENT, ROLE_MEDICAL_SEUL] }

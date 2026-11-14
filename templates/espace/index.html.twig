@@ -54,6 +54,37 @@
                 </div>
             </div>
 
+            {# Cotisation de la saison : payable en ligne (HelloAsso) quand le club a l'option. #}
+            {% set co = e.cotisation %}
+            {% if co and co.du > 0 %}
+                <h3 id="cotisation-{{ j.id }}">Cotisation {{ co.saison }}</h3>
+                <div class="cotisation-famille">
+                    <span class="montants">
+                        {% if co.reste > 0 %}
+                            Reste à payer : <strong>{{ co.reste|number_format(2, ',', ' ') }} €</strong>
+                            <span class="discret petit">sur {{ co.du|number_format(2, ',', ' ') }} €{% if co.paye > 0 %} · déjà payé {{ co.paye|number_format(2, ',', ' ') }} €{% endif %}</span>
+                        {% else %}
+                            <span class="pastille succes">payée</span> <span class="discret petit">{{ co.du|number_format(2, ',', ' ') }} €</span>
+                        {% endif %}
+                    </span>
+                    {% if co.reste >= 1 %}
+                        <form method="post" action="{{ path('app_espace_payer_cotisation', {id: j.id}) }}" data-turbo="false">
+                            <input type="hidden" name="_token" value="{{ csrf_token('payer-cotisation' ~ j.id) }}">
+                            {% set max = min(echeances_max, (co.reste)|round(0, 'floor')) %}
+                            {% if max > 1 %}
+                                <select name="echeances" aria-label="Nombre de fois">
+                                    {% for n in 1..max %}
+                                        <option value="{{ n }}">{{ n == 1 ? 'En une fois' : 'En ' ~ n ~ ' fois (' ~ (co.reste / n)|number_format(2, ',', ' ') ~ ' € par mois)' }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% endif %}
+                            <button type="submit" class="bouton principal">💳 Payer en ligne</button>
+                        </form>
+                    {% endif %}
+                </div>
+                {% if co.reste >= 1 %}<p class="discret petit">Paiement sécurisé par HelloAsso, versé directement au club. HelloAsso vous proposera une contribution volontaire pour son service : vous pouvez la mettre à 0 €.</p>{% endif %}
+            {% endif %}
+
             {% if e.stages %}
                 {% import 'stage/_resume.html.twig' as resume_stage %}
                 <h3 id="stages-{{ j.id }}">Stages</h3>

@@ -93,6 +93,7 @@
                         {% if nb_demandes %}<a href="{{ path('app_utilisateur_droits') }}#demandes" title="Demandes d'accès médical à traiter">🔒 <span class="pastille alerte">{{ nb_demandes }} demande{{ nb_demandes > 1 ? 's' }}</span></a>{% endif %}
                         <a href="{{ path('app_categorie_index') }}" class="{{ route starts with 'app_categorie' ? 'actif' }}">Catégories</a>
                         <a href="{{ path('app_club') }}" class="{{ route == 'app_club' ? 'actif' }}" title="Logo et couleurs du club">Apparence</a>
+                        <a href="{{ path('app_paiement_en_ligne') }}" class="{{ route starts with 'app_paiement_en_ligne' ? 'actif' }}" title="Paiement en ligne des cotisations (HelloAsso)">Paiement en ligne</a>
                     {% elseif is_granted('ROLE_MEDECIN') %}
                         {% set nb_demandes = demandes_medicales() %}
                         <a href="{{ path('app_utilisateur_droits') }}" class="{{ route starts with 'app_utilisateur' ? 'actif' }}" title="Donner les droits médicaux">Droits médicaux{% if nb_demandes %} <span class="pastille alerte">{{ nb_demandes }}</span>{% endif %}</a>

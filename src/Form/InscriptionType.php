@@ -42,6 +42,10 @@ class InscriptionType extends AbstractType
                 'invalid_message' => 'Les deux mots de passe sont différents.',
                 'constraints' => [$requis, new Length(min: 10, minMessage: '10 caractères au moins.', max: 4096)],
             ])
+            ->add('paiementEnLigne', CheckboxType::class, [
+                'label' => 'Option paiement en ligne : les familles paient les cotisations depuis leur espace, par carte, en une ou plusieurs fois (HelloAsso, gratuit pour le club, argent versé directement au club).',
+                'required' => false,
+            ])
             ->add('conditions', CheckboxType::class, [
                 'label' => 'Je suis responsable de ce club (ou mandaté par lui) et j\'accepte que ses données soient hébergées par l\'application.',
                 'constraints' => [new IsTrue(message: 'Cette case est obligatoire.')],

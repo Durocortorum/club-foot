@@ -27,6 +27,9 @@
                     <div class="champ">{{ form_label(form.motDePasse.first) }}{{ form_widget(form.motDePasse.first) }}{{ form_help(form.motDePasse.first) }}{{ form_errors(form.motDePasse.first) }}</div>
                     <div class="champ">{{ form_label(form.motDePasse.second) }}{{ form_widget(form.motDePasse.second) }}{{ form_errors(form.motDePasse.second) }}</div>
                 </div>
+                <h2 class="bloc">Option</h2>
+                <div class="champ case-filtre case-longue">{{ form_widget(form.paiementEnLigne) }}{{ form_label(form.paiementEnLigne) }}</div>
+                <p class="discret petit">Si vous la cochez, l'étape suivante vous guide pour relier le compte HelloAsso du club (ou le créer). Modifiable ensuite dans les paramètres.</p>
                 <div class="champ case-filtre case-longue">{{ form_widget(form.conditions) }}{{ form_label(form.conditions) }}</div>
                 {{ form_errors(form.conditions) }}
                 <div class="piege" aria-hidden="true">{{ form_widget(form.site) }}</div>

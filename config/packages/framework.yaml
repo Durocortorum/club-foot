@@ -29,6 +29,9 @@ framework:
 when@test:
     framework:
         test: true
+        # HelloAsso simulé : aucun appel réseau pendant les tests.
+        http_client:
+            mock_response_factory: App\Tests\Simulation\HelloAssoSimule
         rate_limiter:
             mot_de_passe_oublie:
                 policy: no_limit

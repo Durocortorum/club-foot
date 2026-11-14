@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Paiement en ligne{% endblock %}
+
+{% block body %}
+    {% set site = connexion.test ? 'https://www.helloasso-sandbox.com' : 'https://www.helloasso.com' %}
+    <div class="titre-page">
+        <h1>Paiement en ligne</h1>
+    </div>
+
+    <p>Les familles paient la cotisation de leur enfant depuis leur espace, par carte, en une ou plusieurs fois. Le paiement passe par <strong>HelloAsso</strong>, gratuit pour les associations : <strong>l'argent va directement sur le compte du club</strong>, et chaque paiement est enregistré tout seul dans les Finances.</p>
+
+    <section class="carte bloc etat-helloasso {{ connexion.verifiee and club.paiementEnLigne ? 'connecte' }}">
+        {% if connexion.verifiee %}
+            <h2>✓ Connecté à HelloAsso{% if connexion.test %} <span class="pastille alerte">compte de test</span>{% endif %}</h2>
+            <p>Association : <strong>{{ connexion.nomAssociation ?? connexion.slug }}</strong> · vérifiée le {{ connexion.verifieeLe|date('d/m/Y à H:i', 'Europe/Paris') }}.</p>
+            {% if not club.paiementEnLigne %}<p class="flash flash-info">L'option n'est pas activée : les familles ne voient pas encore le bouton « Payer en ligne ».</p>{% endif %}
+        {% else %}
+            <h2>Pas encore connecté à HelloAsso</h2>
+            <p class="discret">Suivez l'un des deux guides ci-dessous, puis renseignez les identifiants.</p>
+        {% endif %}
+    </section>
+
+    {% if not connexion.verifiee %}
+        <div class="grille-fiches">
+            <details class="carte guide-helloasso" open>
+                <summary><strong>Votre club a déjà un compte HelloAsso</strong></summary>
+                <ol>
+                    <li>Connectez-vous à votre espace sur <a href="{{ site }}" target="_blank" rel="noopener">HelloAsso</a>.</li>
+                    <li>Ouvrez le menu <strong>Mon compte → Intégrations et API</strong>.</li>
+                    <li>Copiez le <strong>Client ID</strong> et le <strong>Client secret</strong>, et collez-les ci-dessous.</li>
+                    <li>L'<strong>identifiant de l'association</strong> est la fin de l'adresse de votre page HelloAsso (helloasso.com/associations/<em>fc-mon-club</em>).</li>
+                </ol>
+            </details>
+            <details class="carte guide-helloasso">
+                <summary><strong>Votre club n'a pas encore de compte HelloAsso</strong></summary>
+                <p>L'inscription est gratuite et se fait sur le site de HelloAsso, qui vérifie lui-même l'association (règle anti-blanchiment). Préparez :</p>
+                <ul>
+                    <li>le numéro <strong>RNA</strong> ou <strong>SIREN</strong> du club ;</li>
+                    <li>les <strong>statuts</strong> de l'association ;</li>
+                    <li>une <strong>pièce d'identité</strong> du président ;</li>
+                    <li>le <strong>RIB</strong> du club.</li>
+                </ul>
+                <p><a class="bouton principal" href="{{ site }}" target="_blank" rel="noopener">Créer mon compte HelloAsso</a></p>
+                <p class="discret petit">Revenez ensuite sur cette page (Paramètres → Paiement en ligne) et suivez le premier guide. En attendant, les paiements se notent à la main dans Finances.</p>
+            </details>
+        </div>
+    {% endif %}
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+        <fieldset class="carte">
+            <legend>Réglages</legend>
+            {{ m.groupe(form, ['actif']) }}
+            {{ m.groupe(form, ['slug', 'clientId', 'secret', 'echeancesMax', 'test']) }}
+        </fieldset>
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer et vérifier</button>
+        </div>
+    {{ form_end(form) }}
+
+    {% if adresse_notification %}
+        <section class="carte bloc" data-controller="copier" data-copier-texte-value="{{ adresse_notification }}">
+            <h2>Adresse de notification</h2>
+            <p class="petit">Pour que les échéances suivantes (paiement en plusieurs fois) et les paiements terminés après la fermeture de la page soient enregistrés, collez cette adresse dans HelloAsso : <strong>Mon compte → Intégrations et API → Notifications</strong>.</p>
+            <p class="memo petit adresse-notification">{{ adresse_notification }}</p>
+            <button type="button" class="bouton petit" data-action="copier#copier" data-copier-target="bouton">Copier l'adresse</button>
+        </section>
+        <form method="post" action="{{ path('app_paiement_en_ligne_deconnecter') }}" data-confirmation="Déconnecter le compte HelloAsso ? Les familles ne pourront plus payer en ligne (les paiements déjà faits restent enregistrés)." data-confirmation-bouton="Déconnecter">
+            <input type="hidden" name="_token" value="{{ csrf_token('deconnecter-helloasso') }}">
+            <button class="bouton danger petit">Déconnecter le compte HelloAsso</button>
+        </form>
+    {% endif %}
+{% endblock %}

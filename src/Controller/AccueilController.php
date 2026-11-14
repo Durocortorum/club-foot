@@ -10,6 +10,7 @@ use App\Repository\StageRepository;
 use App\Repository\TacheRepository;
 use App\Repository\VehiculeRepository;
 use App\Security\JoueurVoter;
+use App\Service\PaiementsEnLigne;
 use App\Service\PremiersPas;
 use App\Service\TableauAccueil;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +30,7 @@ class AccueilController extends AbstractController
         StageRepository $stages,
         ConducteurRepository $conducteurs,
         VehiculeRepository $vehicules,
+        PaiementsEnLigne $paiementsEnLigne,
     ): Response {
         if ($this->isGranted('ROLE_MEDICAL_SEUL')) {
             return $this->redirectToRoute($this->isGranted('ROLE_INFIRMERIE_LECTURE') ? 'app_infirmerie_index' : 'app_dossier_medical_index');
@@ -58,6 +60,8 @@ class AccueilController extends AbstractController
 
         return $this->render('accueil/index.html.twig', $donnees + [
             'secteurs' => array_filter($secteurs),
+            // Option paiement en ligne choisie, mais compte HelloAsso pas encore relié : rappel à l'administrateur.
+            'helloasso_a_terminer' => $this->isGranted('ROLE_ADMIN') && $this->getUser()?->getClub()?->isPaiementEnLigne() && !$paiementsEnLigne->connexion($this->getUser()->getClub()),
             'totaux_secteurs' => $totaux,
             'plus_grande' => max([1, ...array_column(array_merge(...array_values($secteurs)), 'total')]),
             'nb_joueurs' => array_sum($totaux),

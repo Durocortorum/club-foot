@@ -66,6 +66,9 @@ class Club
     #[Assert\Length(max: 255)]
     private ?string $siteWeb = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $paiementEnLigne = false;
+
     public function getAdresse(): ?string
     {
         return $this->adresse;
@@ -105,6 +108,19 @@ class Club
     public function getSiteWeb(): ?string
     {
         return $this->siteWeb;
+    }
+
+    /** Option « paiement en ligne » du forfait : cotisations, stages et boutique payés depuis l'espace famille (HelloAsso). */
+    public function isPaiementEnLigne(): bool
+    {
+        return $this->paiementEnLigne;
+    }
+
+    public function setPaiementEnLigne(bool $actif): static
+    {
+        $this->paiementEnLigne = $actif;
+
+        return $this;
     }
 
     public function setSiteWeb(?string $site): static
