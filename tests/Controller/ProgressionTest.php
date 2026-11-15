@@ -68,6 +68,13 @@ class ProgressionTest extends WebTestCase
         self::assertContains('Jonglerie pied fort', $noms);
         self::assertContains('Demi-Cooper (6 min)', $noms);
 
+        // Séance de tests U9 : la liste est celle de l'équipe (pas de VAMEVAL), les autres tests repliés.
+        $crawler = $client->request('GET', '/tests/seance?categorie=' . $u9->getId());
+        $equipe = $crawler->filter('form.choix-seance > .cases-tests label')->each(fn ($l) => $l->text());
+        self::assertContains('Jonglerie pied fort (nb)', $equipe);
+        self::assertNotContains('VAMEVAL (km/h)', $equipe);
+        self::assertContains('VAMEVAL (km/h)', $crawler->filter('.autres-tests label')->each(fn ($l) => $l->text()));
+
         // Séance de tests U15 : VMA « autre test » (repris) et 20 m pour tout le monde.
         $vma = $em->getRepository(TypeTest::class)->findOneBy(['club' => $this->clubId, 'code' => 'vma']);
         $sprint = $em->getRepository(TypeTest::class)->findOneBy(['club' => $this->clubId, 'code' => 'sprint20']);

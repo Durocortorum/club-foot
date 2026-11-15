@@ -13,7 +13,8 @@
         <div class="champs">
             <div class="champ">
                 <label for="categorie">Équipe</label>
-                <select id="categorie" name="categorie" required onchange="this.form.requestSubmit()">
+                {# Autre équipe : la liste des tests est celle de la nouvelle équipe, rien de coché. #}
+                <select id="categorie" name="categorie" required onchange="this.form.querySelectorAll('[name=&quot;tests[]&quot;]').forEach(c => c.checked = false); this.form.requestSubmit()">
                     <option value="">— Choisir —</option>
                     {% for c in categories %}<option value="{{ c.id }}" {{ categorie and categorie.id == c.id ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
                 </select>
@@ -21,12 +22,27 @@
             <div class="champ"><label for="date">Date</label><input type="date" id="date" name="date" value="{{ date|date('Y-m-d') }}"></div>
         </div>
         {% if categorie %}
-            <p class="petit"><strong>Tests à faire passer</strong> <span class="discret">(en gras : conseillés pour les {{ categorie }})</span></p>
+            {# Tests de l'équipe choisie (conseillés pour son âge, ou déjà cochés) ; les autres restent accessibles, repliés. #}
+            {% set de_l_equipe = tests|filter(t => t.id in conseilles or t in choisis) %}
+            {% set autres = tests|filter(t => not (t.id in conseilles or t in choisis)) %}
+            <p class="petit"><strong>Tests pour les {{ categorie }}</strong></p>
             <div class="cases-tests">
-                {% for t in tests %}
-                    <label class="{{ t.id in conseilles ? 'conseille' }}"><input type="checkbox" name="tests[]" value="{{ t.id }}" {{ t in choisis ? 'checked' }}> {{ t.nom }} <span class="discret">({{ t.unite }})</span></label>
+                {% for t in de_l_equipe %}
+                    <label><input type="checkbox" name="tests[]" value="{{ t.id }}" {{ t in choisis ? 'checked' }}> {{ t.nom }} <span class="discret">({{ t.unite }})</span></label>
+                {% else %}
+                    <p class="discret petit">Aucun test conseillé pour cette équipe : choisissez dans les autres tests.</p>
                 {% endfor %}
             </div>
+            {% if autres %}
+                <details class="autres-tests" {{ de_l_equipe is empty ? 'open' }}>
+                    <summary class="petit">Autres tests ({{ autres|length }})</summary>
+                    <div class="cases-tests">
+                        {% for t in autres %}
+                            <label><input type="checkbox" name="tests[]" value="{{ t.id }}"> {{ t.nom }} <span class="discret">({{ t.unite }})</span></label>
+                        {% endfor %}
+                    </div>
+                </details>
+            {% endif %}
             <div class="barre-actions"><button type="submit" class="bouton {{ choisis ? '' : 'principal' }}">{{ choisis ? 'Changer les tests' : 'Préparer le tableau' }}</button></div>
         {% endif %}
     </form>
