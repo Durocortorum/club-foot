@@ -56,7 +56,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * Crée un club de démonstration entièrement inventé (« FC Démo des Coteaux »), pour présenter l'application :
  * joueurs, encadrement, matchs avec feuilles et buts, convocation, entraînements, calendrier, finances, boutique,
  * infirmerie, tests, discipline, transport, sponsors… Aucune donnée réelle ; aucun e-mail ni notification envoyé.
- * Les adresses e-mail sont en @demo.example.org (domaine réservé, jamais distribué).
+ * Les adresses e-mail sont en @demo.org, facile à retenir ; ce domaine existe ailleurs : aucun e-mail n'y part (EmailsDemoBloques).
  *
  *   php bin/console app:club-demo                  crée le club (refuse s'il existe déjà)
  *   php bin/console app:club-demo --reinitialiser  le supprime et le recrée (dates remises à jour, mots de passe conservés)
@@ -68,7 +68,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 class ClubDemoCommand extends Command
 {
     public const NOM = 'FC Démo des Coteaux';
-    private const DOMAINE = 'demo.example.org';
+    public const DOMAINE = 'demo.org';
     private const NOM_EQUIPE = 'FC DÉMO DES COTEAUX';
 
     private const PRENOMS = ['Lucas', 'Hugo', 'Nathan', 'Léo', 'Tom', 'Enzo', 'Louis', 'Gabriel', 'Raphaël', 'Arthur', 'Jules', 'Adam', 'Noah', 'Maël', 'Sacha',

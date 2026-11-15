@@ -28,7 +28,7 @@ class ClubDemoTest extends WebTestCase
         self::assertStringContainsString('créé', $testeur->getDisplay());
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $em->clear();
-        $compte = fn (string $e) => $em->getRepository(Utilisateur::class)->findOneBy(['email' => "$e@demo.example.org"]);
+        $compte = fn (string $e) => $em->getRepository(Utilisateur::class)->findOneBy(['email' => "$e@demo.org"]);
 
         $erreurs = [];
         $client->loginUser($compte('president'));
@@ -73,7 +73,7 @@ class ClubDemoTest extends WebTestCase
         $clubId = (int) $db->fetchOne('SELECT id FROM club WHERE nom = ?', [ClubDemoCommand::NOM]);
         $taches = (int) $db->fetchOne('SELECT COUNT(*) FROM tache WHERE club_id = ?', [$clubId]);
         $db->executeStatement('DELETE FROM tache WHERE club_id = ? LIMIT 1', [$clubId]);
-        $hache = $db->fetchOne("SELECT password FROM utilisateur WHERE email = 'president@demo.example.org'");
+        $hache = $db->fetchOne("SELECT password FROM utilisateur WHERE email = 'president@demo.org'");
         $client->loginUser($compte('president'));
         $crawler = $client->request('GET', '/');
         self::assertSelectorTextContains('.bandeau-demo', 'démonstration');
@@ -83,7 +83,7 @@ class ClubDemoTest extends WebTestCase
         self::assertSelectorTextContains('.flash-succes', 'remise à zéro');
         $clubId = (int) $db->fetchOne('SELECT id FROM club WHERE nom = ?', [ClubDemoCommand::NOM]);
         self::assertSame($taches, (int) $db->fetchOne('SELECT COUNT(*) FROM tache WHERE club_id = ?', [$clubId]));
-        self::assertSame($hache, $db->fetchOne("SELECT password FROM utilisateur WHERE email = 'president@demo.example.org'"));
+        self::assertSame($hache, $db->fetchOne("SELECT password FROM utilisateur WHERE email = 'president@demo.org'"));
         $em->clear();
 
         // Suppression : le club de démonstration disparaît, les autres clubs restent.
@@ -92,6 +92,6 @@ class ClubDemoTest extends WebTestCase
         $em->clear();
         self::assertNull($em->getRepository(Club::class)->findOneBy(['nom' => ClubDemoCommand::NOM]));
         self::assertSame($autres, (int) $em->getConnection()->fetchOne('SELECT COUNT(*) FROM club'));
-        self::assertSame(0, (int) $em->getConnection()->fetchOne("SELECT COUNT(*) FROM utilisateur WHERE email LIKE '%@demo.example.org'"));
+        self::assertSame(0, (int) $em->getConnection()->fetchOne("SELECT COUNT(*) FROM utilisateur WHERE email LIKE '%@demo.org'"));
     }
 }
