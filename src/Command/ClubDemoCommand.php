@@ -167,8 +167,11 @@ class ClubDemoCommand extends Command
         $this->organisation($comptes);
         $this->em->flush();
         if (!empty($anciensMotsDePasse)) {
-            foreach ($anciensMotsDePasse as $email => $hache) {
-                $this->em->getConnection()->executeStatement('UPDATE utilisateur SET password = ? WHERE email = ?', [$hache, $email]);
+            // Un compte ajouté depuis (ex. joueur@) prend le mot de passe des autres comptes de démonstration.
+            $commun = $anciensMotsDePasse['president@' . self::DOMAINE] ?? reset($anciensMotsDePasse);
+            foreach (['president', 'educateur', 'parent', 'joueur'] as $qui) {
+                $email = $qui . '@' . self::DOMAINE;
+                $this->em->getConnection()->executeStatement('UPDATE utilisateur SET password = ? WHERE email = ?', [$anciensMotsDePasse[$email] ?? $commun, $email]);
             }
             $motDePasse = '(inchangé)';
             // Comptes en mémoire avec le mot de passe provisoire : relus depuis la base (sinon le bouton déconnecte).
@@ -180,6 +183,7 @@ class ClubDemoCommand extends Command
             ['Président (administrateur)', 'president@' . self::DOMAINE, $motDePasse],
             ['Éducateur U15 (préformation)', 'educateur@' . self::DOMAINE, $motDePasse],
             ['Parent (2 enfants : U15 et U11)', 'parent@' . self::DOMAINE, $motDePasse],
+            ['Joueur senior (majeur)', 'joueur@' . self::DOMAINE, $motDePasse],
         ]);
         $io->note('Données inventées. Les adresses @' . self::DOMAINE . ' ne reçoivent jamais d\'e-mail.');
 
@@ -292,9 +296,16 @@ class ClubDemoCommand extends Command
             ->addJoueur($enfant1)->addJoueur($enfant2);
         $parent->setPassword($this->hasher->hashPassword($parent, $motDePasse));
         $this->em->persist($parent);
+        // Compte joueur : un senior (majeur), qui suit sa propre fiche et décide de l'accès de ses proches.
+        $senior = $this->joueurs['SENIORS'][8];
+        $senior->setEmailJoueur('joueur@' . self::DOMAINE);
+        $joueur = (new Utilisateur())->setFamille(true)->setEmail('joueur@' . self::DOMAINE)->setPrenom($senior->getPrenom())->setNom($senior->getNom())
+            ->addJoueur($senior);
+        $joueur->setPassword($this->hasher->hashPassword($joueur, $motDePasse));
+        $this->em->persist($joueur);
         $this->em->flush();
 
-        return [$educateurs, ['educateur' => $educ, 'parent' => $parent, 'president' => $this->em->getRepository(Utilisateur::class)->findOneBy(['email' => 'president@' . self::DOMAINE])]];
+        return [$educateurs, ['educateur' => $educ, 'parent' => $parent, 'joueur' => $joueur, 'president' => $this->em->getRepository(Utilisateur::class)->findOneBy(['email' => 'president@' . self::DOMAINE])]];
     }
 
     // ———————————————————————— Matchs ————————————————————————
@@ -349,6 +360,21 @@ class ClubDemoCommand extends Command
                     $this->em->persist($convocation);
                     $this->em->persist((new Deplacement())->setDate($date)->setCategorie($categorie)->setRencontre($r)->setObjet('Match U15 à La Croix')
                         ->setMoyen('Car de société')->setHeureDepart('13h00')->setLieuDepart('parking du stade des Coteaux')->setPassagers(17)->setFrais(280));
+                }
+                // Prochain match des seniors : convocation envoyée ; le compte joueur (seniors n° 9) n'a pas encore répondu.
+                if ('SENIORS' === $cat && !$convoque && $date > $aujourdhui) {
+                    $convoque = true;
+                    $convocation = (new Convocation($r))->setJoueurs(\array_slice($effectif, 0, 16))->setRdvHeure('14h00')->setRdvLieu('Vestiaires du stade')
+                        ->setMessage('Rendez-vous aux vestiaires, échauffement à 14 h 20.');
+                    foreach ($convocation->getConvoques() as $n => $c) {
+                        if ($n < 6) {
+                            $c->repondre(Convoque::PRESENT, null, 'Joueur');
+                        } elseif (6 === $n) {
+                            $c->repondre(Convoque::ABSENT, 'Travail', 'Joueur');
+                        }
+                    }
+                    $convocation->marquerEnvoyee();
+                    $this->em->persist($convocation);
                 }
             }
         }
@@ -527,6 +553,8 @@ class ClubDemoCommand extends Command
             ->setLieu('Entraînement')->setSanctionSportive('Remplaçant au prochain match')->setGravite(1)->setAmende(10));
         $this->em->persist((new Sanction())->setJoueur($this->joueurs['SENIORS'][8])->setDate($aujourdhui->modify('-15 days'))->setMotif('Carton rouge pour contestation')
             ->setLieu('Match')->setSanctionSportive('2 matchs de suspension')->setGravite(2)->setAmende(20)->setAmendePayeeLe($aujourdhui->modify('-10 days')));
+        $this->em->persist((new Sanction())->setJoueur($this->joueurs['SENIORS'][8])->setDate($aujourdhui->modify('-3 days'))->setMotif('Arrivé en retard au rendez-vous du match')
+            ->setLieu('Match')->setGravite(1)->setAmende(5));
     }
 
     /** @param array<string, Utilisateur> $comptes */

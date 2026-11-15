@@ -55,6 +55,17 @@ class ClubDemoTest extends WebTestCase
                 $erreurs[] = "parent $url → " . $client->getResponse()->getStatusCode();
             }
         }
+        // Compte joueur (senior majeur) : son espace, sa convocation au prochain match et son amende à régler.
+        $client->loginUser($compte('joueur'));
+        foreach (['/espace', '/espace/calendrier', '/espace/messages'] as $url) {
+            $client->request('GET', $url);
+            if (200 !== $client->getResponse()->getStatusCode()) {
+                $erreurs[] = "joueur $url → " . $client->getResponse()->getStatusCode();
+            }
+        }
+        $client->request('GET', '/espace');
+        self::assertStringContainsString('Arrivé en retard', $client->getResponse()->getContent());
+        self::assertStringContainsString('Vestiaires du stade', $client->getResponse()->getContent());
         self::assertSame([], $erreurs);
 
         // Bouton « Remettre la démo à zéro » : une tâche supprimée revient, on reste connecté, le mot de passe est conservé.
