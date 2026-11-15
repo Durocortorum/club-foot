@@ -116,6 +116,15 @@
         {% endif %}
 
         <main class="contenu">
+            {% if app.user and club.nom == constant('App\\Command\\ClubDemoCommand::NOM') %}
+                <div class="bandeau-demo sans-impression">
+                    <span>Club de démonstration : toutes les données sont inventées. Elles reviennent à l'origine chaque nuit.</span>
+                    <form method="post" action="{{ path('app_demo_remettre_a_zero') }}" class="en-ligne" data-confirmation="Remettre la démonstration à zéro ? Tout ce qui a été ajouté, modifié ou supprimé sera remis comme à l'origine." data-confirmation-bouton="Remettre à zéro">
+                        <input type="hidden" name="_token" value="{{ csrf_token('demo-a-zero') }}">
+                        <button type="submit" class="bouton petit">Remettre la démo à zéro</button>
+                    </form>
+                </div>
+            {% endif %}
             {# Les liens d'invitation (« lien_famille ») sont affichés par famille/_liens.html.twig. #}
             {% for type, messages in app.flashes(['succes', 'erreur', 'info']) %}
                 {% for message in messages %}

@@ -57,6 +57,24 @@ class ClubDemoTest extends WebTestCase
         }
         self::assertSame([], $erreurs);
 
+        // Bouton « Remettre la démo à zéro » : une tâche supprimée revient, on reste connecté, le mot de passe est conservé.
+        $db = $em->getConnection();
+        $clubId = (int) $db->fetchOne('SELECT id FROM club WHERE nom = ?', [ClubDemoCommand::NOM]);
+        $taches = (int) $db->fetchOne('SELECT COUNT(*) FROM tache WHERE club_id = ?', [$clubId]);
+        $db->executeStatement('DELETE FROM tache WHERE club_id = ? LIMIT 1', [$clubId]);
+        $hache = $db->fetchOne("SELECT password FROM utilisateur WHERE email = 'president@demo.example.org'");
+        $client->loginUser($compte('president'));
+        $crawler = $client->request('GET', '/');
+        self::assertSelectorTextContains('.bandeau-demo', 'démonstration');
+        $client->submit($crawler->filter('.bandeau-demo form')->form());
+        self::assertResponseRedirects('/');
+        $client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'remise à zéro');
+        $clubId = (int) $db->fetchOne('SELECT id FROM club WHERE nom = ?', [ClubDemoCommand::NOM]);
+        self::assertSame($taches, (int) $db->fetchOne('SELECT COUNT(*) FROM tache WHERE club_id = ?', [$clubId]));
+        self::assertSame($hache, $db->fetchOne("SELECT password FROM utilisateur WHERE email = 'president@demo.example.org'"));
+        $em->clear();
+
         // Suppression : le club de démonstration disparaît, les autres clubs restent.
         $autres = $em->getConnection()->fetchOne('SELECT COUNT(*) FROM club') - 1;
         $testeur->execute(['--supprimer' => true]);

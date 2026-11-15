@@ -22,6 +22,15 @@ class ClubCourant
         $this->em->getFilters()->enable('club')->setParameter('club', (int) $club->getId());
     }
 
+    /** Plus de club courant (création d'un club pendant une requête, par exemple la démo remise à zéro). */
+    public function desactiver(): void
+    {
+        $this->club = null;
+        if ($this->em->getFilters()->isEnabled('club')) {
+            $this->em->getFilters()->disable('club');
+        }
+    }
+
     public function club(): ?Club
     {
         return $this->club;

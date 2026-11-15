@@ -59,7 +59,9 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * Les adresses e-mail sont en @demo.example.org (domaine réservé, jamais distribué).
  *
  *   php bin/console app:club-demo                  crée le club (refuse s'il existe déjà)
- *   php bin/console app:club-demo --reinitialiser  le supprime et le recrée (dates remises à jour)
+ *   php bin/console app:club-demo --reinitialiser  le supprime et le recrée (dates remises à jour, mots de passe conservés)
+ *                                                  lancé chaque nuit sur le serveur (tâche planifiée) et par le bouton
+ *                                                  « Remettre la démo à zéro » (DemoController)
  *   php bin/console app:club-demo --supprimer      le supprime
  */
 #[AsCommand(name: 'app:club-demo', description: 'Crée un club de démonstration aux données inventées')]
@@ -128,9 +130,15 @@ class ClubDemoCommand extends Command
 
                 return Command::FAILURE;
             }
+            // Sans --mot-de-passe, les comptes recréés gardent leur mot de passe actuel (remise à zéro de la nuit, bouton).
+            $anciensMotsDePasse = $input->getOption('mot-de-passe') ? [] : $this->em->getConnection()->fetchAllKeyValue(
+                'SELECT email, password FROM utilisateur WHERE email LIKE ? AND password IS NOT NULL', ['%@' . self::DOMAINE]);
             $this->supprimer($existant);
             $io->text('Ancien club de démonstration supprimé.');
         }
+        $this->clubCourant->desactiver();
+        $this->categories = $this->joueurs = [];
+        $this->licence = 2400100000;
         $motDePasse = $input->getOption('mot-de-passe') ?: 'Demo-' . bin2hex(random_bytes(4));
         $this->saison = Rencontre::saisonDe(new \DateTimeImmutable('today'));
 
@@ -158,6 +166,14 @@ class ClubDemoCommand extends Command
         $this->suiviSportif($matchs);
         $this->organisation($comptes);
         $this->em->flush();
+        if (!empty($anciensMotsDePasse)) {
+            foreach ($anciensMotsDePasse as $email => $hache) {
+                $this->em->getConnection()->executeStatement('UPDATE utilisateur SET password = ? WHERE email = ?', [$hache, $email]);
+            }
+            $motDePasse = '(inchangé)';
+            // Comptes en mémoire avec le mot de passe provisoire : relus depuis la base (sinon le bouton déconnecte).
+            $this->em->clear();
+        }
 
         $io->success('Club de démonstration « ' . self::NOM . ' » créé.');
         $io->table(['Rôle', 'Identifiant', 'Mot de passe'], [

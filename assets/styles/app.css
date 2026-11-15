@@ -162,17 +162,19 @@ textarea { min-height: 90px; }
     width: 64px; height: 64px; border-radius: 50%; background: var(--rouge); color: var(--sur-rouge);
     display: grid; place-items: center; font-size: 1.4rem; font-weight: 700; flex-shrink: 0;
 }
-.actions { display: flex; gap: .5rem; }
-.grille-fiches { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.grille-fiches { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 1rem; }
 dl { display: grid; grid-template-columns: 45% 1fr; gap: .45rem .8rem; margin: 0; font-size: .93rem; }
 dt { color: var(--gris); }
 dd { margin: 0; word-break: break-word; }
 .memo { white-space: pre-line; margin: 0; }
 
 /* Formulaire */
+/* min-width: 0 : sans lui, un fieldset s'élargit à son contenu le plus large (tableau de la feuille de match) et dépasse sur téléphone. */
+fieldset { min-width: 0; }
 .formulaire fieldset { margin: 0 0 1rem; }
 .formulaire legend { font-weight: 600; padding: 0 .4rem; }
-.champs { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .9rem 1.2rem; }
+.champs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: .9rem 1.2rem; }
 .champ label { display: block; font-size: .88rem; color: var(--gris); margin-bottom: .25rem; }
 .champ.case { display: flex; align-items: center; gap: .5rem; flex-direction: row-reverse; justify-content: flex-end; }
 .champ.case label { margin: 0; color: var(--encre); }
@@ -185,6 +187,8 @@ dd { margin: 0; word-break: break-word; }
 .en-ligne { display: inline; }
 .bouton.petit { padding: .2rem .55rem; font-size: .85rem; }
 .pastille.alerte { background: var(--danger-clair); color: var(--danger-fonce); }
+.bandeau-demo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin: 0 0 1rem; padding: .55rem .8rem;
+    border: 1px dashed var(--bordure); border-radius: var(--rayon); background: #fffbea; font-size: .88rem; color: var(--encre); }
 .pastille.succes { background: #e5f4ea; color: var(--succes); }
 .pastille.attention { background: #fff4d6; color: #7a5300; }
 .liste-simple li.avec-actions { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -192,6 +196,7 @@ ul.liste-simple.carte { padding: .3rem 1.2rem; }
 .case-filtre { display: flex; align-items: center; gap: .4rem; white-space: nowrap; }
 .case-filtre.case-longue { align-items: flex-start; white-space: normal; }
 .case-filtre.case-longue input { flex-shrink: 0; margin-top: .25rem; }
+@media (max-width: 600px) { .case-filtre { white-space: normal; } .case-filtre input { flex-shrink: 0; } }
 details.grille { border: 1px solid var(--bordure); border-radius: 8px; padding: .6rem .9rem; margin-bottom: .6rem; }
 details.grille summary { cursor: pointer; font-weight: 600; }
 details.grille[open] summary { margin-bottom: .7rem; }
@@ -256,7 +261,7 @@ input.majuscules { text-transform: uppercase; }
 }
 
 /* Onglets et sommaire */
-.onglets { display: flex; gap: .3rem; margin-bottom: 1rem; border-bottom: 1px solid var(--bordure); }
+.onglets { display: flex; flex-wrap: wrap; gap: 0 .3rem; margin-bottom: 1rem; border-bottom: 1px solid var(--bordure); }
 .onglets a { padding: .5rem .9rem; color: var(--gris); border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .onglets a.actif { color: var(--rouge); border-color: var(--rouge); font-weight: 600; }
 .onglets a:hover { text-decoration: none; color: var(--encre); }
@@ -270,7 +275,7 @@ input.majuscules { text-transform: uppercase; }
 .coachs .personne form { margin-left: auto; }
 .ajout-coach { display: flex; gap: .5rem; align-items: center; margin-bottom: 1rem; }
 .suggestions-coach { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; margin: -.4rem 0 .8rem; }
-.ajout-coach select { width: auto; }
+.ajout-coach select { width: auto; flex: 0 1 auto; min-width: 0; }
 
 /* Archives : une ligne par équipe, une pastille par saison */
 .archives-personnes { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
@@ -644,7 +649,7 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 /* Calendrier du club (mois) */
 .calendrier-entete { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .4rem 0 .8rem; }
 .calendrier-entete h2 { margin: 0 .3rem; min-width: 10rem; text-align: center; font-size: 1.25rem; }
-.calendrier-legende { margin-left: auto; display: inline-flex; gap: .4rem; }
+.calendrier-legende { margin-left: auto; display: inline-flex; flex-wrap: wrap; gap: .4rem; }
 .calendrier { border: 1px solid var(--bordure); border-radius: 10px; overflow: hidden; background: #fff; }
 .calendrier-jours, .calendrier-semaine { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .calendrier-jours div { padding: .45rem .5rem; font-size: .8rem; font-weight: 600; color: var(--gris); background: #f6f6f8; border-bottom: 1px solid var(--bordure); }
@@ -827,7 +832,7 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 @media (prefers-reduced-motion: reduce) { .dialogue[open] { animation: none; } }
 
 /* Entraînements : bibliothèque d'exercices types */
-.grille-exercices { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+.grille-exercices { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 1rem; }
 .exercice-type { display: flex; flex-direction: column; gap: .6rem; padding: 1rem; }
 .exercice-type h3 { font-size: 1rem; margin: .2rem 0 0; }
 .exercice-type details summary { cursor: pointer; color: var(--gris); font-size: .9rem; }
