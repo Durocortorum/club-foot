@@ -96,16 +96,30 @@ class TestController extends AbstractController
     {
         $tous = $this->catalogue->pour($this->club());
         $donnees = $request->isMethod('POST') ? $request->getPayload() : $request->query;
-        $categorie = ctype_digit($c = $donnees->getString('categorie')) ? $categories->find((int) $c) : null;
+        $proposees = $categories->findBy(['secteur' => $this->voter->secteursModifiables() ?: ['-']], ['ordre' => 'ASC']);
+        // « categorie » : l'identifiant d'une équipe, ou « s:<secteur> » pour tout un secteur (école de foot, préformation…).
+        $choix = $donnees->getString('categorie');
+        $secteur = null;
+        $equipes = [];
+        if (ctype_digit($choix)) {
+            $equipes = array_values(array_filter($proposees, fn (Categorie $c) => $c->getId() === (int) $choix));
+        } elseif (str_starts_with($choix, 's:')) {
+            $equipes = array_values(array_filter($proposees, fn (Categorie $c) => 's:' . $c->getSecteur() === $choix));
+            $secteur = $equipes ? substr($choix, 2) : null;
+        }
+        $categorie = $equipes && !$secteur ? $equipes[0] : null;
         $ids = array_map('intval', $donnees->all('tests'));
         $choisis = array_values(array_filter($tous, fn (TypeTest $t) => \in_array($t->getId(), $ids, true)));
-        $liste = $categorie ? array_values(array_filter(
-            $joueurs->findBy(['categorie' => $categorie, 'ancien' => false], ['nom' => 'ASC', 'prenom' => 'ASC']),
-            fn (Joueur $j) => $this->peutSaisir($j),
-        )) : [];
+        $liste = [];
+        foreach ($equipes as $e) {
+            array_push($liste, ...array_filter(
+                $joueurs->findBy(['categorie' => $e, 'ancien' => false], ['nom' => 'ASC', 'prenom' => 'ASC']),
+                fn (Joueur $j) => $this->peutSaisir($j),
+            ));
+        }
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $donnees->getString('date')) ?: new \DateTimeImmutable('today');
 
-        if ($request->isMethod('POST') && $categorie && $choisis && $this->isCsrfTokenValid('seance-tests', $donnees->getString('_token'))) {
+        if ($request->isMethod('POST') && $equipes && $choisis && $this->isCsrfTokenValid('seance-tests', $donnees->getString('_token'))) {
             $saisis = 0;
             $valeurs = $donnees->all('valeurs');
             foreach ($liste as $j) {
@@ -122,15 +136,25 @@ class TestController extends AbstractController
                 ? \sprintf('%d %s du %s.', $saisis, $saisis > 1 ? 'résultats enregistrés' : 'résultat enregistré', $date->format('d/m/Y'))
                 : 'Aucun résultat saisi.');
 
-            return $this->redirectToRoute('app_progression_equipe', ['categorie' => $categorie->getId()]);
+            return $this->redirectToRoute('app_progression_equipe', ['categorie' => ($categorie ?? $equipes[0])->getId()]);
         }
-        $age = $categorie ? CatalogueTests::ageDe($categorie->getNom()) : null;
+        // Tests conseillés : ceux qui conviennent à l'âge de l'équipe ; pour un secteur, à toutes ses équipes.
+        $ages = array_filter(array_map(fn (Categorie $c) => CatalogueTests::ageDe($c->getNom()), $equipes), fn ($a) => null !== $a);
+        $conseilles = $ages ? array_filter($tous, fn (TypeTest $t) => [] === array_filter($ages, fn ($a) => !$t->convientA($a))) : [];
+        $secteurs = [];
+        foreach ($proposees as $c) {
+            $secteurs[$c->getSecteur()] = $c->getSecteurLibelle();
+        }
 
         return $this->render('test/seance.html.twig', [
-            'categories' => $categories->findBy(['secteur' => $this->voter->secteursModifiables() ?: ['-']], ['ordre' => 'ASC']),
+            'categories' => $proposees,
+            'secteurs' => $secteurs,
             'categorie' => $categorie,
+            'secteur' => $secteur,
+            'choix' => $equipes ? $choix : '',
+            'groupe' => $secteur ? $secteurs[$secteur] : (string) $categorie,
             'tests' => $tous,
-            'conseilles' => null === $age ? [] : array_map(fn (TypeTest $t) => $t->getId(), array_filter($tous, fn (TypeTest $t) => $t->convientA($age))),
+            'conseilles' => array_map(fn (TypeTest $t) => $t->getId(), $conseilles),
             'choisis' => $choisis,
             'joueurs' => $liste,
             'date' => $date,

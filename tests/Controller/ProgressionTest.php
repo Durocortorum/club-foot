@@ -75,6 +75,20 @@ class ProgressionTest extends WebTestCase
         self::assertNotContains('VAMEVAL (km/h)', $equipe);
         self::assertContains('VAMEVAL (km/h)', $crawler->filter('.autres-tests label')->each(fn ($l) => $l->text()));
 
+        // Tout un secteur (préformation : U13 et U15) : choix proposé, joueurs de ses équipes avec leur équipe.
+        self::assertCount(1, $crawler->filter('#categorie option[value="s:preformation"]'));
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $u13 = $em->getRepository(Categorie::class)->findOneBy(['club' => $this->clubId, 'nom' => 'U13']);
+        $em->persist((new Joueur())->setClub($u13->getClub())->setCategorie($u13)->setNom('Blanc')->setPrenom('Noé'));
+        $em->flush();
+        $sprint20 = $em->getRepository(TypeTest::class)->findOneBy(['club' => $this->clubId, 'code' => 'sprint20']);
+        $crawler = $client->request('GET', '/tests/seance?categorie=s:preformation&tests[]=' . $sprint20->getId());
+        self::assertSelectorTextContains('h1 .compteur', 'Préformation');
+        $lignes = $crawler->filter('table.saisie-tests tbody tr')->each(fn ($tr) => $tr->text());
+        self::assertCount(3, $lignes);
+        self::assertStringContainsString('BLANC NoéU13', $lignes[0]);
+        self::assertSame('s:preformation', $crawler->filter('form.carte input[name="categorie"]')->attr('value'));
+
         // Séance de tests U15 : VMA « autre test » (repris) et 20 m pour tout le monde.
         $vma = $em->getRepository(TypeTest::class)->findOneBy(['club' => $this->clubId, 'code' => 'vma']);
         $sprint = $em->getRepository(TypeTest::class)->findOneBy(['club' => $this->clubId, 'code' => 'sprint20']);

@@ -5,27 +5,28 @@
 {% block body %}
     <p><a href="{{ path('app_tests') }}">← Catalogue des tests</a></p>
     <div class="titre-page">
-        <h1>Séance de tests{% if categorie %} <span class="compteur">{{ categorie }}</span>{% endif %}</h1>
+        <h1>Séance de tests{% if choix %} <span class="compteur">{{ groupe }}</span>{% endif %}</h1>
     </div>
 
-    {# Étape 1 : l'équipe et les tests. #}
+    {# Étape 1 : l'équipe (ou tout un secteur) et les tests. #}
     <form method="get" class="carte bloc choix-seance">
         <div class="champs">
             <div class="champ">
-                <label for="categorie">Équipe</label>
+                <label for="categorie">Équipe ou secteur</label>
                 {# Autre équipe : la liste des tests est celle de la nouvelle équipe, rien de coché. #}
                 <select id="categorie" name="categorie" required onchange="this.form.querySelectorAll('[name=&quot;tests[]&quot;]').forEach(c => c.checked = false); this.form.requestSubmit()">
                     <option value="">— Choisir —</option>
-                    {% for c in categories %}<option value="{{ c.id }}" {{ categorie and categorie.id == c.id ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
+                    <optgroup label="Une équipe">{% for c in categories %}<option value="{{ c.id }}" {{ choix == c.id ~ '' ? 'selected' }}>{{ c.nom }}</option>{% endfor %}</optgroup>
+                    <optgroup label="Tout un secteur">{% for code, libelle in secteurs %}<option value="s:{{ code }}" {{ choix == 's:' ~ code ? 'selected' }}>{{ libelle }} ({{ categories|filter(c => c.secteur == code)|map(c => c.nom)|join(', ') }})</option>{% endfor %}</optgroup>
                 </select>
             </div>
             <div class="champ"><label for="date">Date</label><input type="date" id="date" name="date" value="{{ date|date('Y-m-d') }}"></div>
         </div>
-        {% if categorie %}
+        {% if choix %}
             {# Tests de l'équipe choisie (conseillés pour son âge, ou déjà cochés) ; les autres restent accessibles, repliés. #}
             {% set de_l_equipe = tests|filter(t => t.id in conseilles or t in choisis) %}
             {% set autres = tests|filter(t => not (t.id in conseilles or t in choisis)) %}
-            <p class="petit"><strong>Tests pour les {{ categorie }}</strong></p>
+            <p class="petit"><strong>Tests pour {{ secteur ? 'le secteur ' ~ groupe : 'les ' ~ groupe }}</strong>{% if secteur %} <span class="discret">(qui conviennent à toutes ses équipes)</span>{% endif %}</p>
             <div class="cases-tests">
                 {% for t in de_l_equipe %}
                     <label><input type="checkbox" name="tests[]" value="{{ t.id }}" {{ t in choisis ? 'checked' }}> {{ t.nom }} <span class="discret">({{ t.unite }})</span></label>
@@ -48,22 +49,22 @@
     </form>
 
     {# Étape 2 : les résultats de tous les joueurs. #}
-    {% if categorie and choisis %}
+    {% if choix and choisis %}
         {% if joueurs %}
             <form method="post" class="carte bloc">
                 <input type="hidden" name="_token" value="{{ csrf_token('seance-tests') }}">
-                <input type="hidden" name="categorie" value="{{ categorie.id }}">
+                <input type="hidden" name="categorie" value="{{ choix }}">
                 <input type="hidden" name="date" value="{{ date|date('Y-m-d') }}">
                 {% for t in choisis %}<input type="hidden" name="tests[]" value="{{ t.id }}">{% endfor %}
                 <h2>Résultats du {{ date|date('d/m/Y') }}</h2>
                 <p class="discret petit">Laissez vide pour un joueur absent ou non testé. Virgule ou point pour les décimales (3,45).</p>
                 <div class="table-defile">
                     <table class="liste saisie-tests">
-                        <thead><tr><th>Joueur</th>{% for t in choisis %}<th title="{{ t.objectif }}">{{ t.nom }}<br><span class="discret">{{ t.unite }}{{ t.plusBasMieux ? ' · le plus bas' }}</span></th>{% endfor %}</tr></thead>
+                        <thead><tr><th>Joueur</th>{% if secteur %}<th>Équipe</th>{% endif %}{% for t in choisis %}<th title="{{ t.objectif }}">{{ t.nom }}<br><span class="discret">{{ t.unite }}{{ t.plusBasMieux ? ' · le plus bas' }}</span></th>{% endfor %}</tr></thead>
                         <tbody>
                             {% for j in joueurs %}
                                 <tr>
-                                    <td class="fort nowrap">{{ j.nom }} {{ j.prenom }}</td>
+                                    <td class="fort nowrap">{{ j.nom }} {{ j.prenom }}</td>{% if secteur %}<td>{{ j.categorie }}</td>{% endif %}
                                     {% for t in choisis %}<td><input type="text" inputmode="decimal" name="valeurs[{{ j.id }}][{{ t.id }}]" aria-label="{{ t.nom }} de {{ j.prenom }} {{ j.nom }}" autocomplete="off"></td>{% endfor %}
                                 </tr>
                             {% endfor %}
@@ -80,7 +81,7 @@
                 </details>
             {% endfor %}
         {% else %}
-            <p class="vide">Aucun joueur de {{ categorie }} dont vous pouvez saisir les tests.</p>
+            <p class="vide">Aucun joueur {{ secteur ? 'du secteur ' ~ groupe : 'de ' ~ groupe }} dont vous pouvez saisir les tests.</p>
         {% endif %}
     {% endif %}
 {% endblock %}
