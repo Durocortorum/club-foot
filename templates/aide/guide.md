@@ -8,18 +8,18 @@ Ce guide décrit l'application de gestion de club de football, page par page. Il
 - **Administrateur** : la personne qui a créé le club, et ceux à qui elle donne ce droit. Il voit en plus, en haut à droite : Sponsors, Utilisateurs, Catégories, Apparence, Paiement en ligne.
 - **Famille** : un joueur ou ses parents. Ils ont un « espace famille » simple : Mon espace, Calendrier, Boutique (si ouverte), Messages.
 - **Médical seul** (médecin, kiné) : seulement l'Infirmerie, les dossiers médicaux et les messages.
-- Les droits se règlent dans **Utilisateurs** (administrateur) : chaque compte reçoit des secteurs (École de foot, Préformation, Formation, Élite, Pro) et des droits par section (Infirmerie, Visite médicale, Scolarité, Discipline, Tests physiques, Finances), en « voir » ou « modifier ». Le **tableau des droits** (Utilisateurs → Droits) montre qui a accès à quoi.
+- **Donner des droits** à un éducateur ou un dirigeant : menu **Utilisateurs** (administrateur) → son compte → chaque compte reçoit des secteurs (École de foot, Préformation, Formation, Élite, Pro) et des droits par section (Infirmerie, Visite médicale, Scolarité, Discipline, Tests physiques, Finances), en « voir » ou « modifier ». Le **tableau des droits** (Utilisateurs → Droits) montre qui a accès à quoi.
 - **Mon compte** (son nom, en haut à droite) : changer son mot de passe. Mot de passe oublié : lien sur la page de connexion, un e-mail est envoyé.
 
 ## Premiers pas d'un nouveau club
 
-1. Créer le club sur la page « Créer mon club » (lien sur la page de connexion), 30 jours d'essai gratuit.
-2. **Apparence** : ajouter le logo et les couleurs du club.
-3. **Catégories** : vérifier les équipes (U7 à Vétérans proposées). On peut renommer, ajouter (ex. « U18 », « U13 Filles ») ou supprimer une catégorie inutilisée. Une nouvelle catégorie « U.. » se range toute seule à sa place d'âge ; les flèches ↑ ↓ changent l'ordre. On y règle aussi la durée d'un match.
-4. **Encadrement** : ajouter les éducateurs et dirigeants.
-5. **Joueurs** : les ajouter un par un ou les importer depuis Excel.
-6. **Utilisateurs** : créer les comptes des éducateurs et leur donner leurs droits.
 L'accueil affiche ces « premiers pas » avec une jauge tant qu'ils ne sont pas faits.
+- **Créer le club** : page « Créer mon club » (lien sur la page de connexion), 30 jours d'essai gratuit.
+- **Logo et couleurs** : menu **Apparence** (en haut à droite, administrateur) : envoyer le logo du club et choisir ses couleurs ; tout le monde les voit.
+- **Catégories** (équipes) : menu **Catégories** (en haut à droite, administrateur). U7 à Vétérans sont proposées. **Nouvelle catégorie** pour en ajouter une (ex. « U18 », « U13 Filles ») avec son secteur ; on peut renommer, ou supprimer une catégorie inutilisée. Une nouvelle catégorie « U.. » se range toute seule à sa place d'âge ; les flèches ↑ ↓ changent l'ordre. On y règle aussi la durée d'un match.
+- **Encadrement** : ajouter les éducateurs et dirigeants.
+- **Joueurs** : menu **Joueurs**, un par un ou tous d'un coup (voir la rubrique Joueurs).
+- **Comptes des éducateurs** : menu **Utilisateurs** → **Nouvel utilisateur** : e-mail, mot de passe, puis cocher ses droits (secteurs et sections).
 
 ## Accueil
 
@@ -146,7 +146,7 @@ Déplacements (car, minibus du club, voitures personnelles, train), créés auss
 ## Paiement en ligne (HelloAsso) et boutique
 
 - **Paiement en ligne** (administrateur, en haut à droite) : relier le compte HelloAsso du club (gratuit pour le club, l'argent va directement au club) en suivant l'étape guidée ; les identifiants sont vérifiés tout de suite. Les familles paient alors depuis leur espace les cotisations (en une ou plusieurs fois, jusqu'à 4), les stages payants et la boutique ; tout s'enregistre dans les Finances.
-- **Boutique** (droit Finances) : articles avec photo, prix, tailles et stock ; les familles commandent depuis leur espace pour un enfant (avec remarque, ex. flocage), paient en ligne ou au club ; suivi « à régler, payée, prête, remise » ; la famille est prévenue quand c'est prêt.
+- **Boutique** (droit Finances) : vendre aux familles maillots, survêtements, sacs… : articles avec photo, prix, tailles et stock ; les familles commandent depuis leur espace pour un enfant (avec remarque, ex. flocage), paient en ligne ou au club ; suivi « à régler, payée, prête, remise » ; la famille est prévenue quand c'est prêt.
 
 ## Vie du club
 
@@ -156,7 +156,11 @@ Déplacements (car, minibus du club, voitures personnelles, train), créés auss
 
 ## Espace famille (joueurs et parents)
 
-- **Mon espace** : prochains matchs et convocations (répondre Présent / Absent), entraînements (signaler une absence), statistiques de l'enfant, amendes, tâches, cotisation à payer, stages, information importante.
+- **Mon espace** : prochains matchs et convocations, entraînements, statistiques de l'enfant, amendes, tâches, cotisation à payer, stages, information importante.
+- **Répondre à une convocation** (famille) : **Mon espace** → la carte du match → **Présent** ou **Absent** (avec le motif). On peut changer sa réponse tant que le match n'a pas eu lieu. L'éducateur voit la réponse tout de suite.
+- **Signaler une absence à l'entraînement** (famille) : **Mon espace** → les prochains entraînements → **Absent** sur la séance concernée, avec le motif.
+- **Payer la cotisation** (famille) : **Mon espace** → la carte de la cotisation → **Payer en ligne** (en une ou plusieurs fois), si le club a activé le paiement en ligne ; sinon, voir avec le trésorier du club. Même chose pour un stage payant.
+- **Commander à la boutique** (famille) : menu **Boutique** → choisir l'article et la taille → panier → commander pour l'enfant, puis payer en ligne ou au club.
 - **Calendrier** du mois : matchs (ceux où l'enfant est convoqué signalés), entraînements, événements, stages, tournois.
 - **Boutique** (si le club l'a ouverte), **Messages** avec l'encadrement.
 - **Notifications sur le téléphone** : carte « Notifications » dans l'espace → Activer. Sur iPhone, il faut d'abord installer l'application : dans Safari, bouton Partager → « Sur l'écran d'accueil », puis l'ouvrir depuis l'icône. Sur Android : menu du navigateur → « Installer l'application » ou « Ajouter à l'écran d'accueil ».

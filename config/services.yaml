@@ -27,7 +27,3 @@ when@test:
     services:
         # HelloAsso simulé (voir framework.http_client.mock_response_factory).
         App\Tests\Simulation\HelloAssoSimule: ~
-        # Assistant d'aide : réponse fixe, aucun appel (payant) à l'API Anthropic.
-        App\Tests\Simulation\RepondeurTest:
-            public: true
-        App\Service\Aide\Repondeur: '@App\Tests\Simulation\RepondeurTest'

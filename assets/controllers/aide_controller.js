@@ -1,8 +1,9 @@
 import { Controller } from '@hotwired/stimulus';
 
 /*
- * Assistant d'aide : fenêtre de discussion ouverte par le bouton « ? ». La conversation est gardée le temps de l'onglet
- * (sessionStorage) pour suivre d'une page à l'autre ; les derniers échanges partent avec chaque question.
+ * Assistant d'aide : fenêtre de discussion ouverte par le bouton « ? » ; chaque question reçoit les passages du guide
+ * de l'application qui y répondent (AideController). La conversation est gardée le temps de l'onglet (sessionStorage)
+ * pour suivre d'une page à l'autre.
  */
 const CLE = 'aide-conversation';
 
@@ -66,7 +67,7 @@ export default class extends Controller {
             const reponse = await fetch(this.urlValue, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({ jeton: this.jetonValue, question, historique: this.historique.slice(0, -1), page: window.location.pathname }),
+                body: JSON.stringify({ jeton: this.jetonValue, question }),
             });
             const donnees = await reponse.json().catch(() => ({}));
             attente.remove();
@@ -103,7 +104,9 @@ export default class extends Controller {
             this.historique.push({ role, content: texte });
             this.garder();
         }
-        this.descendre();
+        // Nouvelle réponse : on la montre depuis son début (elle peut être longue) ; sinon, en bas du fil.
+        if (role === 'assistant' && garder) this.filTarget.scrollTop = p.offsetTop - 8;
+        else this.descendre();
         return p;
     }
 

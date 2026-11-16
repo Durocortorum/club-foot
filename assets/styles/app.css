@@ -321,7 +321,7 @@ body:has(.direct) .aide { display: none; }
 .aide-entete { display: flex; align-items: baseline; gap: .5rem; padding: .7rem .9rem; border-bottom: 1px solid var(--bordure); background: var(--fond); }
 .aide-entete .discret { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aide-fermer { font-size: 1.05rem; }
-.aide-fil { flex: 1; overflow-y: auto; padding: .8rem; display: flex; flex-direction: column; gap: .55rem; }
+.aide-fil { position: relative; flex: 1; overflow-y: auto; padding: .8rem; display: flex; flex-direction: column; gap: .55rem; }
 .aide-message { max-width: 88%; padding: .55rem .75rem; border-radius: 12px; font-size: .92rem; line-height: 1.45; overflow-wrap: anywhere; }
 .aide-message p { margin: 0 0 .35rem; } .aide-message p:last-child { margin-bottom: 0; }
 .aide-message ol, .aide-message ul { margin: .2rem 0 .35rem; padding-left: 1.2rem; }

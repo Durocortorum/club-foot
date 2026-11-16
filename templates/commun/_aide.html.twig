@@ -14,15 +14,15 @@
             <button type="button" class="lien-bouton aide-fermer" data-action="aide#basculer" aria-label="Fermer">✕</button>
         </header>
         <div class="aide-fil" data-aide-target="fil" aria-live="polite">
-            <p class="aide-message assistant">Bonjour ! Je peux vous expliquer comment utiliser l'application, avec des exemples. Que voulez-vous faire ?</p>
+            <p class="aide-message assistant">Bonjour ! Écrivez ce que vous voulez faire en quelques mots (par exemple « convoquer un match » ou « importer des joueurs »), ou choisissez une question :</p>
             <div class="aide-suggestions" data-aide-target="suggestions">
                 {% for s in suggestions %}<button type="button" class="aide-suggestion" data-action="aide#suggerer">{{ s }}</button>{% endfor %}
             </div>
         </div>
         <form class="aide-saisie" data-action="aide#envoyer">
-            <textarea data-aide-target="question" rows="2" maxlength="1000" placeholder="{{ famille ? 'Ex. : où voir le calendrier des matchs ?' : 'Ex. : comment créer un entraînement ?' }}" aria-label="Votre question" data-action="keydown->aide#touche"></textarea>
+            <textarea data-aide-target="question" rows="2" maxlength="300" placeholder="{{ famille ? 'Ex. : où voir le calendrier des matchs ?' : 'Ex. : comment créer un entraînement ?' }}" aria-label="Votre question" data-action="keydown->aide#touche"></textarea>
             <button type="submit" class="bouton principal" data-aide-target="envoyer">Envoyer</button>
         </form>
-        <p class="aide-note">Réponses d'une intelligence artificielle, d'après le guide de l'application : elles peuvent se tromper. N'indiquez pas d'informations personnelles.</p>
+        <p class="aide-note">Les réponses viennent du guide de l'application. Si elles ne suffisent pas, demandez au responsable du club.</p>
     </section>
 </div>
