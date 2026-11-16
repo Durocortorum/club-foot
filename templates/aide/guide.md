@@ -83,13 +83,13 @@ Pour noter les actions pendant le match, au bord du terrain, sur une tablette (m
 1. Page du match → **⏱ En direct**.
 2. **Coup d'envoi** lance le chrono ; « Pause », « −1 / +1 » pour corriger la minute, « Fin de période » (le terrain change de côté à la mi-temps).
 3. Pour chaque action, trois touches : **le joueur**, **l'action**, **la zone** du terrain (18 zones). La minute est prise au chrono.
-   Actions : bonne / mauvaise passe, duel gagné / perdu, bon / mauvais contrôle, frappe cadrée / hors cadre, centre, corner, but. Avec la case « Adversaire » : frappe adverse cadrée / hors cadre, corner adverse, but adverse.
+   Actions : bonne / mauvaise passe, duel gagné / perdu, bon / mauvais contrôle, frappe cadrée / hors cadre, centre, corner, but, carton jaune, carton rouge. Avec la case « Adversaire » : frappe adverse cadrée / hors cadre, corner adverse, but adverse, carton jaune ou rouge adverse.
 4. Le **journal** en dessous : ✎ pour corriger une action, ✕ pour la supprimer.
 5. **✎ Numéros** (à côté de « 1. Joueur ») : donner ou changer les numéros de maillot ; « ? » = joueur sans numéro.
 6. **Plusieurs tablettes** : chacune choisit « Mes statistiques » (par exemple passes sur l'une, duels sur l'autre) ; chrono, score et journal sont communs ; chacun corrige ses propres actions. Mieux vaut un compte par personne.
 7. **Sans réseau au stade** : ouvrir la page « En direct » une fois avant le match avec du réseau (« 📶 Sans réseau : OK » s'affiche) ; au stade, le site affiche la liste des matchs gardés sur la tablette ; les actions partent quand le réseau revient.
 8. **Plein écran** cache les barres du navigateur ; l'écran reste allumé pendant le match.
-Après le match : **Statistiques du direct** : passes réussies, duels gagnés, contrôles, frappes, centres, corners ; tableau par joueur ; carte du terrain (zones les plus jouées, par action et par joueur) ; quarts d'heure ; bouton « Reporter les buts sur la feuille de match ».
+Après le match : **Voir le bilan du match** (au-dessus du journal) : passes réussies, duels gagnés, contrôles, frappes, centres, corners, cartons ; tableau par joueur ; carte du terrain (zones les plus jouées : une action, toutes nos actions, tout ce qu'a fait l'adversaire, ou un joueur) ; quarts d'heure ; bouton « Reporter buts et cartons sur la feuille de match » (les cartons de nos joueurs avec leur minute).
 
 ## Statistiques
 

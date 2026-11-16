@@ -165,10 +165,17 @@ class MatchDirectController extends AbstractController
         $stats = $this->direct->statistiques($rencontre, $actions);
         $type = $request->query->getString('type');
         $joueur = $request->query->getInt('joueur');
-        // Carte du terrain : une action (ou toutes), pour un joueur (ou toute l'équipe).
+        // Carte du terrain : une action, toutes nos actions (« nous »), tout ce qu'a fait l'adversaire (« adverse »)
+        // ou tout ; pour un joueur ou toute l'équipe.
         $carte = array_fill(0, ActionMatch::COLONNES, array_fill(0, ActionMatch::COULOIRS, 0));
         foreach ($actions as $a) {
-            if ((!$type || $a->getType() === $type) && (!$joueur || $a->getJoueur()?->getId() === $joueur)) {
+            $retenue = match ($type) {
+                '' => true,
+                'nous' => !$a->isAdverse(),
+                'adverse' => $a->isAdverse(),
+                default => $a->getType() === $type,
+            };
+            if ($retenue && (!$joueur || $a->getJoueur()?->getId() === $joueur)) {
                 ++$carte[$a->getZx()][$a->getZy()];
             }
         }
@@ -179,7 +186,7 @@ class MatchDirectController extends AbstractController
             'stats' => $stats,
             'carte' => $carte,
             'max_carte' => max(1, ...array_merge(...$carte)),
-            'type' => ActionMatch::existe($type) ? $type : '',
+            'type' => ActionMatch::existe($type) || \in_array($type, ['nous', 'adverse'], true) ? $type : '',
             'joueur' => $joueur,
             'types' => ActionMatch::ACTIONS,
             'adverses' => ActionMatch::ADVERSES,
@@ -187,24 +194,67 @@ class MatchDirectController extends AbstractController
         ]);
     }
 
-    /** Buts notés en direct reportés sur la feuille de match (si elle n'en a pas encore), score compris s'il manque. */
+    /**
+     * Report sur la feuille de match de ce qui a été noté en direct :
+     * - les buts, si la feuille n'en a pas encore (score compris s'il manque) ;
+     * - les cartons de nos joueurs déjà sur la feuille et sans carton (jaune, rouge, ou jaune puis rouge, avec la minute).
+     * Les cartons de l'adversaire restent dans le bilan (la feuille ne les prévoit pas).
+     */
     #[Route('/matchs/{id}/direct/reporter', name: 'app_match_direct_reporter', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function reporter(Request $request, Rencontre $rencontre): Response
     {
         if (!$this->isCsrfTokenValid('reporter' . $rencontre->getId(), $request->getPayload()->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
-        if (\count($rencontre->getButs())) {
-            $this->addFlash('erreur', 'La feuille de match a déjà des buts : complétez-la à la main.');
+        $actions = $this->actions->duMatch($rencontre);
+        $messages = [];
 
-            return $this->redirectToRoute('app_match_direct_bilan', ['id' => $rencontre->getId()]);
+        // Cartons : par joueur, dans l'ordre du match.
+        $cartons = [];
+        foreach ($actions as $a) {
+            if (\in_array($a->getType(), ['CJ', 'CR'], true) && $a->getJoueur()) {
+                $cartons[$a->getJoueur()->getId()][] = $a;
+            }
         }
-        $mi = intdiv($this->direct->duree($rencontre), 2);
-        $pour = $contre = 0;
-        foreach ($this->actions->duMatch($rencontre) as $a) {
-            if (!\in_array($a->getType(), ['B', 'BA'], true)) {
+        $reportes = 0;
+        $horsFeuille = [];
+        foreach ($cartons as $liste) {
+            $participation = null;
+            foreach ($rencontre->getParticipations() as $p) {
+                if ($p->getJoueur()?->getId() === $liste[0]->getJoueur()->getId()) {
+                    $participation = $p;
+                }
+            }
+            if (!$participation) {
+                $horsFeuille[] = $liste[0]->getJoueur()->getPrenom() . ' ' . $liste[0]->getJoueur()->getNom();
                 continue;
             }
+            if ($participation->getCarton()) {
+                continue;
+            }
+            $types = array_map(fn (ActionMatch $a) => $a->getType(), $liste);
+            $rouge = array_values(array_filter($liste, fn (ActionMatch $a) => 'CR' === $a->getType()))[0] ?? null;
+            [$code, $minute] = match (true) {
+                \count(array_keys($types, 'CJ')) >= 2 => ['J+R', $liste[1]->getMinute()],
+                null !== $rouge && \in_array('CJ', $types, true) => ['J+R', $rouge->getMinute()],
+                null !== $rouge => ['RJ', $rouge->getMinute()],
+                default => ['JJ', $liste[0]->getMinute()],
+            };
+            $participation->setCarton($code)->setMinuteCarton((string) $minute);
+            ++$reportes;
+        }
+        if ($reportes) {
+            $messages[] = \sprintf('%d carton%s', $reportes, $reportes > 1 ? 's' : '');
+        }
+
+        $pour = $contre = 0;
+        $butsNotes = array_filter($actions, fn (ActionMatch $a) => \in_array($a->getType(), ['B', 'BA'], true));
+        if ($butsNotes && \count($rencontre->getButs())) {
+            $this->addFlash('info', 'La feuille de match a déjà des buts : ceux notés en direct n\'y sont pas ajoutés.');
+            $butsNotes = [];
+        }
+        $mi = intdiv($this->direct->duree($rencontre), 2);
+        foreach ($butsNotes as $a) {
             // Temps additionnel : « 45+2 » plutôt que 47 en première période.
             $fin = 1 === $a->getPeriode() ? $mi : 2 * $mi;
             $but = (new But())->setAdverse('BA' === $a->getType())->setButeur($a->getJoueur())->setMinute(min($a->getMinute(), $fin));
@@ -214,11 +264,19 @@ class MatchDirectController extends AbstractController
             $rencontre->addBut($but);
             'BA' === $a->getType() ? ++$contre : ++$pour;
         }
-        if (null === $rencontre->getButsDomicile() && null === $rencontre->getButsExterieur()) {
+        if ($butsNotes && null === $rencontre->getButsDomicile() && null === $rencontre->getButsExterieur()) {
             $rencontre->setButsDomicile($rencontre->isADomicile() ? $pour : $contre)->setButsExterieur($rencontre->isADomicile() ? $contre : $pour);
         }
+        if ($pour + $contre) {
+            array_unshift($messages, \sprintf('%d but%s', $pour + $contre, $pour + $contre > 1 ? 's' : ''));
+        }
         $this->em->flush();
-        $this->addFlash('succes', \sprintf('%d but%s reporté%s sur la feuille de match. Ajoutez-y les passeurs et la façon de marquer si besoin.', $pour + $contre, $pour + $contre > 1 ? 's' : '', $pour + $contre > 1 ? 's' : ''));
+        if ($horsFeuille) {
+            $this->addFlash('info', 'Cartons non reportés (joueur absent de la feuille de match) : ' . implode(', ', $horsFeuille) . '.');
+        }
+        $this->addFlash($messages ? 'succes' : 'info', $messages
+            ? implode(' et ', $messages) . ' reporté' . ((($pour + $contre) + $reportes) > 1 ? 's' : '') . ' sur la feuille de match. Complétez-la si besoin (passeurs, façon de marquer, motif des cartons).'
+            : 'Rien de nouveau à reporter sur la feuille de match.');
 
         return $this->redirectToRoute('app_rencontre_voir', ['id' => $rencontre->getId()]);
     }

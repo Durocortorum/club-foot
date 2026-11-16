@@ -6,6 +6,7 @@ use App\Entity\ActionMatch;
 use App\Entity\Categorie;
 use App\Entity\Club;
 use App\Entity\Joueur;
+use App\Entity\Participation;
 use App\Entity\Rencontre;
 use App\Entity\Utilisateur;
 use App\Service\CreationClub;
@@ -25,7 +26,7 @@ class MatchDirectTest extends WebTestCase
         if ($this->clubId) {
             $db = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
             $db->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
-            foreach (['action_match', 'but', 'rencontre', 'utilisateur', 'joueur', 'categorie'] as $table) {
+            foreach (['action_match', 'but', 'participation', 'rencontre', 'utilisateur', 'joueur', 'categorie'] as $table) {
                 $db->executeStatement("DELETE FROM $table WHERE club_id = ?", [$this->clubId]);
             }
             $db->executeStatement('DELETE FROM club WHERE id = ?', [$this->clubId]);
@@ -131,15 +132,27 @@ class MatchDirectTest extends WebTestCase
         $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['actions' => $actions]));
         self::assertResponseStatusCodeSame(403);
 
-        // Bilan : score, ligne du joueur, carte du terrain.
+        // Cartons : Tom (sur la feuille de match) prend un jaune à la 30e ; l'adversaire aussi.
+        $em->persist((new Participation())->setClub($em->getReference(Club::class, $this->clubId))->setRencontre($em->getReference(Rencontre::class, $matchId))
+            ->setJoueur($em->getReference(Joueur::class, $tomId))->setNumero(9));
+        $em->flush();
+        $envoyer(['jeton' => $config['jeton'], 'actions' => [
+            ['uuid' => '88888888-8888-4888-8888-888888888888', 'joueur' => $tomId, 'type' => 'CJ', 'periode' => 1, 'minute' => 30, 'zx' => 3, 'zy' => 1],
+            ['uuid' => '99999999-9999-4999-8999-999999999999', 'joueur' => null, 'type' => 'JA', 'periode' => 2, 'minute' => 55, 'zx' => 2, 'zy' => 2],
+        ]]);
+        self::assertSame(6, json_decode($client->getResponse()->getContent(), true)['total']);
+
+        // Bilan : score, ligne du joueur, carte du terrain (tout ce qu'a fait l'adversaire : son but et son carton).
         $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.titre-page', '1 – 1');
         self::assertStringContainsString('PETIT Tom', $crawler->filter('.stats-direct')->text());
         self::assertCount(18, $crawler->filter('.carte-chaleur .zone'));
+        $adverse = $client->request('GET', "/matchs/$matchId/direct/bilan?type=adverse");
+        self::assertSame(2, array_sum(array_map('intval', $adverse->filter('.carte-chaleur .zone')->each(fn ($z) => $z->text()))));
 
-        // Buts reportés sur la feuille : 43e minute pour Tom, 60e pour l'adversaire, score 1 – 1.
-        $client->submit($crawler->selectButton('Reporter les buts sur la feuille de match')->form());
+        // Report sur la feuille : buts (43e Tom, 60e adversaire, score 1 – 1) et carton jaune de Tom à la 30e.
+        $client->submit($crawler->selectButton('Reporter buts et cartons sur la feuille de match')->form());
         self::assertResponseRedirects("/matchs/$matchId");
         $em->clear();
         $match = $em->find(Rencontre::class, $matchId);
@@ -147,5 +160,7 @@ class MatchDirectTest extends WebTestCase
         $buts = $match->getButs()->toArray();
         self::assertCount(2, $buts);
         self::assertSame($tomId, $buts[0]->getButeur()?->getId());
+        $feuilleTom = $match->getParticipations()->first();
+        self::assertSame(['JJ', '30'], [$feuilleTom->getCarton(), $feuilleTom->getMinuteCarton()]);
     }
 }

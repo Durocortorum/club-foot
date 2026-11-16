@@ -33,6 +33,8 @@ class ActionMatch implements AppartientAuClub
         'C' => ['Centre', 'centre', null],
         'B' => ['But', 'but', true],
         'CO' => ['Corner', 'corner', null],
+        'CJ' => ['Carton jaune', 'carton', null],
+        'CR' => ['Carton rouge', 'carton', null],
     ];
     /** Actions de l'adversaire : pas de joueur du club. */
     public const ADVERSES = [
@@ -40,6 +42,8 @@ class ActionMatch implements AppartientAuClub
         'AH' => 'Frappe adverse hors cadre',
         'CA' => 'Corner adverse',
         'BA' => 'But adverse',
+        'JA' => 'Carton jaune adverse',
+        'RA' => 'Carton rouge adverse',
     ];
     /** Groupes que chaque tablette choisit de suivre (« Mes statistiques ») : nom => codes. */
     public const GROUPES = [
@@ -50,7 +54,8 @@ class ActionMatch implements AppartientAuClub
         'Centres' => ['C'],
         'Corners' => ['CO'],
         'Buts' => ['B'],
-        'Adversaire' => ['AC', 'AH', 'CA', 'BA'],
+        'Cartons' => ['CJ', 'CR'],
+        'Adversaire' => ['AC', 'AH', 'CA', 'BA', 'JA', 'RA'],
     ];
     public const COLONNES = 6;
     public const COULOIRS = 3;

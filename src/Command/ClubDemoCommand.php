@@ -553,8 +553,7 @@ class ClubDemoCommand extends Command
                 $joueurs[] = $p->getJoueur();
             }
         }
-        $types = ['BP' => 30, 'MP' => 10, 'DG' => 12, 'DP' => 9, 'BC' => 10, 'MC' => 5, 'FC' => 3, 'FH' => 3, 'C' => 5, 'CO' => 2, 'AC' => 2, 'AH' => 2, 'CA' => 2];
-        $tirage = [];
+        $types = ['BP' => 30, 'MP' => 10, 'DG' => 12, 'DP' => 9, 'BC' => 10, 'MC' => 5, 'FC' => 3, 'FH' => 3, 'C' => 5, 'CO' => 2, 'AC' => 2, 'AH' => 2, 'CA' => 2];        $tirage = [];
         foreach ($types as $type => $poids) {
             array_push($tirage, ...array_fill(0, $poids, $type));
         }
@@ -578,6 +577,9 @@ class ClubDemoCommand extends Command
         foreach ($r->getButs() as $but) {
             $ajouter($but->isAdverse() ? 'BA' : 'B', $but->isAdverse() ? null : $but->getButeur(), min($duree, (int) $but->getMinute()), $but->isAdverse() ? 0 : 5, 1);
         }
+        // Un carton jaune de chaque côté.
+        $ajouter('CJ', $joueurs[3] ?? null, 34, 2, 1);
+        $ajouter('JA', null, 58, 3, 2);
     }
 
     /** @param array<string, list<Rencontre>> $matchs */

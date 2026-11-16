@@ -15,10 +15,11 @@
         </div>
         <span class="actions">
             <a class="bouton principal" href="{{ path('app_match_direct', {id: rencontre.id}) }}">Saisie en direct</a>
-            {% if (stats.pour or stats.contre) and not buts_feuille %}
+            {% set a_reporter = ((stats.pour or stats.contre) and not buts_feuille) or stats.equipe.CJ or stats.equipe.CR %}
+            {% if a_reporter %}
                 <form method="post" action="{{ path('app_match_direct_reporter', {id: rencontre.id}) }}" class="en-ligne">
                     <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ rencontre.id) }}">
-                    <button type="submit" class="bouton">Reporter les buts sur la feuille de match</button>
+                    <button type="submit" class="bouton" title="Buts (si la feuille n'en a pas) et cartons de nos joueurs">Reporter buts et cartons sur la feuille de match</button>
                 </form>
             {% endif %}
         </span>
@@ -36,6 +37,7 @@
             <div class="tuile"><span class="tuile-valeur">{{ e.AC }} / {{ e.AC + e.AH }}</span><span class="tuile-libelle">frappes adverses cadrées</span></div>
             <div class="tuile"><span class="tuile-valeur">{{ e.C }}</span><span class="tuile-libelle">centres</span></div>
             <div class="tuile"><span class="tuile-valeur">{{ e.CO }} – {{ e.CA }}</span><span class="tuile-libelle">corners pour – contre</span></div>
+            <div class="tuile"><span class="tuile-valeur"><b class="pastille-action action-CJ">{{ e.CJ }}</b> <b class="pastille-action action-CR">{{ e.CR }}</b></span><span class="tuile-libelle">cartons (adversaire : {{ e.JA }} jaune{{ e.JA > 1 ? 's' }}, {{ e.RA }} rouge{{ e.RA > 1 ? 's' }})</span></div>
         </div>
 
         <section class="carte bloc">
@@ -47,7 +49,7 @@
                         <th title="Bonnes passes / mauvaises passes">Passes</th><th>%</th>
                         <th title="Duels gagnés / perdus">Duels</th><th>%</th>
                         <th title="Bons contrôles / mauvais contrôles">Contrôles</th><th>%</th>
-                        <th title="Frappes cadrées / hors cadre">Frappes</th><th>Centres</th><th>Buts</th><th>Total</th>
+                        <th title="Frappes cadrées / hors cadre">Frappes</th><th>Centres</th><th>Buts</th><th title="Cartons jaunes / rouges">Cartons</th><th>Total</th>
                     </tr></thead>
                     <tbody>
                         {% for l in stats.joueurs %}
@@ -57,7 +59,9 @@
                                 <td>{{ a.BP ?? 0 }} / {{ a.MP ?? 0 }}</td><td>{{ m.pct(reussite(a, 'passe')) }}</td>
                                 <td>{{ a.DG ?? 0 }} / {{ a.DP ?? 0 }}</td><td>{{ m.pct(reussite(a, 'duel')) }}</td>
                                 <td>{{ a.BC ?? 0 }} / {{ a.MC ?? 0 }}</td><td>{{ m.pct(reussite(a, 'controle')) }}</td>
-                                <td>{{ a.FC ?? 0 }} / {{ (a.FC ?? 0) + (a.FH ?? 0) }}</td><td>{{ a.C ?? 0 }}</td><td>{{ a.B ?? 0 }}</td><td class="fort">{{ l.total }}</td>
+                                <td>{{ a.FC ?? 0 }} / {{ (a.FC ?? 0) + (a.FH ?? 0) }}</td><td>{{ a.C ?? 0 }}</td><td>{{ a.B ?? 0 }}</td>
+                                <td>{% if a.CJ ?? 0 %}<b class="pastille-action action-CJ">{{ a.CJ }}</b>{% endif %} {% if a.CR ?? 0 %}<b class="pastille-action action-CR">{{ a.CR }}</b>{% endif %}</td>
+                                <td class="fort">{{ l.total }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -69,7 +73,9 @@
             <h2>Carte du terrain</h2>
             <form method="get" class="filtres" action="#carte">
                 <select name="type" onchange="this.form.requestSubmit()" aria-label="Action">
-                    <option value="">Toutes les actions</option>
+                    <option value="">Toutes les actions (les deux équipes)</option>
+                    <option value="nous" {{ type == 'nous' ? 'selected' }}>Toutes nos actions</option>
+                    <option value="adverse" {{ type == 'adverse' ? 'selected' }}>Tout ce qu'a fait l'adversaire</option>
                     <optgroup label="Nos actions">{% for code, t in types %}<option value="{{ code }}" {{ type == code ? 'selected' }}>{{ t[0] }}</option>{% endfor %}</optgroup>
                     <optgroup label="Adversaire">{% for code, l in adverses %}<option value="{{ code }}" {{ type == code ? 'selected' }}>{{ l }}</option>{% endfor %}</optgroup>
                 </select>

@@ -300,7 +300,8 @@ export default class extends Controller {
 
     dessinerTypes() {
         const suivis = this.typesSuivis();
-        const bouton = (code, libelle, adverse) => `<button type="button" class="tuile-action action-${code}${adverse ? ' adverse' : ''}" data-type="${code}" data-action="direct#choisirType"><b>${code}</b> ${this.echapper(libelle)}</button>`;
+        // Sur les boutons, « adverse » abrégé (place comptée sur la tablette) ; nom complet dans le journal et le bilan.
+        const bouton = (code, libelle, adverse) => `<button type="button" class="tuile-action action-${code}${adverse ? ' adverse' : ''}" data-type="${code}" data-action="direct#choisirType" title="${this.echapper(libelle)}"><b>${code}</b> ${this.echapper(libelle.replace(/ adverse\b/, ' adv.'))}</button>`;
         this.typesTarget.innerHTML = Object.entries(this.cfg.types).filter(([c]) => suivis.includes(c)).map(([c, l]) => bouton(c, l, false)).join('')
             + Object.entries(this.cfg.adverses).filter(([c]) => suivis.includes(c)).map(([c, l]) => bouton(c, l, true)).join('');
     }

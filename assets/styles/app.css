@@ -229,7 +229,7 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .tuile-joueur.adverse { background: #f1f1f3; border-style: dashed; }
 .tuile-joueur.choisi, .tuile-action.choisi { outline: 3px solid var(--rouge); outline-offset: -1px; background: var(--rouge-clair, #fde8eb); }
 .direct-types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; }
-.tuile-action { padding: .55rem .5rem; text-align: left; font-size: .85rem; min-height: 2.8rem; border-left: 6px solid var(--couleur-action, var(--bordure)); }
+.tuile-action { padding: .45rem .5rem; text-align: left; font-size: .84rem; line-height: 1.2; min-height: 2.5rem; border-left: 6px solid var(--couleur-action, var(--bordure)); }
 .tuile-action b { display: inline-block; min-width: 1.8rem; }
 .tuile-action:disabled { opacity: .35; cursor: default; }
 .tuile-action.adverse { background: #f6f6f8; }
@@ -238,6 +238,8 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .action-MP { --couleur-action: #8fb3e8; } .action-MC { --couleur-action: #f5d000; } .action-BC { --couleur-action: #12285c; }
 .action-B { --couleur-action: #b7791f; } .action-CO { --couleur-action: #6b6e75; }
 .action-AC, .action-AH, .action-CA, .action-BA { --couleur-action: #3d3f45; }
+.action-CJ, .action-JA { --couleur-action: #f5c400; } .action-CR, .action-RA { --couleur-action: #d62839; }
+.action-CJ.pastille-action, .action-JA.pastille-action { color: #1d1d1f; }
 .pastille-action { display: inline-block; min-width: 1.9rem; text-align: center; border-radius: 4px; padding: 0 .2rem; font-size: .75rem; color: #fff; background: var(--couleur-action, var(--gris)); }
 .action-MC.pastille-action, .action-FH.pastille-action, .action-MP.pastille-action, .action-DP.pastille-action { color: #1d1d1f; }
 /* Terrain : 6 bandes × 3 couloirs, horizontal (ordinateur, tablette) ou vertical (téléphone). */
