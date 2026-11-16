@@ -51,6 +51,10 @@ class MatchDirectController extends AbstractController
                 'jeton' => $this->container->get('security.csrf.token_manager')->getToken('direct' . $rencontre->getId())->getValue(),
                 'nous' => $rencontre->isADomicile() ? $rencontre->getDomicile() : $rencontre->getExterieur(),
                 'adversaire' => $rencontre->getAdversaire(),
+                'groupes' => ActionMatch::GROUPES,
+                'moi' => $this->moi()->getId(),
+                'chrono' => $rencontre->getChronoDirect(),
+                'maintenant' => self::maintenant(),
             ],
             'meteos' => Rencontre::METEOS,
             'terrains' => Rencontre::TERRAINS,
@@ -58,8 +62,10 @@ class MatchDirectController extends AbstractController
     }
 
     /**
-     * Envoi de la tablette : actions nouvelles ou corrigées (même uuid : remplacée), actions supprimées,
-     * météo et terrain. Réponse : nombre d'actions enregistrées.
+     * Échange avec chaque tablette, toutes les quelques secondes : elle envoie ses actions nouvelles ou corrigées
+     * (même uuid : remplacée), ses suppressions, son chrono s'il a changé, la météo et le terrain ; elle reçoit toutes
+     * les actions du match (celles des autres tablettes comprises), le chrono commun et l'heure du serveur.
+     * Une action notée par un autre compte n'est ni corrigée ni supprimée.
      */
     #[Route('/matchs/{id}/direct/enregistrer', name: 'app_match_direct_enregistrer', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function enregistrer(Request $request, Rencontre $rencontre): JsonResponse
@@ -76,8 +82,9 @@ class MatchDirectController extends AbstractController
         foreach ($this->direct->joueurs($rencontre, array_values($existantes)) as $j) {
             $joueurs[$j['id']] = true;
         }
+        $moi = $this->moi();
         foreach ((array) ($donnees['supprimes'] ?? []) as $uuid) {
-            if (isset($existantes[$uuid])) {
+            if (isset($existantes[$uuid]) && $existantes[$uuid]->modifiablePar($moi)) {
                 $this->em->remove($existantes[$uuid]);
                 unset($existantes[$uuid]);
             }
@@ -93,11 +100,14 @@ class MatchDirectController extends AbstractController
                 continue; // action d'un joueur du club sans joueur du match
             }
             $action = $existantes[$uuid] ?? null;
+            if ($action && !$action->modifiablePar($moi)) {
+                continue; // action d'une autre tablette
+            }
             if (!$action) {
                 if ($this->actions->findOneBy(['uuid' => $uuid])) {
                     continue; // uuid d'un autre match
                 }
-                $action = new ActionMatch($rencontre, $uuid);
+                $action = (new ActionMatch($rencontre, $uuid))->setAuteur($moi);
                 $this->em->persist($action);
                 $existantes[$uuid] = $action;
             }
@@ -112,9 +122,32 @@ class MatchDirectController extends AbstractController
         if (\in_array($infos['terrain'] ?? null, Rencontre::TERRAINS, true)) {
             $rencontre->setTerrain($infos['terrain']);
         }
+        if (\is_array($donnees['chrono'] ?? null)) {
+            $rencontre->majChronoDirect($donnees['chrono']);
+        }
         $this->em->flush();
 
-        return new JsonResponse(['ok' => true, 'total' => \count($existantes)]);
+        return new JsonResponse([
+            'ok' => true,
+            'total' => \count($existantes),
+            'actions' => array_map(fn (ActionMatch $a) => $a->enTableau(), $this->actions->duMatch($rencontre)),
+            'chrono' => $rencontre->getChronoDirect(),
+            'maintenant' => self::maintenant(),
+        ]);
+    }
+
+    private function moi(): \App\Entity\Utilisateur
+    {
+        /** @var \App\Entity\Utilisateur $u */
+        $u = $this->getUser();
+
+        return $u;
+    }
+
+    /** Heure du serveur en millisecondes : les tablettes s'y alignent pour un chrono commun. */
+    private static function maintenant(): int
+    {
+        return (int) floor(microtime(true) * 1000);
     }
 
     #[Route('/matchs/{id}/direct/bilan', name: 'app_match_direct_bilan', requirements: ['id' => '\d+'], methods: ['GET'])]

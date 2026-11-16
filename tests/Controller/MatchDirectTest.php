@@ -87,6 +87,36 @@ class MatchDirectTest extends WebTestCase
         self::assertSame(['MP', 'B', 'BA'], $types);
         self::assertSame('Pluie', $em->find(Rencontre::class, $matchId)->getMeteo());
 
+        // Deuxième tablette (autre compte de l'encadrement) : elle reçoit les actions de la première avec leur auteur,
+        // ne peut ni les corriger ni les supprimer, et ses actions s'ajoutent ; le chrono est commun.
+        $chrono = ['periode' => 1, 'enCours' => true, 'debut' => 1_700_000_000_000, 'cumul' => 0, 'fini' => false, 'sens' => 1, 'maj' => 1_700_000_000_000];
+        $envoyer(['chrono' => $chrono]);
+        $collegue = (new Utilisateur())->setEmail("collegue-$id@exemple.test")->setNom('Collègue')->setPrenom('Paul')->setRolesAttribues(['ROLE_ADMIN']);
+        $collegue->setClub($em->getReference(Club::class, $this->clubId));
+        $em->persist($collegue);
+        $em->flush();
+        $client->loginUser($collegue);
+        $crawler = $client->request('GET', "/matchs/$matchId/direct");
+        $config2 = json_decode($crawler->filter('[data-controller="direct"]')->attr('data-direct-config-value'), true);
+        self::assertSame(1_700_000_000_000, $config2['chrono']['maj'], 'chrono lancé sur la première tablette');
+        self::assertSame('Admin T.', $config2['actions'][0]['par']);
+        $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'jeton' => $config2['jeton'],
+            'supprimes' => ['33333333-3333-4333-8333-333333333333'],
+            'actions' => [['type' => 'FH'] + $actions[0], ['uuid' => '77777777-7777-4777-8777-777777777777', 'joueur' => $leoId, 'type' => 'DG', 'periode' => 1, 'minute' => 10, 'zx' => 2, 'zy' => 2]],
+            'chrono' => ['maj' => 1_600_000_000_000, 'enCours' => false] + $chrono, // plus ancien : ignoré
+        ]));
+        $reponse = json_decode($client->getResponse()->getContent(), true);
+        self::assertSame(4, $reponse['total'], 'but de la première tablette toujours là, duel ajouté');
+        self::assertSame(['MP', 'DG', 'B', 'BA'], array_column($reponse['actions'], 'type'), 'la mauvaise passe de la première tablette n\'est pas devenue une frappe');
+        self::assertSame('Paul C.', $reponse['actions'][1]['par']);
+        self::assertTrue($reponse['chrono']['enCours'], 'un chrono plus ancien ne remplace pas le plus récent');
+        $client->loginUser($admin);
+        $crawler = $client->request('GET', "/matchs/$matchId/direct");
+        $config = json_decode($crawler->filter('[data-controller="direct"]')->attr('data-direct-config-value'), true);
+        $em->clear();
+        self::assertSame(['MP', 'DG', 'B', 'BA'], array_map(fn (ActionMatch $a) => $a->getType(), $em->getRepository(ActionMatch::class)->findBy(['rencontre' => $matchId], ['minute' => 'ASC'])));
+
         // Jeton manquant : refusé.
         $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['actions' => $actions]));
         self::assertResponseStatusCodeSame(403);

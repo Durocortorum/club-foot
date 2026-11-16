@@ -24,8 +24,16 @@
                 </span>
             </div>
             <span class="direct-etat petit"><span data-direct-target="etat"></span>
+                <span class="discret" data-direct-target="horsLigne" hidden title="Cette page est gardée sur la tablette : au stade, elle s'ouvre même sans réseau.">📶 Sans réseau : OK</span>
                 <button type="button" class="bouton petit" data-direct-target="plein" data-action="direct#pleinEcran" title="Cacher les barres du navigateur (tablette)">⛶ Plein écran</button></span>
         </div>
+
+        {# Plusieurs tablettes au même match : chacune coche ce qu'elle suit (gardé sur la tablette). #}
+        <details class="mes-stats">
+            <summary>Mes statistiques : <b data-direct-target="resumeStats">toutes</b></summary>
+            <p class="discret petit">Plusieurs tablettes au même match ? Chacune coche ce qu'elle note (par exemple les passes sur l'une, les duels sur l'autre). Le chrono, le score et le journal sont communs.</p>
+            <div class="choix-cible" data-direct-target="mesStats"></div>
+        </details>
 
         <p class="direct-consigne" data-direct-target="consigne"></p>
 
@@ -67,7 +75,10 @@
                 <a class="bouton" href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">Voir le bilan du match</a>
                 <a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Feuille de match</a>
             </p>
-            <p class="discret petit">Les actions restent sur l'appareil tant qu'elles ne sont pas envoyées : en cas de coupure de réseau, rien n'est perdu, l'envoi reprend tout seul.</p>
+            <p class="discret petit">
+                Sans réseau au stade : ouvrez cette page une fois avant le match (avec du réseau), elle reste ensuite sur la tablette.
+                Les actions notées sans réseau restent sur la tablette et partent toutes seules quand le réseau revient.
+            </p>
         </details>
     </div>
 {% endblock %}

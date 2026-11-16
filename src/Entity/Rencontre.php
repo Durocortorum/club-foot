@@ -121,6 +121,40 @@ class Rencontre implements AppartientAuClub
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $rapport = null;
 
+    /**
+     * Chrono du match en direct, commun à toutes les tablettes : période, en cours ou non, début (ms, heure du serveur),
+     * secondes déjà jouées, fin du match, sens de l'attaque, date de la dernière modification (ms) — la plus récente l'emporte.
+     *
+     * @var array{periode: int, enCours: bool, debut: ?int, cumul: float, fini: bool, sens: int, maj: int}|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $chronoDirect = null;
+
+    public function getChronoDirect(): ?array
+    {
+        return $this->chronoDirect;
+    }
+
+    /** Garde le chrono reçu s'il est plus récent que celui enregistré ; valeurs contrôlées. */
+    public function majChronoDirect(array $chrono): bool
+    {
+        $maj = (int) ($chrono['maj'] ?? 0);
+        if ($maj <= (int) ($this->chronoDirect['maj'] ?? 0)) {
+            return false;
+        }
+        $this->chronoDirect = [
+            'periode' => 2 === (int) ($chrono['periode'] ?? 1) ? 2 : 1,
+            'enCours' => (bool) ($chrono['enCours'] ?? false),
+            'debut' => isset($chrono['debut']) ? (int) $chrono['debut'] : null,
+            'cumul' => max(0.0, min(10800.0, (float) ($chrono['cumul'] ?? 0))),
+            'fini' => (bool) ($chrono['fini'] ?? false),
+            'sens' => -1 === (int) ($chrono['sens'] ?? 1) ? -1 : 1,
+            'maj' => $maj,
+        ];
+
+        return true;
+    }
+
     /** @var Collection<int, Participation> */
     #[ORM\OneToMany(targetEntity: Participation::class, mappedBy: 'rencontre', cascade: ['persist'], orphanRemoval: true)]
     #[ORM\OrderBy(['numero' => 'ASC'])]

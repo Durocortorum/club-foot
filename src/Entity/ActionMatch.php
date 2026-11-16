@@ -41,6 +41,17 @@ class ActionMatch implements AppartientAuClub
         'CA' => 'Corner adverse',
         'BA' => 'But adverse',
     ];
+    /** Groupes que chaque tablette choisit de suivre (« Mes statistiques ») : nom => codes. */
+    public const GROUPES = [
+        'Passes' => ['BP', 'MP'],
+        'Duels' => ['DG', 'DP'],
+        'Contrôles' => ['BC', 'MC'],
+        'Frappes' => ['FC', 'FH'],
+        'Centres' => ['C'],
+        'Corners' => ['CO'],
+        'Buts' => ['B'],
+        'Adversaire' => ['AC', 'AH', 'CA', 'BA'],
+    ];
     public const COLONNES = 6;
     public const COULOIRS = 3;
 
@@ -78,6 +89,29 @@ class ActionMatch implements AppartientAuClub
 
     #[ORM\Column]
     private \DateTimeImmutable $notee;
+
+    /** Qui l'a notée (plusieurs tablettes au même match) : seul lui la corrige pendant le match. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?Utilisateur $auteur = null;
+
+    public function getAuteur(): ?Utilisateur
+    {
+        return $this->auteur;
+    }
+
+    public function setAuteur(?Utilisateur $auteur): static
+    {
+        $this->auteur = $auteur;
+
+        return $this;
+    }
+
+    /** Pendant le match, une action se corrige sur la tablette de celui qui l'a notée (même compte). */
+    public function modifiablePar(Utilisateur $utilisateur): bool
+    {
+        return null === $this->auteur || $this->auteur->getId() === $utilisateur->getId();
+    }
 
     public function __construct(Rencontre $rencontre, string $uuid)
     {
@@ -179,6 +213,7 @@ class ActionMatch implements AppartientAuClub
     public function enTableau(): array
     {
         return ['uuid' => $this->uuid, 'joueur' => $this->joueur?->getId(), 'type' => $this->type, 'periode' => $this->periode,
-            'minute' => $this->minute, 'zx' => $this->zx, 'zy' => $this->zy];
+            'minute' => $this->minute, 'zx' => $this->zx, 'zy' => $this->zy,
+            'auteur' => $this->auteur?->getId(), 'par' => $this->auteur ? trim($this->auteur->getPrenom() . ' ' . mb_substr((string) $this->auteur->getNom(), 0, 1) . '.') : null];
     }
 }
