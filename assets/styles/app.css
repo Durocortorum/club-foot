@@ -314,6 +314,13 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
     .terrain-direct.vertical { max-height: none; }
 }
 .tuile-joueur.adverse { grid-column: span 2; }
+/* Actions de l'adversaire sous les joueurs : toujours visibles, l'action puis la zone. */
+.bloc-adverse { grid-column: 1 / -1; margin-top: .35rem; padding: .45rem; border: 1px dashed #b9bcc4; border-radius: 10px; background: #f1f1f3; }
+.titre-adverse { display: block; font-weight: 700; font-size: .78rem; text-transform: uppercase; color: var(--gris); margin: 0 0 .35rem; }
+.actions-adverses { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .3rem; }
+.actions-adverses .tuile-action { min-height: 2rem; padding: .3rem .4rem; font-size: .76rem; line-height: 1.1; border-left-width: 4px; }
+.actions-adverses .tuile-action b { min-width: 1.9rem; }
+.tuile-joueur { min-height: 2.75rem; padding-top: .3rem; padding-bottom: .3rem; }
 .tuile-joueur .num.sans { color: #c4c6cc; font-weight: 600; }
 /* Saisie des numéros de maillot : une case par joueur. */
 .tuile-joueur.edition { cursor: default; border-color: var(--rouge); }

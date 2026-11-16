@@ -210,12 +210,21 @@ export default class extends Controller {
 
     // ———————— Mes statistiques (ce que suit cette tablette) ————————
 
+    /**
+     * Choix gardé sur la tablette ; les groupes apparus depuis (ex. Têtes, Cartons) sont ajoutés, cochés.
+     * Gardé sous la forme { suivis, connus } ; l'ancienne forme (simple liste) connaissait les 8 premiers groupes.
+     */
     lireMesStats() {
+        const tous = Object.keys(this.cfg.groupes);
         try {
-            const l = JSON.parse(localStorage.getItem(CLE_MES_STATS) || 'null');
-            if (Array.isArray(l) && l.length) return l.filter((g) => g in this.cfg.groupes);
+            const sauve = JSON.parse(localStorage.getItem(CLE_MES_STATS) || 'null');
+            const anciens = ['Passes', 'Duels', 'Contrôles', 'Frappes', 'Centres', 'Corners', 'Buts', 'Adversaire'];
+            const [suivis, connus] = Array.isArray(sauve) ? [sauve, anciens] : [sauve?.suivis, sauve?.connus];
+            if (Array.isArray(suivis) && suivis.length) {
+                return tous.filter((g) => suivis.includes(g) || !(connus || []).includes(g));
+            }
         } catch (e) { /* rien de gardé */ }
-        return Object.keys(this.cfg.groupes);
+        return tous;
     }
 
     dessinerMesStats() {
@@ -229,7 +238,7 @@ export default class extends Controller {
         const coches = [...this.mesStatsTarget.querySelectorAll('input:checked')].map((c) => c.value);
         this.mesStats = coches.length ? coches : Object.keys(this.cfg.groupes);
         try {
-            localStorage.setItem(CLE_MES_STATS, JSON.stringify(this.mesStats));
+            localStorage.setItem(CLE_MES_STATS, JSON.stringify({ suivis: this.mesStats, connus: Object.keys(this.cfg.groupes) }));
         } catch (e) { /* tant pis : le choix vaut pour cette page */ }
         // Cases redessinées seulement si plus rien n'est coché (retour à « toutes ») ; sinon le résumé suffit.
         if (coches.length) {
@@ -292,18 +301,23 @@ export default class extends Controller {
         const avecJoueurs = suivis.some((t) => !this.estAdverse(t));
         const tuiles = avecJoueurs ? this.cfg.joueurs.map((j) => `<button type="button" class="tuile-joueur" data-joueur="${j.id}" data-action="direct#choisirJoueur">
             <span class="num${j.numero ? '' : ' sans'}">${j.numero ?? '?'}</span><span class="nom">${this.echapper(j.nom)}</span><span class="prenom">${this.echapper(j.prenom)}</span></button>`) : [];
-        if (suivis.some((t) => this.estAdverse(t))) {
-            tuiles.push('<button type="button" class="tuile-joueur adverse" data-joueur="0" data-action="direct#choisirJoueur"><span class="nom">Adversaire</span><span class="prenom">frappe, corner, but</span></button>');
+        // Actions de l'adversaire, toujours visibles sous les joueurs : l'action puis la zone (2 touches).
+        const adverses = Object.entries(this.cfg.adverses).filter(([c]) => suivis.includes(c));
+        if (adverses.length) {
+            tuiles.push(`<div class="bloc-adverse"><span class="titre-adverse">Adversaire</span>
+                <div class="actions-adverses">${adverses.map(([c, l]) => this.boutonAction(c, l, true)).join('')}</div></div>`);
         }
         this.joueursTarget.innerHTML = tuiles.join('');
     }
 
+    /** Bouton d'action ; « adverse » abrégé (place comptée sur la tablette), nom complet dans le journal et le bilan. */
+    boutonAction(code, libelle, adverse) {
+        return `<button type="button" class="tuile-action action-${code}${adverse ? ' adverse' : ''}" data-type="${code}" data-action="direct#choisirType" title="${this.echapper(libelle)}"><b>${code}</b> ${this.echapper(libelle.replace(/ adverse\b/, ' adv.'))}</button>`;
+    }
+
     dessinerTypes() {
         const suivis = this.typesSuivis();
-        // Sur les boutons, « adverse » abrégé (place comptée sur la tablette) ; nom complet dans le journal et le bilan.
-        const bouton = (code, libelle, adverse) => `<button type="button" class="tuile-action action-${code}${adverse ? ' adverse' : ''}" data-type="${code}" data-action="direct#choisirType" title="${this.echapper(libelle)}"><b>${code}</b> ${this.echapper(libelle.replace(/ adverse\b/, ' adv.'))}</button>`;
-        this.typesTarget.innerHTML = Object.entries(this.cfg.types).filter(([c]) => suivis.includes(c)).map(([c, l]) => bouton(c, l, false)).join('')
-            + Object.entries(this.cfg.adverses).filter(([c]) => suivis.includes(c)).map(([c, l]) => bouton(c, l, true)).join('');
+        this.typesTarget.innerHTML = Object.entries(this.cfg.types).filter(([c]) => suivis.includes(c)).map(([c, l]) => this.boutonAction(c, l, false)).join('');
     }
 
     choisirJoueur(event) {
@@ -469,12 +483,9 @@ export default class extends Controller {
             const id = Number(b.dataset.joueur);
             b.classList.toggle('choisi', this.choix.joueur !== undefined && (this.choix.joueur ?? 0) === id);
         });
-        // Seules les actions utiles sont montrées (place comptée sur la tablette) : celles de l'adversaire après
-        // « Adversaire » (ou si la tablette ne suit que lui), sinon les nôtres.
-        const adverse = this.choix.joueur === null || !this.typesSuivis().some((t) => !this.estAdverse(t));
-        this.typesTarget.querySelectorAll('[data-type]').forEach((b) => {
+        // Action choisie mise en avant (les nôtres dans « 2. Action », celles de l'adversaire sous les joueurs).
+        this.element.querySelectorAll('.direct-saisie [data-type]').forEach((b) => {
             b.classList.toggle('choisi', b.dataset.type === this.choix.type);
-            b.hidden = adverse !== this.estAdverse(b.dataset.type);
         });
         const j = this.joueur(this.choix.joueur);
         const morceaux = [this.choix.joueur === null ? 'Adversaire' : (j ? `${j.numero ? `${j.numero} ` : ''}${j.nom}` : '…joueur'), this.choix.type ? this.cfg.types[this.choix.type] ?? this.cfg.adverses[this.choix.type] : '…action', '…zone'];

@@ -83,7 +83,7 @@ Pour noter les actions pendant le match, au bord du terrain, sur une tablette (m
 1. Page du match → **⏱ En direct**.
 2. **Coup d'envoi** lance le chrono ; « Pause », « −1 / +1 » pour corriger la minute, « Fin de période » (le terrain change de côté à la mi-temps).
 3. Pour chaque action, trois touches : **le joueur**, **l'action**, **la zone** du terrain (18 zones). La minute est prise au chrono.
-   Actions : bonne / mauvaise passe, duel gagné / perdu, bon / mauvais contrôle, frappe cadrée / hors cadre, tête cadrée / hors cadre, centre, corner, but, carton jaune, carton rouge. Avec la case « Adversaire » (ses boutons s'affichent alors à la place des nôtres) : frappe ou tête adverse cadrée / hors cadre, corner adverse, but adverse, carton jaune ou rouge adverse.
+   Actions : bonne / mauvaise passe, duel gagné / perdu, bon / mauvais contrôle, frappe cadrée / hors cadre, tête cadrée / hors cadre, centre, corner, but, carton jaune, carton rouge. Pour l'**adversaire**, le bloc « Adversaire » sous les joueurs : toucher directement son action (frappe ou tête adverse cadrée / hors cadre, corner, but, carton jaune ou rouge adverse), puis la zone.
 4. Le **journal** en dessous : ✎ pour corriger une action, ✕ pour la supprimer.
 5. **✎ Numéros** (à côté de « 1. Joueur ») : donner ou changer les numéros de maillot ; « ? » = joueur sans numéro.
 6. **Plusieurs tablettes** : chacune choisit « Mes statistiques » (par exemple passes sur l'une, duels sur l'autre) ; chrono, score et journal sont communs ; chacun corrige ses propres actions. Mieux vaut un compte par personne.
