@@ -57,6 +57,11 @@
             </section>
         </div>
 
+        <p class="actions-ligne direct-liens">
+            <a class="bouton" href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">Voir le bilan du match</a>
+            <a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Feuille de match</a>
+        </p>
+
         <section class="direct-journal">
             <h2>Journal du match</h2>
             <ol class="journal" data-direct-target="journal"></ol>
@@ -64,17 +69,13 @@
         </section>
 
         <details class="direct-infos carte">
-            <summary>Infos du match et bilan</summary>
+            <summary>Infos du match (météo, terrain)</summary>
             <div class="champs">
                 <div class="champ"><label for="direct-meteo">Météo</label>
                     <select id="direct-meteo" data-direct-target="meteo" data-action="direct#changerInfos"><option value="">—</option>{% for m in meteos %}<option {{ rencontre.meteo == m ? 'selected' }}>{{ m }}</option>{% endfor %}</select></div>
                 <div class="champ"><label for="direct-sol">État du terrain</label>
                     <select id="direct-sol" data-direct-target="sol" data-action="direct#changerInfos"><option value="">—</option>{% for t in terrains %}<option {{ rencontre.terrain == t ? 'selected' }}>{{ t }}</option>{% endfor %}</select></div>
             </div>
-            <p class="petit">
-                <a class="bouton" href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">Voir le bilan du match</a>
-                <a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Feuille de match</a>
-            </p>
             <p class="discret petit">
                 Sans réseau au stade : ouvrez cette page une fois avant le match (avec du réseau), elle reste ensuite sur la tablette.
                 Les actions notées sans réseau restent sur la tablette et partent toutes seules quand le réseau revient.
