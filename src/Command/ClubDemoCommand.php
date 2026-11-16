@@ -553,7 +553,7 @@ class ClubDemoCommand extends Command
                 $joueurs[] = $p->getJoueur();
             }
         }
-        $types = ['BP' => 30, 'MP' => 10, 'DG' => 12, 'DP' => 9, 'BC' => 10, 'MC' => 5, 'FC' => 3, 'FH' => 3, 'C' => 5, 'CO' => 2, 'AC' => 2, 'AH' => 2, 'CA' => 2];        $tirage = [];
+        $types = ['BP' => 30, 'MP' => 10, 'DG' => 12, 'DP' => 9, 'BC' => 10, 'MC' => 5, 'FC' => 3, 'FH' => 3, 'TC' => 2, 'TH' => 2, 'C' => 5, 'CO' => 2, 'AC' => 2, 'AH' => 2, 'ATC' => 1, 'ATH' => 1, 'CA' => 2];        $tirage = [];
         foreach ($types as $type => $poids) {
             array_push($tirage, ...array_fill(0, $poids, $type));
         }
@@ -565,13 +565,13 @@ class ClubDemoCommand extends Command
         for ($i = 0; $i < 170; ++$i) {
             $type = $tirage[mt_rand(0, \count($tirage) - 1)];
             [$zx, $zy] = match ($type) {
-                'FC', 'FH' => [mt_rand(4, 5), mt_rand(0, 2)],
+                'FC', 'FH', 'TC', 'TH' => [mt_rand(4, 5), mt_rand(0, 2)],
                 'C', 'CO' => [5, [0, 2][mt_rand(0, 1)]],
-                'AC', 'AH' => [mt_rand(0, 1), mt_rand(0, 2)],
+                'AC', 'AH', 'ATC', 'ATH' => [mt_rand(0, 1), mt_rand(0, 2)],
                 'CA' => [0, [0, 2][mt_rand(0, 1)]],
                 default => [mt_rand(0, 5), mt_rand(0, 2)],
             };
-            $joueur = \in_array($type, ['AC', 'AH', 'CA'], true) ? null : $joueurs[mt_rand(0, \count($joueurs) - 1)];
+            $joueur = isset(ActionMatch::ADVERSES[$type]) ? null : $joueurs[mt_rand(0, \count($joueurs) - 1)];
             $ajouter($type, $joueur, mt_rand(1, $duree), $zx, $zy);
         }
         foreach ($r->getButs() as $but) {

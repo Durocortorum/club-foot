@@ -30,6 +30,8 @@ class ActionMatch implements AppartientAuClub
         'MC' => ['Mauvais contrôle', 'controle', false],
         'FC' => ['Frappe cadrée', 'frappe', true],
         'FH' => ['Frappe hors cadre', 'frappe', false],
+        'TC' => ['Tête cadrée', 'tete', true],
+        'TH' => ['Tête hors cadre', 'tete', false],
         'C' => ['Centre', 'centre', null],
         'B' => ['But', 'but', true],
         'CO' => ['Corner', 'corner', null],
@@ -40,6 +42,8 @@ class ActionMatch implements AppartientAuClub
     public const ADVERSES = [
         'AC' => 'Frappe adverse cadrée',
         'AH' => 'Frappe adverse hors cadre',
+        'ATC' => 'Tête adverse cadrée',
+        'ATH' => 'Tête adverse hors cadre',
         'CA' => 'Corner adverse',
         'BA' => 'But adverse',
         'JA' => 'Carton jaune adverse',
@@ -51,11 +55,12 @@ class ActionMatch implements AppartientAuClub
         'Duels' => ['DG', 'DP'],
         'Contrôles' => ['BC', 'MC'],
         'Frappes' => ['FC', 'FH'],
+        'Têtes' => ['TC', 'TH'],
         'Centres' => ['C'],
         'Corners' => ['CO'],
         'Buts' => ['B'],
         'Cartons' => ['CJ', 'CR'],
-        'Adversaire' => ['AC', 'AH', 'CA', 'BA', 'JA', 'RA'],
+        'Adversaire' => ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA', 'JA', 'RA'],
     ];
     public const COLONNES = 6;
     public const COULOIRS = 3;

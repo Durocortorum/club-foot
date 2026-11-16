@@ -469,11 +469,12 @@ export default class extends Controller {
             const id = Number(b.dataset.joueur);
             b.classList.toggle('choisi', this.choix.joueur !== undefined && (this.choix.joueur ?? 0) === id);
         });
-        const adverse = this.choix.joueur === null;
+        // Seules les actions utiles sont montrées (place comptée sur la tablette) : celles de l'adversaire après
+        // « Adversaire » (ou si la tablette ne suit que lui), sinon les nôtres.
+        const adverse = this.choix.joueur === null || !this.typesSuivis().some((t) => !this.estAdverse(t));
         this.typesTarget.querySelectorAll('[data-type]').forEach((b) => {
             b.classList.toggle('choisi', b.dataset.type === this.choix.type);
-            const estAdv = this.estAdverse(b.dataset.type);
-            b.disabled = (adverse && !estAdv) || (this.choix.joueur > 0 && estAdv);
+            b.hidden = adverse !== this.estAdverse(b.dataset.type);
         });
         const j = this.joueur(this.choix.joueur);
         const morceaux = [this.choix.joueur === null ? 'Adversaire' : (j ? `${j.numero ? `${j.numero} ` : ''}${j.nom}` : '…joueur'), this.choix.type ? this.cfg.types[this.choix.type] ?? this.cfg.adverses[this.choix.type] : '…action', '…zone'];

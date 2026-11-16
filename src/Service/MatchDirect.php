@@ -16,7 +16,7 @@ use App\Repository\JoueurRepository;
 class MatchDirect
 {
     /** Pourcentages de réussite affichés : groupe => [code réussi, code raté]. */
-    public const REUSSITES = ['passe' => ['BP', 'MP'], 'duel' => ['DG', 'DP'], 'controle' => ['BC', 'MC'], 'frappe' => ['FC', 'FH']];
+    public const REUSSITES = ['passe' => ['BP', 'MP'], 'duel' => ['DG', 'DP'], 'controle' => ['BC', 'MC'], 'frappe' => ['FC', 'FH'], 'tete' => ['TC', 'TH']];
 
     public function __construct(
         private readonly ConvocationRepository $convocations,

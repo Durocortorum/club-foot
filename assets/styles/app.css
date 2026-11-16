@@ -242,6 +242,10 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .action-MP { --couleur-action: #8fb3e8; } .action-MC { --couleur-action: #f5d000; } .action-BC { --couleur-action: #12285c; }
 .action-B { --couleur-action: #b7791f; } .action-CO { --couleur-action: #6b6e75; }
 .action-AC, .action-AH, .action-CA, .action-BA { --couleur-action: #3d3f45; }
+.action-TC { --couleur-action: #0e8f7e; } .action-TH { --couleur-action: #8fd6cb; }
+.action-ATC, .action-ATH { --couleur-action: #3d3f45; }
+.action-TH.pastille-action { color: #1d1d1f; }
+.tuile-action[hidden] { display: none; }
 .action-CJ, .action-JA { --couleur-action: #f5c400; } .action-CR, .action-RA { --couleur-action: #d62839; }
 .action-CJ.pastille-action, .action-JA.pastille-action { color: #1d1d1f; }
 .pastille-action { display: inline-block; min-width: 1.9rem; text-align: center; border-radius: 4px; padding: 0 .2rem; font-size: .75rem; color: #fff; background: var(--couleur-action, var(--gris)); }
@@ -294,6 +298,7 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .direct-infos { margin-top: .8rem; }
 .direct-infos summary { cursor: pointer; font-weight: 600; }
 .stats-direct td, .stats-direct th { white-space: nowrap; }
+.stats-direct tfoot .total-equipe th, .stats-direct tfoot .total-equipe td { border-top: 2px solid var(--bordure); background: #fafafb; font-weight: 600; color: var(--encre); }
 .pct.bon { color: var(--succes); font-weight: 600; } .pct.faible { color: var(--danger-fonce); }
 /* Tablette en portrait : terrain vertical à droite, tout tient sans faire défiler. */
 @media (max-width: 1100px) {

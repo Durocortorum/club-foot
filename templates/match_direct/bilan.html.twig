@@ -37,7 +37,8 @@
             <div class="tuile"><span class="tuile-valeur">{{ m.pct(reussite(e, 'duel')) }}</span><span class="tuile-libelle">duels gagnés ({{ e.DG + e.DP }})</span></div>
             <div class="tuile"><span class="tuile-valeur">{{ m.pct(reussite(e, 'controle')) }}</span><span class="tuile-libelle">bons contrôles ({{ e.BC + e.MC }})</span></div>
             <div class="tuile"><span class="tuile-valeur">{{ e.FC }} / {{ e.FC + e.FH }}</span><span class="tuile-libelle">frappes cadrées</span></div>
-            <div class="tuile"><span class="tuile-valeur">{{ e.AC }} / {{ e.AC + e.AH }}</span><span class="tuile-libelle">frappes adverses cadrées</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ e.TC }} / {{ e.TC + e.TH }}</span><span class="tuile-libelle">têtes cadrées</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ e.AC + e.ATC }} / {{ e.AC + e.AH + e.ATC + e.ATH }}</span><span class="tuile-libelle">frappes et têtes adverses cadrées</span></div>
             <div class="tuile"><span class="tuile-valeur">{{ e.C }}</span><span class="tuile-libelle">centres</span></div>
             <div class="tuile"><span class="tuile-valeur">{{ e.CO }} – {{ e.CA }}</span><span class="tuile-libelle">corners pour – contre</span></div>
             <div class="tuile"><span class="tuile-valeur"><b class="pastille-action action-CJ">{{ e.CJ }}</b> <b class="pastille-action action-CR">{{ e.CR }}</b></span><span class="tuile-libelle">cartons (adversaire : {{ e.JA }} jaune{{ e.JA > 1 ? 's' }}, {{ e.RA }} rouge{{ e.RA > 1 ? 's' }})</span></div>
@@ -94,7 +95,7 @@
                         <th title="Bonnes passes / mauvaises passes">Passes</th><th>%</th>
                         <th title="Duels gagnés / perdus">Duels</th><th>%</th>
                         <th title="Bons contrôles / mauvais contrôles">Contrôles</th><th>%</th>
-                        <th title="Frappes cadrées / hors cadre">Frappes</th><th>Centres</th><th>Buts</th><th title="Cartons jaunes / rouges">Cartons</th><th>Total</th>
+                        <th title="Frappes cadrées / total">Frappes</th><th title="Têtes cadrées / total">Têtes</th><th>Centres</th><th>Buts</th><th title="Cartons jaunes / rouges">Cartons</th><th>Total</th>
                     </tr></thead>
                     <tbody>
                         {% for l in stats.joueurs %}
@@ -104,12 +105,25 @@
                                 <td>{{ a.BP ?? 0 }} / {{ a.MP ?? 0 }}</td><td>{{ m.pct(reussite(a, 'passe')) }}</td>
                                 <td>{{ a.DG ?? 0 }} / {{ a.DP ?? 0 }}</td><td>{{ m.pct(reussite(a, 'duel')) }}</td>
                                 <td>{{ a.BC ?? 0 }} / {{ a.MC ?? 0 }}</td><td>{{ m.pct(reussite(a, 'controle')) }}</td>
-                                <td>{{ a.FC ?? 0 }} / {{ (a.FC ?? 0) + (a.FH ?? 0) }}</td><td>{{ a.C ?? 0 }}</td><td>{{ a.B ?? 0 }}</td>
+                                <td>{{ a.FC ?? 0 }} / {{ (a.FC ?? 0) + (a.FH ?? 0) }}</td><td>{{ a.TC ?? 0 }} / {{ (a.TC ?? 0) + (a.TH ?? 0) }}</td><td>{{ a.C ?? 0 }}</td><td>{{ a.B ?? 0 }}</td>
                                 <td>{% if a.CJ ?? 0 %}<b class="pastille-action action-CJ">{{ a.CJ }}</b>{% endif %} {% if a.CR ?? 0 %}<b class="pastille-action action-CR">{{ a.CR }}</b>{% endif %}</td>
                                 <td class="fort">{{ l.total }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
+                    {# Toute l'équipe : nos actions (celles sans joueur comprises, comme un corner). #}
+                    {% set totalNous = 0 %}{% for code in types|keys %}{% set totalNous = totalNous + e[code] %}{% endfor %}
+                    <tfoot>
+                        <tr class="total-equipe">
+                            <th class="texte">Équipe</th>
+                            <td>{{ e.BP }} / {{ e.MP }}</td><td>{{ m.pct(reussite(e, 'passe')) }}</td>
+                            <td>{{ e.DG }} / {{ e.DP }}</td><td>{{ m.pct(reussite(e, 'duel')) }}</td>
+                            <td>{{ e.BC }} / {{ e.MC }}</td><td>{{ m.pct(reussite(e, 'controle')) }}</td>
+                            <td>{{ e.FC }} / {{ e.FC + e.FH }}</td><td>{{ e.TC }} / {{ e.TC + e.TH }}</td><td>{{ e.C }}</td><td>{{ e.B }}</td>
+                            <td><b class="pastille-action action-CJ">{{ e.CJ }}</b> <b class="pastille-action action-CR">{{ e.CR }}</b></td>
+                            <td class="fort">{{ totalNous }}</td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </section>
@@ -118,14 +132,14 @@
             <h2>Par quart d'heure</h2>
             <div class="table-defile">
                 <table class="liste chiffres">
-                    <thead><tr><th class="texte">Minutes</th><th>Passes ✓/✗</th><th>Duels ✓/✗</th><th>Frappes</th><th>Frappes adverses</th><th>Buts</th></tr></thead>
+                    <thead><tr><th class="texte">Minutes</th><th>Passes ✓/✗</th><th>Duels ✓/✗</th><th title="Frappes et têtes">Frappes</th><th title="Frappes et têtes de l'adversaire">Frappes adverses</th><th>Buts</th><th title="Nos cartons – ceux de l'adversaire">Cartons</th></tr></thead>
                     <tbody>
                         {% for q in stats.quarts %}
                             {% set a = q.actions %}
                             <tr>
                                 <td class="texte nowrap">{{ q.debut }}′ – {{ q.fin }}′</td>
                                 <td>{{ a.BP ?? 0 }} / {{ a.MP ?? 0 }}</td><td>{{ a.DG ?? 0 }} / {{ a.DP ?? 0 }}</td>
-                                <td>{{ (a.FC ?? 0) + (a.FH ?? 0) }}</td><td>{{ (a.AC ?? 0) + (a.AH ?? 0) }}</td><td>{{ a.B ?? 0 }} – {{ a.BA ?? 0 }}</td>
+                                <td>{{ (a.FC ?? 0) + (a.FH ?? 0) + (a.TC ?? 0) + (a.TH ?? 0) }}</td><td>{{ (a.AC ?? 0) + (a.AH ?? 0) + (a.ATC ?? 0) + (a.ATH ?? 0) }}</td><td>{{ a.B ?? 0 }} – {{ a.BA ?? 0 }}</td><td>{{ (a.CJ ?? 0) + (a.CR ?? 0) }} – {{ (a.JA ?? 0) + (a.RA ?? 0) }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
