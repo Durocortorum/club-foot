@@ -125,11 +125,19 @@ class MatchDirectController extends AbstractController
         if (\is_array($donnees['chrono'] ?? null)) {
             $rencontre->majChronoDirect($donnees['chrono']);
         }
+        // Numéros de maillot donnés sur la tablette (1 à 99, vide : effacé), pour les joueurs du match seulement.
+        foreach ((array) ($donnees['numeros'] ?? []) as $joueurId => $numero) {
+            if (isset($joueurs[(int) $joueurId])) {
+                $n = is_numeric($numero) ? (int) $numero : null;
+                $this->direct->numeroter($rencontre, (int) $joueurId, null !== $n && $n >= 1 && $n <= 99 ? $n : null);
+            }
+        }
         $this->em->flush();
 
         return new JsonResponse([
             'ok' => true,
             'total' => \count($existantes),
+            'joueurs' => $this->direct->joueurs($rencontre, array_values($existantes)),
             'actions' => array_map(fn (ActionMatch $a) => $a->enTableau(), $this->actions->duMatch($rencontre)),
             'chrono' => $rencontre->getChronoDirect(),
             'maintenant' => self::maintenant(),

@@ -130,6 +130,34 @@ class Rencontre implements AppartientAuClub
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $chronoDirect = null;
 
+    /**
+     * Numéros de maillot donnés sur la tablette (match en direct) aux joueurs pas encore sur la feuille de match :
+     * id du joueur => numéro. Repris quand la feuille est préremplie depuis la convocation.
+     *
+     * @var array<int, int>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $numerosDirect = null;
+
+    /** @return array<int, int> */
+    public function getNumerosDirect(): array
+    {
+        return array_map('intval', $this->numerosDirect ?? []);
+    }
+
+    public function setNumeroDirect(int $joueurId, ?int $numero): static
+    {
+        $numeros = $this->numerosDirect ?? [];
+        if (null === $numero) {
+            unset($numeros[$joueurId]);
+        } else {
+            $numeros[$joueurId] = $numero;
+        }
+        $this->numerosDirect = $numeros ?: null;
+
+        return $this;
+    }
+
     public function getChronoDirect(): ?array
     {
         return $this->chronoDirect;

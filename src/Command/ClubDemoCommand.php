@@ -349,6 +349,7 @@ class ClubDemoCommand extends Command
                 if ('U15' === $cat && !$convoque && $date > $aujourdhui) {
                     $convoque = true;
                     $r->setDomicile($adversaire)->setExterieur(self::NOM_EQUIPE)->setLieu('Stade de la Croix');
+                    $this->numeroter($r, \array_slice($effectif, 0, 14));
                     $convocation = (new Convocation($r))->setJoueurs(\array_slice($effectif, 0, 14))->setRdvHeure('12h45')->setRdvLieu('Parking du stade des Coteaux')
                         ->setMessage('Prévoir la tenue complète et une gourde. Retour vers 18 h.');
                     foreach ($convocation->getConvoques() as $n => $c) {
@@ -366,6 +367,7 @@ class ClubDemoCommand extends Command
                 // Prochain match des seniors : convocation envoyée ; le compte joueur (seniors n° 9) n'a pas encore répondu.
                 if ('SENIORS' === $cat && !$convoque && $date > $aujourdhui) {
                     $convoque = true;
+                    $this->numeroter($r, \array_slice($effectif, 0, 16));
                     $convocation = (new Convocation($r))->setJoueurs(\array_slice($effectif, 0, 16))->setRdvHeure('14h00')->setRdvLieu('Vestiaires du stade')
                         ->setMessage('Rendez-vous aux vestiaires, échauffement à 14 h 20.');
                     foreach ($convocation->getConvoques() as $n => $c) {
@@ -383,6 +385,19 @@ class ClubDemoCommand extends Command
         $this->em->flush();
 
         return $joues;
+    }
+
+    /**
+     * Numéros de maillot des convoqués d'un match à venir (saisie en direct) : 1 à 11, puis des numéros hors série.
+     *
+     * @param list<Joueur> $convoques
+     */
+    private function numeroter(Rencontre $r, array $convoques): void
+    {
+        $numeros = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 17, 23, 21, 27];
+        foreach ($convoques as $i => $j) {
+            $r->setNumeroDirect($j->getId(), $numeros[$i] ?? $i + 1);
+        }
     }
 
     /** @param list<Joueur> $effectif */

@@ -286,6 +286,11 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
     .terrain-direct.vertical { max-height: none; }
 }
 .tuile-joueur.adverse { grid-column: span 2; }
+.tuile-joueur .num.sans { color: #c4c6cc; font-weight: 600; }
+/* Saisie des numéros de maillot : une case par joueur. */
+.tuile-joueur.edition { cursor: default; border-color: var(--rouge); }
+.tuile-joueur .num-saisie { grid-row: 1 / 3; width: 3.1rem; padding: .3rem .2rem; text-align: center; font-weight: 800; font-size: 1.1rem; color: var(--rouge); }
+.edition-numeros .panneau-action, .edition-numeros .panneau-zone { opacity: .35; pointer-events: none; }
 /* Téléphone : une étape à la fois (joueur, puis action, puis zone), le fil en haut permet de revenir en arrière. */
 @media (max-width: 700px) {
     .direct-entete { padding: .4rem .55rem; gap: .3rem; }

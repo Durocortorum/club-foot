@@ -20,7 +20,7 @@ const CLE_MES_STATS = 'direct-mes-statistiques';
 export default class extends Controller {
     static values = { config: Object };
     static targets = ['joueurs', 'types', 'terrain', 'journal', 'score', 'chrono', 'minute', 'periode', 'boutonChrono', 'etat', 'consigne',
-        'meteo', 'sol', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne'];
+        'meteo', 'sol', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne', 'boutonNumeros'];
 
     connect() {
         this.cfg = this.configValue;
@@ -36,6 +36,9 @@ export default class extends Controller {
         this.enAttente = sauve.enAttente ?? {};
         this.supprimes = sauve.supprimes ?? [];
         this.infos = sauve.infos ?? {};
+        // Numéros de maillot changés sur cette tablette, pas encore envoyés : id du joueur => numéro (null : effacé).
+        this.numerosAEnvoyer = sauve.numerosAEnvoyer ?? {};
+        this.appliquerNumeros();
         this.mesStats = this.lireMesStats();
         this.fusionner(this.cfg.actions);
         this.choix = { joueur: undefined, type: null, modifie: null };
@@ -78,7 +81,7 @@ export default class extends Controller {
 
     garder() {
         try {
-            localStorage.setItem(this.cle, JSON.stringify({ chrono: this.chrono, chronoAEnvoyer: this.chronoAEnvoyer, enAttente: this.enAttente, supprimes: this.supprimes, infos: this.infos }));
+            localStorage.setItem(this.cle, JSON.stringify({ chrono: this.chrono, chronoAEnvoyer: this.chronoAEnvoyer, enAttente: this.enAttente, supprimes: this.supprimes, infos: this.infos, numerosAEnvoyer: this.numerosAEnvoyer }));
         } catch (e) { /* stockage plein ou interdit : l'envoi au serveur reste tenté */ }
     }
 
@@ -247,11 +250,48 @@ export default class extends Controller {
 
     // ———————— Choix : joueur, action, zone ————————
 
+    // ———————— Numéros de maillot (communs aux tablettes) ————————
+
+    /** Numéros pas encore envoyés : ils priment sur ceux reçus du serveur. */
+    appliquerNumeros() {
+        Object.entries(this.numerosAEnvoyer).forEach(([id, n]) => {
+            const j = this.joueur(Number(id));
+            if (j) j.numero = n;
+        });
+    }
+
+    editerNumeros() {
+        this.editionNumeros = !this.editionNumeros;
+        this.boutonNumerosTarget.textContent = this.editionNumeros ? '✓ Terminé' : '✎ Numéros';
+        this.element.classList.toggle('edition-numeros', this.editionNumeros);
+        this.dessinerJoueurs();
+        this.afficher();
+        if (this.editionNumeros) this.joueursTarget.querySelector('input')?.focus();
+    }
+
+    changerNumero(event) {
+        const id = Number(event.currentTarget.dataset.joueur);
+        const brut = event.currentTarget.value.trim();
+        const n = brut === '' ? null : Math.max(1, Math.min(99, parseInt(brut, 10) || 0)) || null;
+        event.currentTarget.value = n ?? '';
+        this.numerosAEnvoyer[id] = n;
+        this.appliquerNumeros();
+        this.garder();
+        this.envoyer();
+    }
+
     dessinerJoueurs() {
         const suivis = this.typesSuivis();
+        if (this.editionNumeros) {
+            // Saisie des numéros : une case par joueur (clavier numérique sur la tablette).
+            this.joueursTarget.innerHTML = this.cfg.joueurs.map((j) => `<label class="tuile-joueur edition">
+                <input type="number" inputmode="numeric" min="1" max="99" class="num-saisie" value="${j.numero ?? ''}" data-joueur="${j.id}" data-action="change->direct#changerNumero" aria-label="Numéro de ${this.echapper(j.prenom)} ${this.echapper(j.nom)}">
+                <span class="nom">${this.echapper(j.nom)}</span><span class="prenom">${this.echapper(j.prenom)}</span></label>`).join('');
+            return;
+        }
         const avecJoueurs = suivis.some((t) => !this.estAdverse(t));
         const tuiles = avecJoueurs ? this.cfg.joueurs.map((j) => `<button type="button" class="tuile-joueur" data-joueur="${j.id}" data-action="direct#choisirJoueur">
-            <span class="num">${j.numero ?? ''}</span><span class="nom">${this.echapper(j.nom)}</span><span class="prenom">${this.echapper(j.prenom)}</span></button>`) : [];
+            <span class="num${j.numero ? '' : ' sans'}">${j.numero ?? '?'}</span><span class="nom">${this.echapper(j.nom)}</span><span class="prenom">${this.echapper(j.prenom)}</span></button>`) : [];
         if (suivis.some((t) => this.estAdverse(t))) {
             tuiles.push('<button type="button" class="tuile-joueur adverse" data-joueur="0" data-action="direct#choisirJoueur"><span class="nom">Adversaire</span><span class="prenom">frappe, corner, but</span></button>');
         }
@@ -460,13 +500,14 @@ export default class extends Controller {
         const actions = Object.values(this.enAttente);
         const supprimes = [...this.supprimes];
         const chrono = this.chronoAEnvoyer ? { ...this.chrono } : null;
+        const numeros = { ...this.numerosAEnvoyer };
         this.envoiEnCours = true;
         try {
             const avant = Date.now();
             const reponse = await fetch(this.cfg.url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({ jeton: this.cfg.jeton, actions, supprimes, chrono, infos: this.infosAEnvoyer ? this.infos : {} }),
+                body: JSON.stringify({ jeton: this.cfg.jeton, actions, supprimes, chrono, numeros, infos: this.infosAEnvoyer ? this.infos : {} }),
             });
             if (!reponse.ok) {
                 const corps = await reponse.json().catch(() => ({}));
@@ -486,6 +527,15 @@ export default class extends Controller {
                 if (this.chrono.enCours) this.garderEcranAllume();
                 if (this.sensDessine !== (this.chrono.sens > 0 ? 1 : -1)) this.dessinerTerrain();
                 this.tic();
+            }
+            // Numéros envoyés : sortis de l'attente s'ils n'ont pas changé entre-temps ; liste des joueurs du serveur
+            // (numéros donnés sur les autres tablettes), redessinée sauf pendant la saisie des numéros.
+            Object.entries(numeros).forEach(([id, n]) => { if (this.numerosAEnvoyer[id] === n) delete this.numerosAEnvoyer[id]; });
+            if (Array.isArray(donnees.joueurs)) {
+                const avant = JSON.stringify(this.cfg.joueurs);
+                this.cfg.joueurs = donnees.joueurs;
+                this.appliquerNumeros();
+                if (!this.editionNumeros && JSON.stringify(this.cfg.joueurs) !== avant) this.dessinerJoueurs();
             }
             this.fusionner(donnees.actions ?? []);
             this.garder();

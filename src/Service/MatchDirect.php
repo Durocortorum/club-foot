@@ -57,9 +57,32 @@ class MatchDirect
                 $liste[$a->getJoueur()->getId()] = [$a->getJoueur(), null];
             }
         }
+        // Numéros donnés sur la tablette, pour les joueurs qui n'en ont pas sur la feuille.
+        foreach ($rencontre->getNumerosDirect() as $id => $numero) {
+            if (isset($liste[$id]) && null === $liste[$id][1]) {
+                $liste[$id][1] = $numero;
+            }
+        }
         uasort($liste, fn ($a, $b) => [$a[1] ?? 99, $a[0]->getNom(), $a[0]->getPrenom()] <=> [$b[1] ?? 99, $b[0]->getNom(), $b[0]->getPrenom()]);
 
         return array_values(array_map(fn (array $l) => ['id' => $l[0]->getId(), 'nom' => (string) $l[0]->getNom(), 'prenom' => (string) $l[0]->getPrenom(), 'numero' => $l[1]], $liste));
+    }
+
+    /**
+     * Numéro donné sur la tablette : sur la feuille de match si le joueur y est, sinon gardé avec le match
+     * (repris quand la feuille sera préremplie). Null efface le numéro.
+     */
+    public function numeroter(Rencontre $rencontre, int $joueurId, ?int $numero): void
+    {
+        foreach ($rencontre->getParticipations() as $p) {
+            if ($p->getJoueur()?->getId() === $joueurId) {
+                $p->setNumero($numero);
+                $rencontre->setNumeroDirect($joueurId, null);
+
+                return;
+            }
+        }
+        $rencontre->setNumeroDirect($joueurId, $numero);
     }
 
     /** Durée du match en minutes (catégorie), 90 par défaut. */

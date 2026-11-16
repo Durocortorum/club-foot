@@ -117,6 +117,16 @@ class MatchDirectTest extends WebTestCase
         $em->clear();
         self::assertSame(['MP', 'DG', 'B', 'BA'], array_map(fn (ActionMatch $a) => $a->getType(), $em->getRepository(ActionMatch::class)->findBy(['rencontre' => $matchId], ['minute' => 'ASC'])));
 
+        // Numéros de maillot donnés sur la tablette (pas de feuille de match) : gardés avec le match, renvoyés à toutes
+        // les tablettes ; un numéro hors 1-99 efface.
+        $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['jeton' => $config['jeton'], 'numeros' => [$tomId => 23, $leoId => 150]]));
+        $numeros = array_column(json_decode($client->getResponse()->getContent(), true)['joueurs'], 'numero', 'id');
+        self::assertSame(23, $numeros[$tomId]);
+        self::assertNull($numeros[$leoId]);
+        $em->clear();
+        self::assertSame([$tomId => 23], $em->find(Rencontre::class, $matchId)->getNumerosDirect());
+
         // Jeton manquant : refusé.
         $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['actions' => $actions]));
         self::assertResponseStatusCodeSame(403);
