@@ -509,6 +509,15 @@ export default class extends Controller {
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
                 body: JSON.stringify({ jeton: this.cfg.jeton, actions, supprimes, chrono, numeros, infos: this.infosAEnvoyer ? this.infos : {} }),
             });
+            if (reponse.status === 404) {
+                // Match supprimé (sur un autre appareil) : plus rien ne peut être enregistré, on arrête d'essayer.
+                clearInterval(this.relance);
+                this.element.classList.add('match-supprime');
+                this.etatTarget.textContent = 'Ce match a été supprimé : les actions ne sont plus enregistrées.';
+                this.etatTarget.classList.add('alerte');
+                this.consigneTarget.innerHTML = '<b>Ce match a été supprimé</b> (sur un autre appareil ?). Revenez à la liste des <a href="/matchs">matchs</a>.';
+                return;
+            }
             if (!reponse.ok) {
                 const corps = await reponse.json().catch(() => ({}));
                 throw new Error(corps.erreur || `Erreur ${reponse.status}`);

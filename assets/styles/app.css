@@ -208,6 +208,8 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .direct-etat .bouton[hidden] { display: none; }
 .direct-consigne { margin: 0 0 .6rem; font-size: .95rem; }
 .mes-stats { margin: 0 0 .5rem; font-size: .9rem; }
+.direct.match-supprime .direct-saisie { opacity: .35; pointer-events: none; }
+.direct.match-supprime .direct-consigne { color: var(--danger-fonce); }
 .mes-stats summary { cursor: pointer; color: var(--gris); }
 .mes-stats .choix-cible { margin: .4rem 0 .2rem; }
 .journal li.autre { color: var(--gris); }

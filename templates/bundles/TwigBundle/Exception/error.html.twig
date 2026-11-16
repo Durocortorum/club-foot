@@ -1,0 +1,33 @@
+{# Page d'erreur du site (en ligne) : simple, en français, sans dépendre du reste de l'application. #}
+{% set messages = {
+    404: ['Page introuvable', 'Cette page n\'existe pas ou plus : elle a peut-être été supprimée (un match, une fiche…), ou l\'adresse est incomplète.'],
+    403: ['Accès refusé', 'Vous n\'avez pas le droit d\'ouvrir cette page. Si vous pensez que c\'est une erreur, demandez au responsable du club.'],
+    410: ['Lien expiré', 'Ce lien n\'est plus valable. Demandez-en un nouveau au club.'],
+} %}
+{% set message = messages[status_code] ?? ['Une erreur est survenue', 'Le site a rencontré un problème. Réessayez dans un instant ; si cela continue, prévenez le responsable du club.'] %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{{ message[0] }}</title>
+    <style>
+        body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4f4f6; color: #1d1d1f;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 1rem; box-sizing: border-box; }
+        main { max-width: 30rem; background: #fff; border: 1px solid #e3e3e8; border-radius: 14px; padding: 1.6rem 1.4rem; text-align: center; }
+        .code { font-size: .85rem; color: #6b6e75; }
+        h1 { font-size: 1.4rem; margin: .3rem 0 .7rem; }
+        p { line-height: 1.5; color: #3a3b40; }
+        a { display: inline-block; margin-top: .6rem; padding: .6rem 1.1rem; border-radius: 8px; background: #1d6fd8; color: #fff; text-decoration: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="code">Erreur {{ status_code }}</div>
+        <h1>{{ message[0] }}</h1>
+        <p>{{ message[1] }}</p>
+        <a href="/">Retour à l'accueil</a>
+    </main>
+</body>
+</html>
