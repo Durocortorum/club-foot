@@ -43,6 +43,34 @@
             <div class="tuile"><span class="tuile-valeur"><b class="pastille-action action-CJ">{{ e.CJ }}</b> <b class="pastille-action action-CR">{{ e.CR }}</b></span><span class="tuile-libelle">cartons (adversaire : {{ e.JA }} jaune{{ e.JA > 1 ? 's' }}, {{ e.RA }} rouge{{ e.RA > 1 ? 's' }})</span></div>
         </div>
 
+        <section class="carte bloc" id="carte">
+            <h2>Carte du terrain</h2>
+            <form method="get" class="filtres" action="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}#carte">
+                <select name="type" onchange="this.form.requestSubmit()" aria-label="Action">
+                    <option value="">Toutes les actions (les deux équipes)</option>
+                    <option value="nous" {{ type == 'nous' ? 'selected' }}>Toutes nos actions</option>
+                    <option value="adverse" {{ type == 'adverse' ? 'selected' }}>Tout ce qu'a fait l'adversaire</option>
+                    <optgroup label="Nos actions">{% for code, t in types %}<option value="{{ code }}" {{ type == code ? 'selected' }}>{{ t[0] }}</option>{% endfor %}</optgroup>
+                    <optgroup label="Adversaire">{% for code, l in adverses %}<option value="{{ code }}" {{ type == code ? 'selected' }}>{{ l }}</option>{% endfor %}</optgroup>
+                </select>
+                <select name="joueur" onchange="this.form.requestSubmit()" aria-label="Joueur">
+                    <option value="">Toute l'équipe</option>
+                    {% for l in stats.joueurs %}<option value="{{ l.joueur.id }}" {{ joueur == l.joueur.id ? 'selected' }}>{{ l.joueur.nom }} {{ l.joueur.prenom }}</option>{% endfor %}
+                </select>
+            </form>
+            <p class="discret petit">Nous attaquons vers la droite. Plus la zone est foncée, plus il y a d'actions.</p>
+            <div class="terrain-direct horizontal carte-chaleur">
+                <span class="marque mediane"></span><span class="marque rond"></span>
+                <span class="marque surface nous"></span><span class="marque surface eux"></span>
+                <div class="zones">
+                    {% for zx in 0..5 %}{% for zy in 0..2 %}
+                        {% set n = carte[zx][zy] %}
+                        <span class="zone" style="grid-row:{{ zy + 1 }};grid-column:{{ zx + 1 }};--intensite:{{ (n / max_carte)|round(2) }}">{{ n ?: '' }}</span>
+                    {% endfor %}{% endfor %}
+                </div>
+            </div>
+        </section>
+
         <section class="carte bloc">
             <h2>Par joueur</h2>
             <div class="table-defile">
@@ -69,34 +97,6 @@
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
-        </section>
-
-        <section class="carte bloc" id="carte">
-            <h2>Carte du terrain</h2>
-            <form method="get" class="filtres" action="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}#carte">
-                <select name="type" onchange="this.form.requestSubmit()" aria-label="Action">
-                    <option value="">Toutes les actions (les deux équipes)</option>
-                    <option value="nous" {{ type == 'nous' ? 'selected' }}>Toutes nos actions</option>
-                    <option value="adverse" {{ type == 'adverse' ? 'selected' }}>Tout ce qu'a fait l'adversaire</option>
-                    <optgroup label="Nos actions">{% for code, t in types %}<option value="{{ code }}" {{ type == code ? 'selected' }}>{{ t[0] }}</option>{% endfor %}</optgroup>
-                    <optgroup label="Adversaire">{% for code, l in adverses %}<option value="{{ code }}" {{ type == code ? 'selected' }}>{{ l }}</option>{% endfor %}</optgroup>
-                </select>
-                <select name="joueur" onchange="this.form.requestSubmit()" aria-label="Joueur">
-                    <option value="">Toute l'équipe</option>
-                    {% for l in stats.joueurs %}<option value="{{ l.joueur.id }}" {{ joueur == l.joueur.id ? 'selected' }}>{{ l.joueur.nom }} {{ l.joueur.prenom }}</option>{% endfor %}
-                </select>
-            </form>
-            <p class="discret petit">Nous attaquons vers la droite. Plus la zone est foncée, plus il y a d'actions.</p>
-            <div class="terrain-direct horizontal carte-chaleur">
-                <span class="marque mediane"></span><span class="marque rond"></span>
-                <span class="marque surface nous"></span><span class="marque surface eux"></span>
-                <div class="zones">
-                    {% for zx in 0..5 %}{% for zy in 0..2 %}
-                        {% set n = carte[zx][zy] %}
-                        <span class="zone" style="grid-row:{{ zy + 1 }};grid-column:{{ zx + 1 }};--intensite:{{ (n / max_carte)|round(2) }}">{{ n ?: '' }}</span>
-                    {% endfor %}{% endfor %}
-                </div>
             </div>
         </section>
 
