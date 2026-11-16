@@ -73,7 +73,7 @@ class ConvocationRetraitTest extends WebTestCase
         $crawler = $this->client->followRedirect();
 
         // Tom décoché, enregistré : il n'est plus convoqué.
-        $form = $crawler->selectButton('Enregistrer')->form();
+        $form = $crawler->filter('form[name="form"]')->form();
         foreach ($form['form[joueurs]'] as $case) {
             if ($case->availableOptionValues() === [(string) $tom->getId()]) {
                 $case->untick();

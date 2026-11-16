@@ -60,11 +60,13 @@ class RechercheGuide
     public function chercher(string $question, bool $famille = false): array
     {
         $this->charger();
+        // Poids de chaque mot : le premier mot utile (« comment CONVOQUER mes joueurs… ») est le plus souvent
+        // l'action cherchée, il compte davantage ; un synonyme compte un peu moins.
         $termes = [];
-        foreach (self::mots($question) as $mot) {
-            $termes[$mot] = true;
+        foreach (self::mots($question) as $n => $mot) {
+            $termes[$mot] = max($termes[$mot] ?? 0, 0 === $n ? 1.6 : 1.0);
             foreach (self::SYNONYMES[$mot] ?? [] as $s) {
-                $termes[$s] ??= false; // synonyme : compté un peu moins
+                $termes[$s] ??= 0.6;
             }
         }
         if (!$termes) {
@@ -75,14 +77,14 @@ class RechercheGuide
         foreach ($this->passages as $i => $p) {
             $note = 0.0;
             $normalisation = self::K1 * (1 - self::B + self::B * $p['longueur'] / $this->longueurMoyenne);
-            foreach ($termes as $terme => $direct) {
+            foreach ($termes as $terme => $poids) {
                 if (isset($p['mots'][$terme])) {
                     $tf = $p['mots'][$terme];
-                    $note += ($this->rarete[$terme] ?? 1.0) * $tf * (self::K1 + 1) / ($tf + $normalisation) * ($direct ? 1.0 : 0.6);
+                    $note += ($this->rarete[$terme] ?? 1.0) * $tf * (self::K1 + 1) / ($tf + $normalisation) * $poids;
                 }
                 // Mot du titre (rubrique, ou libellé en gras en tête du passage) : le sujet même du passage.
                 if (isset($p['titre'][$terme])) {
-                    $note += ($this->rarete[$terme] ?? 1.0) * self::BONUS_TITRE * ($direct ? 1.0 : 0.6);
+                    $note += ($this->rarete[$terme] ?? 1.0) * self::BONUS_TITRE * $poids;
                 }
             }
             if ($note > 0) {
