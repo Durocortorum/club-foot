@@ -8,7 +8,7 @@
             <div class="connexion-titre">
                 <img class="blason grand" src="{{ logo_club }}" alt="">
                 <h1>Créer mon club</h1>
-                <p>Gratuit, en une minute. Vous pourrez ensuite ajouter votre logo, vos couleurs, vos éducateurs et vos joueurs.</p>
+                <p>En une minute, avec {{ legal.essai_jours }} jours d'essai gratuit. Vous pourrez ensuite ajouter votre logo, vos couleurs, vos éducateurs et vos joueurs.</p>
             </div>
 
             {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
@@ -30,7 +30,11 @@
                 <h2 class="bloc">Option</h2>
                 <div class="champ case-filtre case-longue">{{ form_widget(form.paiementEnLigne) }}{{ form_label(form.paiementEnLigne) }}</div>
                 <p class="discret petit">Si vous la cochez, l'étape suivante vous guide pour relier le compte HelloAsso du club (ou le créer). Modifiable ensuite dans les paramètres.</p>
-                <div class="champ case-filtre case-longue">{{ form_widget(form.conditions) }}{{ form_label(form.conditions) }}</div>
+                <div class="champ case-filtre case-longue">{{ form_widget(form.conditions) }}<label for="{{ form.conditions.vars.id }}">
+                    Je suis responsable de ce club (ou mandaté par lui) et j'accepte les <a href="{{ path('app_legal_cgv') }}" target="_blank">conditions générales de vente</a>,
+                    dont l'<a href="{{ path('app_legal_cgv') }}#sous-traitance" target="_blank">accord de traitement des données</a>,
+                    et les <a href="{{ path('app_legal_cgu') }}" target="_blank">conditions d'utilisation</a>.
+                </label></div>
                 {{ form_errors(form.conditions) }}
                 <div class="piege" aria-hidden="true">{{ form_widget(form.site) }}</div>
 

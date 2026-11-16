@@ -386,14 +386,16 @@ class EspaceController extends AbstractController
                 ],
             ])
             ->add('accord', CheckboxType::class, [
-                'label' => 'J\'ai pris connaissance de l\'utilisation de mes données par le club (ci-dessus).',
+                // Texte affiché par le gabarit (espace/activation.html.twig), avec les liens vers les CGU et la politique de confidentialité.
+                'label' => 'J\'accepte les conditions d\'utilisation.',
                 'constraints' => [new IsTrue(message: 'Merci de cocher cette case pour continuer.')],
             ])
             ->getForm();
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $compte->setPassword($hasher->hashPassword($compte, $form->get('motDePasse')->getData()))->effacerJeton();
+            $compte->setPassword($hasher->hashPassword($compte, $form->get('motDePasse')->getData()))->effacerJeton()
+                ->accepterConditions($this->getParameter('legal')['version']);
             $em->flush();
             $security->login($compte, 'form_login', 'main');
             $this->addFlash('succes', 'Votre compte est prêt. À l\'avenir, connectez-vous avec votre adresse e-mail et ce mot de passe.');

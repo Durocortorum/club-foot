@@ -69,6 +69,31 @@ class Club
     #[ORM\Column(options: ['default' => false])]
     private bool $paiementEnLigne = false;
 
+    /** Conditions générales de vente (et accord de traitement des données) acceptées à l'inscription : date et version. */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $conditionsAccepteesLe = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $conditionsVersion = null;
+
+    public function getConditionsAccepteesLe(): ?\DateTimeImmutable
+    {
+        return $this->conditionsAccepteesLe;
+    }
+
+    public function getConditionsVersion(): ?string
+    {
+        return $this->conditionsVersion;
+    }
+
+    public function accepterConditions(string $version): static
+    {
+        $this->conditionsAccepteesLe = new \DateTimeImmutable();
+        $this->conditionsVersion = $version;
+
+        return $this;
+    }
+
     public function getAdresse(): ?string
     {
         return $this->adresse;

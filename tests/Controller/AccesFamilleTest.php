@@ -127,6 +127,9 @@ class AccesFamilleTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         $this->client->submit($form, ['form[motDePasse][first]' => 'secret-famille', 'form[motDePasse][second]' => 'secret-famille', 'form[accord]' => true]);
         self::assertResponseRedirects('/espace');
+        // Conditions d'utilisation acceptées à l'activation : version enregistrée sur le compte.
+        self::assertSame(static::getContainer()->getParameter('legal')['version'],
+            static::getContainer()->get('doctrine')->getConnection()->fetchOne('SELECT conditions_version FROM utilisateur WHERE email = ?', [$this->client->getContainer()->get('security.token_storage')->getToken()?->getUserIdentifier()]));
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'Léa');
         self::assertSelectorTextContains('main', 'Tom');

@@ -38,8 +38,9 @@ class InscriptionController extends AbstractController
             if ($utilisateurs->tousClubs(['email' => $email])) {
                 $form->get('email')->addError(new FormError('Un compte existe déjà avec cette adresse e-mail. Connectez-vous, ou utilisez une autre adresse.'));
             } else {
-                $club = (new Club())->setNom($donnees['club'])->setPaiementEnLigne((bool) $donnees['paiementEnLigne']);
-                $administrateur = (new Utilisateur())->setEmail($email)->setPrenom(trim($donnees['prenom']))->setNom(trim($donnees['nom']));
+                $version = $this->getParameter('legal')['version'];
+                $club = (new Club())->setNom($donnees['club'])->setPaiementEnLigne((bool) $donnees['paiementEnLigne'])->accepterConditions($version);
+                $administrateur = (new Utilisateur())->setEmail($email)->setPrenom(trim($donnees['prenom']))->setNom(trim($donnees['nom']))->accepterConditions($version);
                 $creation->creer($club, $administrateur, $donnees['motDePasse']);
                 $security->login($administrateur, 'form_login', 'main');
                 if ($club->isPaiementEnLigne()) {

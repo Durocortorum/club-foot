@@ -1,0 +1,133 @@
+{% extends 'legal/_page.html.twig' %}
+{% import 'legal/_page.html.twig' as l %}
+
+{% block title %}Conditions générales de vente{% endblock %}
+
+{% block texte %}
+    <p>
+        Ces conditions régissent l'abonnement à {{ legal.service }} entre {{ legal.editeur }} (« l'éditeur », voir les
+        <a href="{{ path('app_legal_mentions') }}">mentions légales</a>) et le club, association ou société sportive
+        (« le club »), représenté par la personne qui l'inscrit. En créant le club dans l'application, cette personne déclare
+        en avoir le pouvoir et accepte ces conditions, ainsi que l'accord de traitement des données en annexe.
+    </p>
+
+    <h2>1. Objet</h2>
+    <p>
+        L'éditeur met à la disposition du club, par internet, l'application {{ legal.service }} : un logiciel de gestion de club
+        (joueurs, équipes, matchs, entraînements, convocations, messages, espace famille, suivi médical et scolaire, finances…),
+        hébergé et maintenu par l'éditeur. Les fonctions dépendent de la formule choisie.
+    </p>
+
+    <h2>2. Inscription et essai gratuit</h2>
+    <p>
+        Le club s'inscrit en ligne. Il bénéficie d'un essai gratuit de {{ l.valeur(legal.essai_jours, 'durée') }} jours, sans engagement.
+        À la fin de l'essai, le club choisit une formule pour continuer ; à défaut, son accès peut être suspendu, puis ses données
+        supprimées comme prévu à l'article 9.
+    </p>
+
+    <h2>3. Formules et prix</h2>
+    <table class="liste">
+        <thead><tr><th>Formule</th><th class="a-droite">Prix par mois et par club</th></tr></thead>
+        <tbody>
+            {% for nom, prix in legal.prix %}<tr><td>{{ nom }}</td><td class="a-droite">{{ prix }} €</td></tr>{% endfor %}
+        </tbody>
+    </table>
+    <p>
+        Le détail des fonctions de chaque formule est présenté au club avant la souscription. {{ l.valeur(legal.tva, 'prix HT ou TTC : TVA applicable ou « TVA non applicable, article 293 B du CGI »') }}.
+        Les options (envoi de SMS…) et la personnalisation font l'objet d'un devis. Les prix peuvent évoluer : le club est prévenu
+        au moins un mois avant ; il peut alors résilier sans frais.
+    </p>
+
+    <h2>4. Paiement</h2>
+    <p>
+        L'abonnement est payable chaque mois (ou chaque saison si le club le choisit), à réception de la facture, par virement
+        ou prélèvement. En cas de retard de paiement, après une relance restée sans effet pendant 15 jours, l'accès peut être
+        suspendu jusqu'au paiement. Pour un club professionnel, des pénalités de retard (trois fois le taux d'intérêt légal)
+        et l'indemnité forfaitaire de 40 € pour frais de recouvrement s'appliquent.
+    </p>
+    <p>
+        Les paiements des familles au club (cotisations, stages, boutique) passent par le compte HelloAsso du club : ils ne
+        transitent pas par l'éditeur et sont régis par les conditions de HelloAsso.
+    </p>
+
+    <h2>5. Durée et résiliation</h2>
+    <p>
+        L'abonnement est sans engagement de durée : il se renouvelle chaque mois et peut être résilié à tout moment, par e-mail
+        à <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>, avec effet à la fin du mois en cours. Un abonnement payé à la
+        saison se renouvelle à la saison ; l'éditeur rappelle au club, un à trois mois avant l'échéance, qu'il peut ne pas le
+        reconduire (article L215-1 du Code de la consommation).
+    </p>
+    <p>L'éditeur peut résilier l'abonnement en cas de manquement grave du club, après une mise en demeure restée sans effet pendant 30 jours.</p>
+
+    <h2>6. Obligations du club</h2>
+    <ul>
+        <li>Désigner un administrateur, attribuer les comptes et les droits d'accès à bon escient, et retirer l'accès des personnes qui quittent le club.</li>
+        <li>N'enregistrer que des données utiles à la vie du club, exactes et à jour.</li>
+        <li>Informer les joueurs, les parents et l'encadrement de l'utilisation de leurs données et recueillir les accords nécessaires (droit à l'image, données de santé, représentants légaux des mineurs).</li>
+        <li>Réserver les données médicales au personnel médical et les données scolaires aux personnes qui en ont besoin.</li>
+        <li>Faire respecter les <a href="{{ path('app_legal_cgu') }}">conditions d'utilisation</a> par ses utilisateurs.</li>
+    </ul>
+
+    <h2>7. Obligations de l'éditeur</h2>
+    <ul>
+        <li>Fournir l'application et la maintenir en état de fonctionnement, avec ses corrections et améliorations.</li>
+        <li>Héberger les données du club de façon sécurisée et en faire des sauvegardes régulières.</li>
+        <li>Prévenir le club, si possible à l'avance, des interruptions pour maintenance.</li>
+        <li>Répondre aux questions du club par e-mail.</li>
+    </ul>
+    <p>
+        L'éditeur est tenu d'une obligation de moyens. Il ne garantit pas un service sans interruption. Sa responsabilité est
+        limitée aux dommages directs, dans la limite des sommes payées par le club au cours des douze derniers mois ; elle ne
+        couvre pas les décisions prises par le club ni les contenus qu'il enregistre.
+    </p>
+
+    <h2>8. Données personnelles</h2>
+    <p>
+        Pour les données des joueurs, des familles et de l'encadrement, le club est <strong>responsable du traitement</strong> et
+        l'éditeur est son <strong>sous-traitant</strong> (article 28 du RGPD). Leurs engagements figurent dans l'annexe ci-dessous.
+        Les données de contact de l'administrateur du club, utilisées pour l'abonnement et la facturation, sont traitées par l'éditeur
+        comme indiqué dans la <a href="{{ path('app_legal_confidentialite') }}">politique de confidentialité</a>.
+    </p>
+
+    <h2>9. Fin du contrat et récupération des données</h2>
+    <p>
+        Avant la fin de l'abonnement, le club peut exporter ses listes (joueurs, encadrement, contacts : format Excel) depuis
+        l'application ; sur demande, l'éditeur lui fournit une copie de ses données. Trois mois après la fin de l'abonnement,
+        toutes les données du club sont supprimées définitivement, sauvegardes comprises au fil de leur renouvellement.
+    </p>
+
+    <h2>10. Propriété intellectuelle</h2>
+    <p>
+        L'application reste la propriété de l'éditeur ; le club en reçoit un droit d'utilisation pour la durée de l'abonnement.
+        Les données et contenus du club (dont son logo) restent sa propriété.
+    </p>
+
+    <h2>11. Modification des conditions</h2>
+    <p>
+        L'éditeur peut modifier ces conditions ; le club est informé au moins un mois avant l'entrée en vigueur d'un changement
+        important et peut résilier sans frais s'il le refuse.
+    </p>
+
+    <h2>12. Droit applicable et litiges</h2>
+    <p>
+        Ces conditions sont soumises au droit français. Les parties cherchent d'abord une solution amiable. À défaut, pour un club
+        professionnel, le tribunal de {{ l.valeur(legal.tribunal, 'ville du tribunal compétent') }} est seul compétent ;
+        pour une association, les règles de compétence de droit commun s'appliquent.
+    </p>
+
+    <h2 id="sous-traitance">Annexe – Accord de traitement des données (article 28 du RGPD)</h2>
+    <p>Cet accord fait partie des conditions générales de vente. Le club (« responsable de traitement ») confie à l'éditeur (« sous-traitant ») le traitement suivant.</p>
+    <dl class="dl-legal">
+        <dt>Objet et durée</dt><dd>Hébergement et fonctionnement de l'application {{ legal.service }} pour la gestion du club, pendant toute la durée de l'abonnement et jusqu'à la suppression prévue à l'article 9.</dd>
+        <dt>Personnes concernées</dt><dd>Joueurs (dont des mineurs), parents et représentants légaux, encadrement (dirigeants, éducateurs, bénévoles, arbitres, personnel médical), contacts du club (partenaires, sponsors, candidats).</dd>
+        <dt>Données</dt><dd>Identité et coordonnées, date de naissance, photo, licence, informations sportives (matchs, statistiques, présences, tests), scolarité, discipline, cotisations et paiements, transport (permis), messages ; données de santé (blessures, dossiers médicaux) pour les clubs qui utilisent l'infirmerie.</dd>
+        <dt>Instructions</dt><dd>L'éditeur ne traite les données que pour faire fonctionner l'application selon les réglages et actions du club ; il ne les utilise pour aucun autre but, ne les vend pas et ne les communique à personne, sauf obligation légale.</dd>
+        <dt>Confidentialité</dt><dd>Les personnes qui interviennent pour l'éditeur sont tenues au secret. L'éditeur n'accède aux données du club que lorsque c'est nécessaire (assistance demandée par le club, maintenance, sécurité).</dd>
+        <dt>Sécurité</dt><dd>Connexion chiffrée (HTTPS), mots de passe chiffrés, cloisonnement des données entre clubs, droits d'accès par rôle, accès aux données médicales ouvert seulement par un code envoyé par e-mail et pour une durée limitée, secrets de paiement chiffrés, sauvegardes régulières.</dd>
+        <dt>Sous-traitants ultérieurs</dt><dd>{{ legal.hebergeur }} ({{ legal.hebergeur_adresse }}) : hébergement du site, de la base de données et envoi des e-mails. Services de notification des navigateurs (Google, Apple, Mozilla) : acheminement des notifications sur téléphone, dont le contenu est chiffré. L'éditeur informe le club de tout changement de sous-traitant ; le club peut s'y opposer en résiliant.</dd>
+        <dt>Droits des personnes</dt><dd>Le club répond aux demandes (accès, rectification, effacement…) ; l'application lui permet de modifier ou supprimer les fiches et comptes. L'éditeur l'aide pour les demandes qu'il ne peut pas traiter seul.</dd>
+        <dt>Violation de données</dt><dd>L'éditeur prévient le club au plus tard 48 heures après avoir pris connaissance d'une violation de données, avec les informations utiles à sa déclaration à la CNIL.</dd>
+        <dt>Fin du traitement</dt><dd>À la fin de l'abonnement, l'éditeur restitue les données sur demande puis les supprime (article 9).</dd>
+        <dt>Contrôle</dt><dd>L'éditeur fournit au club, sur demande, les informations qui montrent le respect de ces engagements.</dd>
+    </dl>
+{% endblock %}

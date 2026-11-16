@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{# Pages légales : un sommaire commun, la date de version, puis le texte (bloc « texte »).
+   valeur(x, 'quoi') : la valeur de config/packages/legal.yaml, ou « [à compléter : quoi] » si elle est vide. #}
+{% macro valeur(x, quoi) %}{% if x is not empty %}{{ x }}{% else %}<mark class="a-completer">[à compléter : {{ quoi }}]</mark>{% endif %}{% endmacro %}
+
+{% block body %}
+    <article class="page-legale">
+        <nav class="sommaire sans-impression" aria-label="Pages légales">
+            {% for cle, page in constant('App\\Controller\\LegalController::PAGES') %}
+                <a href="{{ page[0] }}" class="{{ app.request.pathInfo == page[0] ? 'actif' }}">{{ page[1] }}</a>
+            {% endfor %}
+        </nav>
+        <h1>{{ block('title') }}</h1>
+        <p class="discret petit">{{ legal.service }} · version du {{ legal.version|date('d/m/Y') }}</p>
+        {% block texte %}{% endblock %}
+    </article>
+{% endblock %}

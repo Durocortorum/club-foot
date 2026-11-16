@@ -1,0 +1,72 @@
+{% extends 'legal/_page.html.twig' %}
+{% import 'legal/_page.html.twig' as l %}
+
+{% block title %}Conditions générales d'utilisation{% endblock %}
+
+{% block texte %}
+    <p>
+        Ces conditions s'appliquent à toute personne qui utilise {{ legal.service }} : membres de l'encadrement d'un club
+        (dirigeants, éducateurs, personnel médical…), joueurs et parents qui utilisent l'espace famille.
+        En activant ou en utilisant votre compte, vous les acceptez.
+    </p>
+
+    <h2>1. Le service</h2>
+    <p>
+        {{ legal.service }}, édité par {{ legal.editeur }} (voir les <a href="{{ path('app_legal_mentions') }}">mentions légales</a>),
+        permet à un club de football d'organiser sa vie sportive et associative : joueurs, équipes, matchs, entraînements,
+        convocations, messages, suivi médical et scolaire, finances… Le club a souscrit l'abonnement
+        (<a href="{{ path('app_legal_cgv') }}">conditions générales de vente</a>) ; l'utilisation est gratuite pour les joueurs et les familles.
+    </p>
+
+    <h2>2. Votre compte</h2>
+    <ul>
+        <li>Votre compte est ouvert par votre club : il vous invite (lien d'activation) ou crée votre accès. Le club décide de ce que vous voyez (droits d'accès).</li>
+        <li>Votre mot de passe est personnel et confidentiel. Ne le communiquez à personne ; prévenez votre club si vous pensez qu'il est connu d'un tiers.</li>
+        <li>Un joueur de moins de 15 ans n'a de compte qu'avec l'accord de son représentant légal ; le plus souvent, ce sont les parents qui ont le compte.</li>
+        <li>Un joueur majeur décide lui-même de l'accès de ses proches à son espace.</li>
+    </ul>
+
+    <h2>3. Bon usage</h2>
+    <ul>
+        <li>Utilisez l'application uniquement pour la vie du club.</li>
+        <li>Dans les messages, restez courtois : pas de propos injurieux, discriminatoires ou diffamatoires, pas de publicité.</li>
+        <li>Les informations sur les autres personnes (en particulier les mineurs, les données médicales et scolaires) sont confidentielles : ne les copiez pas et ne les diffusez pas hors du club.</li>
+        <li>Ne publiez une photo ou une information que si vous en avez le droit.</li>
+        <li>N'essayez pas d'accéder à des données qui ne vous sont pas destinées, ni de perturber le fonctionnement du service.</li>
+    </ul>
+    <p>En cas de manquement, le club ou l'éditeur peut suspendre le compte.</p>
+
+    <h2>4. Rôles et responsabilités</h2>
+    <p>
+        Le club est responsable des informations qu'il enregistre et de l'attribution des droits. L'éditeur fournit l'outil,
+        veille à son bon fonctionnement et à la sécurité des données, sans garantir une disponibilité permanente
+        (maintenance, panne). Il n'est pas responsable des décisions prises par le club ni des contenus publiés par les utilisateurs.
+    </p>
+
+    <h2>5. Notifications et e-mails</h2>
+    <p>
+        Vous recevez par e-mail (et, si vous l'activez, en notification sur votre téléphone) les informations de votre club :
+        convocations, entraînements annulés, messages. Les notifications se désactivent à tout moment depuis votre espace
+        ou les réglages du téléphone.
+    </p>
+
+    <h2>6. Vos données</h2>
+    <p>Leur utilisation et vos droits sont décrits dans la <a href="{{ path('app_legal_confidentialite') }}">politique de confidentialité</a>.</p>
+
+    <h2>7. Fin d'utilisation</h2>
+    <p>
+        Vous pouvez demander à votre club de fermer votre compte à tout moment. Le compte est aussi fermé si le club
+        met fin à son abonnement.
+    </p>
+
+    <h2>8. Modification des conditions</h2>
+    <p>
+        Ces conditions peuvent évoluer ; la version en vigueur est datée en haut de page. En cas de changement important,
+        les utilisateurs en sont informés dans l'application.
+    </p>
+
+    <h2>9. Droit applicable</h2>
+    <p>
+        Ces conditions sont soumises au droit français. Pour toute question : <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>.
+    </p>
+{% endblock %}

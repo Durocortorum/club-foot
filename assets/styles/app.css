@@ -187,6 +187,18 @@ fieldset { min-width: 0; }
 .en-ligne { display: inline; }
 .bouton.petit { padding: .2rem .55rem; font-size: .85rem; }
 .pastille.alerte { background: var(--danger-clair); color: var(--danger-fonce); }
+/* Pied de page : liens vers les pages légales. */
+.pied { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem 1.2rem; padding: 1.2rem 1rem 1.6rem; font-size: .8rem; }
+.pied a { color: var(--gris); }
+/* Pages légales (mentions, CGU, CGV, confidentialité) */
+.page-legale { max-width: 52rem; margin: 0 auto; line-height: 1.55; }
+.page-legale h2 { font-size: 1.1rem; margin: 1.6rem 0 .5rem; }
+.page-legale .sommaire a.actif { background: var(--rouge); border-color: var(--rouge); color: var(--sur-rouge); }
+.page-legale table.liste { background: #fff; border: 1px solid var(--bordure); border-radius: var(--rayon); margin: .5rem 0; }
+.page-legale td { vertical-align: top; }
+mark.a-completer { background: #fff1b8; color: #6b4410; padding: 0 .25rem; border-radius: 3px; }
+.dl-legal { grid-template-columns: minmax(7rem, 25%) 1fr; }
+@media (max-width: 600px) { .dl-legal { grid-template-columns: 1fr; } .dl-legal dt { font-weight: 600; margin-top: .4rem; } }
 .bandeau-demo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin: 0 0 1rem; padding: .55rem .8rem;
     border: 1px dashed var(--bordure); border-radius: var(--rayon); background: #fffbea; font-size: .88rem; color: var(--encre); }
 .pastille.succes { background: #e5f4ea; color: var(--succes); }

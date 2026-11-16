@@ -406,6 +406,31 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         return $this;
     }
 
+    /** Conditions d'utilisation et politique de confidentialité acceptées (activation du compte famille) : date et version. */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $conditionsAccepteesLe = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $conditionsVersion = null;
+
+    public function getConditionsAccepteesLe(): ?\DateTimeImmutable
+    {
+        return $this->conditionsAccepteesLe;
+    }
+
+    public function getConditionsVersion(): ?string
+    {
+        return $this->conditionsVersion;
+    }
+
+    public function accepterConditions(string $version): static
+    {
+        $this->conditionsAccepteesLe = new \DateTimeImmutable();
+        $this->conditionsVersion = $version;
+
+        return $this;
+    }
+
     public function eraseCredentials(): void
     {
     }

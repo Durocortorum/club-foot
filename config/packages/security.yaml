@@ -47,6 +47,8 @@ security:
     access_control:
         - { path: ^/connexion, roles: PUBLIC_ACCESS }
         - { path: ^/inscription, roles: PUBLIC_ACCESS }
+        # Pages légales (mentions, CGU, CGV, confidentialité) : lisibles avant toute inscription.
+        - { path: ^/(mentions-legales|conditions-utilisation|conditions-vente|confidentialite)$, roles: PUBLIC_ACCESS }
         # Logo et icône du club : affichés sur la page de connexion.
         - { path: ^/club/(logo|icone)/, roles: PUBLIC_ACCESS }
         # Lien d'activation d'un compte famille, reçu par e-mail ou message.

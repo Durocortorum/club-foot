@@ -1,0 +1,27 @@
+# Informations légales affichées dans les mentions légales, les CGU, les CGV et la politique de confidentialité.
+# À compléter ici, une seule fois : une valeur à ~ (vide) s'affiche « [à compléter] » sur les pages.
+# Changer « version » quand le texte des conditions change : la date d'acceptation de chacun reste enregistrée.
+parameters:
+    legal:
+        version: '2026-11-16'
+        service: 'Club Foot'                       # nom commercial de l'application (à remplacer par le nom choisi)
+        site: 'club.descotesmichel.com'
+        editeur: 'Michel Descotes'                 # personne ou société qui édite et vend l'application
+        statut: ~                                  # ex. « entrepreneur individuel (micro-entreprise) » ou « SAS au capital de … € »
+        siret: ~
+        tva: ~                                     # n° de TVA, ou « TVA non applicable, article 293 B du CGI »
+        adresse: ~
+        email: 'contact@descotesmichel.com'
+        telephone: ~
+        directeur_publication: 'Michel Descotes'
+        hebergeur: 'Hostinger International Ltd'
+        hebergeur_adresse: '61 Lordou Vironos Street, 6023 Larnaca, Chypre'
+        hebergeur_site: 'www.hostinger.fr'
+        hebergement_lieu: ~                        # pays des serveurs (hPanel → Hébergement → détails), ex. « France » ou « Lituanie »
+        tribunal: ~                                # ville du tribunal compétent (litige entre professionnels)
+        essai_jours: 30                            # durée de l'essai gratuit après l'inscription d'un club
+        prix: { 'Formule 1': 20, 'Formule 2': 40, 'Formule 3': 50 }   # € par mois et par club
+
+twig:
+    globals:
+        legal: '%legal%'

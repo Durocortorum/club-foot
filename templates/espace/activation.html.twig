@@ -24,6 +24,7 @@
                     Le club utilise votre adresse e-mail pour vous connecter à cet espace et vous transmettre les informations
                     de l'équipe (convocations, matchs, messages). Elle n'est ni vendue, ni communiquée à d'autres organismes.
                     Vous pouvez demander à tout moment au club de modifier ou de supprimer votre compte.
+                    Détails : <a href="{{ path('app_legal_confidentialite') }}" target="_blank">politique de confidentialité</a>.
                 </p>
             </details>
 
@@ -32,7 +33,11 @@
                 <div class="champ">{{ form_label(form.motDePasse.first) }}{{ form_widget(form.motDePasse.first) }}{{ form_help(form.motDePasse.first) }}{{ form_errors(form.motDePasse.first) }}</div>
                 <div class="champ">{{ form_label(form.motDePasse.second) }}{{ form_widget(form.motDePasse.second) }}{{ form_errors(form.motDePasse.second) }}</div>
                 {{ form_errors(form.motDePasse) }}
-                <div class="champ case">{{ form_label(form.accord) }}{{ form_widget(form.accord) }}</div>
+                <div class="champ case-filtre case-longue">{{ form_widget(form.accord) }}<label for="{{ form.accord.vars.id }}">
+                    J'accepte les <a href="{{ path('app_legal_cgu') }}" target="_blank">conditions d'utilisation</a> et j'ai lu la
+                    <a href="{{ path('app_legal_confidentialite') }}" target="_blank">politique de confidentialité</a>{% if compte.joueurs|filter(j => j.mineur)|length %}.
+                    Pour un joueur mineur : je suis son représentant légal, ou c'est mon propre compte et mes parents sont d'accord{% endif %}.
+                </label></div>
                 {{ form_errors(form.accord) }}
                 {{ form_rest(form) }}
                 <button type="submit" class="bouton principal plein">Activer mon compte</button>

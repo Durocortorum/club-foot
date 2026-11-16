@@ -61,6 +61,9 @@ class PaiementEnLigneTest extends WebTestCase
         $club = $em->getRepository(Club::class)->findOneBy(['nom' => "FC Test $id"]);
         $this->clubId = $club->getId();
         self::assertTrue($club->isPaiementEnLigne());
+        // CGV acceptées à l'inscription : date et version enregistrées (club et administrateur).
+        self::assertSame(static::getContainer()->getParameter('legal')['version'], $club->getConditionsVersion());
+        self::assertNotNull($club->getConditionsAccepteesLe());
         $crawler = $client->followRedirect();
         self::assertSelectorTextContains('.etat-helloasso', 'Pas encore connecté');
         self::assertSelectorTextContains('.guide-helloasso', 'Intégrations et API');

@@ -139,5 +139,8 @@
 
             {% block body %}{% endblock %}
         </main>
+        <footer class="pied sans-impression">
+            {% for page in constant('App\\Controller\\LegalController::PAGES') %}<a href="{{ page[0] }}">{{ page[1] }}</a>{% endfor %}
+        </footer>
     </body>
 </html>

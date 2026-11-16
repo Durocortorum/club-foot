@@ -47,7 +47,8 @@ class InscriptionType extends AbstractType
                 'required' => false,
             ])
             ->add('conditions', CheckboxType::class, [
-                'label' => 'Je suis responsable de ce club (ou mandaté par lui) et j\'accepte que ses données soient hébergées par l\'application.',
+                // Texte affiché par le gabarit (security/inscription.html.twig), avec les liens vers les CGV et les CGU.
+                'label' => 'J\'accepte les conditions générales de vente.',
                 'constraints' => [new IsTrue(message: 'Cette case est obligatoire.')],
             ])
             // Piège à robots : champ invisible qu'un humain laisse vide.

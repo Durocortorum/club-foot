@@ -1,0 +1,98 @@
+{% extends 'legal/_page.html.twig' %}
+{% import 'legal/_page.html.twig' as l %}
+
+{% block title %}Politique de confidentialité{% endblock %}
+
+{% block texte %}
+    <p>
+        Cette page explique quelles données personnelles sont utilisées dans {{ legal.service }}, par qui, pourquoi,
+        combien de temps, et comment exercer vos droits (Règlement général sur la protection des données, « RGPD »,
+        et loi Informatique et Libertés).
+    </p>
+
+    <h2>1. Qui est responsable de vos données ?</h2>
+    <ul>
+        <li><strong>Votre club</strong> est responsable des données des joueurs, des familles et de son encadrement : c'est lui qui les enregistre et décide de leur utilisation. Ses coordonnées figurent dans l'application.</li>
+        <li><strong>{{ legal.editeur }}</strong>, éditeur de {{ legal.service }}, héberge ces données et fait fonctionner l'application pour le compte du club (sous-traitant). Il est lui-même responsable des seules données liées à l'abonnement du club (compte de l'administrateur, facturation) et au fonctionnement technique du site (journaux de connexion).</li>
+    </ul>
+
+    <h2>2. Quelles données ?</h2>
+    <ul>
+        <li><strong>Identité et contact</strong> : nom, prénom, date de naissance, photo, adresse, téléphone, e-mail ; parents ou représentants légaux des mineurs.</li>
+        <li><strong>Vie sportive</strong> : licence, catégorie, poste, matchs, statistiques, présences, tests physiques, effort ressenti, discipline.</li>
+        <li><strong>Scolarité</strong> (si le club suit la scolarité de ses joueurs) : établissement, classe, bulletins.</li>
+        <li><strong>Santé</strong> (si le club utilise l'infirmerie) : blessures, arrêts, dossiers médicaux, mesures.</li>
+        <li><strong>Gestion</strong> : cotisations et paiements, achats à la boutique, déplacements, permis de conduire des conducteurs.</li>
+        <li><strong>Échanges</strong> : messages, réponses aux convocations.</li>
+        <li><strong>Compte</strong> : e-mail de connexion, mot de passe (enregistré chiffré, illisible même pour l'éditeur), abonnement aux notifications du téléphone.</li>
+    </ul>
+
+    <h2>3. Pourquoi ?</h2>
+    <table class="liste">
+        <thead><tr><th>Utilisation</th><th>Base légale</th></tr></thead>
+        <tbody>
+            <tr><td>Organiser l'activité du club : équipes, matchs, entraînements, convocations, transport, communication avec les familles.</td><td>Adhésion au club (contrat) et intérêt légitime du club.</td></tr>
+            <tr><td>Gérer les cotisations, paiements et la comptabilité du club.</td><td>Contrat et obligations légales.</td></tr>
+            <tr><td>Suivre la santé des joueurs (infirmerie, dossiers médicaux).</td><td>Consentement du joueur ou de son représentant légal, ou suivi par un professionnel de santé tenu au secret (article 9 du RGPD).</td></tr>
+            <tr><td>Suivre la scolarité des jeunes joueurs.</td><td>Intérêt légitime du club formateur, avec l'accord des familles.</td></tr>
+            <tr><td>Publier des photos des joueurs.</td><td>Accord (droit à l'image), noté sur la fiche du joueur.</td></tr>
+            <tr><td>Sécurité du service (connexion, prévention des abus).</td><td>Intérêt légitime de l'éditeur.</td></tr>
+            <tr><td>Abonnement et facturation du club.</td><td>Contrat entre le club et l'éditeur.</td></tr>
+        </tbody>
+    </table>
+    <p>Aucune donnée n'est vendue, utilisée pour de la publicité ou pour du profilage.</p>
+
+    <h2>4. Mineurs</h2>
+    <p>
+        L'application contient des données de mineurs. Pour un joueur de moins de 15 ans, l'espace famille est ouvert aux parents
+        (ou avec leur accord). Un joueur majeur décide lui-même de l'accès de ses proches.
+    </p>
+
+    <h2>5. Qui voit vos données ?</h2>
+    <ul>
+        <li>Au club, seules les personnes qui en ont besoin, selon les droits donnés par l'administrateur (éducateurs de l'équipe, dirigeants, trésorier…).</li>
+        <li>Les données médicales : seulement le personnel médical autorisé, après un code envoyé par e-mail et pour une durée limitée.</li>
+        <li>Les familles : uniquement les informations de leur(s) enfant(s) et de l'équipe (convocations, calendrier, messages).</li>
+        <li>HelloAsso, si vous payez en ligne : vos nom, e-mail et montant, pour le paiement (le club y a son propre compte).</li>
+        <li>Les prestataires techniques de l'éditeur : {{ legal.hebergeur }} (hébergement, e-mails) et les services de notification des navigateurs (contenu chiffré).</li>
+    </ul>
+    <p>
+        Les données sont hébergées par {{ legal.hebergeur }}, société établie dans l'Union européenne ({{ legal.hebergeur_adresse }}).
+        Pays des serveurs : {{ l.valeur(legal.hebergement_lieu, 'pays des serveurs, à vérifier dans hPanel') }}.
+    </p>
+
+    <h2>6. Combien de temps ?</h2>
+    <ul>
+        <li>Tant que la personne fait partie du club ; ensuite, le club conserve l'historique sportif de la saison (archives) et supprime ce qui n'est plus utile, au plus tard 3 ans après le départ, sauf obligation légale (pièces comptables : 10 ans).</li>
+        <li>Les comptes famille et de l'encadrement sont supprimés par le club quand ils ne servent plus.</li>
+        <li>À la fin de l'abonnement d'un club, toutes ses données sont supprimées dans les 3 mois.</li>
+        <li>Journaux techniques de connexion : 12 mois au plus.</li>
+    </ul>
+
+    <h2>7. Sécurité</h2>
+    <p>
+        Connexion chiffrée (HTTPS), mots de passe chiffrés, données de chaque club séparées, droits d'accès par rôle, accès médical
+        protégé par un code et limité dans le temps, sauvegardes régulières.
+    </p>
+
+    <h2>8. Cookies</h2>
+    <p>
+        Le site utilise uniquement des cookies nécessaires : celui qui vous garde connecté et ceux qui protègent les formulaires.
+        Il n'y a ni cookie publicitaire, ni mesure d'audience ; aucun accord n'est donc demandé.
+    </p>
+
+    <h2>9. Vos droits</h2>
+    <p>
+        Vous pouvez demander l'accès à vos données, leur correction, leur suppression, leur limitation, leur portabilité, vous opposer
+        à leur utilisation et retirer votre accord à tout moment (photos, données de santé). Pour un mineur, ces droits sont exercés
+        par ses représentants légaux.
+    </p>
+    <ul>
+        <li>Adressez-vous d'abord à <strong>votre club</strong> : c'est lui qui gère vos données.</li>
+        <li>Vous pouvez aussi écrire à l'éditeur : <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>. Il transmet votre demande au club et l'aide à y répondre.</li>
+        <li>Réponse sous un mois. Si vous n'êtes pas satisfait, vous pouvez saisir la CNIL (<a href="https://www.cnil.fr" rel="noopener">www.cnil.fr</a>).</li>
+    </ul>
+
+    <h2>10. Modifications</h2>
+    <p>Cette politique peut évoluer ; la version en vigueur est datée en haut de page.</p>
+{% endblock %}
