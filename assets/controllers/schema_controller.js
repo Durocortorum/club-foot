@@ -616,6 +616,12 @@ export default class extends Controller {
             } else if (entree) {
                 this.aidePliageTarget.hidden = false;
                 this.aidePliageTarget.textContent = 'Tirez le rond ＋ du trajet en pointillés pour le courber ; double-clic sur un point pour le retirer.';
+            } else if (MOBILES.includes(objet.t)) {
+                // Pas encore de trajet : expliquer comment en créer un.
+                this.aidePliageTarget.hidden = false;
+                this.aidePliageTarget.textContent = this.etape === 0
+                    ? 'Pour lui donner un trajet : bouton « + Étape » (sous le terrain), déplacez-le, puis tirez le rond ＋ du trajet pour le courber.'
+                    : 'Déplacez-le à sa nouvelle place : un trajet en pointillés apparaît, avec un rond ＋ pour le courber.';
             } else {
                 this.aidePliageTarget.hidden = true;
             }
