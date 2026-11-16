@@ -1,0 +1,28 @@
+{# Assistant d'aide (aide_controller.js) : bouton « ? » en bas à droite, fenêtre de discussion. #}
+{% set famille = not is_granted('ROLE_ENCADREMENT') and not is_granted('ROLE_MEDICAL_SEUL') %}
+{% set suggestions = famille
+    ? ['Comment répondre à une convocation ?', 'Comment signaler une absence à l\'entraînement ?', 'Comment recevoir les notifications sur mon téléphone ?', 'Comment payer la cotisation en ligne ?']
+    : ['Comment convoquer mes joueurs à un match ?', 'Comment importer mes joueurs depuis Excel ?', 'Comment noter les statistiques en direct sur tablette ?', 'Comment inviter les parents dans l\'application ?'] %}
+<div class="aide sans-impression" data-controller="aide"
+     data-aide-url-value="{{ path('app_aide_question') }}" data-aide-jeton-value="{{ csrf_token('aide') }}">
+    <button type="button" class="aide-bouton" data-aide-target="bouton" data-action="aide#basculer" aria-expanded="false" aria-controls="aide-fenetre" title="Aide : posez votre question">?</button>
+    <section class="aide-fenetre" id="aide-fenetre" data-aide-target="fenetre" hidden aria-label="Assistant d'aide">
+        <header class="aide-entete">
+            <strong>Aide</strong>
+            <span class="discret petit">Posez votre question sur l'application</span>
+            <button type="button" class="lien-bouton" data-action="aide#effacer" title="Nouvelle conversation">Effacer</button>
+            <button type="button" class="lien-bouton aide-fermer" data-action="aide#basculer" aria-label="Fermer">✕</button>
+        </header>
+        <div class="aide-fil" data-aide-target="fil" aria-live="polite">
+            <p class="aide-message assistant">Bonjour ! Je peux vous expliquer comment utiliser l'application, avec des exemples. Que voulez-vous faire ?</p>
+            <div class="aide-suggestions" data-aide-target="suggestions">
+                {% for s in suggestions %}<button type="button" class="aide-suggestion" data-action="aide#suggerer">{{ s }}</button>{% endfor %}
+            </div>
+        </div>
+        <form class="aide-saisie" data-action="aide#envoyer">
+            <textarea data-aide-target="question" rows="2" maxlength="1000" placeholder="{{ famille ? 'Ex. : où voir le calendrier des matchs ?' : 'Ex. : comment créer un entraînement ?' }}" aria-label="Votre question" data-action="keydown->aide#touche"></textarea>
+            <button type="submit" class="bouton principal" data-aide-target="envoyer">Envoyer</button>
+        </form>
+        <p class="aide-note">Réponses d'une intelligence artificielle, d'après le guide de l'application : elles peuvent se tromper. N'indiquez pas d'informations personnelles.</p>
+    </section>
+</div>

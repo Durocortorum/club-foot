@@ -309,6 +309,36 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
     .tuile-action { min-height: 3.2rem; font-size: .9rem; }
 }
 
+/* Assistant d'aide (aide_controller.js) : bouton « ? » en bas à droite et fenêtre de discussion. */
+.aide { position: fixed; right: 1rem; bottom: 1rem; z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: .6rem; }
+body:has(.direct) .aide { display: none; }
+.aide-bouton { width: 3.2rem; height: 3.2rem; border-radius: 50%; border: 0; background: var(--rouge); color: var(--sur-rouge); font-size: 1.5rem; font-weight: 700;
+    cursor: pointer; box-shadow: 0 6px 18px rgb(0 0 0 / .22); order: 2; }
+.aide.ouverte .aide-bouton { background: var(--encre); color: #fff; }
+.aide-fenetre { order: 1; width: min(24rem, calc(100vw - 2rem)); height: min(34rem, calc(100dvh - 6rem)); display: flex; flex-direction: column;
+    background: #fff; border: 1px solid var(--bordure); border-radius: 14px; box-shadow: 0 12px 40px rgb(0 0 0 / .2); overflow: hidden; }
+.aide-fenetre[hidden] { display: none; }
+.aide-entete { display: flex; align-items: baseline; gap: .5rem; padding: .7rem .9rem; border-bottom: 1px solid var(--bordure); background: var(--fond); }
+.aide-entete .discret { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aide-fermer { font-size: 1.05rem; }
+.aide-fil { flex: 1; overflow-y: auto; padding: .8rem; display: flex; flex-direction: column; gap: .55rem; }
+.aide-message { max-width: 88%; padding: .55rem .75rem; border-radius: 12px; font-size: .92rem; line-height: 1.45; overflow-wrap: anywhere; }
+.aide-message p { margin: 0 0 .35rem; } .aide-message p:last-child { margin-bottom: 0; }
+.aide-message ol, .aide-message ul { margin: .2rem 0 .35rem; padding-left: 1.2rem; }
+.aide-message.assistant { align-self: flex-start; background: #f1f2f5; color: var(--encre); border-bottom-left-radius: 4px; }
+.aide-message.user { align-self: flex-end; background: var(--rouge); color: var(--sur-rouge); border-bottom-right-radius: 4px; }
+.aide-message.erreur { align-self: flex-start; background: var(--danger-clair); color: var(--danger-fonce); }
+.aide-message.attente { color: var(--gris); animation: aide-attente 1s ease-in-out infinite alternate; }
+@keyframes aide-attente { from { opacity: .4; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .aide-message.attente { animation: none; } }
+.aide-suggestions { display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; }
+.aide-suggestion { border: 1px solid var(--bordure); background: #fff; border-radius: 999px; padding: .35rem .75rem; font: inherit; font-size: .85rem; color: var(--rouge); cursor: pointer; text-align: left; }
+.aide-suggestion:hover { border-color: var(--rouge); }
+.aide-saisie { display: flex; gap: .4rem; padding: .6rem; border-top: 1px solid var(--bordure); }
+.aide-saisie textarea { flex: 1; resize: none; font: inherit; font-size: .92rem; }
+.aide-note { margin: 0; padding: 0 .7rem .55rem; font-size: .72rem; color: var(--gris); }
+@media print { .aide { display: none; } }
+
 /* Pied de page : liens vers les pages légales. */
 .pied { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem 1.2rem; padding: 1.2rem 1rem 1.6rem; font-size: .8rem; }
 .pied a { color: var(--gris); }

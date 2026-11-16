@@ -93,7 +93,7 @@ class EntrainementTest extends WebTestCase
         $lien = $crawler->filter('#entrainement-' . $premier->getId())->selectLink('Préparer la séance')->link();
         $crawler = $this->client->click($lien);
         self::assertInputValueSame('seance[date]', $premier->getDate()->format('Y-m-d'));
-        $this->client->submit($crawler->filter('form')->last()->form(['seance[theme]' => 'Conservation du ballon']));
+        $this->client->submit($crawler->filter('form[name="seance"]')->form(['seance[theme]' => 'Conservation du ballon']));
         $this->client->request('GET', '/planning?categorie=' . $categorie->getId());
         self::assertSelectorTextContains('#entrainement-' . $premier->getId() . ' .seance-prevue', 'Séance : Conservation du ballon');
         self::assertSelectorTextContains('#entrainement-' . $deuxieme->getId() . ' .seance-prevue', 'Préparer la séance');
