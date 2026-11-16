@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Entity\ActionMatch;
 use App\Entity\Administratif;
 use App\Entity\Arbitre;
 use App\Entity\ArticleBoutique;
@@ -164,6 +165,7 @@ class ClubDemoCommand extends Command
         $this->boutique($comptes['parent']);
         $io->text('Infirmerie, tests, effort ressenti, discipline, tâches, messages…');
         $this->suiviSportif($matchs);
+        $this->actionsEnDirect($matchs);
         $this->organisation($comptes);
         $this->em->flush();
         if (!empty($anciensMotsDePasse)) {
@@ -516,6 +518,52 @@ class ClubDemoCommand extends Command
     }
 
     // ———————————————————————— Suivi sportif et organisation ————————————————————————
+
+    /**
+     * Dernier match joué des U15 noté en direct : passes, duels, contrôles, frappes, centres, corners répartis sur le terrain
+     * (plus de frappes et de centres près du but adverse), et les buts de la feuille à leur minute.
+     *
+     * @param array<string, list<Rencontre>> $matchs
+     */
+    private function actionsEnDirect(array $matchs): void
+    {
+        $r = end($matchs['U15']);
+        if (!$r) {
+            return;
+        }
+        $duree = $r->getCategorie()?->getDureeMatch() ?: 80;
+        $joueurs = [];
+        foreach ($r->getParticipations() as $p) {
+            if ('Non utilisé' !== $p->getPoste()) {
+                $joueurs[] = $p->getJoueur();
+            }
+        }
+        $types = ['BP' => 30, 'MP' => 10, 'DG' => 12, 'DP' => 9, 'BC' => 10, 'MC' => 5, 'FC' => 3, 'FH' => 3, 'C' => 5, 'CO' => 2, 'AC' => 2, 'AH' => 2, 'CA' => 2];
+        $tirage = [];
+        foreach ($types as $type => $poids) {
+            array_push($tirage, ...array_fill(0, $poids, $type));
+        }
+        $n = 0;
+        $ajouter = function (string $type, ?Joueur $joueur, int $minute, int $zx, int $zy) use ($r, $duree, &$n): void {
+            $this->em->persist((new ActionMatch($r, \sprintf('d0000000-0000-4000-8000-%012d', ++$n + 1000 * (int) $r->getId())))
+                ->setType($type)->setJoueur($joueur)->placer($minute > intdiv($duree, 2) ? 2 : 1, $minute, $zx, $zy));
+        };
+        for ($i = 0; $i < 170; ++$i) {
+            $type = $tirage[mt_rand(0, \count($tirage) - 1)];
+            [$zx, $zy] = match ($type) {
+                'FC', 'FH' => [mt_rand(4, 5), mt_rand(0, 2)],
+                'C', 'CO' => [5, [0, 2][mt_rand(0, 1)]],
+                'AC', 'AH' => [mt_rand(0, 1), mt_rand(0, 2)],
+                'CA' => [0, [0, 2][mt_rand(0, 1)]],
+                default => [mt_rand(0, 5), mt_rand(0, 2)],
+            };
+            $joueur = \in_array($type, ['AC', 'AH', 'CA'], true) ? null : $joueurs[mt_rand(0, \count($joueurs) - 1)];
+            $ajouter($type, $joueur, mt_rand(1, $duree), $zx, $zy);
+        }
+        foreach ($r->getButs() as $but) {
+            $ajouter($but->isAdverse() ? 'BA' : 'B', $but->isAdverse() ? null : $but->getButeur(), min($duree, (int) $but->getMinute()), $but->isAdverse() ? 0 : 5, 1);
+        }
+    }
 
     /** @param array<string, list<Rencontre>> $matchs */
     private function suiviSportif(array $matchs): void

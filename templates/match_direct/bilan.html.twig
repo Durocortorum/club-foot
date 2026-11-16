@@ -1,0 +1,122 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bilan du direct · {{ rencontre.domicile }} – {{ rencontre.exterieur }}{% endblock %}
+
+{% macro pct(v) %}{% if v is not null %}<span class="pct {{ v >= 70 ? 'bon' : (v < 50 ? 'faible') }}">{{ v }} %</span>{% else %}<span class="discret">–</span>{% endif %}{% endmacro %}
+{% import _self as m %}
+
+{% block body %}
+    {% set nous = rencontre.ADomicile ? rencontre.domicile : rencontre.exterieur %}
+    <p><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← Match</a></p>
+    <div class="titre-page">
+        <div>
+            <h1>Statistiques du match</h1>
+            <p class="discret">{{ nous }} {{ stats.pour }} – {{ stats.contre }} {{ rencontre.adversaire }} · {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }} · {{ actions|length }} action{{ actions|length > 1 ? 's' }} notée{{ actions|length > 1 ? 's' }}</p>
+        </div>
+        <span class="actions">
+            <a class="bouton principal" href="{{ path('app_match_direct', {id: rencontre.id}) }}">Saisie en direct</a>
+            {% if (stats.pour or stats.contre) and not buts_feuille %}
+                <form method="post" action="{{ path('app_match_direct_reporter', {id: rencontre.id}) }}" class="en-ligne">
+                    <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ rencontre.id) }}">
+                    <button type="submit" class="bouton">Reporter les buts sur la feuille de match</button>
+                </form>
+            {% endif %}
+        </span>
+    </div>
+
+    {% if not actions %}
+        <p class="vide carte">Aucune action notée pour ce match. Ouvrez la <a href="{{ path('app_match_direct', {id: rencontre.id}) }}">saisie en direct</a> au coup d'envoi.</p>
+    {% else %}
+        {% set e = stats.equipe %}
+        <div class="tuiles bilan">
+            <div class="tuile"><span class="tuile-valeur">{{ m.pct(reussite(e, 'passe')) }}</span><span class="tuile-libelle">passes réussies ({{ e.BP + e.MP }})</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ m.pct(reussite(e, 'duel')) }}</span><span class="tuile-libelle">duels gagnés ({{ e.DG + e.DP }})</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ m.pct(reussite(e, 'controle')) }}</span><span class="tuile-libelle">bons contrôles ({{ e.BC + e.MC }})</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ e.FC }} / {{ e.FC + e.FH }}</span><span class="tuile-libelle">frappes cadrées</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ e.AC }} / {{ e.AC + e.AH }}</span><span class="tuile-libelle">frappes adverses cadrées</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ e.C }}</span><span class="tuile-libelle">centres</span></div>
+            <div class="tuile"><span class="tuile-valeur">{{ e.CO }} – {{ e.CA }}</span><span class="tuile-libelle">corners pour – contre</span></div>
+        </div>
+
+        <section class="carte bloc">
+            <h2>Par joueur</h2>
+            <div class="table-defile">
+                <table class="liste chiffres stats-direct">
+                    <thead><tr>
+                        <th class="texte">Joueur</th>
+                        <th title="Bonnes passes / mauvaises passes">Passes</th><th>%</th>
+                        <th title="Duels gagnés / perdus">Duels</th><th>%</th>
+                        <th title="Bons contrôles / mauvais contrôles">Contrôles</th><th>%</th>
+                        <th title="Frappes cadrées / hors cadre">Frappes</th><th>Centres</th><th>Buts</th><th>Total</th>
+                    </tr></thead>
+                    <tbody>
+                        {% for l in stats.joueurs %}
+                            {% set a = l.actions %}
+                            <tr>
+                                <td class="texte nowrap"><a href="?joueur={{ l.joueur.id }}#carte">{{ l.joueur.nom }} {{ l.joueur.prenom }}</a></td>
+                                <td>{{ a.BP ?? 0 }} / {{ a.MP ?? 0 }}</td><td>{{ m.pct(reussite(a, 'passe')) }}</td>
+                                <td>{{ a.DG ?? 0 }} / {{ a.DP ?? 0 }}</td><td>{{ m.pct(reussite(a, 'duel')) }}</td>
+                                <td>{{ a.BC ?? 0 }} / {{ a.MC ?? 0 }}</td><td>{{ m.pct(reussite(a, 'controle')) }}</td>
+                                <td>{{ a.FC ?? 0 }} / {{ (a.FC ?? 0) + (a.FH ?? 0) }}</td><td>{{ a.C ?? 0 }}</td><td>{{ a.B ?? 0 }}</td><td class="fort">{{ l.total }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="carte bloc" id="carte">
+            <h2>Carte du terrain</h2>
+            <form method="get" class="filtres" action="#carte">
+                <select name="type" onchange="this.form.requestSubmit()" aria-label="Action">
+                    <option value="">Toutes les actions</option>
+                    <optgroup label="Nos actions">{% for code, t in types %}<option value="{{ code }}" {{ type == code ? 'selected' }}>{{ t[0] }}</option>{% endfor %}</optgroup>
+                    <optgroup label="Adversaire">{% for code, l in adverses %}<option value="{{ code }}" {{ type == code ? 'selected' }}>{{ l }}</option>{% endfor %}</optgroup>
+                </select>
+                <select name="joueur" onchange="this.form.requestSubmit()" aria-label="Joueur">
+                    <option value="">Toute l'équipe</option>
+                    {% for l in stats.joueurs %}<option value="{{ l.joueur.id }}" {{ joueur == l.joueur.id ? 'selected' }}>{{ l.joueur.nom }} {{ l.joueur.prenom }}</option>{% endfor %}
+                </select>
+            </form>
+            <p class="discret petit">Nous attaquons vers la droite. Plus la zone est foncée, plus il y a d'actions.</p>
+            <div class="terrain-direct horizontal carte-chaleur">
+                <span class="marque mediane"></span><span class="marque rond"></span>
+                <span class="marque surface nous"></span><span class="marque surface eux"></span>
+                <div class="zones">
+                    {% for zx in 0..5 %}{% for zy in 0..2 %}
+                        {% set n = carte[zx][zy] %}
+                        <span class="zone" style="grid-row:{{ zy + 1 }};grid-column:{{ zx + 1 }};--intensite:{{ (n / max_carte)|round(2) }}">{{ n ?: '' }}</span>
+                    {% endfor %}{% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="carte bloc">
+            <h2>Par quart d'heure</h2>
+            <div class="table-defile">
+                <table class="liste chiffres">
+                    <thead><tr><th class="texte">Minutes</th><th>Passes ✓/✗</th><th>Duels ✓/✗</th><th>Frappes</th><th>Frappes adverses</th><th>Buts</th></tr></thead>
+                    <tbody>
+                        {% for q in stats.quarts %}
+                            {% set a = q.actions %}
+                            <tr>
+                                <td class="texte nowrap">{{ q.debut }}′ – {{ q.fin }}′</td>
+                                <td>{{ a.BP ?? 0 }} / {{ a.MP ?? 0 }}</td><td>{{ a.DG ?? 0 }} / {{ a.DP ?? 0 }}</td>
+                                <td>{{ (a.FC ?? 0) + (a.FH ?? 0) }}</td><td>{{ (a.AC ?? 0) + (a.AH ?? 0) }}</td><td>{{ a.B ?? 0 }} – {{ a.BA ?? 0 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <details class="carte bloc">
+            <summary><strong>Toutes les actions ({{ actions|length }})</strong></summary>
+            <ol class="journal">
+                {% for a in actions %}
+                    <li><span class="min">{{ a.minute }}'</span><span class="quoi"><b class="pastille-action action-{{ a.type }}">{{ a.type }}</b> {% if a.joueur %}{{ a.joueur.nom }} {{ a.joueur.prenom }} · {% endif %}{{ a.libelle }}</span></li>
+                {% endfor %}
+            </ol>
+        </details>
+    {% endif %}
+{% endblock %}

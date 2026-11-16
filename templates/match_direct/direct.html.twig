@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}En direct · {{ rencontre.domicile }} – {{ rencontre.exterieur }}{% endblock %}
+
+{% block body %}
+    {# Table de statistiques du match (direct_controller.js) : joueur → action → zone, minute prise au chrono. #}
+    <div class="direct" data-controller="direct" data-direct-config-value="{{ config|json_encode }}" data-etape="joueur">
+        <div class="direct-entete">
+            <div class="direct-match">
+                <a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}" class="discret petit">← Match</a>
+                <strong>{{ config.nous }} <span class="direct-score" data-direct-target="score">0 – 0</span> {{ config.adversaire }}</strong>
+                <span class="discret petit">
+                    {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }}{% if rencontre.heure %} à {{ rencontre.heure }}{% endif %}{% if rencontre.lieu %} · {{ rencontre.lieu }}{% endif %}{% if rencontre.competition %} · {{ rencontre.competition }}{% endif %}
+                </span>
+            </div>
+            <div class="direct-chrono">
+                <span class="direct-periode" data-direct-target="periode">1re période</span>
+                <span class="direct-temps"><span data-direct-target="chrono">00:00</span> <b data-direct-target="minute">1'</b></span>
+                <span class="direct-boutons">
+                    <button type="button" class="bouton petit" data-action="direct#ajusterMoins" title="Retirer une minute">−1</button>
+                    <button type="button" class="bouton petit principal" data-direct-target="boutonChrono" data-action="direct#basculerChrono">▶ Coup d'envoi</button>
+                    <button type="button" class="bouton petit" data-action="direct#ajusterPlus" title="Ajouter une minute">+1</button>
+                    <button type="button" class="bouton petit" data-action="direct#finPeriode">Fin de période</button>
+                </span>
+            </div>
+            <span class="direct-etat petit"><span data-direct-target="etat"></span>
+                <button type="button" class="bouton petit" data-direct-target="plein" data-action="direct#pleinEcran" title="Cacher les barres du navigateur (tablette)">⛶ Plein écran</button></span>
+        </div>
+
+        <p class="direct-consigne" data-direct-target="consigne"></p>
+
+        <div class="direct-saisie">
+            <section class="direct-panneau panneau-joueur">
+                <h2>1. Joueur</h2>
+                <div class="direct-joueurs" data-direct-target="joueurs"></div>
+            </section>
+            <section class="direct-panneau panneau-action">
+                <h2>2. Action</h2>
+                <div class="direct-types" data-direct-target="types"></div>
+            </section>
+            <section class="direct-panneau panneau-zone">
+                <h2>3. Zone <span class="discret petit" data-direct-target="sens"></span>
+                    <button type="button" class="lien-bouton petit" data-action="direct#changerCote" title="Inverser le sens du terrain">⇄ Changer de côté</button></h2>
+                <div class="terrain-direct horizontal" data-direct-target="terrain">
+                    <span class="marque mediane"></span><span class="marque rond"></span>
+                    <span class="marque surface nous"></span><span class="marque surface eux"></span>
+                    <div class="zones"></div>
+                </div>
+            </section>
+        </div>
+
+        <section class="direct-journal">
+            <h2>Journal du match</h2>
+            <ol class="journal" data-direct-target="journal"></ol>
+            <button type="button" class="lien-bouton petit" data-direct-target="tout" data-action="direct#basculerJournal" hidden></button>
+        </section>
+
+        <details class="direct-infos carte">
+            <summary>Infos du match et bilan</summary>
+            <div class="champs">
+                <div class="champ"><label for="direct-meteo">Météo</label>
+                    <select id="direct-meteo" data-direct-target="meteo" data-action="direct#changerInfos"><option value="">—</option>{% for m in meteos %}<option {{ rencontre.meteo == m ? 'selected' }}>{{ m }}</option>{% endfor %}</select></div>
+                <div class="champ"><label for="direct-sol">État du terrain</label>
+                    <select id="direct-sol" data-direct-target="sol" data-action="direct#changerInfos"><option value="">—</option>{% for t in terrains %}<option {{ rencontre.terrain == t ? 'selected' }}>{{ t }}</option>{% endfor %}</select></div>
+            </div>
+            <p class="petit">
+                <a class="bouton" href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">Voir le bilan du match</a>
+                <a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Feuille de match</a>
+            </p>
+            <p class="discret petit">Les actions restent sur l'appareil tant qu'elles ne sont pas envoyées : en cas de coupure de réseau, rien n'est perdu, l'envoi reprend tout seul.</p>
+        </details>
+    </div>
+{% endblock %}
