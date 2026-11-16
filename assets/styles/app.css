@@ -282,6 +282,12 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .carte-chaleur .demi { display: flex; align-items: center; justify-content: center; font-size: 1rem; }
 .carte-chaleur .demi.nous { background: rgb(214 40 57 / calc(var(--intensite, 0) * .8)); }
 .carte-chaleur .demi.eux { background: rgb(31 95 209 / calc(var(--intensite, 0) * .8)); border-top: 1px dashed #d5e6d7; }
+/* Corners : rond avec le nombre, au coin du terrain (nous : côté adverse à droite ; adversaire : notre côté à gauche). */
+.coin-corner { position: absolute; z-index: 2; width: 1.9rem; height: 1.9rem; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .9rem; color: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / .25); }
+.coin-corner.nous { background: #d62839; right: .3rem; }
+.coin-corner.eux { background: #1f5fd1; left: .3rem; }
+.coin-corner.haut { top: .3rem; } .coin-corner.bas { bottom: .3rem; }
 .legende-carte { display: inline-flex; align-items: center; gap: .3rem; margin-left: .4rem; }
 .pastille-carte { display: inline-block; width: .9rem; height: .9rem; border-radius: 3px; }
 .pastille-carte.nous { background: rgb(214 40 57 / .75); } .pastille-carte.eux { background: rgb(31 95 209 / .75); }
