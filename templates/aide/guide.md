@@ -100,6 +100,7 @@ Par équipe et par saison : bilan (victoires, nuls, défaites), forme, domicile 
 - Les familles signalent les absences depuis leur espace.
 - **Feuille d'appel** d'un entraînement, reportée dans la grille des **Présences** (par semaine et par créneau, motifs, pourcentage).
 - **Séances** (Entraînements) : préparer une séance avec des exercices et un schéma du terrain ; elle s'affiche sur le planning.
+- **Schéma d'un exercice** : placer joueurs, adversaires, ballons, cônes, plots, buts, mannequins, flèches, zones et textes, puis les déplacer au doigt ou à la souris. **Flèche** : passe (trait plein), course (pointillés) ou conduite de balle (ondulée). Pour **plier une flèche** (un déplacement qui tourne) : la sélectionner, puis tirer un des petits ronds **＋** au milieu de la flèche ; on peut la plier à plusieurs endroits. **Tracé : courbe** (arrondi) ou **angles** (lignes droites) ; double-clic sur un point de pliage pour le retirer, **Redresser** pour remettre la flèche droite. **Étapes** : animer l'exercice (les joueurs et ballons se déplacent d'une étape à l'autre).
 - **Bibliothèque d'exercices** : 40 exercices types par âge, animés.
 - **Tests** : catalogue de 29 tests physiques et techniques (VMA, sprints, détente, jonglerie…) avec protocole et âges conseillés. **Séance de tests** : choisir une équipe ou tout un secteur (École de foot, Préformation, Formation…), cocher les tests, saisir les résultats de tous les joueurs dans un tableau.
 - **Progression** : courbes par test pour chaque joueur, vue de l'équipe.

@@ -58,6 +58,13 @@
                     <option value="course">Course (pointillés)</option>
                     <option value="conduite">Conduite de balle (ondulé)</option>
                 </select>
+                {# Flèche pliée : points de pliage ajoutés en tirant les ronds « + » ; tracé arrondi ou en angles. #}
+                <select data-schema-target="trace" data-action="schema#trace" title="Forme de la flèche quand elle est pliée">
+                    <option value="courbe">Tracé : courbe</option>
+                    <option value="brise">Tracé : angles</option>
+                </select>
+                <button type="button" class="bouton petit" data-schema-target="redresser" data-action="schema#redresser" title="Retirer tous les points de pliage">Redresser</button>
+                <span class="discret petit" data-schema-target="aidePliage">Tirez un rond ＋ pour plier la flèche ; double-clic sur un point pour le retirer.</span>
                 <button type="button" class="bouton petit" data-schema-target="tourner" data-action="schema#tourner">↻ Tourner</button>
                 <button type="button" class="bouton petit" data-action="schema#dupliquer">Dupliquer</button>
                 <button type="button" class="bouton petit danger" data-action="schema#supprimer">Supprimer</button>

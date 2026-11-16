@@ -51,7 +51,7 @@ let instances = 0;
 export default class extends Controller {
     static targets = [
         'svg', 'champ', 'terrain', 'selection', 'nom', 'couleurs', 'texte', 'libelleTexte', 'style', 'tourner', 'annuler',
-        'etapes', 'supprimerEtape', 'ajouterEtape', 'lecture', 'aideEtape',
+        'etapes', 'supprimerEtape', 'ajouterEtape', 'lecture', 'aideEtape', 'trace', 'redresser', 'aidePliage',
     ];
     static values = { lecture: Boolean, schema: Object };
 
@@ -79,6 +79,7 @@ export default class extends Controller {
             this.svgTarget.addEventListener('pointermove', (e) => this.glisser(e));
             this.svgTarget.addEventListener('pointerup', () => this.lacher());
             this.svgTarget.addEventListener('pointercancel', () => this.lacher());
+            this.svgTarget.addEventListener('dblclick', (e) => this.retirerPliage(e));
         } else if (this.etapes.length) {
             // En lecture, un clic sur le schéma lance ou arrête l'animation.
             this.svgTarget.classList.add('anime');
@@ -149,6 +150,10 @@ export default class extends Controller {
         this.objets.forEach((o) => {
             ['x', 'x1', 'x2'].forEach((k) => { if (k in o) o[k] = Math.min(Math.max(o[k], 0), largeur); });
             ['y', 'y1', 'y2'].forEach((k) => { if (k in o) o[k] = Math.min(Math.max(o[k], 0), hauteur); });
+            (o.p || []).forEach((q) => {
+                q[0] = Math.min(Math.max(q[0], 0), largeur);
+                q[1] = Math.min(Math.max(q[1], 0), hauteur);
+            });
         });
         this.etapes.forEach((e) => e.forEach((p) => {
             if (p) {
@@ -186,6 +191,37 @@ export default class extends Controller {
         this.modifie();
     }
 
+    /** Flèche pliée : tracé arrondi (courbe) ou en lignes droites (angles). */
+    trace() {
+        this.memoriser();
+        const objet = this.objetChoisi();
+        if (this.traceTarget.value === 'brise') objet.k = 'brise';
+        else delete objet.k;
+        this.modifie();
+    }
+
+    /** Retire tous les points de pliage : la flèche redevient droite. */
+    redresser() {
+        const objet = this.objetChoisi();
+        if (!objet?.p?.length) return;
+        this.memoriser();
+        delete objet.p;
+        this.modifie();
+    }
+
+    /** Double-clic sur un point de pliage : il est retiré. */
+    retirerPliage(event) {
+        const cible = event.target.closest('[data-poignee^="p"]');
+        if (!cible || this.etape > 0) return;
+        const objet = this.objets[Number(cible.dataset.indice)];
+        const k = Number(cible.dataset.poignee.slice(1));
+        if (!objet?.p?.[k]) return;
+        this.memoriser();
+        objet.p.splice(k, 1);
+        if (!objet.p.length) delete objet.p;
+        this.modifie();
+    }
+
     tourner() {
         this.memoriser();
         const objet = this.objetChoisi();
@@ -198,6 +234,7 @@ export default class extends Controller {
         const copie = structuredClone(this.objetChoisi());
         ['x', 'x1', 'x2'].forEach((k) => { if (k in copie) copie[k] += 2; });
         ['y', 'y1', 'y2'].forEach((k) => { if (k in copie) copie[k] += 2; });
+        (copie.p || []).forEach((q) => { q[0] += 2; q[1] += 2; });
         this.objets.push(copie);
         this.choisi = this.objets.length - 1;
         this.modifie();
@@ -386,11 +423,23 @@ export default class extends Controller {
         const p = this.point(event);
         // Après le départ, seuls joueurs et ballons se déplacent ; les autres objets restent fixes.
         const fixe = this.etape > 0 && !MOBILES.includes(objet.t);
+        const etat = this.etat();
+        let poignee = cible.dataset.poignee || null;
+        let bouge = false;
+        if (!fixe && poignee?.startsWith('m')) {
+            // Rond « + » au milieu d'un tronçon : un nouveau point de pliage y est créé, puis on le tire.
+            const k = Number(poignee.slice(1));
+            objet.p = objet.p || [];
+            objet.p.splice(k, 0, [arrondi(p.x), arrondi(p.y)]);
+            poignee = `p${k}`;
+            bouge = true;
+        }
         this.prise = fixe ? null : {
-            poignee: cible.dataset.poignee || null,
+            poignee,
             depart: p,
             origine: this.etape > 0 ? { ...objet, ...this.positionA(this.choisi, this.etape) } : structuredClone(objet),
-            etat: this.etat(),
+            etat,
+            bouge,
         };
         this.svgTarget.setPointerCapture(event.pointerId);
         this.dessiner();
@@ -410,10 +459,13 @@ export default class extends Controller {
             Object.assign(objet, { x1: arrondi(p.x), y1: arrondi(p.y) });
         } else if (this.prise.poignee === '2') {
             Object.assign(objet, { x2: arrondi(p.x), y2: arrondi(p.y) });
+        } else if (this.prise.poignee?.startsWith('p')) {
+            objet.p[Number(this.prise.poignee.slice(1))] = [arrondi(p.x), arrondi(p.y)];
         } else if (this.prise.poignee === 'taille') {
             Object.assign(objet, { w: arrondi(Math.max(2, o.w + dx)), h: arrondi(Math.max(2, o.h + dy)) });
         } else if (objet.t === 'fleche') {
             Object.assign(objet, { x1: arrondi(o.x1 + dx), y1: arrondi(o.y1 + dy), x2: arrondi(o.x2 + dx), y2: arrondi(o.y2 + dy) });
+            if (o.p) objet.p = o.p.map(([x, y]) => [arrondi(x + dx), arrondi(y + dy)]);
         } else {
             Object.assign(objet, { x: arrondi(o.x + dx), y: arrondi(o.y + dy) });
         }
@@ -494,6 +546,14 @@ export default class extends Controller {
         this.styleTarget.hidden = objet.t !== 'fleche';
         if (objet.t === 'fleche') {
             this.styleTarget.value = objet.s || 'passe';
+        }
+        if (this.hasTraceTarget) {
+            // Tracé et « Redresser » seulement pour une flèche pliée ; l'aide au pliage pour toute flèche.
+            const pliee = objet.t === 'fleche' && !!objet.p?.length;
+            this.traceTarget.hidden = !pliee;
+            this.redresserTarget.hidden = !pliee;
+            this.aidePliageTarget.hidden = objet.t !== 'fleche' || this.etape > 0;
+            if (pliee) this.traceTarget.value = objet.k === 'brise' ? 'brise' : 'courbe';
         }
         this.tournerTarget.hidden = !TOURNANTS.includes(objet.t);
     }
@@ -693,21 +753,68 @@ export default class extends Controller {
         }
     }
 
-    // Trait droit, ou ondulé pour une conduite de balle (la fin reste droite pour la pointe).
+    /** Points de passage d'une flèche : départ, points de pliage, arrivée. */
+    pointsFleche(o) {
+        return [[o.x1, o.y1], ...(Array.isArray(o.p) ? o.p.filter((q) => Array.isArray(q) && q.length === 2) : []), [o.x2, o.y2]];
+    }
+
+    /**
+     * Segments de Bézier d'une courbe douce passant par tous les points (Catmull-Rom) :
+     * pour chaque tronçon, [départ, contrôle 1, contrôle 2, arrivée].
+     */
+    courbe(points) {
+        const segments = [];
+        for (let i = 0; i < points.length - 1; i++) {
+            const p0 = points[i - 1] || points[i];
+            const [p1, p2] = [points[i], points[i + 1]];
+            const p3 = points[i + 2] || p2;
+            segments.push([p1, [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6], p2]);
+        }
+        return segments;
+    }
+
+    /** Le tracé de la flèche en suite de points rapprochés (pour l'onduler). */
+    echantillonner(o) {
+        const points = this.pointsFleche(o);
+        if (points.length === 2 || o.k === 'brise') return points;
+        const resultat = [points[0]];
+        this.courbe(points).forEach(([a, b, c, d]) => {
+            for (let t = 0.05; t <= 1.0001; t += 0.05) {
+                const u = 1 - t;
+                resultat.push([0, 1].map((k) => u * u * u * a[k] + 3 * u * u * t * b[k] + 3 * u * t * t * c[k] + t * t * t * d[k]));
+            }
+        });
+        return resultat;
+    }
+
+    // Trait droit ou plié (courbe ou angles), ou ondulé pour une conduite de balle (la fin reste droite pour la pointe).
     cheminFleche(o) {
-        const dx = o.x2 - o.x1;
-        const dy = o.y2 - o.y1;
-        const longueur = Math.hypot(dx, dy) || 0.01;
-        if (o.s !== 'conduite' || longueur < 3) {
-            return `M${o.x1},${o.y1} L${o.x2},${o.y2}`;
+        const points = this.pointsFleche(o);
+        const f = (q) => `${arrondi(q[0])},${arrondi(q[1])}`;
+        if (o.s !== 'conduite') {
+            if (points.length === 2 || o.k === 'brise') return `M${points.map(f).join(' L')}`;
+            return `M${f(points[0])} ${this.courbe(points).map(([, b, c, d]) => `C${f(b)} ${f(c)} ${f(d)}`).join(' ')}`;
         }
-        const [ux, uy] = [dx / longueur, dy / longueur];
-        const points = [];
-        for (let s = 0; s <= longueur - 1.2; s += 0.2) {
+        // Conduite de balle : ondulation le long du tracé, mesurée en distance parcourue.
+        const trace = this.echantillonner(o);
+        const longueurs = [0];
+        for (let i = 1; i < trace.length; i++) {
+            longueurs.push(longueurs[i - 1] + Math.hypot(trace[i][0] - trace[i - 1][0], trace[i][1] - trace[i - 1][1]));
+        }
+        const total = longueurs[longueurs.length - 1];
+        if (total < 3) return `M${points.map(f).join(' L')}`;
+        const sortie = [];
+        let i = 1;
+        for (let s = 0; s <= total - 1.2; s += 0.2) {
+            while (i < trace.length - 1 && longueurs[i] < s) i++;
+            const [a, b] = [trace[i - 1], trace[i]];
+            const l = Math.max(longueurs[i] - longueurs[i - 1], 0.0001);
+            const r = (s - longueurs[i - 1]) / l;
+            const [ux, uy] = [(b[0] - a[0]) / l, (b[1] - a[1]) / l];
             const ecart = 0.55 * Math.sin((2 * Math.PI * s) / 2);
-            points.push(`${arrondi(o.x1 + ux * s - uy * ecart)},${arrondi(o.y1 + uy * s + ux * ecart)}`);
+            sortie.push([a[0] + (b[0] - a[0]) * r - uy * ecart, a[1] + (b[1] - a[1]) * r + ux * ecart]);
         }
-        return `M${points.join(' L')} L${o.x2},${o.y2}`;
+        return `M${sortie.map(f).join(' L')} L${f(points[points.length - 1])}`;
     }
 
     dessinerSelection(svg, o, i) {
@@ -719,6 +826,18 @@ export default class extends Controller {
         if (o.t === 'fleche') {
             poignee(o.x1, o.y1, '1');
             poignee(o.x2, o.y2, '2');
+            const points = this.pointsFleche(o);
+            points.slice(1, -1).forEach(([x, y], k) => poignee(x, y, `p${k}`));
+            if (this.etape > 0) return;
+            // Rond « + » au milieu de chaque tronçon : le tirer crée un point de pliage.
+            const milieux = points.length > 2 && o.k !== 'brise'
+                ? this.courbe(points).map(([a, b, c, d]) => [0, 1].map((k) => (a[k] + 3 * b[k] + 3 * c[k] + d[k]) / 8))
+                : points.slice(0, -1).map((q, k) => [(q[0] + points[k + 1][0]) / 2, (q[1] + points[k + 1][1]) / 2]);
+            milieux.forEach(([x, y], k) => {
+                const plus = this.el('g', { 'data-indice': i, 'data-poignee': `m${k}`, class: 'schema-poignee milieu' }, svg);
+                this.el('circle', { cx: x, cy: y, r: 0.75, fill: 'rgba(255,255,255,.75)', stroke: '#1d1d1f', 'stroke-width': 0.1 }, plus);
+                this.el('path', { d: `M${x - 0.4},${y} h0.8 M${x},${y - 0.4} v0.8`, stroke: '#1d1d1f', 'stroke-width': 0.14 }, plus);
+            });
         } else if (o.t === 'zone') {
             this.el('rect', { x: o.x - 0.4, y: o.y - 0.4, width: o.w + 0.8, height: o.h + 0.8 }, g);
             poignee(o.x + o.w, o.y + o.h, 'taille');
