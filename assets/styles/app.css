@@ -209,6 +209,10 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .direct-consigne { margin: 0 0 .6rem; font-size: .95rem; }
 .mes-stats { margin: 0 0 .5rem; font-size: .9rem; }
 .direct.match-supprime .direct-saisie { opacity: .35; pointer-events: none; }
+/* Bilan affiché sous la saisie : sans le retour au match ni le bouton « Saisie en direct » (on y est déjà). */
+.direct-bilan { scroll-margin-top: 9.5rem; margin: .4rem 0 1rem; padding: .8rem; background: #fff; border: 1px solid var(--bordure); border-radius: var(--rayon); }
+.direct-bilan .bilan-retour, .direct-bilan .bilan-saisie { display: none; }
+.direct-bilan h1 { font-size: 1.25rem; margin: 0; }
 .direct.match-supprime .direct-consigne { color: var(--danger-fonce); }
 .mes-stats summary { cursor: pointer; color: var(--gris); }
 .mes-stats .choix-cible { margin: .4rem 0 .2rem; }

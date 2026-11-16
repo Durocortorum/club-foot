@@ -58,9 +58,13 @@
         </div>
 
         <p class="actions-ligne direct-liens">
-            <a class="bouton" href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">Voir le bilan du match</a>
+            <button type="button" class="bouton" data-direct-target="boutonBilan" data-action="direct#basculerBilan">Voir le bilan du match</button>
             <a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Feuille de match</a>
         </p>
+        {# Bilan affiché ici, sous la saisie, sans quitter la page (rechargé à chaque ouverture). #}
+        <section class="direct-bilan" data-direct-target="bilan" data-url="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}" hidden>
+            <turbo-frame id="bilan-direct"><p class="discret">Chargement du bilan…</p></turbo-frame>
+        </section>
 
         <section class="direct-journal">
             <h2>Journal du match</h2>

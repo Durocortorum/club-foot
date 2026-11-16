@@ -20,7 +20,7 @@ const CLE_MES_STATS = 'direct-mes-statistiques';
 export default class extends Controller {
     static values = { config: Object };
     static targets = ['joueurs', 'types', 'terrain', 'journal', 'score', 'chrono', 'minute', 'periode', 'boutonChrono', 'etat', 'consigne',
-        'meteo', 'sol', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne', 'boutonNumeros'];
+        'meteo', 'sol', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne', 'boutonNumeros', 'bilan', 'boutonBilan'];
 
     connect() {
         this.cfg = this.configValue;
@@ -398,6 +398,20 @@ export default class extends Controller {
         this.garder();
         this.afficher();
         this.envoyer();
+    }
+
+    /** Bilan du match sous la saisie (cadre Turbo), rechargé à chaque ouverture pour compter les dernières actions. */
+    basculerBilan() {
+        const zone = this.bilanTarget;
+        if (!zone.hidden) {
+            zone.hidden = true;
+            this.boutonBilanTarget.textContent = 'Voir le bilan du match';
+            return;
+        }
+        zone.hidden = false;
+        this.boutonBilanTarget.textContent = 'Masquer le bilan';
+        zone.querySelector('turbo-frame').src = `${zone.dataset.url}?vu=${Date.now()}`;
+        zone.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     basculerJournal() {
