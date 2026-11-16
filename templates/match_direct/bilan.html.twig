@@ -58,14 +58,28 @@
                     {% for l in stats.joueurs %}<option value="{{ l.joueur.id }}" {{ joueur == l.joueur.id ? 'selected' }}>{{ l.joueur.nom }} {{ l.joueur.prenom }}</option>{% endfor %}
                 </select>
             </form>
-            <p class="discret petit">Nous attaquons vers la droite. Plus la zone est foncée, plus il y a d'actions.</p>
+            {% set deux = cartes.nous is not null and cartes.adverse is not null %}
+            <p class="discret petit">
+                Nous attaquons vers la droite. Plus la zone est foncée, plus il y a d'actions.
+                {% if deux %}<span class="legende-carte"><span class="pastille-carte nous"></span> nous (en haut de chaque zone) <span class="pastille-carte eux"></span> l'adversaire (en bas)</span>
+                {% elseif cartes.adverse is not null %}<span class="legende-carte"><span class="pastille-carte eux"></span> actions de l'adversaire</span>{% endif %}
+            </p>
             <div class="terrain-direct horizontal carte-chaleur">
                 <span class="marque mediane"></span><span class="marque rond"></span>
                 <span class="marque surface nous"></span><span class="marque surface eux"></span>
                 <div class="zones">
                     {% for zx in 0..5 %}{% for zy in 0..2 %}
-                        {% set n = carte[zx][zy] %}
-                        <span class="zone" style="grid-row:{{ zy + 1 }};grid-column:{{ zx + 1 }};--intensite:{{ (n / max_carte)|round(2) }}">{{ n ?: '' }}</span>
+                        {% if deux %}
+                            {# Zone coupée en deux : nos actions en haut (rouge), celles de l'adversaire en bas (bleu). #}
+                            {% set a = cartes.nous[zx][zy] %}{% set b = cartes.adverse[zx][zy] %}
+                            <span class="zone partagee" style="grid-row:{{ zy + 1 }};grid-column:{{ zx + 1 }}" title="Nous : {{ a }} · adversaire : {{ b }}">
+                                <span class="demi nous" style="--intensite:{{ (a / max_carte)|round(2) }}">{{ a ?: '' }}</span>
+                                <span class="demi eux" style="--intensite:{{ (b / max_carte)|round(2) }}">{{ b ?: '' }}</span>
+                            </span>
+                        {% else %}
+                            {% set n = carte[zx][zy] %}
+                            <span class="zone {{ cartes.adverse is not null ? 'eux' }}" style="grid-row:{{ zy + 1 }};grid-column:{{ zx + 1 }};--intensite:{{ (n / max_carte)|round(2) }}">{{ n ?: '' }}</span>
+                        {% endif %}
                     {% endfor %}{% endfor %}
                 </div>
             </div>

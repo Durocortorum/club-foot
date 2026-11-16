@@ -167,25 +167,32 @@ class MatchDirectController extends AbstractController
         $joueur = $request->query->getInt('joueur');
         // Carte du terrain : une action, toutes nos actions (« nous »), tout ce qu'a fait l'adversaire (« adverse »)
         // ou tout ; pour un joueur ou toute l'équipe.
-        $carte = array_fill(0, ActionMatch::COLONNES, array_fill(0, ActionMatch::COULOIRS, 0));
+        // Deux cartes : nos actions et celles de l'adversaire (couleurs différentes ; zones coupées en deux pour « toutes »).
+        $vide = array_fill(0, ActionMatch::COLONNES, array_fill(0, ActionMatch::COULOIRS, 0));
+        $cartes = ['nous' => $vide, 'adverse' => $vide];
         foreach ($actions as $a) {
             $retenue = match ($type) {
-                '' => true,
-                'nous' => !$a->isAdverse(),
-                'adverse' => $a->isAdverse(),
+                '', 'nous', 'adverse' => true,
                 default => $a->getType() === $type,
             };
             if ($retenue && (!$joueur || $a->getJoueur()?->getId() === $joueur)) {
-                ++$carte[$a->getZx()][$a->getZy()];
+                ++$cartes[$a->isAdverse() ? 'adverse' : 'nous'][$a->getZx()][$a->getZy()];
             }
         }
+        if ('nous' === $type || ($type && isset(ActionMatch::ACTIONS[$type])) || $joueur) {
+            $cartes['adverse'] = null;
+        } elseif ('adverse' === $type || isset(ActionMatch::ADVERSES[$type])) {
+            $cartes['nous'] = null;
+        }
+        $carte = $cartes['nous'] ?? $cartes['adverse'];
 
         return $this->render('match_direct/bilan.html.twig', [
             'rencontre' => $rencontre,
             'actions' => $actions,
             'stats' => $stats,
             'carte' => $carte,
-            'max_carte' => max(1, ...array_merge(...$carte)),
+            'cartes' => $cartes,
+            'max_carte' => max(1, ...array_merge(...array_merge(...array_values(array_filter($cartes))))),
             'type' => ActionMatch::existe($type) || \in_array($type, ['nous', 'adverse'], true) ? $type : '',
             'joueur' => $joueur,
             'types' => ActionMatch::ACTIONS,
