@@ -9,7 +9,7 @@
         Le site {{ legal.site }} et l'application {{ legal.service }} sont édités par {{ legal.editeur }},
         {{ l.valeur(legal.statut, 'statut : entrepreneur individuel, société…') }}.<br>
         SIRET : {{ l.valeur(legal.siret, 'numéro SIRET') }}<br>
-        TVA : {{ l.valeur(legal.tva, 'numéro de TVA ou « TVA non applicable, article 293 B du CGI »') }}<br>
+        N° de TVA intracommunautaire : {{ l.valeur(legal.tva, 'numéro de TVA') }}<br>
         Adresse : {{ l.valeur(legal.adresse, 'adresse postale') }}<br>
         E-mail : <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>{% if legal.telephone %} · Téléphone : {{ legal.telephone }}{% endif %}
     </p>
