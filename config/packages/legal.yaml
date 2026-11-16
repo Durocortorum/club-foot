@@ -10,7 +10,7 @@ parameters:
         statut: 'entrepreneur indépendant'
         siret: '920 233 772 00010'
         tva: 'FR42920233772'                       # n° de TVA intracommunautaire
-        prix_tva: ~                                # mention des prix dans les CGV : « Prix hors taxes, TVA en sus au taux en vigueur. » ou « TVA non applicable, article 293 B du CGI. »
+        prix_tva: 'TVA non applicable, article 293 B du CGI.'                               # mention des prix dans les CGV : « Prix hors taxes, TVA en sus au taux en vigueur. » ou « TVA non applicable, article 293 B du CGI. »
         adresse: '2 place du 24e RI, 08190 Blanzy-la-Salonnaise'
         email: 'contact@descotesmichel.com'
         telephone: '06 29 68 22 92'
