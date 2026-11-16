@@ -4,14 +4,12 @@
 $s = file_get_contents($source);
 $r = [
     "  <li><strong>Nico</strong> : communication, média, démarchage des clubs.</li>\n" => '',
-    '<p>Forfait mensuel par club. La personnalisation est sur devis. <span class="nouveau">NOUVEAU</span>'
-    => '<p>Trois formules, de la plus simple à la plus complète ; les prix sont à voir plus tard. La personnalisation est sur devis. <span class="nouveau">NOUVEAU</span>',
-    '<td colspan="3">Formule 1 – 20 € par mois</td>' => '<td colspan="3">Formule 1 – prix à voir plus tard</td>',
-    '<td colspan="3">Formule 2 – 40 € par mois (formule 1 +)</td>' => '<td colspan="3">Formule 2 – prix à voir plus tard (formule 1 +)</td>',
-    '<td colspan="3">Formule 3 – 50 € par mois (formule 2 +)</td>' => '<td colspan="3">Formule 3 – prix à voir plus tard (formule 2 +)</td>',
+    '<p>Trois formules par club, chacune comprend la précédente ; au mois ou à la saison (10 mois : juillet et août offerts). Au-delà de 300 licenciés : Essentiel 30 €, Club 60 €, Formation 95 € par mois. La personnalisation est sur devis. <span class="nouveau">NOUVEAU</span>'
+    => '<p>Trois formules, de la plus simple à la plus complète, chacune comprend la précédente ; les prix sont à voir plus tard. La personnalisation est sur devis. <span class="nouveau">NOUVEAU</span>',
+    'Formule Essentiel – 20 € par mois :' => 'Formule Essentiel :',
+    'Formule Club – 40 € par mois :' => 'Formule Club :',
+    'Formule Formation – 65 € par mois :' => 'Formule Formation :',
     '<td>À définir avec Nico.</td>' => '<td>À définir.</td>',
-    'ce qui complète la formule à 20 €.' => 'ce qui complète la formule 1.',
-    'argument pour les formules à 40 € et 50 €.' => 'argument pour les formules 2 et 3.',
     '<li>Média, avec Nico.</li>' => '<li>Média.</li>',
     '<h3>Commercialisation (avec Nico)</h3>' => '<h3>Commercialisation</h3>',
 ];
@@ -29,7 +27,7 @@ if (1 !== $n) {
     exit(1);
 }
 // Vérification : plus de Nico ni de prix des formules.
-if (preg_match('/Nico|\b(20|40|50) €/u', $s, $m)) {
+if (preg_match('/Nico|\b(20|30|40|50|60|65|95|200|400|650) €/u', $s, $m)) {
     fwrite(STDERR, 'Reste : ' . $m[0] . "\n");
     exit(1);
 }

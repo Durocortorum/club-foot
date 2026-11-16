@@ -20,7 +20,10 @@ class LegalTest extends WebTestCase
         // CGV : l'accord de traitement des données (article 28 du RGPD) en annexe, les prix des formules.
         $crawler = $client->request('GET', '/conditions-vente');
         self::assertCount(1, $crawler->filter('#sous-traitance'));
-        self::assertStringContainsString('20 €', $crawler->filter('.page-legale table')->text());
+        $prix = $crawler->filter('.page-legale table')->text();
+        self::assertStringContainsString('Essentiel', $prix);
+        self::assertStringContainsString('Formation', $prix);
+        self::assertStringContainsString('650 €', $prix, 'Formation à la saison : 65 € × 10 mois');
         // Lien depuis la page de connexion.
         $crawler = $client->request('GET', '/connexion');
         self::assertCount(1, $crawler->filter('footer.pied a[href="/confidentialite"]'));

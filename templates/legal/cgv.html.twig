@@ -26,13 +26,29 @@
     </p>
 
     <h2>3. Formules et prix</h2>
+    <div class="table-defile">
     <table class="liste">
-        <thead><tr><th>Formule</th><th class="a-droite">Prix par mois et par club</th></tr></thead>
+        <thead><tr>
+            <th>Formule</th>
+            <th class="a-droite">Par mois, jusqu'à {{ legal.seuil_licencies }} licenciés</th>
+            <th class="a-droite">Par mois, au-delà</th>
+            <th class="a-droite">À la saison ({{ legal.mois_saison }} mois)</th>
+        </tr></thead>
         <tbody>
-            {% for nom, prix in legal.prix %}<tr><td>{{ nom }}</td><td class="a-droite">{{ prix }} €</td></tr>{% endfor %}
+            {% for f in legal.formules %}
+                <tr>
+                    <td><strong>{{ f.nom }}</strong><br><span class="discret petit">{{ f.public }}</span></td>
+                    <td class="a-droite">{{ f.prix }} €</td>
+                    <td class="a-droite">{{ f.grand }} €</td>
+                    <td class="a-droite nowrap">{{ f.prix * legal.mois_saison }} € / {{ f.grand * legal.mois_saison }} €</td>
+                </tr>
+            {% endfor %}
         </tbody>
     </table>
+    </div>
     <p>
+        Chaque formule comprend la précédente. Le nombre de licenciés retenu est celui du club au début de la saison.
+        Payer à la saison revient à {{ legal.mois_saison }} mois : juillet et août sont offerts.
         Le détail des fonctions de chaque formule est présenté au club avant la souscription. {{ l.valeur(legal.prix_tva, 'prix hors taxes (TVA en sus) ou « TVA non applicable, article 293 B du CGI »') }}
         Les options (envoi de SMS…) et la personnalisation font l'objet d'un devis. Les prix peuvent évoluer : le club est prévenu
         au moins un mois avant ; il peut alors résilier sans frais.

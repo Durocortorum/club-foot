@@ -21,7 +21,13 @@ parameters:
         hebergement_lieu: 'Pays-Bas (Union européenne)'   # serveur nl-srv-web929.main-hosting.eu
         tribunal: 'Charleville-Mézières'           # ville du tribunal compétent (litige entre professionnels) : à confirmer
         essai_jours: 30                            # durée de l'essai gratuit après l'inscription d'un club
-        prix: { 'Formule 1': 20, 'Formule 2': 40, 'Formule 3': 50 }   # € par mois et par club
+        # € par mois et par club, jusqu'à « seuil_licencies » licenciés ; au-delà, prix « grand club ». À la saison : 10 mois.
+        formules:
+            - { nom: 'Essentiel', public: 'la vie de chaque semaine : éducateurs et familles', prix: 20, grand: 30 }
+            - { nom: 'Club', public: 'gérer le club : président, trésorier, secrétaire (Essentiel compris)', prix: 40, grand: 60 }
+            - { nom: 'Formation', public: 'faire progresser les joueurs : responsable technique, clubs formateurs (Club compris)', prix: 65, grand: 95 }
+        seuil_licencies: 300
+        mois_saison: 10
 
 twig:
     globals:
