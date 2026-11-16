@@ -239,9 +239,21 @@ class ConvocationTest extends WebTestCase
         // --- L'éducateur note Tom présent (réponse reçue par téléphone) ; relance : plus personne à relancer.
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', "$match/convocation");
-        $ligneTom = $crawler->filter('#reponses tr')->reduce(fn ($tr) => str_contains($tr->text(), 'Tom'));
-        $this->client->submit($ligneTom->filter('form.reponse-convoque')->form(), ['reponse' => 'present']);
+        // Toutes les réponses enregistrées d'un seul bouton : Tom passe « sans réponse », puis « tous présents ».
+        $tomId = $this->convoque($rencontre, 'Tom')->getId();
+        $this->client->submit($crawler->selectButton('Enregistrer toutes les réponses')->form(), ["reponse[$tomId]" => '']);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-info', 'Aucune réponse n\'a changé');
+        $this->client->submit($crawler->selectButton('Tous les sans-réponse : présents (1)')->form());
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', '1 réponse enregistrée');
         self::assertSame([Convoque::PRESENT, 'Coach TEST'], [$this->convoque($rencontre, 'Tom')->getReponse(), $this->convoque($rencontre, 'Tom')->getReponduPar()]);
+        // Et un changement dans le tableau (Léa absente, motif), enregistré par le même bouton.
+        $leaId = $this->convoque($rencontre, 'Léa')->getId();
+        $this->client->submit($crawler->selectButton('Enregistrer toutes les réponses')->form(), ["reponse[$leaId]" => 'absent', "motif[$leaId]" => 'Blessé']);
+        self::assertSame([Convoque::ABSENT, 'Blessé'], [$this->convoque($rencontre, 'Léa')->getReponse(), $this->convoque($rencontre, 'Léa')->getMotif()]);
+        $crawler = $this->client->followRedirect();
+        $this->client->submit($crawler->selectButton('Enregistrer toutes les réponses')->form(), ["reponse[$leaId]" => 'present']);
         $crawler = $this->client->request('GET', "$match/convocation");
         self::assertSelectorTextContains('#reponses', '2 présents');
         self::assertSelectorNotExists('input[name="relance"]');

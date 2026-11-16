@@ -225,6 +225,45 @@ class ConvocationController extends AbstractController
         return $this->redirect($this->generateUrl('app_convocation', ['id' => $rencontre->getId()]) . '#reponses');
     }
 
+    /**
+     * Toutes les réponses du tableau enregistrées d'un coup (seules celles qui changent sont notées, au nom de l'éducateur) ;
+     * « tous présents » : chaque joueur encore sans réponse est noté présent.
+     */
+    #[Route('/reponses', name: 'app_convocation_reponses', methods: ['POST'])]
+    public function reponses(Request $request, Rencontre $rencontre, ConvocationRepository $convocations): Response
+    {
+        $convocation = $convocations->pour($rencontre);
+        if (!$convocation || !$this->isCsrfTokenValid('reponses-convocation' . $rencontre->getId(), $request->getPayload()->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        $tousPresents = 'tous_presents' === $request->getPayload()->getString('action');
+        $reponses = $request->getPayload()->all('reponse');
+        $motifs = $request->getPayload()->all('motif');
+        $changees = 0;
+        foreach ($convocation->getConvoques() as $c) {
+            if ($tousPresents) {
+                [$reponse, $motif] = null === $c->getReponse() ? [Convoque::PRESENT, ''] : [$c->getReponse(), (string) $c->getMotif()];
+            } elseif (\array_key_exists($c->getId(), $reponses)) {
+                $reponse = \in_array($reponses[$c->getId()], [Convoque::PRESENT, Convoque::ABSENT], true) ? $reponses[$c->getId()] : null;
+                $motif = Convoque::ABSENT === $reponse ? trim((string) ($motifs[$c->getId()] ?? '')) : '';
+            } else {
+                continue;
+            }
+            if ($reponse !== $c->getReponse() || ($motif ?: null) !== ($c->getMotif() ?: null)) {
+                $c->repondre($reponse, $motif, (string) $moi);
+                ++$changees;
+            }
+        }
+        $this->em->flush();
+        $this->addFlash($changees ? 'succes' : 'info', $changees
+            ? \sprintf('%d réponse%s enregistrée%2$s.', $changees, $changees > 1 ? 's' : '')
+            : 'Aucune réponse n\'a changé.');
+
+        return $this->redirect($this->generateUrl('app_convocation', ['id' => $rencontre->getId()]) . '#reponses');
+    }
+
     #[Route('/supprimer', name: 'app_convocation_supprimer', methods: ['POST'])]
     public function supprimer(Request $request, Rencontre $rencontre): Response
     {

@@ -74,6 +74,7 @@ Le mois en cours : matchs, entraînements (annulés barrés), événements, stag
 2. Cocher les joueurs (ceux de l'équipe, et si besoin des catégories voisines), indiquer l'heure et le lieu du rendez-vous et un message.
 3. Envoyer : par e-mail, dans l'espace famille, notification sur le téléphone ; boutons pour WhatsApp ou SMS depuis son téléphone.
 4. Les familles répondent « Présent » ou « Absent » (avec motif) depuis leur espace ; l'éducateur voit les réponses et peut relancer ceux qui n'ont pas répondu.
+5. L'éducateur peut aussi noter lui-même les réponses reçues par téléphone ou de vive voix : dans le tableau « Réponses », choisir Présent / Absent (et le motif) pour chaque joueur, puis **Enregistrer toutes les réponses** (un seul bouton pour tout le tableau). **Tous les sans-réponse : présents** note d'un coup présents tous ceux qui n'ont pas répondu.
 Le déplacement (car, minibus, voitures, heure et lieu de départ) apparaît dans la convocation s'il est noté dans Transport.
 
 ## Match en direct (table de statistiques sur tablette)
