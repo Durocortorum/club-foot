@@ -57,6 +57,12 @@ class FichesCompleteesTest extends WebTestCase
         self::assertFalse($u15->isFeminine());
         $crawler = $client->request('GET', '/club/categories');
         self::assertCount(1, $crawler->filter('.pastille.feminine'));
+        // Rangées à leur place d'âge : U13 Filles après U13, U18 entre U17 et U19 (et non en bas de la liste).
+        $crawler = $client->request('GET', '/club/categories/nouvelle');
+        $client->submit($crawler->selectButton('Enregistrer')->form(['categorie[nom]' => 'U18', 'categorie[secteur]' => 'formation']));
+        $crawler = $client->request('GET', '/club/categories');
+        $ordre = $crawler->filter('table tbody tr td strong')->each(fn ($n) => $n->text());
+        self::assertSame(['U13', 'U13 FILLES', 'U15', 'U17', 'U18', 'U19', 'SENIORS'], \array_slice($ordre, 3, 7));
         self::assertTrue(Categorie::nomFeminin('Seniors F'));
         self::assertTrue(Categorie::nomFeminin('Féminines'));
         self::assertFalse(Categorie::nomFeminin('U15 Futsal'));

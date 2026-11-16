@@ -106,6 +106,9 @@ class CategorieController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            if (null === $categorie->getId()) {
+                $this->ranger($categorie);
+            }
             $this->em->persist($categorie);
             $this->em->flush();
             $this->addFlash('succes', 'Catégorie enregistrée.');
@@ -118,6 +121,29 @@ class CategorieController extends AbstractController
             'titre' => $titre,
             'retour' => $this->generateUrl('app_categorie_index'),
         ]);
+    }
+
+    /**
+     * Nouvelle catégorie « U.. » rangée à sa place d'âge (U18 entre U17 et U19, avant les seniors) ;
+     * les autres (« Féminines », « Loisirs »…) restent à la fin. Les catégories suivantes sont décalées.
+     */
+    private function ranger(Categorie $nouvelle): void
+    {
+        $liste = $this->em->getRepository(Categorie::class)->findBy([], ['ordre' => 'ASC', 'nom' => 'ASC']);
+        $age = $nouvelle->getAge();
+        $place = \count($liste);
+        if ($age < 99) {
+            foreach ($liste as $i => $c) {
+                if ($c->getAge() > $age) {
+                    $place = $i;
+                    break;
+                }
+            }
+        }
+        array_splice($liste, $place, 0, [$nouvelle]);
+        foreach ($liste as $rang => $c) {
+            $c->setOrdre($rang + 1);
+        }
     }
 
     /** @return list<string> ex. : ["12 joueurs", "3 matchs"] */
