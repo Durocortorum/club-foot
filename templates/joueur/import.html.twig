@@ -19,7 +19,8 @@
                 </p>
             </div>
 
-            <form class="carte" method="post" enctype="multipart/form-data">
+            {# data-turbo="false" : l'aperçu s'affiche en réponse directe à l'envoi (sans redirection), ce que Turbo ignore. #}
+            <form class="carte" method="post" enctype="multipart/form-data" data-turbo="false">
                 <h2>2. Envoyez-le</h2>
                 <input type="hidden" name="_token" value="{{ csrf_token('import-joueurs') }}">
                 <div class="champ">
