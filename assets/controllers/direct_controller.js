@@ -22,7 +22,7 @@ export default class extends Controller {
     static targets = ['joueurs', 'types', 'terrain', 'journal', 'score', 'chrono', 'minute', 'periode', 'boutonChrono', 'etat', 'consigne',
         'meteo', 'sol', 'vent', 'temperature', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne', 'boutonNumeros', 'bilan', 'boutonBilan',
         'proposeBut', 'texteProposeBut', 'dialogueBut', 'titreBut', 'terrainBut', 'gestesBut', 'champPasseur', 'passeurBut',
-        'dialogueChangement', 'titreChangement', 'sortant', 'entrant', 'motifsChangement', 'minuteChangement', 'erreurChangement', 'aideChangement'];
+        'dialogueChangement', 'titreChangement', 'sortant', 'entrant', 'motifsChangement', 'minuteChangement', 'erreurChangement', 'aideChangement', 'boutonTitulaires'];
 
     connect() {
         this.cfg = this.configValue;
@@ -40,6 +40,9 @@ export default class extends Controller {
         this.infos = sauve.infos ?? {};
         // Numéros de maillot changés sur cette tablette, pas encore envoyés : id du joueur => numéro (null : effacé).
         this.numerosAEnvoyer = sauve.numerosAEnvoyer ?? {};
+        // Titulaires choisis sur cette tablette, pas encore envoyés (null : rien à envoyer).
+        this.titulairesAEnvoyer = sauve.titulairesAEnvoyer ?? null;
+        if (this.titulairesAEnvoyer) this.cfg.titulaires = this.titulairesAEnvoyer;
         this.appliquerNumeros();
         this.mesStats = this.lireMesStats();
         this.fusionner(this.cfg.actions);
@@ -83,7 +86,7 @@ export default class extends Controller {
 
     garder() {
         try {
-            localStorage.setItem(this.cle, JSON.stringify({ chrono: this.chrono, chronoAEnvoyer: this.chronoAEnvoyer, enAttente: this.enAttente, supprimes: this.supprimes, infos: this.infos, numerosAEnvoyer: this.numerosAEnvoyer }));
+            localStorage.setItem(this.cle, JSON.stringify({ chrono: this.chrono, chronoAEnvoyer: this.chronoAEnvoyer, enAttente: this.enAttente, supprimes: this.supprimes, infos: this.infos, numerosAEnvoyer: this.numerosAEnvoyer, titulairesAEnvoyer: this.titulairesAEnvoyer }));
         } catch (e) { /* stockage plein ou interdit : l'envoi au serveur reste tenté */ }
     }
 
@@ -273,6 +276,11 @@ export default class extends Controller {
 
     editerNumeros() {
         this.editionNumeros = !this.editionNumeros;
+        if (this.editionNumeros && this.editionTitulaires) {
+            this.editionTitulaires = false;
+            this.boutonTitulairesTarget.textContent = '⚽ Titulaires';
+            this.element.classList.remove('edition-titulaires');
+        }
         this.boutonNumerosTarget.textContent = this.editionNumeros ? '✓ Terminé' : '✎ Numéros';
         this.element.classList.toggle('edition-numeros', this.editionNumeros);
         this.dessinerJoueurs();
@@ -291,8 +299,48 @@ export default class extends Controller {
         this.envoyer();
     }
 
+    // ———————— Titulaires (joueurs sur le terrain au coup d'envoi, communs aux tablettes) ————————
+
+    /** Titulaires : ceux choisis sur une tablette, sinon les numéros 1 à 11 (règle de la feuille de match). */
+    titulaires() {
+        if (Array.isArray(this.cfg.titulaires)) return this.cfg.titulaires;
+        return this.cfg.joueurs.filter((j) => j.numero >= 1 && j.numero <= 11).map((j) => j.id);
+    }
+
+    editerTitulaires() {
+        this.editionTitulaires = !this.editionTitulaires;
+        if (this.editionTitulaires && this.editionNumeros) {
+            this.editionNumeros = false;
+            this.boutonNumerosTarget.textContent = '✎ Numéros';
+            this.element.classList.remove('edition-numeros');
+        }
+        this.boutonTitulairesTarget.textContent = this.editionTitulaires ? '✓ Terminé' : '⚽ Titulaires';
+        this.element.classList.toggle('edition-titulaires', this.editionTitulaires);
+        this.dessinerJoueurs();
+        this.afficher();
+    }
+
+    basculerTitulaire(event) {
+        const id = Number(event.currentTarget.dataset.joueurTitulaire);
+        const liste = new Set(this.titulaires());
+        if (liste.has(id)) liste.delete(id); else liste.add(id);
+        this.cfg.titulaires = [...liste];
+        this.titulairesAEnvoyer = this.cfg.titulaires;
+        this.garder();
+        this.dessinerJoueurs();
+        this.envoyer();
+    }
+
     dessinerJoueurs() {
         const suivis = this.typesSuivis();
+        if (this.editionTitulaires) {
+            // Choix des titulaires : toucher un joueur le met sur le terrain ou sur le banc.
+            const titulaires = this.titulaires();
+            this.joueursTarget.innerHTML = `<p class="consigne-titulaires">Touchez les joueurs sur le terrain au coup d'envoi : <b>${titulaires.length}</b> titulaire${titulaires.length > 1 ? 's' : ''}.</p>`
+                + this.cfg.joueurs.map((j) => `<button type="button" class="tuile-joueur${titulaires.includes(j.id) ? ' titulaire' : ' banc'}" data-joueur-titulaire="${j.id}" data-action="direct#basculerTitulaire" aria-pressed="${titulaires.includes(j.id)}">
+                <span class="num${j.numero ? '' : ' sans'}">${j.numero ?? '?'}</span><span class="nom">${this.echapper(j.nom)}</span><span class="prenom">${titulaires.includes(j.id) ? '⚽ Terrain' : 'Banc'}</span></button>`).join('');
+            return;
+        }
         if (this.editionNumeros) {
             // Saisie des numéros : une case par joueur (clavier numérique sur la tablette).
             this.joueursTarget.innerHTML = this.cfg.joueurs.map((j) => `<label class="tuile-joueur edition">
@@ -343,7 +391,7 @@ export default class extends Controller {
         const avantLui = (a) => a.uuid !== c.uuid && (a.periode < c.periode || (a.periode === c.periode && a.minute <= c.minute));
         const avant = [...this.actions.values()].filter((a) => ['RP', 'CR', 'EX'].includes(a.type) && a.joueur && avantLui(a))
             .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute));
-        const titulaires = this.cfg.joueurs.filter((j) => j.numero >= 1 && j.numero <= 11).map((j) => j.id);
+        const titulaires = this.titulaires();
         this.terrainConnu = titulaires.length > 0;
         this.etatTerrain = new Map(this.terrainConnu ? this.cfg.joueurs.map((j) => [j.id, titulaires.includes(j.id)]) : []);
         this.exclus = new Set();
@@ -391,7 +439,8 @@ export default class extends Controller {
             ? 'Carton blanc : le joueur sort 10 minutes sans être remplacé, puis revient sans changement.'
             : 'Carton rouge : le joueur est exclu, il n\'est pas remplacé.')
             : (!possibles.length ? 'Aucun remplaçant disponible : le joueur sort sans être remplacé.'
-                : (!this.terrainConnu ? 'Astuce : donnez les numéros (✎ Numéros) : 1 à 11 = titulaires ; seuls les remplaçants seront alors proposés pour entrer.' : ''));
+                : (!this.terrainConnu ? 'Astuce : choisissez les titulaires (bouton « ⚽ Titulaires ») : seuls les remplaçants seront alors proposés pour entrer.'
+                    : 'Liste fausse ? Corrigez les joueurs sur le terrain au coup d\'envoi avec « ⚽ Titulaires ».'));
         this.aideChangementTarget.textContent = aide;
         this.aideChangementTarget.hidden = !aide;
     }
@@ -824,13 +873,14 @@ export default class extends Controller {
         const supprimes = [...this.supprimes];
         const chrono = this.chronoAEnvoyer ? { ...this.chrono } : null;
         const numeros = { ...this.numerosAEnvoyer };
+        const titulaires = this.titulairesAEnvoyer;
         this.envoiEnCours = true;
         try {
             const avant = Date.now();
             const reponse = await fetch(this.cfg.url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({ jeton: this.cfg.jeton, actions, supprimes, chrono, numeros, infos: this.infosAEnvoyer ? this.infos : {} }),
+                body: JSON.stringify({ jeton: this.cfg.jeton, actions, supprimes, chrono, numeros, ...(titulaires ? { titulaires } : {}), infos: this.infosAEnvoyer ? this.infos : {} }),
             });
             if (reponse.status === 404) {
                 // Match supprimé (sur un autre appareil) : plus rien ne peut être enregistré, on arrête d'essayer.
@@ -868,6 +918,12 @@ export default class extends Controller {
                 this.cfg.joueurs = donnees.joueurs;
                 this.appliquerNumeros();
                 if (!this.editionNumeros && JSON.stringify(this.cfg.joueurs) !== avant) this.dessinerJoueurs();
+            }
+            // Titulaires : envoyés, puis ceux du serveur (choisis sur une autre tablette) s'il n'y a rien en attente ici.
+            if (titulaires && this.titulairesAEnvoyer === titulaires) this.titulairesAEnvoyer = null;
+            if (!this.titulairesAEnvoyer && JSON.stringify(donnees.titulaires ?? null) !== JSON.stringify(this.cfg.titulaires ?? null)) {
+                this.cfg.titulaires = donnees.titulaires ?? null;
+                if (this.editionTitulaires) this.dessinerJoueurs();
             }
             this.fusionner(donnees.actions ?? []);
             this.garder();

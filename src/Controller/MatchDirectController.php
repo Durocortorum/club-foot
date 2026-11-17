@@ -59,6 +59,7 @@ class MatchDirectController extends AbstractController
                 'groupes' => ActionMatch::GROUPES,
                 'moi' => $this->moi()->getId(),
                 'chrono' => $rencontre->getChronoDirect(),
+                'titulaires' => $rencontre->getTitulairesDirect(),
                 'maintenant' => self::maintenant(),
             ],
             'meteos' => Rencontre::METEOS,
@@ -153,6 +154,10 @@ class MatchDirectController extends AbstractController
         if (\is_array($donnees['chrono'] ?? null)) {
             $rencontre->majChronoDirect($donnees['chrono']);
         }
+        // Titulaires choisis sur la tablette (joueurs du match seulement) ; la dernière tablette qui les change l'emporte.
+        if (\is_array($donnees['titulaires'] ?? null)) {
+            $rencontre->setTitulairesDirect(array_values(array_filter(array_map('intval', $donnees['titulaires']), fn (int $id) => isset($joueurs[$id]))));
+        }
         // Numéros de maillot donnés sur la tablette (1 à 99, vide : effacé), pour les joueurs du match seulement.
         foreach ((array) ($donnees['numeros'] ?? []) as $joueurId => $numero) {
             if (isset($joueurs[(int) $joueurId])) {
@@ -168,6 +173,7 @@ class MatchDirectController extends AbstractController
             'joueurs' => $this->direct->joueurs($rencontre, array_values($existantes)),
             'actions' => array_map(fn (ActionMatch $a) => $a->enTableau(), $this->actions->duMatch($rencontre)),
             'chrono' => $rencontre->getChronoDirect(),
+            'titulaires' => $rencontre->getTitulairesDirect(),
             'maintenant' => self::maintenant(),
         ]);
     }

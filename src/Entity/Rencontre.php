@@ -158,6 +158,29 @@ class Rencontre implements AppartientAuClub
         return $this;
     }
 
+    /**
+     * Titulaires choisis sur la tablette (ids des joueurs sur le terrain au coup d'envoi), communs aux tablettes ;
+     * null : pas encore choisis (la tablette prend alors les numéros 1 à 11).
+     *
+     * @var list<int>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $titulairesDirect = null;
+
+    /** @return list<int>|null */
+    public function getTitulairesDirect(): ?array
+    {
+        return null === $this->titulairesDirect ? null : array_values(array_map('intval', $this->titulairesDirect));
+    }
+
+    /** @param list<int>|null $ids */
+    public function setTitulairesDirect(?array $ids): static
+    {
+        $this->titulairesDirect = null === $ids ? null : array_values(array_unique(array_map('intval', $ids)));
+
+        return $this;
+    }
+
     public function getChronoDirect(): ?array
     {
         return $this->chronoDirect;

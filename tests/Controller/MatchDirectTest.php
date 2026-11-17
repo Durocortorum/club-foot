@@ -130,6 +130,14 @@ class MatchDirectTest extends WebTestCase
         $em->clear();
         self::assertSame([$tomId => 23], $em->find(Rencontre::class, $matchId)->getNumerosDirect());
 
+        // Titulaires choisis sur la tablette : communs aux tablettes, joueurs du match seulement.
+        self::assertNull($config['titulaires']);
+        $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['jeton' => $config['jeton'], 'titulaires' => [$tomId, 999999]]));
+        self::assertSame([$tomId], json_decode($client->getResponse()->getContent(), true)['titulaires']);
+        $em->clear();
+        self::assertSame([$tomId], $em->find(Rencontre::class, $matchId)->getTitulairesDirect());
+
         // Jeton manquant : refusé.
         $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['actions' => $actions]));
         self::assertResponseStatusCodeSame(403);
