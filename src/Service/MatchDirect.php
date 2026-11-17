@@ -140,6 +140,103 @@ class MatchDirect
         return ['joueurs' => array_values($parJoueur), 'equipe' => $equipe, 'zones' => $zones, 'quarts' => $quarts, 'pour' => $equipe['B'], 'contre' => $equipe['BA']];
     }
 
+    /** Début de l'identifiant des actions tirées de la feuille de match (pas enregistrées, pour le bilan seulement). */
+    public const DE_LA_FEUILLE = 'feuille-';
+    /** … et de celles sans place sur le terrain (carton, changement, but non placé) : absentes de la carte. */
+    public const SANS_ZONE = 'feuille-sz-';
+
+    /**
+     * Actions du direct complétées par la feuille de match, pour le bilan : ce qui a été saisi ou corrigé sur la
+     * feuille compte aussi dans les statistiques du match.
+     * - Buts : ceux de la feuille dès qu'elle en a (elle fait foi : buteur, passeur, minute, façon de marquer,
+     *   place sur le terrain) ; sinon ceux notés en direct.
+     * - Cartons : ceux de la feuille pour les joueurs sans carton noté en direct.
+     * - Remplacements : ceux de la feuille qui n'ont pas été notés en direct.
+     *
+     * @param list<ActionMatch> $actions
+     *
+     * @return list<ActionMatch>
+     */
+    public function avecFeuille(Rencontre $rencontre, array $actions): array
+    {
+        $mi = intdiv($this->duree($rencontre), 2);
+        $n = 0;
+        $nouvelle = function (string $type, ?Joueur $joueur, int $minute, ?array $place = null, ?array $details = null) use ($rencontre, $mi, &$n): ActionMatch {
+            $a = (new ActionMatch($rencontre, ($place ? self::DE_LA_FEUILLE : self::SANS_ZONE) . ++$n))->setType($type)->setJoueur($joueur);
+            // Place sur le terrain (en mètres) → zone du direct.
+            $zx = $place ? min(ActionMatch::COLONNES - 1, max(0, (int) floor($place[0] / 17.5))) : 2;
+            $zy = $place ? min(ActionMatch::COULOIRS - 1, max(0, (int) floor($place[1] / (68 / 3)))) : 1;
+
+            return $a->placer($minute > $mi ? 2 : 1, $minute, $zx, $zy)->setDetails($details);
+        };
+
+        // Buts : la feuille fait foi dès qu'elle en a.
+        $buts = $rencontre->getButs();
+        if (\count($buts)) {
+            $actions = array_values(array_filter($actions, fn (ActionMatch $a) => !\in_array($a->getType(), ['B', 'BA'], true)));
+            foreach ($buts as $b) {
+                $trace = $b->getTrace();
+                $csc = 'CSC' === $b->getConditions();
+                $details = ($trace ?? []) + array_filter([
+                    'geste' => $csc ? 'csc' : ('Tête' === $b->getGeste() ? 'tete' : ($trace ? 'tir' : null)),
+                    'passeur' => $b->isAdverse() ? null : $b->getPasseur()?->getId(),
+                ]);
+                // Sans place sur le terrain : comptés, mais pas sur la carte.
+                $actions[] = $nouvelle($b->isAdverse() ? 'BA' : 'B', $b->isAdverse() ? null : $b->getButeur(),
+                    (int) floor(Rencontre::ordreMinute($b->getTemps()) ?? 0), $trace['depart'] ?? null, $details ?: null);
+            }
+        }
+
+        // Cartons de la feuille, pour les joueurs sans carton noté en direct.
+        $avertis = [];
+        foreach ($actions as $a) {
+            if (\in_array($a->getType(), ['CJ', 'CR', ActionMatch::EXCLUSION_TEMPORAIRE], true) && $a->getJoueur()) {
+                $avertis[$a->getJoueur()->getId()] = true;
+            }
+        }
+        foreach ($rencontre->getParticipations() as $p) {
+            $j = $p->getJoueur();
+            if (!$j || !$p->getCarton() || isset($avertis[$j->getId()])) {
+                continue;
+            }
+            $minute = (int) floor(Rencontre::ordreMinute($p->getMinuteCarton()) ?? 0);
+            $types = match ($p->getCarton()) {
+                'J+R' => ['CJ', 'CR'],
+                'RJ', 'RC' => ['CR'],
+                'BL' => [ActionMatch::EXCLUSION_TEMPORAIRE],
+                default => ['CJ'],
+            };
+            foreach ($types as $type) {
+                $actions[] = $nouvelle($type, $j, $minute);
+            }
+        }
+
+        // Remplacements de la feuille pas notés en direct (même sortant, entrant et minute).
+        $notes = [];
+        foreach ($actions as $a) {
+            if (ActionMatch::CHANGEMENT === $a->getType()) {
+                $notes[] = [$a->getJoueur()?->getId(), $a->getDetails()['entrant'] ?? null, $a->getMinute()];
+            }
+        }
+        foreach ($rencontre->getRemplacements() as $r) {
+            if (!$r->getSortant() || \in_array([$r->getSortant()->getId(), $r->getEntrant()?->getId(), $r->getMinute() ?? 0], $notes, true)) {
+                continue;
+            }
+            $a = $nouvelle(ActionMatch::CHANGEMENT, $r->getSortant(), $r->getMinute() ?? 0);
+            $actions[] = $a->setDetails(['entrant' => $r->getEntrant()?->getId(), 'motif' => $r->getMotif()]);
+        }
+
+        usort($actions, fn (ActionMatch $a, ActionMatch $b) => [$a->getPeriode(), $a->getMinute()] <=> [$b->getPeriode(), $b->getMinute()]);
+
+        return $actions;
+    }
+
+    /** Action tirée de la feuille de match (pas notée en direct). */
+    public static function deLaFeuille(ActionMatch $a): bool
+    {
+        return str_starts_with($a->getUuid(), self::DE_LA_FEUILLE);
+    }
+
     /** Pourcentage de réussite d'un groupe (passes, duels…), null sans action. */
     public static function reussite(array $compte, string $groupe): ?int
     {

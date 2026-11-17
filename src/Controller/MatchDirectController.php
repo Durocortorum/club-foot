@@ -195,7 +195,9 @@ class MatchDirectController extends AbstractController
     #[Route('/matchs/{id}/direct/bilan', name: 'app_match_direct_bilan', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function bilan(Request $request, Rencontre $rencontre): Response
     {
-        $actions = $this->actions->duMatch($rencontre);
+        $notees = $this->actions->duMatch($rencontre);
+        // Complétées par la feuille de match (buts, cartons, remplacements saisis ou corrigés sur la feuille).
+        $actions = $this->direct->avecFeuille($rencontre, $notees);
         $stats = $this->direct->statistiques($rencontre, $actions);
         $type = $request->query->getString('type');
         $joueur = $request->query->getInt('joueur');
@@ -212,7 +214,9 @@ class MatchDirectController extends AbstractController
                 '', 'nous', 'adverse' => true,
                 default => $a->getType() === $type,
             };
-            if (!$retenue || isset(ActionMatch::HORS_JEU[$a->getType()]) ||($joueur && $a->getJoueur()?->getId() !== $joueur)) {
+            // Pas sur la carte : changements, cartons blancs, et ce que la feuille ne place pas sur le terrain.
+            if (!$retenue || isset(ActionMatch::HORS_JEU[$a->getType()]) || str_starts_with($a->getUuid(), MatchDirect::SANS_ZONE)
+                || ($joueur && $a->getJoueur()?->getId() !== $joueur)) {
                 continue;
             }
             $camp = $a->isAdverse() ? 'adverse' : 'nous';
@@ -234,7 +238,8 @@ class MatchDirectController extends AbstractController
         // Schémas des buts : départ du ballon et point d'entrée dans le but (sans tracé noté : milieu de la zone, centre du but).
         $traces = ['marques' => [], 'encaisses' => []];
         foreach ($actions as $a) {
-            if (!\in_array($a->getType(), ['B', 'BA'], true)) {
+            // But de la feuille pas placé sur le terrain : compté, mais pas dessiné.
+            if (!\in_array($a->getType(), ['B', 'BA'], true) || str_starts_with($a->getUuid(), MatchDirect::SANS_ZONE)) {
                 continue;
             }
             $d = $a->getDetails() ?? [];
@@ -262,6 +267,7 @@ class MatchDirectController extends AbstractController
 
         return $this->render('match_direct/bilan.html.twig', [
             'changements' => $changements,
+            'notees' => \count($notees),
             'traces' => $traces,
             'rencontre' => $rencontre,
             'actions' => $actions,

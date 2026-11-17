@@ -14,15 +14,16 @@
     <div class="titre-page">
         <div>
             <h1>Statistiques du match</h1>
-            <p class="discret">{{ nous }} {{ stats.pour }} – {{ stats.contre }} {{ rencontre.adversaire }} · {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }} · {{ actions|length }} action{{ actions|length > 1 ? 's' }} notée{{ actions|length > 1 ? 's' }}</p>
+            <p class="discret">{{ nous }} {{ stats.pour }} – {{ stats.contre }} {{ rencontre.adversaire }} · {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }} · {{ notees }} action{{ notees > 1 ? 's' }} notée{{ notees > 1 ? 's' }} en direct{% if actions|length > notees %}, complétée{{ notees > 1 ? 's' }} par la feuille de match (buts, cartons, remplacements){% endif %}</p>
         </div>
         <span class="actions">
             <a class="bouton principal bilan-saisie" href="{{ path('app_match_direct', {id: rencontre.id}) }}" data-turbo-frame="_top">Saisie en direct</a>
-            {% set a_reporter = ((stats.pour or stats.contre) and not buts_feuille) or stats.equipe.CJ or stats.equipe.CR %}
-            {% if a_reporter %}
+            {# Notés en direct mais pas encore sur la feuille de match. #}
+            {% set a_reporter = direct_a_reporter(rencontre) %}
+            {% if a_reporter.buts or a_reporter.cartons or a_reporter.changements %}
                 <form method="post" action="{{ path('app_match_direct_reporter', {id: rencontre.id}) }}" class="en-ligne" data-turbo-frame="_top">
                     <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ rencontre.id) }}">
-                    <button type="submit" class="bouton" title="Buts (si la feuille n'en a pas) et cartons de nos joueurs">Reporter buts et cartons sur la feuille de match</button>
+                    <button type="submit" class="bouton" title="Buts (si la feuille n'en a pas), cartons et changements notés en direct">Reporter sur la feuille de match</button>
                 </form>
             {% endif %}
         </span>
@@ -193,7 +194,7 @@
             <summary><strong>Toutes les actions ({{ actions|length }})</strong></summary>
             <ol class="journal">
                 {% for a in actions %}
-                    <li><span class="min">{{ a.minute }}'</span><span class="quoi"><b class="pastille-action action-{{ a.type }}">{{ a.type }}</b> {% if a.joueur %}{{ a.joueur.nom }} {{ a.joueur.prenom }} · {% endif %}{{ a.libelle }}</span></li>
+                    <li><span class="min">{{ a.minute }}'</span><span class="quoi"><b class="pastille-action action-{{ a.type }}">{{ a.type }}</b> {% if a.joueur %}{{ a.joueur.nom }} {{ a.joueur.prenom }} · {% endif %}{{ a.libelle }}{% if a.uuid starts with 'feuille-' %} <span class="discret">(feuille de match)</span>{% endif %}</span></li>
                 {% endfor %}
             </ol>
         </details>

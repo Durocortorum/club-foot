@@ -166,7 +166,7 @@ class MatchDirectTest extends WebTestCase
         self::assertSelectorTextContains('.bandeau-direct', '2 buts et 1 carton');
 
         // Report sur la feuille : buts (43e Tom, 60e adversaire, score 1 – 1) et carton jaune de Tom à la 30e.
-        $client->submit($crawler->selectButton('Reporter buts et cartons sur la feuille de match')->form());
+        $client->submit($crawler->selectButton('Reporter sur la feuille de match')->form());
         self::assertResponseRedirects("/matchs/$matchId");
         $em->clear();
         $match = $em->find(Rencontre::class, $matchId);
@@ -192,6 +192,14 @@ class MatchDirectTest extends WebTestCase
         $em->clear();
         $traces = array_map(fn ($b) => $b->getTrace(), $em->find(Rencontre::class, $matchId)->getButs()->toArray());
         self::assertContainsEquals(['depart' => [8.0, 30.0], 'arrivee' => [0.0, 33.5]], $traces, 'tracé du but adverse enregistré depuis la feuille');
+
+        // Statistiques du match : la feuille fait foi pour les buts (score, schémas, carte du terrain), même pour un but
+        // placé seulement sur la feuille ; ses cartons comptent.
+        $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan?type=BA");
+        self::assertSelectorTextContains('.titre-page', '1 – 1');
+        self::assertStringContainsString('Buts encaissés (1)', $crawler->filter('.buts-schemas')->text());
+        self::assertSame(1, array_sum(array_map('intval', $crawler->filter('.carte-chaleur .zone')->each(fn ($z) => $z->text()))), 'but adverse placé sur la feuille : sur la carte');
+        self::assertStringContainsString('(feuille de match)', $crawler->filter('.journal')->text());
         $feuille = [];
         foreach ($match->getParticipations() as $p) {
             $feuille[$p->getJoueur()->getId()] = $p;
