@@ -25,6 +25,7 @@ a:hover { text-decoration: underline; }
 h1 { font-size: 1.6rem; margin: 0 0 .5rem; font-weight: 500; }
 h1 strong { font-weight: 700; }
 h2 { font-size: 1.05rem; margin: 0 0 .8rem; }
+h2.titre-leger { font-weight: 400; }
 .discret { color: var(--gris); margin-top: 0; }
 
 /* En-tête */

@@ -30,7 +30,7 @@
        le message du groupe et l'espace famille. #}
     {% if rencontre.deplacements is not empty or not rencontre.aDomicile %}
         <section class="carte bloc" id="deplacement">
-            <h2>Déplacement</h2>
+            <h2 class="titre-leger">Déplacement</h2>
             {% if rencontre.deplacements is not empty %}
                 <ul class="liste-simple">
                     {% for d in rencontre.deplacements %}
