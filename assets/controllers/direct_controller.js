@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { confirmer } from '../confirmation.js';
 
 /*
  * Match en direct (table de statistiques) : joueur → action → zone, la minute vient du chrono.
@@ -165,14 +166,24 @@ export default class extends Controller {
         this.chronoChange();
     }
 
-    finPeriode() {
+    async finPeriode() {
         const c = this.chrono;
+        if (c.fini) return;
+        const score = [this.cfg.nous, this.scoreTarget.textContent, this.cfg.adversaire];
+        const m = this.minuteCourante();
+        const minute = `${m}${m === 1 ? 're' : 'e'} minute`;
         if (c.periode === 1) {
-            if (!confirm('Fin de la 1re période ? Le chrono repartira à la mi-temps et les équipes changent de côté.')) return;
+            if (!await confirmer('Score à la pause', {
+                titre: '⏸ Mi-temps ?', bouton: 'Siffler la mi-temps', style: 'principal', classe: 'dialogue-periode', score,
+                detail: `Fin de la 1re période à la ${minute}. Le chrono s'arrête ; « ▶ 2e période » le relance, et les équipes changent de côté.`,
+            })) return;
             this.chrono = { periode: 2, enCours: false, debut: null, cumul: 0, fini: false, sens: -c.sens, maj: c.maj };
             this.dessinerTerrain();
         } else {
-            if (!confirm('Fin du match ?')) return;
+            if (!await confirmer('Score final', {
+                titre: '🏁 Fin du match ?', bouton: 'Siffler la fin du match', style: 'principal', classe: 'dialogue-periode', score,
+                detail: `Fin du match à la ${minute}. Pensez ensuite à « Reporter sur la feuille de match ».`,
+            })) return;
             c.cumul = this.secondes();
             c.enCours = false;
             c.debut = null;
@@ -740,10 +751,10 @@ export default class extends Controller {
         this.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    supprimer(event) {
+    async supprimer(event) {
         const uuid = event.currentTarget.dataset.uuid;
         const a = this.actions.get(uuid);
-        if (!a || !this.aMoi(a) || !confirm(`Supprimer « ${this.libelle(a)} » ?`)) return;
+        if (!a || !this.aMoi(a) || !await confirmer(`${a.minute}' · ${this.libelle(a)}`, { titre: 'Supprimer cette action ?', bouton: 'Supprimer' })) return;
         this.actions.delete(uuid);
         delete this.enAttente[uuid];
         this.supprimes.push(uuid);

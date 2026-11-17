@@ -4,21 +4,42 @@
  * - sur un formulaire : <form data-confirmation="Supprimer cet exercice ?" data-confirmation-bouton="Supprimer">
  */
 
-export function confirmer(question, { bouton = 'Confirmer', titre = 'Confirmation' } = {}) {
+/**
+ * Options : bouton (texte du bouton de validation), titre, style du bouton (« danger-plein » rouge par défaut,
+ * « principal » bleu pour ce qui n'efface rien), detail (petite ligne sous la question), classe (de la boîte).
+ */
+export function confirmer(question, { bouton = 'Confirmer', titre = 'Confirmation', style = 'danger-plein', detail = '', classe = '', score = null } = {}) {
     return new Promise((resoudre) => {
         const dialogue = document.createElement('dialog');
-        dialogue.className = 'dialogue';
+        dialogue.className = `dialogue ${classe}`.trim();
         dialogue.innerHTML = `
             <form method="dialog">
                 <h2 class="dialogue-titre"></h2>
                 <p class="dialogue-question"></p>
+                <p class="dialogue-detail discret petit" hidden></p>
                 <div class="dialogue-actions">
                     <button value="non" class="bouton">Annuler</button>
-                    <button value="oui" class="bouton danger-plein"></button>
+                    <button value="oui" class="bouton ${style}"></button>
                 </div>
             </form>`;
         dialogue.querySelector('.dialogue-titre').textContent = titre;
         dialogue.querySelector('.dialogue-question').textContent = question;
+        // Tableau de score (fin de période du match en direct) : [équipe, score, équipe].
+        if (Array.isArray(score)) {
+            const tableau = document.createElement('div');
+            tableau.className = 'dialogue-score';
+            score.forEach((texte, i) => {
+                const morceau = document.createElement('span');
+                morceau.className = ['equipe', 'score', 'equipe'][i] ?? '';
+                morceau.textContent = texte;
+                tableau.append(morceau);
+            });
+            dialogue.querySelector('.dialogue-question').after(tableau);
+        }
+        if (detail) {
+            dialogue.querySelector('.dialogue-detail').textContent = detail;
+            dialogue.querySelector('.dialogue-detail').hidden = false;
+        }
         dialogue.querySelector('[value=oui]').textContent = bouton;
         // Un clic à côté de la boîte vaut « Annuler ».
         dialogue.addEventListener('click', (event) => {
