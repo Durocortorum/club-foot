@@ -104,9 +104,9 @@ class MatchDirectController extends AbstractController
             }
             $changement = ActionMatch::CHANGEMENT === $type;
             $joueurId = isset(ActionMatch::ACTIONS[$type]) || $changement ? (int) ($a['joueur'] ?? 0) : 0;
-            // Changement : qui sort et qui entre, deux joueurs différents du match.
+            // Changement : qui sort (joueur du match) et qui entre (s'il y en a un : un autre joueur du match).
             $entrant = (int) ($a['details']['entrant'] ?? 0);
-            if ($changement && (!isset($joueurs[$joueurId], $joueurs[$entrant]) || $entrant === $joueurId)) {
+            if ($changement && (!isset($joueurs[$joueurId]) || ($entrant && (!isset($joueurs[$entrant]) || $entrant === $joueurId)))) {
                 continue;
             }
             // Sans joueur : un corner, ou un but contre son camp d'un adversaire.
@@ -247,7 +247,7 @@ class MatchDirectController extends AbstractController
         $changements = [];
         foreach ($actions as $a) {
             if (ActionMatch::CHANGEMENT === $a->getType()) {
-                $entrant = $this->em->find(Joueur::class, $a->getDetails()['entrant'] ?? 0);
+                $entrant = isset($a->getDetails()['entrant']) ? $this->em->find(Joueur::class, $a->getDetails()['entrant']) : null;
                 $changements[] = ['minute' => $a->getMinute(), 'sortant' => $a->getJoueur(), 'entrant' => $entrant, 'motif' => $a->getDetails()['motif'] ?? 'Choix'];
             }
         }
@@ -374,19 +374,22 @@ class MatchDirectController extends AbstractController
         // Changements : ajoutés aux remplacements de la feuille s'ils n'y sont pas déjà (même sortant, entrant et minute).
         $changes = 0;
         foreach ($actions as $a) {
-            $entrant = ActionMatch::CHANGEMENT === $a->getType() && $a->getJoueur() ? $this->em->find(Joueur::class, $a->getDetails()['entrant'] ?? 0) : null;
-            if (!$entrant) {
+            if (ActionMatch::CHANGEMENT !== $a->getType() || !$a->getJoueur()) {
                 continue;
             }
+            // Sans entrant : le joueur sort sans être remplacé.
+            $entrant = isset($a->getDetails()['entrant']) ? $this->em->find(Joueur::class, $a->getDetails()['entrant']) : null;
             foreach ($rencontre->getRemplacements() as $r) {
-                if ($r->getSortant()?->getId() === $a->getJoueur()->getId() && $r->getEntrant()?->getId() === $entrant->getId() && $r->getMinute() === $a->getMinute()) {
+                if ($r->getSortant()?->getId() === $a->getJoueur()->getId() && $r->getEntrant()?->getId() === $entrant?->getId() && $r->getMinute() === $a->getMinute()) {
                     continue 2;
                 }
             }
             $rencontre->addRemplacement((new Remplacement())->setSortant($a->getJoueur())->setEntrant($entrant)->setMinute($a->getMinute())
                 ->setMotif($a->getDetails()['motif'] ?? 'Choix'));
             $surFeuille($a->getJoueur());
-            $surFeuille($entrant);
+            if ($entrant) {
+                $surFeuille($entrant);
+            }
             ++$changes;
         }
         if ($changes) {

@@ -48,7 +48,7 @@ class MatchDirectExtension extends AbstractExtension
             if (\in_array($a->getType(), ['B', 'BA'], true)) {
                 ++$buts;
             } elseif (ActionMatch::CHANGEMENT === $a->getType()) {
-                $changements += $a->getJoueur() && !\in_array([$a->getJoueur()->getId(), $a->getDetails()['entrant'] ?? 0, $a->getMinute()], $remplacements, true) ? 1 : 0;
+                $changements += $a->getJoueur() && !\in_array([$a->getJoueur()->getId(), $a->getDetails()['entrant'] ?? null, $a->getMinute()], $remplacements, true) ? 1 : 0;
             } elseif (\in_array($a->getType(), ['CJ', 'CR'], true) && $a->getJoueur() && !isset($avecCarton[$a->getJoueur()->getId()])) {
                 ++$cartons;
             }

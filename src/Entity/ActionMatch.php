@@ -50,7 +50,8 @@ class ActionMatch implements AppartientAuClub
         'RA' => 'Carton rouge adverse',
     ];
     /**
-     * Changement de joueur : le joueur de l'action est celui qui sort ; details : entrant (id), motif (Choix, Blessure).
+     * Changement de joueur : le joueur de l'action est celui qui sort ; details : entrant (id, absent si personne n'entre),
+     * motif (Choix, Blessure). Une exclusion est un carton rouge (CR).
      * Pas un bouton d'action : il a son propre cadre « Changements » sur la tablette.
      */
     public const CHANGEMENT = 'RP';
@@ -128,8 +129,9 @@ class ActionMatch implements AppartientAuClub
     {
         // Changement : joueur entrant et motif.
         if (self::CHANGEMENT === ($this->type ?? null)) {
+            // Sans entrant : le joueur sort sans être remplacé (plus de remplaçant), l'équipe joue à un de moins.
             $entrant = is_numeric($details['entrant'] ?? null) ? (int) $details['entrant'] : 0;
-            $this->details = $entrant > 0 ? ['entrant' => $entrant, 'motif' => 'Blessure' === ($details['motif'] ?? null) ? 'Blessure' : 'Choix'] : null;
+            $this->details = array_filter(['entrant' => $entrant > 0 ? $entrant : null, 'motif' => 'Blessure' === ($details['motif'] ?? null) ? 'Blessure' : 'Choix'], fn ($v) => null !== $v);
 
             return $this;
         }

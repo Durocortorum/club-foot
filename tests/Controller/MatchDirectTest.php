@@ -200,24 +200,30 @@ class MatchDirectTest extends WebTestCase
             ['uuid' => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'joueur' => $tomId, 'type' => 'RP', 'periode' => 2, 'minute' => 50, 'zx' => 0, 'zy' => 1, 'details' => ['entrant' => $leoId, 'motif' => 'Blessure']],
             ['uuid' => 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'joueur' => $tomId, 'type' => 'RP', 'periode' => 2, 'minute' => 52, 'zx' => 0, 'zy' => 1, 'details' => ['entrant' => $tomId]],
             ['uuid' => 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'joueur' => $tomId, 'type' => 'RP', 'periode' => 2, 'minute' => 53, 'zx' => 0, 'zy' => 1, 'details' => ['entrant' => 999999]],
+            // Léo sort à la 70e sans être remplacé (plus de remplaçant).
+            ['uuid' => 'ffffffff-ffff-4fff-8fff-ffffffffffff', 'joueur' => $leoId, 'type' => 'RP', 'periode' => 2, 'minute' => 70, 'zx' => 0, 'zy' => 1, 'details' => ['motif' => 'Choix']],
         ]]);
         $em->clear();
-        $changement = $em->getRepository(ActionMatch::class)->findBy(['rencontre' => $matchId, 'type' => 'RP']);
-        self::assertCount(1, $changement);
+        $changement = $em->getRepository(ActionMatch::class)->findBy(['rencontre' => $matchId, 'type' => 'RP'], ['minute' => 'ASC']);
+        self::assertCount(2, $changement);
         self::assertEquals(['entrant' => $leoId, 'motif' => 'Blessure'], $changement[0]->getDetails());
+        self::assertSame(['motif' => 'Choix'], $changement[1]->getDetails());
         $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
-        self::assertStringContainsString('Changements (1)', $crawler->filter('.liste-changements')->ancestors()->first()->text());
+        self::assertStringContainsString('Changements (2)', $crawler->filter('.liste-changements')->ancestors()->first()->text());
+        self::assertStringContainsString('sans remplaçant', $crawler->filter('.liste-changements')->text());
 
-        // Feuille de match : le changement est signalé, puis reporté dans les remplacements (une seule fois).
+        // Feuille de match : les changements sont signalés, puis reportés dans les remplacements (une seule fois).
         $crawler = $client->request('GET', "/matchs/$matchId/modifier");
-        self::assertSelectorTextContains('.bandeau-direct', '1 changement');
+        self::assertSelectorTextContains('.bandeau-direct', '2 changements');
         $client->submit($crawler->filter('#reporter-direct')->form());
         self::assertResponseRedirects("/matchs/$matchId/modifier");
         $client->request('POST', "/matchs/$matchId/direct/reporter", ['_token' => $crawler->filter('#reporter-direct input[name="_token"]')->attr('value')]);
         $em->clear();
         $remplacements = $em->find(Rencontre::class, $matchId)->getRemplacements()->toArray();
-        self::assertCount(1, $remplacements, 'pas de doublon au second report');
+        usort($remplacements, fn ($a, $b) => $a->getMinute() <=> $b->getMinute());
+        self::assertCount(2, $remplacements, 'pas de doublon au second report');
         self::assertSame([$tomId, $leoId, 50, 'Blessure'], [$remplacements[0]->getSortant()->getId(), $remplacements[0]->getEntrant()->getId(), $remplacements[0]->getMinute(), $remplacements[0]->getMotif()]);
+        self::assertSame([$leoId, null, 70], [$remplacements[1]->getSortant()->getId(), $remplacements[1]->getEntrant(), $remplacements[1]->getMinute()]);
         $client->request('GET', "/matchs/$matchId/modifier");
         self::assertSelectorNotExists('.bandeau-direct');
     }

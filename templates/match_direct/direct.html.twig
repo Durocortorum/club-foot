@@ -78,11 +78,12 @@
                 <input type="number" min="0" max="130" inputmode="numeric" data-direct-target="minuteChangement" aria-label="Minute du changement">
                 <button type="button" class="bouton petit" data-action="direct#minuteChangementPlus" aria-label="Une minute de plus">+1</button>
             </div>
-            <div class="gestes-but" data-direct-target="motifsChangement">
-                {% for motif in ['Choix', 'Blessure'] %}
-                    <label class="choix-carte"><input type="radio" name="motif-changement" value="{{ motif }}" {{ loop.first ? 'checked' }}> {{ motif == 'Choix' ? 'Choix de l\'entraîneur' : 'Blessure' }}</label>
+            <div class="gestes-but" data-direct-target="motifsChangement" data-action="change->direct#changerSortant">
+                {% for motif, libelle in {Choix: 'Choix de l\'entraîneur', Blessure: 'Blessure', Exclusion: 'Exclusion (rouge)'} %}
+                    <label class="choix-carte"><input type="radio" name="motif-changement" value="{{ motif }}" {{ loop.first ? 'checked' }}> {{ libelle }}</label>
                 {% endfor %}
             </div>
+            <p class="discret petit" data-direct-target="aideChangement" hidden></p>
             <p class="flash flash-erreur petit" data-direct-target="erreurChangement" hidden></p>
             <div class="dialogue-actions">
                 <button type="button" class="bouton" data-action="direct#annulerChangement">Annuler</button>
