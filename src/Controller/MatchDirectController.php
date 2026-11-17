@@ -355,7 +355,8 @@ class MatchDirectController extends AbstractController
         foreach ($butsNotes as $a) {
             // Temps additionnel : « 45+2 » plutôt que 47 en première période.
             $fin = 1 === $a->getPeriode() ? $mi : 2 * $mi;
-            $but = (new But())->setAdverse('BA' === $a->getType())->setButeur($a->getJoueur())->setMinute(min($a->getMinute(), $fin));
+            $but = (new But())->setAdverse('BA' === $a->getType())->setButeur($a->getJoueur())->setMinute(min($a->getMinute(), $fin))
+                ->setTrace($a->getDetails());
             if ($a->getMinute() > $fin) {
                 $but->setAdditionnel(min(20, $a->getMinute() - $fin));
             }

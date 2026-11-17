@@ -198,6 +198,45 @@ class But implements AppartientAuClub
         return $this->setMinute((int) $m[1])->setAdditionnel(isset($m[2]) ? (int) $m[2] : null);
     }
 
+    /**
+     * Tracé du but sur le terrain : départ du ballon et point d'entrée dans le but, en mètres (x de 0 = notre but
+     * à 105 = but adverse, y de 0 à 68 dans le sens de notre attaque), comme en direct (ActionMatch::details).
+     *
+     * @var array{depart: array{0: float, 1: float}, arrivee: array{0: float, 1: float}}|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $trace = null;
+
+    public function getTrace(): ?array
+    {
+        return $this->trace;
+    }
+
+    /** Points contrôlés (ramenés sur le terrain, le but et ses filets compris) ; incomplet : pas de tracé. */
+    public function setTrace(?array $trace): static
+    {
+        $point = fn ($p) => \is_array($p) && \count($p) >= 2 && is_numeric($p[0] ?? null) && is_numeric($p[1] ?? null)
+            ? [round(max(-3.0, min(108.0, (float) $p[0])), 1), round(max(0.0, min(68.0, (float) $p[1])), 1)] : null;
+        $depart = $point($trace['depart'] ?? null);
+        $arrivee = $point($trace['arrivee'] ?? null);
+        $this->trace = $depart && $arrivee ? ['depart' => $depart, 'arrivee' => $arrivee] : null;
+
+        return $this;
+    }
+
+    /** Tracé en texte (champ caché du formulaire de la feuille de match). */
+    public function getTraceJson(): string
+    {
+        return $this->trace ? json_encode($this->trace) : '';
+    }
+
+    public function setTraceJson(?string $json): static
+    {
+        $donnees = $json ? json_decode($json, true) : null;
+
+        return $this->setTrace(\is_array($donnees) ? $donnees : null);
+    }
+
     public function getGeste(): ?string
     {
         return $this->geste;

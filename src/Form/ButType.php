@@ -8,6 +8,7 @@ use App\Service\Apparence;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
@@ -53,7 +54,9 @@ class ButType extends AbstractType
             ]])
             ->add('geste', ListeOuverteType::class, ['suggestions' => But::GESTES])
             ->add('conditions', ListeOuverteType::class, ['label' => 'Situation', 'suggestions' => But::CONDITIONS])
-            ->add('phase', ChoiceType::class, ['label' => 'Phase', 'choices' => array_flip(But::PHASES), 'required' => false, 'placeholder' => '—']);
+            ->add('phase', ChoiceType::class, ['label' => 'Phase', 'choices' => array_flip(But::PHASES), 'required' => false, 'placeholder' => '—'])
+            // Tracé sur le terrain (fenêtre « Placer sur le terrain », contrôleur Stimulus « trace-but »).
+            ->add('traceJson', HiddenType::class, ['label' => false, 'required' => false, 'attr' => ['data-trace-but-target' => 'champ']]);
 
         // Un but adverse n'a ni buteur ni passeur du club ; un but du club n'a pas de numéro adverse.
         $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event): void {

@@ -176,6 +176,22 @@ class MatchDirectTest extends WebTestCase
         self::assertSame($tomId, $buts[0]->getButeur()?->getId());
         self::assertSame('Tête', $buts[0]->getGeste(), 'but de la tête noté en direct');
         self::assertSame($leoId, $buts[0]->getPasseur()?->getId(), 'passeur décisif noté en direct');
+        self::assertEquals(['depart' => [96.4, 30.2], 'arrivee' => [105, 36.1]], $buts[0]->getTrace(), 'tracé du but reporté sur la feuille');
+        self::assertNull($buts[1]->getTrace(), 'but adverse sans tracé');
+
+        // Page du match : schéma du but placé ; feuille de match : le tracé se modifie (champ caché de la ligne du but).
+        $crawler = $client->request('GET', "/matchs/$matchId");
+        self::assertStringContainsString('Buts marqués', $crawler->filter('.buts-match')->text());
+        $crawler = $client->request('GET', "/matchs/$matchId/modifier");
+        $formulaire = $crawler->filter('form[name="rencontre"]')->form();
+        $champs = array_values(array_filter(array_keys($formulaire->getValues()), fn ($n) => str_ends_with($n, '[traceJson]')));
+        self::assertCount(2, $champs);
+        $formulaire[$champs[1]] = json_encode(['depart' => [8, 30], 'arrivee' => [0, 33.5]]);
+        $client->submit($formulaire);
+        self::assertResponseRedirects();
+        $em->clear();
+        $traces = array_map(fn ($b) => $b->getTrace(), $em->find(Rencontre::class, $matchId)->getButs()->toArray());
+        self::assertContainsEquals(['depart' => [8.0, 30.0], 'arrivee' => [0.0, 33.5]], $traces, 'tracé du but adverse enregistré depuis la feuille');
         $feuille = [];
         foreach ($match->getParticipations() as $p) {
             $feuille[$p->getJoueur()->getId()] = $p;

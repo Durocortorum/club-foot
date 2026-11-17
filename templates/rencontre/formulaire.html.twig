@@ -142,14 +142,26 @@
             {{ s.collection(form.participations, ['N°', 'Joueur', 'Poste', 'Min.', 'Note', 'Carton', 'Appréciation'], ['numero', 'joueur', 'poste', 'tempsJeu', 'note', 'carton|minuteCarton', 'appreciation'], '+ Ajouter un joueur') }}
         </fieldset>
 
-        <fieldset class="carte">
+        <fieldset class="carte" data-controller="trace-but">
             <legend>Buts</legend>
-            <p class="discret petit">Seuls les joueurs de la feuille de match sont proposés comme buteur ou passeur : remplissez-la d'abord.</p>
+            <p class="discret petit">Seuls les joueurs de la feuille de match sont proposés comme buteur ou passeur : remplissez-la d'abord.
+                « ⚽ Placer » : dessiner le but sur le terrain (départ du ballon, entrée dans le but), visible ensuite sur la page du match.</p>
+            {# Fenêtre de placement du but (trace_but_controller.js, même dessin qu'en direct). #}
+            <dialog class="dialogue dialogue-but" data-trace-but-target="dialogue">
+                <h2 class="dialogue-titre" data-trace-but-target="titre">But</h2>
+                <p class="discret petit">Déplacez le <b>ballon</b> là où part le tir, puis tirez la <b>pointe de la flèche</b> jusqu'à l'endroit où il entre dans le but.</p>
+                <svg class="terrain-but" data-trace-but-target="terrain" role="img" aria-label="Demi-terrain avec le but"></svg>
+                <div class="dialogue-actions">
+                    <button type="button" class="bouton lien-bouton danger" data-action="trace-but#effacer">Retirer du terrain</button>
+                    <button type="button" class="bouton" data-action="trace-but#fermer">Annuler</button>
+                    <button type="button" class="bouton principal" data-action="trace-but#enregistrer">Valider</button>
+                </div>
+            </dialog>
             {% if direct.buts %}
                 <p class="petit">⚽ {{ direct.buts }} but{{ direct.buts > 1 ? 's' }} noté{{ direct.buts > 1 ? 's' }} en direct :
                     <button type="submit" form="reporter-direct" class="bouton petit">Les reporter ici</button></p>
             {% endif %}
-            {{ s.collection(form.buts, ['Min.', 'Pour', 'Buteur', 'Passeur', 'Geste', 'Situation', 'Phase'], ['temps', 'adverse', 'buteur|numeroAdverse', 'passeur', 'geste', 'conditions', 'phase'], '+ Ajouter un but') }}
+            {{ s.collection(form.buts, ['Min.', 'Pour', 'Buteur', 'Passeur', 'Geste', 'Situation', 'Phase', 'Terrain'], ['temps', 'adverse', 'buteur|numeroAdverse', 'passeur', 'geste', 'conditions', 'phase', 'traceJson'], '+ Ajouter un but') }}
         </fieldset>
 
         <fieldset class="carte">
