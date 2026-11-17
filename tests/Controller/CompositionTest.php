@@ -106,4 +106,40 @@ class CompositionTest extends WebTestCase
         $em->clear();
         self::assertSame([], $em->find(Rencontre::class, $match->getId())->getPlacements());
     }
+
+    /** Case « Titulaire » : un titulaire peut porter le n° 23, un n° 11 peut commencer sur le banc. */
+    public function testTitulaireAvecUnGrandNumero(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Coach');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $equipe = $em->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+        $match = (new Rencontre())->setClub($club)->setCategorie($equipe)->setDate(new \DateTimeImmutable('today'))
+            ->setDomicile("CLUB TEST $id")->setExterieur('FC METZ');
+        $participations = [];
+        foreach ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 23] as $numero) {
+            $j = (new Joueur())->setClub($club)->setCategorie($equipe)->setNom("Joueur$numero")->setPrenom('Test');
+            $em->persist($j);
+            $p = (new Participation())->setClub($club)->setJoueur($j)->setNumero($numero);
+            self::assertSame($numero <= 11, $p->getTitulaire(), "n° $numero : case cochée d'office jusqu'à 11");
+            $match->addParticipation($participations[$numero] = $p);
+        }
+        // Le n° 23 commence le match, le n° 11 sur le banc.
+        $participations[23]->setTitulaire(true);
+        $participations[11]->setTitulaire(false);
+        $match->calculerTempsJeu();
+        $em->persist($match);
+        $em->flush();
+        $duree = $equipe->getDureeMatch() ?: 90;
+        self::assertSame([$duree, 0], [$participations[23]->getTempsJeu(), $participations[11]->getTempsJeu()]);
+
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/composition');
+        self::assertCount(11, $crawler->filter('.terrain-compo .pion'));
+        self::assertCount(1, $crawler->filter('.terrain-compo .pion[data-joueur="' . $participations[23]->getJoueur()->getId() . '"]'), 'n° 23 sur le terrain');
+        self::assertStringContainsString('JOUEUR11', $crawler->filter('.banc')->text(), 'n° 11 sur le banc');
+    }
 }

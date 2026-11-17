@@ -55,7 +55,7 @@ class MatchDirectController extends AbstractController
                 'groupes' => ActionMatch::GROUPES,
                 'moi' => $this->moi()->getId(),
                 'chrono' => $rencontre->getChronoDirect(),
-                'titulaires' => $rencontre->getTitulairesDirect(),
+                'titulaires' => $rencontre->titulairesPourLeDirect(),
                 'maintenant' => self::maintenant(),
             ],
             'meteos' => Rencontre::METEOS,
@@ -182,7 +182,7 @@ class MatchDirectController extends AbstractController
             'joueurs' => $this->direct->joueurs($rencontre, array_values($existantes)),
             'actions' => array_map(fn (ActionMatch $a) => $a->enTableau(), $this->actions->duMatch($rencontre)),
             'chrono' => $rencontre->getChronoDirect(),
-            'titulaires' => $rencontre->getTitulairesDirect(),
+            'titulaires' => $rencontre->titulairesPourLeDirect(),
             'maintenant' => self::maintenant(),
         ]);
     }

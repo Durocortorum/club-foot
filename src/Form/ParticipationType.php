@@ -6,6 +6,7 @@ use App\Entity\Joueur;
 use App\Entity\Participation;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -18,6 +19,11 @@ class ParticipationType extends AbstractType
     {
         $builder
             ->add('numero', IntegerType::class, ['label' => 'N°', 'required' => false, 'attr' => ['min' => 1, 'max' => 99, 'class' => 'court', 'data-feuille-numero' => '']])
+            // Sur le terrain au coup d'envoi : cochée d'office pour les n° 1 à 11 (contrôleur « feuille »), modifiable.
+            // Après le numéro : le numéro coche d'abord la case, puis la case envoyée l'emporte.
+            ->add('titulaire', CheckboxType::class, ['label' => 'Titulaire', 'required' => false, 'attr' => [
+                'data-feuille-titulaire' => '', 'title' => 'Titulaire : sur le terrain au coup d\'envoi',
+            ]])
             ->add('joueur', EntityType::class, [
                 'class' => Joueur::class,
                 'choices' => $options['joueurs'],

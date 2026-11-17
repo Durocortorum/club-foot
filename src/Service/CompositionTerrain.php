@@ -33,10 +33,10 @@ class CompositionTerrain
             if (!$p->getJoueur()) {
                 continue;
             }
-            $titulaire = null !== $p->getNumero() && $p->getNumero() <= 11 && 'Non utilisé' !== $p->getPoste();
-            $titulaire ? $titulaires[] = $p : $remplacants[] = $p;
+            $p->isTitulaire() ? $titulaires[] = $p : $remplacants[] = $p;
         }
-        usort($titulaires, fn (Participation $a, Participation $b) => $a->getNumero() <=> $b->getNumero());
+        // Par numéro (les joueurs sans numéro à la fin).
+        usort($titulaires, fn (Participation $a, Participation $b) => ($a->getNumero() ?? 999) <=> ($b->getNumero() ?? 999));
         usort($remplacants, fn (Participation $a, Participation $b) => [$a->getNumero() ?? 99, $a->getJoueur()->getNom()] <=> [$b->getNumero() ?? 99, $b->getJoueur()->getNom()]);
 
         $places = $this->placesDuSysteme($rencontre->getSysteme(), \count($titulaires));

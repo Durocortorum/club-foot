@@ -34,7 +34,7 @@ class ParticipationRepository extends ServiceEntityRepository
     public function statistiques(?array $secteurs, ?string $saison, ?int $categorieId): array
     {
         $qb = $this->createQueryBuilder('p')
-            ->select('IDENTITY(p.rencontre) AS rencontre, p.tempsJeu, p.numero, p.poste, p.note, p.carton')
+            ->select('IDENTITY(p.rencontre) AS rencontre, p.tempsJeu, p.numero, p.poste, p.titulaire, p.note, p.carton')
             ->addSelect('j.id, j.nom, j.prenom, j.poste AS posteHabituel, cj.nom AS categorie')
             ->join('p.rencontre', 'r')
             ->join('p.joueur', 'j')
@@ -55,12 +55,13 @@ class ParticipationRepository extends ServiceEntityRepository
             $j = &$joueurs[$l['id']];
             $j ??= ['id' => $l['id'], 'nom' => $l['nom'], 'prenom' => $l['prenom'], 'posteHabituel' => $l['posteHabituel'], 'categorie' => $l['categorie']] + $vide;
             $temps = (int) $l['tempsJeu'];
-            $titulaire = null !== $l['numero'] && $l['numero'] >= 1 && $l['numero'] <= 11 && 'Non utilisé' !== $l['poste'];
+            // Titulaire : la case de la feuille de match (cochée d'office pour les n° 1 à 11), hors « Non utilisé ».
+            $titulaire = $l['titulaire'] && 'Non utilisé' !== $l['poste'];
 
             ++$j['convocations'];
             $j['matchs'] += $temps > 0 ? 1 : 0;
             $j['titularisations'] += $titulaire ? 1 : 0;
-            $j['remplacantDepart'] += !$titulaire && (null !== $l['numero'] || 'Non utilisé' === $l['poste']) ? 1 : 0;
+            $j['remplacantDepart'] += !$titulaire ? 1 : 0;
             $j['nonUtilise'] += !$titulaire && 0 === $temps ? 1 : 0;
             $j['complets'] += $temps > 0 && $temps >= $durees[$l['rencontre']] ? 1 : 0;
             $j['minutes'] += $temps;

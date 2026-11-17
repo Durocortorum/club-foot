@@ -173,12 +173,45 @@ class Rencontre implements AppartientAuClub
         return null === $this->titulairesDirect ? null : array_values(array_map('intval', $this->titulairesDirect));
     }
 
-    /** @param list<int>|null $ids */
+    /**
+     * Titulaires choisis sur la tablette : gardés avec le match, et cochés « titulaire » sur la feuille de match
+     * pour les joueurs qui y sont (décochés pour les autres joueurs de la feuille).
+     *
+     * @param list<int>|null $ids
+     */
     public function setTitulairesDirect(?array $ids): static
     {
         $this->titulairesDirect = null === $ids ? null : array_values(array_unique(array_map('intval', $ids)));
+        if (null !== $ids) {
+            foreach ($this->participations as $p) {
+                if ($p->getJoueur()) {
+                    $p->setTitulaire(\in_array($p->getJoueur()->getId(), $this->titulairesDirect, true));
+                }
+            }
+        }
 
         return $this;
+    }
+
+    /**
+     * Titulaires pour la tablette : ceux de la feuille de match quand elle est remplie (case « titulaire »),
+     * sinon ceux choisis sur la tablette ; null si rien n'est connu.
+     *
+     * @return list<int>|null
+     */
+    public function titulairesPourLeDirect(): ?array
+    {
+        if ($this->participations->isEmpty()) {
+            return $this->getTitulairesDirect();
+        }
+        $ids = [];
+        foreach ($this->participations as $p) {
+            if ($p->getJoueur() && $p->isTitulaire()) {
+                $ids[] = (int) $p->getJoueur()->getId();
+            }
+        }
+
+        return $ids;
     }
 
     public function getChronoDirect(): ?array
@@ -782,7 +815,7 @@ class Rencontre implements AppartientAuClub
     /**
      * Moments où chaque joueur de la feuille est sur le terrain, d'après les remplacements et les expulsions
      * (carton rouge avec sa minute). Au coup d'envoi : les joueurs qui n'entrent pas en cours de match,
-     * hors banc déclaré (poste « Non utilisé », n° au-delà de 11). Même règle que feuille_controller.js.
+     * hors remplaçants (case « titulaire » décochée, ou poste « Non utilisé »). Même règle que feuille_controller.js.
      *
      * @return array<int, list<array{float, float}>> intervalles [début, fin] par joueur (spl_object_id)
      */
@@ -814,7 +847,7 @@ class Rencontre implements AppartientAuClub
         foreach ($this->participations as $p) {
             if ($j = $p->getJoueur()) {
                 $role = $premier[spl_object_id($j)] ?? null;
-                $banc = 'non utilisé' === mb_strtolower(trim((string) $p->getPoste())) || $p->getNumero() > 11;
+                $banc = !$p->isTitulaire();
                 if ('entre' !== $role && (!$banc || 'sort' === $role)) {
                     $ouverts[spl_object_id($j)] = 0.0;
                 }

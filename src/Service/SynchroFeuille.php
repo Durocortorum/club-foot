@@ -509,6 +509,10 @@ class SynchroFeuille
             return $p;
         }
         $p = (new Participation())->setJoueur($joueur)->setNumero($rencontre->getNumerosDirect()[$joueur->getId()] ?? null);
+        // Titulaire choisi sur la tablette (« ⚽ Titulaires ») : repris ; sinon d'après le numéro.
+        if (null !== ($choisis = $rencontre->getTitulairesDirect())) {
+            $p->setTitulaire(\in_array((int) $joueur->getId(), $choisis, true));
+        }
         $rencontre->addParticipation($p);
         $this->ajoutes[] = trim($joueur->getPrenom() . ' ' . $joueur->getNom());
 
@@ -519,8 +523,13 @@ class SynchroFeuille
     private function preremplir(Rencontre $rencontre): void
     {
         if ($rencontre->getParticipations()->isEmpty() && ($convocation = $this->convocations->pour($rencontre))) {
+            $choisis = $rencontre->getTitulairesDirect();
             foreach ($convocation->parReponse(Convoque::PRESENT) as $c) {
-                $rencontre->addParticipation((new Participation())->setJoueur($c->getJoueur())->setNumero($rencontre->getNumerosDirect()[$c->getJoueur()->getId()] ?? null));
+                $p = (new Participation())->setJoueur($c->getJoueur())->setNumero($rencontre->getNumerosDirect()[$c->getJoueur()->getId()] ?? null);
+                if (null !== $choisis) {
+                    $p->setTitulaire(\in_array((int) $c->getJoueur()->getId(), $choisis, true));
+                }
+                $rencontre->addParticipation($p);
             }
         }
     }

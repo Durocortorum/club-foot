@@ -13,7 +13,7 @@
     </div>
 
     {% if not compo.titulaires %}
-        <p class="vide">Aucun titulaire sur la feuille de match. Ajoutez les joueurs dans « Feuille de match » (numéros 1 à 11 pour les titulaires), puis revenez ici pour les placer.</p>
+        <p class="vide">Aucun titulaire sur la feuille de match. Ajoutez les joueurs dans « Feuille de match » et cochez « Titulaire » pour ceux qui commencent le match (d'office pour les numéros 1 à 11), puis revenez ici pour les placer.</p>
     {% else %}
         <form method="post" class="composition" data-controller="composition">
             <input type="hidden" name="_token" value="{{ csrf_token('composition' ~ rencontre.id) }}">

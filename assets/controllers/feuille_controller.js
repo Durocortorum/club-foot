@@ -10,7 +10,7 @@ import { Controller } from '@hotwired/stimulus';
  *   est signalé (le serveur refuse aussi, voir Rencontre::validerPresences) ;
  * - pour les remplacements, dans l'ordre des minutes : « Sort » ne propose que les joueurs
  *   sur le terrain, « Entre » que ceux qui n'y sont pas. Au départ sont sur le terrain
- *   les titulaires (n° 1 à 11, hors « Non utilisé ») ; un joueur sorti peut revenir.
+ *   les titulaires (case « Titulaire », cochée d'office pour les n° 1 à 11, hors « Non utilisé ») ; un joueur sorti peut revenir.
  * - le temps de jeu (« Min. ») n'est pas saisi : il vient des remplacements et de la durée de match
  *   de la catégorie. Un joueur de la feuille qui n'entre pas en cours de match a commencé le match
  *   (sauf poste « Non utilisé » ou numéro au-delà de 11) : non remplacé, il a joué toute la durée,
@@ -39,9 +39,22 @@ export default class extends Controller {
                 this.filtrer();
             }
         });
-        // Numéros, postes et minutes changent l'état du terrain.
+        // Numéros, postes et minutes changent l'état du terrain. Un numéro coche « Titulaire » (1 à 11) tant que la
+        // case n'a pas été changée à la main sur cette ligne.
         this.element.addEventListener('input', (event) => {
+            if (event.target.matches('[data-feuille-numero]')) {
+                const caseTitulaire = event.target.closest('tr')?.querySelector('[data-feuille-titulaire]');
+                const numero = parseInt(event.target.value, 10);
+                if (caseTitulaire && !caseTitulaire.dataset.manuel) caseTitulaire.checked = isNaN(numero) || numero <= 11;
+            }
             if (event.target.matches('[data-feuille-numero], [data-feuille-poste], [data-feuille-minute]')) {
+                this.filtrer();
+            }
+        });
+        // Case « Titulaire » changée à la main : gardée telle quelle, et le terrain est recalculé.
+        this.element.addEventListener('change', (event) => {
+            if (event.target.matches('[data-feuille-titulaire]')) {
+                event.target.dataset.manuel = '1';
                 this.filtrer();
             }
         });
@@ -105,13 +118,17 @@ export default class extends Controller {
         return this.convoqueTargets.map((joueur) => ({ joueur, ligne: joueur.closest('tr'), temps: joueur.closest('tr').querySelector('[data-feuille-temps]') }));
     }
 
-    // Titulaires : n° 1 à 11, hors poste « Non utilisé ».
+    // Titulaire : case « Titulaire » cochée (d'office pour les n° 1 à 11), hors poste « Non utilisé ».
+    estTitulaire(ligne) {
+        const poste = (ligne.querySelector('[data-feuille-poste]')?.value ?? '').trim().toLowerCase();
+        const caseTitulaire = ligne.querySelector('[data-feuille-titulaire]');
+        return poste !== 'non utilisé' && (caseTitulaire ? caseTitulaire.checked : true);
+    }
+
     titulaires() {
         const titulaires = new Set();
         this.lignesFeuille().forEach(({ joueur, ligne }) => {
-            const numero = parseInt(ligne.querySelector('[data-feuille-numero]')?.value, 10);
-            const poste = (ligne.querySelector('[data-feuille-poste]')?.value ?? '').trim().toLowerCase();
-            if (joueur.value !== '' && numero >= 1 && numero <= 11 && poste !== 'non utilisé') {
+            if (joueur.value !== '' && this.estTitulaire(ligne)) {
                 titulaires.add(joueur.value);
             }
         });
@@ -169,9 +186,7 @@ export default class extends Controller {
         // Au coup d'envoi : les joueurs de la feuille qui n'entrent pas en cours de match, hors banc déclaré.
         const entree = new Map();
         this.lignesFeuille().forEach(({ joueur, ligne }) => {
-            const numero = parseInt(ligne.querySelector('[data-feuille-numero]')?.value, 10);
-            const poste = (ligne.querySelector('[data-feuille-poste]')?.value ?? '').trim().toLowerCase();
-            const banc = poste === 'non utilisé' || numero > 11;
+            const banc = !this.estTitulaire(ligne);
             if (joueur.value !== '' && premierRole.get(joueur.value) !== 'entre' && (!banc || premierRole.get(joueur.value) === 'sort')) {
                 entree.set(joueur.value, 0);
             }

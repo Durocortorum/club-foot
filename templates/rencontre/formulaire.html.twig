@@ -133,14 +133,14 @@
             <legend>Feuille de match</legend>
             <p class="discret petit">
                 Joueurs de la catégorie du match, puis ceux qui peuvent être surclassés (catégorie entre parenthèses).
-                Numéros 1 à 11 : titulaires. Poste « Non utilisé » pour un remplaçant resté sur le banc.
+                Case « Titulaire » : sur le terrain au coup d'envoi (cochée d'office pour les numéros 1 à 11, modifiable : un titulaire peut porter le n° 23). Poste « Non utilisé » pour un remplaçant resté sur le banc.
                 {% if rencontre.id %}Après l'enregistrement, placez les titulaires sur le terrain : <a href="{{ path('app_rencontre_composition', {id: rencontre.id}) }}">Composition sur le terrain</a>.{% endif %}
             </p>
             <label class="case-filtre petit">
                 <input type="checkbox" data-feuille-target="autres" data-action="feuille#filtrer">
                 Afficher tous les joueurs du club (cas exceptionnel)
             </label>
-            {{ s.collection(form.participations, ['N°', 'Joueur', 'Poste', 'Min.', 'Note', 'Carton', 'Appréciation'], ['numero', 'joueur', 'poste', 'tempsJeu', 'note', 'carton|minuteCarton', 'appreciation'], '+ Ajouter un joueur') }}
+            {{ s.collection(form.participations, ['N°', 'Titulaire', 'Joueur', 'Poste', 'Min.', 'Note', 'Carton', 'Appréciation'], ['numero', 'titulaire', 'joueur', 'poste', 'tempsJeu', 'note', 'carton|minuteCarton', 'appreciation'], '+ Ajouter un joueur') }}
         </fieldset>
 
         <fieldset class="carte" data-controller="trace-but">

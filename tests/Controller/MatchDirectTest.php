@@ -137,13 +137,19 @@ class MatchDirectTest extends WebTestCase
         self::assertSame(9, $numeros[$tomId]);
         self::assertNull($numeros[$leoId]);
 
-        // Titulaires choisis sur la tablette : communs aux tablettes, joueurs du match seulement.
-        self::assertNull($config['titulaires']);
+        // Titulaires : ceux de la feuille de match (Tom et Léo, ajoutés sans numéro : titulaires d'office) ; choisis sur
+        // la tablette, ils sont communs aux tablettes (joueurs du match seulement) et cochés sur la feuille.
+        self::assertEqualsCanonicalizing([$tomId, $leoId], $config['titulaires']);
         $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'],
             json_encode(['jeton' => $config['jeton'], 'titulaires' => [$tomId, 999999]]));
         self::assertSame([$tomId], json_decode($client->getResponse()->getContent(), true)['titulaires']);
         $em->clear();
         self::assertSame([$tomId], $em->find(Rencontre::class, $matchId)->getTitulairesDirect());
+        $cases = [];
+        foreach ($em->find(Rencontre::class, $matchId)->getParticipations() as $p) {
+            $cases[$p->getJoueur()->getId()] = $p->isTitulaire();
+        }
+        self::assertSame([true, false], [$cases[$tomId], $cases[$leoId]], 'feuille de match : Tom titulaire, Léo remplaçant');
 
         // Jeton manquant : refusé.
         $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['actions' => $actions]));

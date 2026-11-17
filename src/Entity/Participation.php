@@ -76,6 +76,13 @@ class Participation implements AppartientAuClub
     #[ORM\Column(length: 40, nullable: true)]
     private ?string $poste = null;
 
+    /**
+     * Sur le terrain au coup d'envoi. Coché tout seul pour les numéros 1 à 11 (et un joueur sans numéro), mais
+     * modifiable : un titulaire peut porter le n° 23. Sert à la composition, aux minutes et aux statistiques.
+     */
+    #[ORM\Column(options: ['default' => true])]
+    private bool $titulaire = true;
+
     /** Minutes jouées. */
     #[ORM\Column(type: Types::SMALLINT, nullable: true)]
     #[Assert\Range(min: 0, max: 130)]
@@ -130,9 +137,25 @@ class Participation implements AppartientAuClub
         return $this->numero;
     }
 
+    /** Un nouveau numéro coche ou décoche « titulaire » (1 à 11, ou sans numéro) ; la case reste modifiable ensuite. */
     public function setNumero(?int $numero): static
     {
+        if ($numero !== $this->numero) {
+            $this->titulaire = null === $numero || $numero <= 11;
+        }
         $this->numero = $numero;
+
+        return $this;
+    }
+
+    public function getTitulaire(): bool
+    {
+        return $this->titulaire;
+    }
+
+    public function setTitulaire(bool $titulaire): static
+    {
+        $this->titulaire = $titulaire;
 
         return $this;
     }
@@ -233,9 +256,9 @@ class Participation implements AppartientAuClub
         return $this;
     }
 
-    /** Titulaire : numéros 1 à 11, comme sur les feuilles Access. */
+    /** Titulaire : la case cochée (d'office pour les numéros 1 à 11), sauf poste « Non utilisé ». */
     public function isTitulaire(): bool
     {
-        return null !== $this->numero && $this->numero <= 11 && 'Non utilisé' !== $this->poste;
+        return $this->titulaire && 'Non utilisé' !== $this->poste;
     }
 }
