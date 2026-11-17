@@ -68,7 +68,8 @@ class MatchDirectTest extends WebTestCase
         $actions = [
             ['uuid' => '11111111-1111-4111-8111-111111111111', 'joueur' => $tomId, 'type' => 'BP', 'periode' => 1, 'minute' => 3, 'zx' => 2, 'zy' => 1],
             ['uuid' => '22222222-2222-4222-8222-222222222222', 'joueur' => $leoId, 'type' => 'DG', 'periode' => 1, 'minute' => 5, 'zx' => 1, 'zy' => 0],
-            ['uuid' => '33333333-3333-4333-8333-333333333333', 'joueur' => $tomId, 'type' => 'B', 'periode' => 1, 'minute' => 43, 'zx' => 5, 'zy' => 1],
+            ['uuid' => '33333333-3333-4333-8333-333333333333', 'joueur' => $tomId, 'type' => 'B', 'periode' => 1, 'minute' => 43, 'zx' => 5, 'zy' => 1,
+                'details' => ['depart' => [96.4, 30.2], 'arrivee' => [105, 36.1], 'geste' => 'tete', 'pirate' => 'x']],
             ['uuid' => '44444444-4444-4444-8444-444444444444', 'joueur' => null, 'type' => 'BA', 'periode' => 2, 'minute' => 60, 'zx' => 0, 'zy' => 1],
             // Refusées : joueur hors du match, action inconnue.
             ['uuid' => '55555555-5555-4555-8555-555555555555', 'joueur' => 999999, 'type' => 'BP', 'periode' => 1, 'minute' => 7, 'zx' => 2, 'zy' => 1],
@@ -160,7 +161,22 @@ class MatchDirectTest extends WebTestCase
         $buts = $match->getButs()->toArray();
         self::assertCount(2, $buts);
         self::assertSame($tomId, $buts[0]->getButeur()?->getId());
+        self::assertSame('Tête', $buts[0]->getGeste(), 'but de la tête noté en direct');
         $feuilleTom = $match->getParticipations()->first();
         self::assertSame(['JJ', '30'], [$feuilleTom->getCarton(), $feuilleTom->getMinuteCarton()]);
+
+        // Tracé du but gardé (champ inconnu écarté) ; schéma des buts dans le bilan ; but contre son camp sans buteur.
+        $tete = $em->getRepository(ActionMatch::class)->findOneBy(['uuid' => '33333333-3333-4333-8333-333333333333']);
+        self::assertEquals(['depart' => [96.4, 30.2], 'arrivee' => [105, 36.1], 'geste' => 'tete'], $tete->getDetails());
+        $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
+        self::assertStringContainsString('Buts marqués (1)', $crawler->filter('.buts-schemas')->text());
+        $envoyer(['jeton' => $config['jeton'], 'actions' => [
+            ['uuid' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'joueur' => null, 'type' => 'B', 'periode' => 2, 'minute' => 70, 'zx' => 5, 'zy' => 1,
+                'details' => ['depart' => [101, 34], 'arrivee' => [105, 33], 'geste' => 'csc']],
+        ]]);
+        $em->clear();
+        $csc = $em->getRepository(ActionMatch::class)->findOneBy(['uuid' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']);
+        self::assertNotNull($csc, 'but contre son camp accepté sans joueur');
+        self::assertSame('csc', $csc->getDetails()['geste']);
     }
 }

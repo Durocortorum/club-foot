@@ -288,6 +288,19 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .coin-corner.nous { background: #d62839; right: .3rem; }
 .coin-corner.eux { background: #1f5fd1; left: .3rem; }
 .coin-corner.haut { top: .3rem; } .coin-corner.bas { bottom: .3rem; }
+/* Schémas des buts (bilan) et fenêtre « C'était un but » (saisie en direct). */
+.propose-but { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: -.2rem 0 .6rem; padding: .45rem .7rem; border-radius: var(--rayon);
+    background: #fff7e0; border: 1px solid #f0d58a; font-size: .9rem; }
+.propose-but[hidden] { display: none; }
+.dialogue-but { width: min(40rem, calc(100vw - 2rem)); }
+.terrain-but { width: 100%; max-height: 58vh; display: block; margin: .4rem 0; border-radius: 8px; touch-action: none; }
+.terrain-but .poignee-but { cursor: grab; }
+.gestes-but { display: flex; flex-wrap: wrap; gap: .4rem; margin: .3rem 0 .6rem; }
+.buts-schemas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr)); gap: 1rem; }
+.buts-schemas figure { margin: 0; }
+.buts-schemas figcaption { font-weight: 600; margin-bottom: .3rem; }
+.demi-terrain-buts { width: 100%; max-width: 26rem; display: block; border-radius: 8px; }
+.buts-liste { list-style: none; margin: .3rem 0 0; padding: 0; font-size: .88rem; color: var(--gris); }
 .legende-carte { display: inline-flex; align-items: center; gap: .3rem; margin-left: .4rem; }
 .pastille-carte { display: inline-block; width: .9rem; height: .9rem; border-radius: 3px; }
 .pastille-carte.nous { background: rgb(214 40 57 / .75); } .pastille-carte.eux { background: rgb(31 95 209 / .75); }

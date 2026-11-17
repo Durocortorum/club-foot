@@ -100,6 +100,43 @@ class ActionMatch implements AppartientAuClub
     #[ORM\Column]
     private \DateTimeImmutable $notee;
 
+    /**
+     * Tracé d'un but (B ou BA) : place du ballon au tir et point d'entrée dans le but, en mètres sur le terrain
+     * (x de 0 = notre but à 105 = but adverse, y de 0 = gauche à 68 = droite dans le sens de notre attaque),
+     * et la façon de marquer (tir, tête, csc).
+     *
+     * @var array{depart?: array{0: float, 1: float}, arrivee?: array{0: float, 1: float}, geste?: string}|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $details = null;
+
+    public const GESTES_BUT = ['tir' => 'Tir', 'tete' => 'Tête', 'csc' => 'Contre son camp'];
+
+    public function getDetails(): ?array
+    {
+        return $this->details;
+    }
+
+    /** Tracé contrôlé : seulement pour un but, points ramenés sur le terrain (le but et ses filets compris). */
+    public function setDetails(?array $details): static
+    {
+        if (null === $details || !\in_array($this->type ?? null, ['B', 'BA'], true)) {
+            $this->details = null;
+
+            return $this;
+        }
+        $point = fn ($p) => \is_array($p) && \count($p) >= 2 && is_numeric($p[0]) && is_numeric($p[1])
+            ? [round(max(-3.0, min(108.0, (float) $p[0])), 1), round(max(0.0, min(68.0, (float) $p[1])), 1)] : null;
+        $propre = array_filter([
+            'depart' => $point($details['depart'] ?? null),
+            'arrivee' => $point($details['arrivee'] ?? null),
+            'geste' => isset(self::GESTES_BUT[$details['geste'] ?? '']) ? $details['geste'] : null,
+        ], fn ($v) => null !== $v);
+        $this->details = $propre ?: null;
+
+        return $this;
+    }
+
     /** Qui l'a notée (plusieurs tablettes au même match) : seul lui la corrige pendant le match. */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(onDelete: 'SET NULL')]
@@ -224,6 +261,7 @@ class ActionMatch implements AppartientAuClub
     {
         return ['uuid' => $this->uuid, 'joueur' => $this->joueur?->getId(), 'type' => $this->type, 'periode' => $this->periode,
             'minute' => $this->minute, 'zx' => $this->zx, 'zy' => $this->zy,
+            'details' => $this->details,
             'auteur' => $this->auteur?->getId(), 'par' => $this->auteur ? trim($this->auteur->getPrenom() . ' ' . mb_substr((string) $this->auteur->getNom(), 0, 1) . '.') : null];
     }
 }

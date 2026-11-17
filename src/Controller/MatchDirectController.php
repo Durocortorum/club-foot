@@ -96,7 +96,9 @@ class MatchDirectController extends AbstractController
                 continue;
             }
             $joueurId = isset(ActionMatch::ACTIONS[$type]) ? (int) ($a['joueur'] ?? 0) : 0;
-            if (isset(ActionMatch::ACTIONS[$type]) && 'CO' !== $type && !isset($joueurs[$joueurId])) {
+            // Sans joueur : un corner, ou un but contre son camp d'un adversaire.
+            $sansJoueur = 'CO' === $type || ('B' === $type && 'csc' === ($a['details']['geste'] ?? null));
+            if (isset(ActionMatch::ACTIONS[$type]) && !$sansJoueur && !isset($joueurs[$joueurId])) {
                 continue; // action d'un joueur du club sans joueur du match
             }
             $action = $existantes[$uuid] ?? null;
@@ -113,7 +115,8 @@ class MatchDirectController extends AbstractController
             }
             $action->setType($type)
                 ->setJoueur($joueurId && isset($joueurs[$joueurId]) ? $this->em->getReference(Joueur::class, $joueurId) : null)
-                ->placer((int) ($a['periode'] ?? 1), (int) ($a['minute'] ?? 0), (int) ($a['zx'] ?? 0), (int) ($a['zy'] ?? 1));
+                ->placer((int) ($a['periode'] ?? 1), (int) ($a['minute'] ?? 0), (int) ($a['zx'] ?? 0), (int) ($a['zy'] ?? 1))
+                ->setDetails(\is_array($a['details'] ?? null) ? $a['details'] : null);
         }
         $infos = (array) ($donnees['infos'] ?? []);
         if (\in_array($infos['meteo'] ?? null, Rencontre::METEOS, true)) {
@@ -197,7 +200,25 @@ class MatchDirectController extends AbstractController
         }
         $carte = $cartes['nous'] ?? $cartes['adverse'];
 
+        // Schémas des buts : départ du ballon et point d'entrée dans le but (sans tracé noté : milieu de la zone, centre du but).
+        $traces = ['marques' => [], 'encaisses' => []];
+        foreach ($actions as $a) {
+            if (!\in_array($a->getType(), ['B', 'BA'], true)) {
+                continue;
+            }
+            $d = $a->getDetails() ?? [];
+            $adverse = 'BA' === $a->getType();
+            $traces[$adverse ? 'encaisses' : 'marques'][] = [
+                'minute' => $a->getMinute(),
+                'nom' => $a->getJoueur() ? $a->getJoueur()->getPrenom() . ' ' . $a->getJoueur()->getNom() : ('csc' === ($d['geste'] ?? null) ? 'CSC' : ''),
+                'geste' => ActionMatch::GESTES_BUT[$d['geste'] ?? ''] ?? null,
+                'depart' => $d['depart'] ?? [($a->getZx() + 0.5) * 17.5, ($a->getZy() + 0.5) * 68 / 3],
+                'arrivee' => $d['arrivee'] ?? [$adverse ? 0.0 : 105.0, 34.0],
+            ];
+        }
+
         return $this->render('match_direct/bilan.html.twig', [
+            'traces' => $traces,
             'rencontre' => $rencontre,
             'actions' => $actions,
             'stats' => $stats,
@@ -280,6 +301,12 @@ class MatchDirectController extends AbstractController
             if ($a->getMinute() > $fin) {
                 $but->setAdditionnel(min(20, $a->getMinute() - $fin));
             }
+            // Façon de marquer notée en direct : tête, ou contre son camp.
+            match ($a->getDetails()['geste'] ?? null) {
+                'tete' => $but->setGeste('Tête'),
+                'csc' => $but->setConditions('CSC')->setButeur(null),
+                default => null,
+            };
             $rencontre->addBut($but);
             'BA' === $a->getType() ? ++$contre : ++$pour;
         }

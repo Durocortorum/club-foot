@@ -36,6 +36,27 @@
         </details>
 
         <p class="direct-consigne" data-direct-target="consigne"></p>
+        {# Après une frappe ou une tête cadrée : proposer d'en faire un but (fenêtre « But ! »). #}
+        <p class="propose-but" data-direct-target="proposeBut" hidden>
+            <span data-direct-target="texteProposeBut"></span>
+            <button type="button" class="bouton petit principal" data-action="direct#butDepuisTir">⚽ C'était un but !</button>
+        </p>
+
+        {# Fenêtre « But ! » : ballon au départ du tir, flèche jusqu'à l'entrée dans le but, façon de marquer. #}
+        <dialog class="dialogue dialogue-but" data-direct-target="dialogueBut">
+            <h2 class="dialogue-titre" data-direct-target="titreBut">But !</h2>
+            <p class="discret petit">Déplacez le <b>ballon</b> là où part le tir, puis tirez la <b>pointe de la flèche</b> jusqu'à l'endroit où il entre dans le but.</p>
+            <svg class="terrain-but" data-direct-target="terrainBut" role="img" aria-label="Demi-terrain avec le but"></svg>
+            <div class="gestes-but" data-direct-target="gestesBut">
+                {% for code, libelle in {tir: 'Tir', tete: 'Tête', csc: 'Contre son camp'} %}
+                    <label class="choix-carte"><input type="radio" name="geste-but" value="{{ code }}" {{ loop.first ? 'checked' }}> {{ libelle }}</label>
+                {% endfor %}
+            </div>
+            <div class="dialogue-actions">
+                <button type="button" class="bouton" data-action="direct#annulerBut">Annuler</button>
+                <button type="button" class="bouton principal" data-action="direct#enregistrerBut">Enregistrer le but</button>
+            </div>
+        </dialog>
 
         <div class="direct-saisie">
             <section class="direct-panneau panneau-joueur">

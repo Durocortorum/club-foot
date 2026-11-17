@@ -95,6 +95,25 @@
             {% endif %}
         </section>
 
+        {% if traces.marques or traces.encaisses %}
+            <section class="carte bloc">
+                <h2>Les buts</h2>
+                <p class="discret petit">D'où part le ballon (rond, avec la minute) et où il entre dans le but (flèche) ; pointillés : de la tête.</p>
+                <div class="buts-schemas">
+                    <figure>
+                        <figcaption>Buts marqués ({{ traces.marques|length }})</figcaption>
+                        {{ include('match_direct/_demi_terrain.html.twig', {buts: traces.marques, cote: 'eux'}) }}
+                        <ul class="buts-liste">{% for b in traces.marques %}<li><b>{{ b.minute }}'</b> {{ b.nom ?: '—' }}{{ b.geste ? ' · ' ~ b.geste }}</li>{% endfor %}</ul>
+                    </figure>
+                    <figure>
+                        <figcaption>Buts encaissés ({{ traces.encaisses|length }})</figcaption>
+                        {{ include('match_direct/_demi_terrain.html.twig', {buts: traces.encaisses, cote: 'nous'}) }}
+                        <ul class="buts-liste">{% for b in traces.encaisses %}<li><b>{{ b.minute }}'</b> {{ b.geste ?: 'adversaire' }}</li>{% endfor %}</ul>
+                    </figure>
+                </div>
+            </section>
+        {% endif %}
+
         <section class="carte bloc">
             <h2>Par joueur</h2>
             <div class="table-defile">

@@ -20,7 +20,8 @@ const CLE_MES_STATS = 'direct-mes-statistiques';
 export default class extends Controller {
     static values = { config: Object };
     static targets = ['joueurs', 'types', 'terrain', 'journal', 'score', 'chrono', 'minute', 'periode', 'boutonChrono', 'etat', 'consigne',
-        'meteo', 'sol', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne', 'boutonNumeros', 'bilan', 'boutonBilan'];
+        'meteo', 'sol', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne', 'boutonNumeros', 'bilan', 'boutonBilan',
+        'proposeBut', 'texteProposeBut', 'dialogueBut', 'titreBut', 'terrainBut', 'gestesBut'];
 
     connect() {
         this.cfg = this.configValue;
@@ -354,6 +355,13 @@ export default class extends Controller {
             zx: Number(zx),
             zy: Number(zy),
         };
+        // But (ou but adverse) : la fenêtre « But ! » pour placer le ballon et la direction, avant d'enregistrer.
+        if (type === 'B' || type === 'BA') {
+            this.choix = { joueur: undefined, type: null, modifie: null };
+            this.etape('joueur');
+            this.ouvrirBut({ ...action, details: ancienne?.details });
+            return;
+        }
         this.actions.set(action.uuid, { ...action, auteur: this.cfg.moi });
         this.enAttente[action.uuid] = action;
         this.garder();
@@ -362,8 +370,128 @@ export default class extends Controller {
         const zone = event.currentTarget;
         setTimeout(() => zone.classList.remove('touchee'), 350);
         this.choix = { joueur: undefined, type: null, modifie: null };
+        // Frappe ou tête cadrée (de nous ou de l'adversaire) : proposer « C'était un but ! ».
+        this.dernierTir = ['FC', 'TC', 'AC', 'ATC'].includes(type) ? action : null;
         this.etape('joueur');
         this.envoyer();
+    }
+
+    // ———————— But : ballon, direction dans le but, façon de marquer ————————
+
+    /** « C'était un but ! » après une frappe ou une tête cadrée : même joueur, minute et zone. */
+    butDepuisTir() {
+        const t = this.dernierTir;
+        if (!t) return;
+        this.dernierTir = null;
+        const adverse = this.estAdverse(t.type);
+        this.ouvrirBut({
+            uuid: this.nouvelUuid(), type: adverse ? 'BA' : 'B', joueur: adverse ? null : t.joueur,
+            periode: t.periode, minute: t.minute, zx: t.zx, zy: t.zy, details: { geste: ['TC', 'ATC'].includes(t.type) ? 'tete' : 'tir' },
+        });
+        this.afficher();
+    }
+
+    /** Fenêtre « But ! » : nos buts vers le but adverse (à droite), ceux de l'adversaire vers le nôtre (à gauche). */
+    ouvrirBut(but) {
+        const droite = but.type === 'B';
+        const d = but.details || {};
+        this.butEnCours = {
+            ...but,
+            depart: d.depart ? [...d.depart] : [(but.zx + 0.5) * 17.5, (but.zy + 0.5) * 68 / 3],
+            arrivee: d.arrivee ? [...d.arrivee] : [droite ? 105 : 0, 34],
+        };
+        // Vue resserrée devant le but (le but paraît plus grand), élargie juste assez pour montrer le départ du tir.
+        const [dx, dy] = this.butEnCours.depart;
+        const y0 = Math.max(-2, Math.min(10, dy - 6));
+        const y1 = Math.min(70, Math.max(58, dy + 6));
+        this.butEnCours.vue = droite
+            ? [Math.max(50.5, Math.min(78, dx - 6)), y0, 0, y1]
+            : [-3.5, y0, Math.min(54.5, Math.max(27, dx + 6)), y1];
+        this.butEnCours.vue[droite ? 2 : 0] = droite ? 108.5 : -3.5;
+        const j = this.joueur(but.joueur);
+        this.titreButTarget.textContent = droite ? `But !${j ? ` ${j.numero ? `${j.numero} ` : ''}${j.nom}` : ''} · ${but.minute}'` : `But adverse · ${but.minute}'`;
+        const geste = d.geste || 'tir';
+        this.gestesButTarget.querySelectorAll('input').forEach((r) => { r.checked = r.value === geste; });
+        this.dessinerBut();
+        this.dialogueButTarget.showModal();
+    }
+
+    annulerBut() {
+        this.butEnCours = null;
+        this.dialogueButTarget.close();
+    }
+
+    enregistrerBut() {
+        const b = this.butEnCours;
+        if (!b) return;
+        const geste = this.gestesButTarget.querySelector('input:checked')?.value || 'tir';
+        const action = {
+            uuid: b.uuid, type: b.type, periode: b.periode, minute: b.minute, zx: b.zx, zy: b.zy,
+            // Contre son camp d'un adversaire : pas de buteur chez nous.
+            joueur: b.type === 'B' && geste !== 'csc' ? b.joueur : null,
+            details: { depart: b.depart.map((v) => Math.round(v * 10) / 10), arrivee: b.arrivee.map((v) => Math.round(v * 10) / 10), geste },
+        };
+        this.actions.set(action.uuid, { ...action, auteur: this.cfg.moi });
+        this.enAttente[action.uuid] = action;
+        this.garder();
+        this.butEnCours = null;
+        this.dialogueButTarget.close();
+        navigator.vibrate?.([30, 60, 30]);
+        this.afficher();
+        this.envoyer();
+    }
+
+    /** Demi-terrain vu de dessus (mètres) avec le but, ses poteaux, le ballon et la flèche à tirer. */
+    dessinerBut() {
+        const b = this.butEnCours;
+        const droite = b.type === 'B';
+        const bx = droite ? 105 : 0;
+        const s = droite ? -1 : 1;
+        const couleur = droite ? '#d62839' : '#1f5fd1';
+        const svg = this.terrainButTarget;
+        const [vx0, vy0, vx1, vy1] = b.vue;
+        svg.setAttribute('viewBox', `${vx0} ${vy0} ${vx1 - vx0} ${vy1 - vy0}`);
+        const ligne = 'fill="none" stroke="rgba(255,255,255,.85)" stroke-width="0.3"';
+        svg.innerHTML = `
+            <defs><marker id="pointe-saisie-but" viewBox="0 0 4 4" refX="3.2" refY="2" markerWidth="3" markerHeight="3" orient="auto"><path d="M0,0 L4,2 L0,4 z" fill="${couleur}"/></marker>
+            <pattern id="filet-saisie" width="0.8" height="0.8" patternUnits="userSpaceOnUse"><rect width="0.8" height="0.8" fill="#e6e9ee"/><path d="M0,0 L0.8,0.8 M0.8,0 L0,0.8" stroke="#8d939c" stroke-width="0.08"/></pattern></defs>
+            <rect x="${droite ? 52.5 : 0}" y="0" width="52.5" height="68" fill="#46a653"/>
+            <rect x="${droite ? 52.5 : 0}" y="0" width="52.5" height="68" ${ligne}/>
+            <path d="M${bx},13.84 H${bx + s * 16.5} V54.16 H${bx}" ${ligne}/>
+            <path d="M${bx},24.84 H${bx + s * 5.5} V43.16 H${bx}" ${ligne}/>
+            <circle cx="${bx + s * 11}" cy="34" r="0.35" fill="#fff"/>
+            <path d="M${bx + s * 16.5},26.69 A9.15,9.15 0 0 ${droite ? 0 : 1} ${bx + s * 16.5},41.31" ${ligne}/>
+            <path d="M52.5,24.85 A9.15,9.15 0 0 ${droite ? 1 : 0} 52.5,43.15" ${ligne}/>
+            <rect x="${droite ? 105 : -2.4}" y="30.34" width="2.4" height="7.32" fill="url(#filet-saisie)" stroke="#6b6e75" stroke-width="0.25"/>
+            <circle cx="${bx}" cy="30.34" r="0.5" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
+            <circle cx="${bx}" cy="37.66" r="0.5" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
+            <line x1="${b.depart[0]}" y1="${b.depart[1]}" x2="${b.arrivee[0]}" y2="${b.arrivee[1]}" stroke="${couleur}" stroke-width="0.5" marker-end="url(#pointe-saisie-but)"/>
+            <circle class="poignee-but" data-poignee="arrivee" cx="${b.arrivee[0]}" cy="${b.arrivee[1]}" r="1.6" fill="rgba(255,255,255,.35)" stroke="${couleur}" stroke-width="0.25"/>
+            <g class="poignee-but" data-poignee="depart">
+                <circle cx="${b.depart[0]}" cy="${b.depart[1]}" r="2.2" fill="transparent"/>
+                <circle cx="${b.depart[0]}" cy="${b.depart[1]}" r="1.1" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
+                <path d="M${b.depart[0]},${b.depart[1] - 0.45} l0.43,0.31 l-0.16,0.5 h-0.54 l-0.16,-0.5 z" fill="#1d1d1f"/>
+            </g>`;
+        if (!this.ecouteBut) {
+            // Ballon et pointe de la flèche se déplacent au doigt ou à la souris.
+            this.ecouteBut = true;
+            svg.addEventListener('pointerdown', (e) => {
+                const p = e.target.closest('[data-poignee]');
+                if (!p || !this.butEnCours) return;
+                e.preventDefault();
+                this.priseBut = p.dataset.poignee;
+                svg.setPointerCapture?.(e.pointerId);
+            });
+            svg.addEventListener('pointermove', (e) => {
+                if (!this.priseBut || !this.butEnCours) return;
+                const q = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
+                this.butEnCours[this.priseBut] = [Math.min(108, Math.max(-3, q.x)), Math.min(68, Math.max(0, q.y))];
+                this.dessinerBut();
+            });
+            const lacher = () => { this.priseBut = null; };
+            svg.addEventListener('pointerup', lacher);
+            svg.addEventListener('pointercancel', lacher);
+        }
     }
 
     annulerChoix() {
@@ -396,6 +524,11 @@ export default class extends Controller {
     modifier(event) {
         const a = this.actions.get(event.currentTarget.dataset.uuid);
         if (!a || !this.aMoi(a)) return;
+        // Un but se corrige dans sa fenêtre (ballon, direction, façon de marquer).
+        if (a.type === 'B' || a.type === 'BA') {
+            this.ouvrirBut({ ...a });
+            return;
+        }
         this.choix = { joueur: this.estAdverse(a.type) ? null : a.joueur, type: a.type, modifie: a.uuid };
         this.etape('zone');
         this.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -494,6 +627,9 @@ export default class extends Controller {
             const nom = ['joueur', 'action', 'zone'][i];
             return `<button type="button" class="lien-bouton ${nom === etape ? 'en-cours' : ''}" data-etape="${nom}" data-action="direct#allerEtape">${this.echapper(m)}</button>`;
         }).join(' ▸ ') + (this.choix.type || this.choix.joueur !== undefined ? ' <button type="button" class="lien-bouton annuler" data-action="direct#annulerChoix">Annuler</button>' : '');
+        // « C'était un but ! » proposé après la dernière frappe ou tête cadrée.
+        this.proposeButTarget.hidden = !this.dernierTir;
+        if (this.dernierTir) this.texteProposeButTarget.textContent = `${this.libelle(this.dernierTir)} à la ${this.dernierTir.minute}e minute.`;
         // Score : buts notés par toutes les tablettes.
         const liste = [...this.actions.values()];
         this.scoreTarget.textContent = `${liste.filter((a) => a.type === 'B').length} – ${liste.filter((a) => a.type === 'BA').length}`;
@@ -597,7 +733,8 @@ export default class extends Controller {
 
     libelle(a) {
         const j = this.joueur(a.joueur);
-        const quoi = this.cfg.types[a.type] ?? this.cfg.adverses[a.type] ?? a.type;
+        const geste = { tete: ' (tête)', csc: ' (contre son camp)' }[a.details?.geste] || '';
+        const quoi = (this.cfg.types[a.type] ?? this.cfg.adverses[a.type] ?? a.type) + geste;
         return j ? `${j.numero ? `${j.numero} ` : ''}${j.nom} · ${quoi}` : quoi;
     }
 

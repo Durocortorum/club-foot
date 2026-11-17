@@ -558,9 +558,9 @@ class ClubDemoCommand extends Command
             array_push($tirage, ...array_fill(0, $poids, $type));
         }
         $n = 0;
-        $ajouter = function (string $type, ?Joueur $joueur, int $minute, int $zx, int $zy) use ($r, $duree, &$n): void {
+        $ajouter = function (string $type, ?Joueur $joueur, int $minute, int $zx, int $zy, ?array $details = null) use ($r, $duree, &$n): void {
             $this->em->persist((new ActionMatch($r, \sprintf('d0000000-0000-4000-8000-%012d', ++$n + 1000 * (int) $r->getId())))
-                ->setType($type)->setJoueur($joueur)->placer($minute > intdiv($duree, 2) ? 2 : 1, $minute, $zx, $zy));
+                ->setType($type)->setJoueur($joueur)->placer($minute > intdiv($duree, 2) ? 2 : 1, $minute, $zx, $zy)->setDetails($details));
         };
         for ($i = 0; $i < 170; ++$i) {
             $type = $tirage[mt_rand(0, \count($tirage) - 1)];
@@ -575,7 +575,13 @@ class ClubDemoCommand extends Command
             $ajouter($type, $joueur, mt_rand(1, $duree), $zx, $zy);
         }
         foreach ($r->getButs() as $but) {
-            $ajouter($but->isAdverse() ? 'BA' : 'B', $but->isAdverse() ? null : $but->getButeur(), min($duree, (int) $but->getMinute()), $but->isAdverse() ? 0 : 5, 1);
+            // Tracé du but : tir depuis la surface, entrée entre les poteaux (30,34 à 37,66 m).
+            $adverse = $but->isAdverse();
+            $x = $adverse ? mt_rand(40, 160) / 10 : 105 - mt_rand(40, 160) / 10;
+            $y = mt_rand(220, 460) / 10;
+            $ajouter($adverse ? 'BA' : 'B', $adverse ? null : $but->getButeur(), min($duree, (int) $but->getMinute()), $adverse ? 0 : 5, (int) min(2, floor($y / (68 / 3))), [
+                'depart' => [$x, $y], 'arrivee' => [$adverse ? 0 : 105, mt_rand(310, 370) / 10], 'geste' => 'Tête' === $but->getGeste() ? 'tete' : 'tir',
+            ]);
         }
         // Un carton jaune de chaque côté.
         $ajouter('CJ', $joueurs[3] ?? null, 34, 2, 1);
