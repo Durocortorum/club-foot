@@ -74,7 +74,7 @@ class PhaseUnFamillesTest extends WebTestCase
         self::assertStringContainsString('Déplacement : Car de société · départ 12h30, parking du stade', $crawler->filter('[data-copier-texte-value]')->attr('data-copier-texte-value'));
 
         // Envoi : l'e-mail de convocation donne le déplacement.
-        $client->submit($crawler->selectButton('Envoyer aux familles')->form());
+        $client->submit($crawler->selectButton('Envoyer aux parents')->form());
         $mails = array_values(array_filter(self::getMailerMessages(), fn ($m) => $m instanceof Email && str_contains((string) $m->getTextBody(), 'convoqué')));
         self::assertNotEmpty($mails);
         self::assertStringContainsString('Déplacement : Car de société · départ 12h30, parking du stade.', end($mails)->getTextBody());

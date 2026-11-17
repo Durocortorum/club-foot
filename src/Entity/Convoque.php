@@ -87,6 +87,22 @@ class Convoque implements AppartientAuClub
         return $this->reponduPar;
     }
 
+    /** Quand sa famille a reçu la convocation (null : pas encore prévenue, par exemple joueur ajouté après l'envoi). */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $envoyeLe = null;
+
+    public function getEnvoyeLe(): ?\DateTimeImmutable
+    {
+        return $this->envoyeLe;
+    }
+
+    public function marquerEnvoye(): static
+    {
+        $this->envoyeLe = new \DateTimeImmutable();
+
+        return $this;
+    }
+
     /** Enregistre une réponse ; null efface la réponse (retour à « sans réponse »). */
     public function repondre(?string $reponse, ?string $motif, string $par): static
     {

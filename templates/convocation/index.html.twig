@@ -88,9 +88,21 @@
                 {% do form.joueurs.setRendered %}
             </fieldset>
             {{ form_rest(form) }}
+            {# Envoi aux parents : à tous la première fois ; ensuite seulement aux joueurs ajoutés (par exemple pour
+               remplacer des absents), ceux déjà prévenus ne reçoivent rien de plus. #}
+            {% set deja_envoyee = convocation and convocation.envoyeeLe %}
             <div class="barre-actions">
-                <button type="submit" class="bouton principal">Enregistrer la convocation</button>
+                <button type="submit" name="suite" value="envoyer" class="bouton principal"
+                        data-confirmation="{{ deja_envoyee ? 'Enregistrer, puis envoyer la convocation aux parents des joueurs ajoutés ? Ceux déjà prévenus ne reçoivent rien de plus.' : 'Enregistrer, puis envoyer la convocation aux parents des joueurs cochés ?' }}"
+                        data-confirmation-bouton="Envoyer">
+                    {{ deja_envoyee ? 'Enregistrer et envoyer aux joueurs ajoutés' : 'Enregistrer et envoyer aux parents' }}
+                </button>
+                <button type="submit" class="bouton">Enregistrer sans envoyer</button>
             </div>
+            <p class="discret petit">
+                {% if deja_envoyee %}Des absents ? Cochez d'autres joueurs, puis « Enregistrer et envoyer aux joueurs ajoutés » : seuls leurs parents reçoivent la convocation.
+                {% else %}Les parents reçoivent un e-mail (et un message dans leur espace) pour répondre présent ou absent.{% endif %}
+            </p>
         {{ form_end(form) }}
     </section>
 
@@ -105,13 +117,14 @@
             </h2>
             <div class="table-defile">
                 <table class="liste liste-fiches">
-                    <thead><tr><th>Joueur</th><th>Prévenir</th><th>Réponse</th><th>Par</th><th>Modifier la réponse</th></tr></thead>
+                    <thead><tr><th>Joueur</th><th>Prévenir</th><th>Réponse</th><th>Répondu par</th><th>Modifier la réponse</th></tr></thead>
                     <tbody>
                         {% for c in convocation.convoques %}
                             {% set s = sms[c.id] %}
                             <tr>
                                 <td class="nowrap principal">
                                     <a href="{{ path('app_joueur_voir', {id: c.joueur.id}) }}"><strong>{{ c.joueur.nom }}</strong> {{ c.joueur.prenom }}</a>
+                                    {% if convocation.envoyeeLe and not c.envoyeLe %}<span class="pastille alerte petit" title="Ajouté après l'envoi : bouton « Envoyer aux parents » pour le prévenir">pas encore prévenu</span>{% endif %}
                                     <form method="post" action="{{ path('app_convocation_retirer', {id: rencontre.id, convoque: c.id}) }}" class="en-ligne"
                                           data-confirmation="Retirer {{ c.joueur.prenom }} {{ c.joueur.nom }} de la convocation ?{{ convocation.envoyeeLe ? ' Sa famille sera prévenue (e-mail et messagerie).' }}"
                                           data-confirmation-bouton="Retirer">
@@ -176,8 +189,16 @@
                 <div class="actions-ligne">
                     <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
                         <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
-                        <button class="bouton principal">{{ convocation.envoyeeLe ? 'Renvoyer à tous' : 'Envoyer aux familles' }}</button>
+                        <button class="bouton {{ convocation.envoyeeLe ? '' : 'principal' }}">{{ convocation.envoyeeLe ? 'Renvoyer à tous' : 'Envoyer aux parents' }}</button>
                     </form>
+                    {% set pas_prevenus = convocation.convoques|filter(c => not c.envoyeLe)|length %}
+                    {% if convocation.envoyeeLe and pas_prevenus %}
+                        <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
+                            <input type="hidden" name="nouveaux" value="1">
+                            <button class="bouton principal">Envoyer aux {{ pas_prevenus }} joueur{{ pas_prevenus > 1 ? 's' }} ajouté{{ pas_prevenus > 1 ? 's' }}</button>
+                        </form>
+                    {% endif %}
                     {% if convocation.envoyeeLe and attente %}
                         <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
                             <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">

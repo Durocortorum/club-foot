@@ -37,20 +37,24 @@ class EnvoiConvocations
     }
 
     /**
-     * @param bool $relance seulement les joueurs qui n'ont pas encore répondu
+     * @param bool $relance  seulement les joueurs qui n'ont pas encore répondu
+     * @param bool $nouveaux seulement les joueurs dont la famille n'a pas encore été prévenue (ajoutés après l'envoi)
      *
-     * @return array{emails: int, sans_compte: list<Joueur>, echecs: list<string>}
+     * @return array{emails: int, joueurs: int, sans_compte: list<Joueur>, echecs: list<string>}
      */
-    public function envoyer(Convocation $convocation, bool $relance = false): array
+    public function envoyer(Convocation $convocation, bool $relance = false, bool $nouveaux = false): array
     {
-        $resultat = ['emails' => 0, 'sans_compte' => [], 'echecs' => []];
+        $resultat = ['emails' => 0, 'joueurs' => 0, 'sans_compte' => [], 'echecs' => []];
         $club = $convocation->getRencontre()->getClub();
         $espace = $this->urls->generate('app_espace', [], UrlGeneratorInterface::ABSOLUTE_URL);
 
         foreach ($convocation->getConvoques() as $c) {
-            if ($relance && null !== $c->getReponse()) {
+            if (($relance && null !== $c->getReponse()) || ($nouveaux && null !== $c->getEnvoyeLe())) {
                 continue;
             }
+            // Famille prévenue (par e-mail, ou à prévenir autrement si elle n'a pas de compte) : plus « nouveau ».
+            $c->marquerEnvoye();
+            ++$resultat['joueurs'];
             $comptes = array_filter($this->acces->comptes($c->getJoueur()), fn ($u) => null !== $u->getPassword());
             $r = $convocation->getRencontre();
             $this->notifications->envoyer($comptes,

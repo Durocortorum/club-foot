@@ -63,13 +63,13 @@ class ConvocationRetraitTest extends WebTestCase
         // Léa et Tom convoqués, convocation envoyée.
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', $page);
-        $form = $crawler->selectButton('Enregistrer la convocation')->form();
+        $form = $crawler->selectButton('Enregistrer sans envoyer')->form();
         foreach ($form['form[joueurs]'] as $case) {
             $case->tick();
         }
         $this->client->submit($form);
         $crawler = $this->client->followRedirect();
-        $this->client->submit($crawler->selectButton('Envoyer aux familles')->form());
+        $this->client->submit($crawler->selectButton('Envoyer aux parents')->form());
         $crawler = $this->client->followRedirect();
 
         // Tom décoché, enregistré : il n'est plus convoqué.

@@ -333,7 +333,7 @@ class EspaceController extends AbstractController
 
     /** Réponse de la famille à une convocation, jusqu'au jour du match. */
     #[Route('/espace/convocation/{id}', name: 'app_espace_reponse', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function repondre(Request $request, Convoque $convoque, EntityManagerInterface $em): Response
+    public function repondre(Request $request, Convoque $convoque, EntityManagerInterface $em, AccesFamille $acces): Response
     {
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
@@ -350,7 +350,9 @@ class EspaceController extends AbstractController
         if (!\in_array($reponse, [Convoque::PRESENT, Convoque::ABSENT], true)) {
             throw $this->createAccessDeniedException();
         }
-        $convoque->repondre($reponse, $request->getPayload()->getString('motif'), (string) $moi->getEmail());
+        // Qui a répondu, lisible par l'éducateur : le joueur lui-même (son propre compte) ou un parent.
+        $qui = $acces->estLeJoueur($moi, $convoque->getJoueur()) ? 'Joueur' : 'Parent';
+        $convoque->repondre($reponse, $request->getPayload()->getString('motif'), trim($qui . ' : ' . $moi->getPrenom() . ' ' . $moi->getNom()));
         $em->flush();
         $this->addFlash('succes', \sprintf('Merci, réponse enregistrée : %s %s.', $convoque->getJoueur()->getPrenom(), Convoque::PRESENT === $reponse ? 'sera présent(e)' : 'sera absent(e)'));
 

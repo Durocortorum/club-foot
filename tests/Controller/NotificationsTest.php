@@ -102,7 +102,7 @@ class NotificationsTest extends WebTestCase
 
         NotificationsTelephone::$envoyees = [];
         $crawler = $client->request('GET', '/matchs/' . $match->getId() . '/convocation');
-        $client->submit($crawler->selectButton('Envoyer aux familles')->form());
+        $client->submit($crawler->selectButton('Envoyer aux parents')->form());
         self::assertSame('Léa convoqué(e)', NotificationsTelephone::$envoyees[0]['titre'] ?? null);
         self::assertStringContainsString('Répondez présent ou absent', NotificationsTelephone::$envoyees[0]['texte']);
 

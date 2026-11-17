@@ -135,6 +135,68 @@ class ConvocationTest extends WebTestCase
         self::assertSelectorNotExists('input[value="' . $zoe->getId() . '"][disabled]');
     }
 
+    /**
+     * « Enregistrer et envoyer aux parents » : la première fois à tous ; un joueur ajouté ensuite (pour remplacer
+     * un absent) : seuls ses parents reçoivent la convocation.
+     */
+    public function testEnvoiAuxJoueursAjoutes(): void
+    {
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Coach');
+        $club = (new Club())->setNom("Club Test $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = $this->em();
+        $categorie = $em->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+        $lea = $this->joueur($club, $categorie, 'Léa');
+        $max = $this->joueur($club, $categorie, 'Max');
+        $hasher = static::getContainer()->get(UserPasswordHasherInterface::class);
+        foreach (['lea' => $lea, 'max' => $max] as $qui => $joueur) {
+            $parent = (new Utilisateur())->setClub($club)->setFamille(true)->setEmail("parent-$qui-$id@exemple.test")->setNom('Martin')->setPrenom('Famille')->addJoueur($joueur);
+            $parent->setPassword($hasher->hashPassword($parent, 'secret-famille'));
+            $em->persist($parent);
+        }
+        $rencontre = (new Rencontre())->setClub($club)->setCategorie($categorie)->setDate(new \DateTimeImmutable('+4 days'))
+            ->setDomicile("CLUB TEST $id")->setExterieur('Adversaire FC');
+        $em->persist($rencontre);
+        $em->flush();
+        $page = '/matchs/' . $rencontre->getId() . '/convocation';
+        $this->client->loginUser($admin);
+
+        // Léa seule, envoyée tout de suite : un e-mail, à ses parents.
+        $crawler = $this->client->request('GET', $page);
+        $form = $crawler->selectButton('Enregistrer et envoyer aux parents')->form();
+        $form['form[joueurs]'][0]->tick(); // Léa, Max
+        $this->client->submit($form);
+        self::assertEmailCount(1);
+        self::assertEmailAddressContains(self::getMailerMessage(), 'to', "parent-lea-$id@exemple.test");
+
+        // Léa absente : Max ajouté (enregistré sans envoyer) → signalé « pas encore prévenu ».
+        $crawler = $this->client->followRedirect();
+        $form = $crawler->selectButton('Enregistrer sans envoyer')->form();
+        $form['form[joueurs]'][1]->tick();
+        $this->client->submit($form);
+        self::assertEmailCount(0);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('#reponses', 'pas encore prévenu');
+        self::assertSelectorExists('button:contains("Envoyer aux 1 joueur ajouté")');
+
+        // « Enregistrer et envoyer aux joueurs ajoutés » : seuls les parents de Max reçoivent la convocation.
+        $this->client->submit($crawler->selectButton('Enregistrer et envoyer aux joueurs ajoutés')->form());
+        self::assertEmailCount(1);
+        self::assertEmailAddressContains(self::getMailerMessage(), 'to', "parent-max-$id@exemple.test");
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'Max');
+        self::assertSelectorNotExists('#reponses .pastille.alerte.petit');
+
+        // Plus personne de nouveau : rien n'est renvoyé.
+        $crawler = $this->client->request('GET', $page);
+        $this->client->submit($crawler->selectButton('Enregistrer et envoyer aux joueurs ajoutés')->form());
+        self::assertEmailCount(0);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-info', 'rien de nouveau');
+    }
+
     public function testConvocationJusquALaFeuilleDeMatch(): void
     {
         $id = bin2hex(random_bytes(4));
@@ -164,7 +226,7 @@ class ConvocationTest extends WebTestCase
         $crawler = $this->client->request('GET', "$match/convocation");
         self::assertResponseIsSuccessful();
         self::assertInputValueSame('form[rdvLieu]', 'Stade municipal');
-        $form = $crawler->selectButton('Enregistrer la convocation')->form();
+        $form = $crawler->selectButton('Enregistrer sans envoyer')->form();
         $form['form[joueurs]'][0]->tick(); // ordre alphabétique des prénoms à nom égal : Léa, Max, Tom
         $form['form[joueurs]'][2]->tick();
         $form['form[rdvHeure]'] = '14h15';
@@ -183,7 +245,7 @@ class ConvocationTest extends WebTestCase
         // --- Envoi : un e-mail pour la famille de Léa ; Tom n'a pas de compte, il est signalé.
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', "$match/convocation");
-        $this->client->submit($crawler->selectButton('Envoyer aux familles')->form());
+        $this->client->submit($crawler->selectButton('Envoyer aux parents')->form());
         self::assertEmailCount(1);
         $email = self::getMailerMessage();
         self::assertEmailAddressContains($email, 'to', "parent-$id@exemple.test");
@@ -225,7 +287,7 @@ class ConvocationTest extends WebTestCase
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('.flash-succes', 'Léa sera absent(e)');
         $reponseLea = $this->convoque($rencontre, 'Léa');
-        self::assertSame([Convoque::ABSENT, 'Malade', "parent-$id@exemple.test"], [$reponseLea->getReponse(), $reponseLea->getMotif(), $reponseLea->getReponduPar()]);
+        self::assertSame([Convoque::ABSENT, 'Malade', 'Parent : Famille MARTIN'], [$reponseLea->getReponse(), $reponseLea->getMotif(), $reponseLea->getReponduPar()]);
         $this->client->submit($crawler->selectButton('Présent')->form());
         self::assertSame(Convoque::PRESENT, $this->convoque($rencontre, 'Léa')->getReponse());
 
@@ -247,7 +309,7 @@ class ConvocationTest extends WebTestCase
         $this->client->submit($crawler->selectButton('Tous les sans-réponse : présents (1)')->form());
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('.flash-succes', '1 réponse enregistrée');
-        self::assertSame([Convoque::PRESENT, 'Coach TEST'], [$this->convoque($rencontre, 'Tom')->getReponse(), $this->convoque($rencontre, 'Tom')->getReponduPar()]);
+        self::assertSame([Convoque::PRESENT, 'Éducateur : Coach TEST'], [$this->convoque($rencontre, 'Tom')->getReponse(), $this->convoque($rencontre, 'Tom')->getReponduPar()]);
         // Et un changement dans le tableau (Léa absente, motif), enregistré par le même bouton.
         $leaId = $this->convoque($rencontre, 'Léa')->getId();
         $this->client->submit($crawler->selectButton('Enregistrer toutes les réponses')->form(), ["reponse[$leaId]" => 'absent', "motif[$leaId]" => 'Blessé']);

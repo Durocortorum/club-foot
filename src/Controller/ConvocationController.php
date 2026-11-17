@@ -97,10 +97,16 @@ class ConvocationController extends AbstractController
                 $this->retirerDeLaFeuille($rencontre, $convocation, $retires);
             }
             $this->em->flush();
-            $this->addFlash('succes', $convocation->getEnvoyeeLe()
-                ? 'Convocation modifiée. Pensez à prévenir les joueurs ajoutés (bouton « Envoyer »).'
-                : 'Convocation enregistrée. Vérifiez-la, puis envoyez-la aux familles.');
             $this->prevenirRetrait($convocation, $retires, $messagerie);
+            if ('envoyer' === $request->getPayload()->getString('suite')) {
+                // « Enregistrer et envoyer aux parents » : à tous la première fois, ensuite aux seuls joueurs ajoutés.
+                $this->diffuser($convocation, $messagerie, false, null !== $convocation->getEnvoyeeLe());
+            } else {
+                $nouveaux = \count(array_filter($convocation->getConvoques(), fn (Convoque $c) => null === $c->getEnvoyeLe()));
+                $this->addFlash('succes', $convocation->getEnvoyeeLe() && $nouveaux
+                    ? \sprintf('Convocation enregistrée. %d joueur%s ajouté%2$s pas encore prévenu%2$s : bouton « Envoyer aux parents ».', $nouveaux, $nouveaux > 1 ? 's' : '')
+                    : 'Convocation enregistrée' . ($convocation->getEnvoyeeLe() ? '.' : ', pas encore envoyée aux parents.'));
+            }
 
             return $this->redirectToRoute('app_convocation', array_filter(['id' => $rencontre->getId(), 'dessous' => 1 === $this->niveauxDessous ? null : $this->niveauxDessous], fn ($v) => null !== $v));
         }
@@ -128,22 +134,42 @@ class ConvocationController extends AbstractController
         if (!$this->isCsrfTokenValid('envoyer-convocation' . $convocation->getId(), $request->getPayload()->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
-        $relance = $request->getPayload()->getBoolean('relance');
-        // Joueurs prévenus : tous les convoqués, ou ceux qui n'ont pas répondu pour une relance.
-        $prevenus = array_values(array_map(fn (Convoque $c) => $c->getJoueur(), array_filter($convocation->getConvoques(), fn (Convoque $c) => !$relance || null === $c->getReponse())));
-        $r = $this->envoi->envoyer($convocation, $relance);
+        $this->diffuser($convocation, $messagerie, $request->getPayload()->getBoolean('relance'), $request->getPayload()->getBoolean('nouveaux'));
+
+        return $this->redirectToRoute('app_convocation', ['id' => $rencontre->getId()]);
+    }
+
+    /**
+     * Envoi aux parents (e-mail, notification, messagerie interne) : à tous, aux seuls joueurs sans réponse (relance),
+     * ou aux seuls joueurs dont la famille n'a pas encore été prévenue (ajoutés après l'envoi, par exemple pour
+     * remplacer des absents).
+     */
+    private function diffuser(Convocation $convocation, Messagerie $messagerie, bool $relance = false, bool $nouveaux = false): void
+    {
+        $rencontre = $convocation->getRencontre();
+        $prevenus = array_values(array_map(fn (Convoque $c) => $c->getJoueur(), array_filter($convocation->getConvoques(),
+            fn (Convoque $c) => (!$relance || null === $c->getReponse()) && (!$nouveaux || null === $c->getEnvoyeLe()))));
+        if (!$prevenus) {
+            $this->addFlash('info', 'Toutes les familles avaient déjà reçu la convocation : rien de nouveau à envoyer.');
+
+            return;
+        }
+        $r = $this->envoi->envoyer($convocation, $relance, $nouveaux);
 
         // La convocation arrive aussi dans la messagerie interne des familles (sans second e-mail).
-        if ($prevenus) {
-            /** @var Utilisateur $moi */
-            $moi = $this->getUser();
-            $texte = $this->envoi->pourMessagerie($convocation, $relance);
-            $messagerie->envoyer((new Message())->setAuteur($moi)->setSujet($texte['sujet'])->setCorps($texte['corps'])
-                ->setCible('convocation')->setCibleLibelle($texte['cible'])
-                ->setCategorie($rencontre->getCategorie())->setRencontre($rencontre), $prevenus, false);
-        }
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        $texte = $this->envoi->pourMessagerie($convocation, $relance);
+        $messagerie->envoyer((new Message())->setAuteur($moi)->setSujet($texte['sujet'])->setCorps($texte['corps'])
+            ->setCible('convocation')->setCibleLibelle($texte['cible'])
+            ->setCategorie($rencontre->getCategorie())->setRencontre($rencontre), $prevenus, false);
 
-        $this->addFlash('succes', \sprintf('%s : %d e-mail%s envoyé%2$s.', $relance ? 'Relance' : 'Convocation envoyée', $r['emails'], $r['emails'] > 1 ? 's' : ''));
+        $this->addFlash('succes', match (true) {
+            $relance => \sprintf('Relance : %d e-mail%s envoyé%2$s.', $r['emails'], $r['emails'] > 1 ? 's' : ''),
+            $nouveaux => \sprintf('Convocation envoyée aux parents des %d joueur%s ajouté%2$s (%s) : %d e-mail%s.', \count($prevenus), \count($prevenus) > 1 ? 's' : '',
+                implode(', ', array_map(fn (Joueur $j) => $j->getNomComplet(), $prevenus)), $r['emails'], $r['emails'] > 1 ? 's' : ''),
+            default => \sprintf('Convocation envoyée aux parents : %d e-mail%s envoyé%2$s.', $r['emails'], $r['emails'] > 1 ? 's' : ''),
+        });
         if ($r['sans_compte']) {
             $this->addFlash('info', \sprintf(
                 'Sans compte famille actif, à prévenir par WhatsApp ou SMS : %s.',
@@ -153,8 +179,6 @@ class ConvocationController extends AbstractController
         if ($r['echecs']) {
             $this->addFlash('erreur', 'Envoi impossible vers : ' . implode(', ', $r['echecs']) . '.');
         }
-
-        return $this->redirectToRoute('app_convocation', ['id' => $rencontre->getId()]);
     }
 
     /** Retirer un joueur de la convocation (erreur, décision du staff) : sa famille est prévenue si elle était déjà envoyée. */
@@ -219,7 +243,7 @@ class ConvocationController extends AbstractController
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
         $reponse = $request->getPayload()->getString('reponse') ?: null;
-        $convoque->repondre(\in_array($reponse, [Convoque::PRESENT, Convoque::ABSENT], true) ? $reponse : null, $request->getPayload()->getString('motif'), (string) $moi);
+        $convoque->repondre(\in_array($reponse, [Convoque::PRESENT, Convoque::ABSENT], true) ? $reponse : null, $request->getPayload()->getString('motif'), 'Éducateur : ' . $moi);
         $this->em->flush();
 
         return $this->redirect($this->generateUrl('app_convocation', ['id' => $rencontre->getId()]) . '#reponses');
@@ -252,7 +276,7 @@ class ConvocationController extends AbstractController
                 continue;
             }
             if ($reponse !== $c->getReponse() || ($motif ?: null) !== ($c->getMotif() ?: null)) {
-                $c->repondre($reponse, $motif, (string) $moi);
+                $c->repondre($reponse, $motif, 'Éducateur : ' . $moi);
                 ++$changees;
             }
         }
