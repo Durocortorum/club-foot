@@ -46,7 +46,7 @@
                         </form>
                     {% endif %}
                 </div>
-                <p class="discret petit">Un e-mail part vers chaque compte famille actif. Pour les autres : message du groupe ci-dessous, ou boutons « SMS » du tableau des réponses (depuis un téléphone, le SMS s'ouvre tout prêt).</p>
+                <p class="discret petit">Un e-mail part vers chaque compte famille actif. Pour les autres : message du groupe ci-contre, ou boutons « SMS » du tableau des réponses (en bas de la page) (depuis un téléphone, le SMS s'ouvre tout prêt).</p>
             </section>
 
             <section class="carte" data-controller="copier" data-copier-texte-value="{{ message_groupe }}">
@@ -58,7 +58,78 @@
                 </div>
             </section>
         </div>
+    {% endif %}
 
+    {# Déplacement (module Transport), en premier : repris dans la convocation envoyée,
+       le message du groupe et l'espace famille. #}
+    {% if rencontre.deplacements is not empty or not rencontre.aDomicile %}
+        <section class="carte bloc" id="deplacement">
+            <h2>Déplacement</h2>
+            {% if rencontre.deplacements is not empty %}
+                <ul class="liste-simple">
+                    {% for d in rencontre.deplacements %}
+                        <li class="avec-actions">
+                            <span>🚌 {{ d.resumeFamilles }}{% if d.passagers %} <span class="discret petit">· {{ d.passagers }} passager{{ d.passagers > 1 ? 's' }}</span>{% endif %}</span>
+                            <a class="petit" href="{{ path('app_transport_modifier', {id: d.id}) }}">Modifier</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p class="discret petit">Affiché aux familles dans la convocation (e-mail, message du groupe, espace famille).</p>
+            {% else %}
+                <p class="discret">Aucun déplacement noté pour ce match à l'extérieur.</p>
+            {% endif %}
+            <a class="bouton petit" href="{{ path('app_transport_nouveau', {match: rencontre.id}) }}">+ {{ rencontre.deplacements is empty ? 'Noter le déplacement' : 'Ajouter un véhicule' }}</a>
+        </section>
+    {% endif %}
+
+    <section class="bloc">
+        <h2 class="titre-bloc">{{ convocation ? 'Modifier la convocation' : 'Préparer la convocation' }}</h2>
+        {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+            {{ form_errors(form) }}
+            <fieldset class="carte">
+                <legend>Rendez-vous</legend>
+                {{ m.groupe(form, ['rdvHeure', 'rdvLieu', 'message']) }}
+            </fieldset>
+
+            <fieldset class="carte" id="joueurs-convoques">
+                <legend>Joueurs convoqués</legend>
+                {# Jeunes joueurs appelés (surclassement) : 1, 2, 3 niveaux en dessous, ou tous. #}
+                <nav class="niveaux-dessous petit" aria-label="Niveaux en dessous proposés">
+                    <span class="discret">Niveaux en dessous :</span>
+                    {% for n, libelle in {1: '1', 2: '2', 3: '3', 0: 'tous'} %}
+                        <a class="bouton petit {{ n == niveaux_dessous ? 'principal' }}" href="{{ path('app_convocation', n == 1 ? {id: rencontre.id} : {id: rencontre.id, dessous: n}) }}#joueurs-convoques" {{ n == niveaux_dessous ? 'aria-current="true"' }}>{{ libelle }}</a>
+                    {% endfor %}
+                </nav>
+                {% if niveaux_vides %}
+                    <p class="discret petit">Aucun joueur actif : {{ niveaux_vides|join(' ; ') }}.</p>
+                {% endif %}
+                {{ form_errors(form.joueurs) }}
+                {% for groupe, choix in form.joueurs.vars.choices %}
+                    {# Groupe ouvert : celui du match, ou un groupe où des joueurs sont déjà convoqués. #}
+                    {% set coches = choix.choices|filter(c => form.joueurs[c.value].vars.checked)|length %}
+                    <details class="groupe-joueurs" {{ loop.first or coches ? 'open' }}>
+                        <summary>{{ groupe }} <span class="discret petit">({{ choix.choices|length }}{{ coches and not loop.first ? ', ' ~ coches ~ ' ' ~ accord(coches, 'convoqué') }})</span></summary>
+                        <div class="cases-joueurs">
+                            {% for c in choix.choices %}
+                                {% set ailleurs = c.attr['data-ailleurs'] ?? null %}
+                                <label class="case-joueur {{ ailleurs and c.attr.disabled is defined ? 'indisponible' }}" {% if ailleurs %}title="Déjà convoqué(e) avec {{ ailleurs }}"{% endif %}>
+                                    {{ form_widget(form.joueurs[c.value]) }} {{ c.label }}
+                                    {% if ailleurs %}<span class="pastille alerte petit">avec {{ ailleurs }}</span>{% endif %}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </details>
+                {% endfor %}
+                {% do form.joueurs.setRendered %}
+            </fieldset>
+            {{ form_rest(form) }}
+            <div class="barre-actions">
+                <button type="submit" class="bouton principal">Enregistrer la convocation</button>
+            </div>
+        {{ form_end(form) }}
+    </section>
+
+    {% if convocation %}
         <section class="bloc" id="reponses">
             <h2 class="titre-bloc">
                 Réponses
@@ -126,73 +197,4 @@
             <datalist id="motifs-absence">{% for mo in motifs %}<option value="{{ mo }}">{% endfor %}</datalist>
         </section>
     {% endif %}
-
-    {# Déplacement (module Transport), juste au-dessus des joueurs convoqués : repris dans la convocation envoyée,
-       le message du groupe et l'espace famille. #}
-    {% if rencontre.deplacements is not empty or not rencontre.aDomicile %}
-        <section class="carte bloc" id="deplacement">
-            <h2>Déplacement</h2>
-            {% if rencontre.deplacements is not empty %}
-                <ul class="liste-simple">
-                    {% for d in rencontre.deplacements %}
-                        <li class="avec-actions">
-                            <span>🚌 {{ d.resumeFamilles }}{% if d.passagers %} <span class="discret petit">· {{ d.passagers }} passager{{ d.passagers > 1 ? 's' }}</span>{% endif %}</span>
-                            <a class="petit" href="{{ path('app_transport_modifier', {id: d.id}) }}">Modifier</a>
-                        </li>
-                    {% endfor %}
-                </ul>
-                <p class="discret petit">Affiché aux familles dans la convocation (e-mail, message du groupe, espace famille).</p>
-            {% else %}
-                <p class="discret">Aucun déplacement noté pour ce match à l'extérieur.</p>
-            {% endif %}
-            <a class="bouton petit" href="{{ path('app_transport_nouveau', {match: rencontre.id}) }}">+ {{ rencontre.deplacements is empty ? 'Noter le déplacement' : 'Ajouter un véhicule' }}</a>
-        </section>
-    {% endif %}
-
-    <section class="bloc">
-        <h2 class="titre-bloc">{{ convocation ? 'Modifier la convocation' : 'Préparer la convocation' }}</h2>
-        {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
-            {{ form_errors(form) }}
-            <fieldset class="carte" id="joueurs-convoques">
-                <legend>Joueurs convoqués</legend>
-                {# Jeunes joueurs appelés (surclassement) : 1, 2, 3 niveaux en dessous, ou tous. #}
-                <nav class="niveaux-dessous petit" aria-label="Niveaux en dessous proposés">
-                    <span class="discret">Niveaux en dessous :</span>
-                    {% for n, libelle in {1: '1', 2: '2', 3: '3', 0: 'tous'} %}
-                        <a class="bouton petit {{ n == niveaux_dessous ? 'principal' }}" href="{{ path('app_convocation', n == 1 ? {id: rencontre.id} : {id: rencontre.id, dessous: n}) }}#joueurs-convoques" {{ n == niveaux_dessous ? 'aria-current="true"' }}>{{ libelle }}</a>
-                    {% endfor %}
-                </nav>
-                {% if niveaux_vides %}
-                    <p class="discret petit">Aucun joueur actif : {{ niveaux_vides|join(' ; ') }}.</p>
-                {% endif %}
-                {{ form_errors(form.joueurs) }}
-                {% for groupe, choix in form.joueurs.vars.choices %}
-                    {# Groupe ouvert : celui du match, ou un groupe où des joueurs sont déjà convoqués. #}
-                    {% set coches = choix.choices|filter(c => form.joueurs[c.value].vars.checked)|length %}
-                    <details class="groupe-joueurs" {{ loop.first or coches ? 'open' }}>
-                        <summary>{{ groupe }} <span class="discret petit">({{ choix.choices|length }}{{ coches and not loop.first ? ', ' ~ coches ~ ' ' ~ accord(coches, 'convoqué') }})</span></summary>
-                        <div class="cases-joueurs">
-                            {% for c in choix.choices %}
-                                {% set ailleurs = c.attr['data-ailleurs'] ?? null %}
-                                <label class="case-joueur {{ ailleurs and c.attr.disabled is defined ? 'indisponible' }}" {% if ailleurs %}title="Déjà convoqué(e) avec {{ ailleurs }}"{% endif %}>
-                                    {{ form_widget(form.joueurs[c.value]) }} {{ c.label }}
-                                    {% if ailleurs %}<span class="pastille alerte petit">avec {{ ailleurs }}</span>{% endif %}
-                                </label>
-                            {% endfor %}
-                        </div>
-                    </details>
-                {% endfor %}
-                {% do form.joueurs.setRendered %}
-            </fieldset>
-
-            <fieldset class="carte">
-                <legend>Rendez-vous</legend>
-                {{ m.groupe(form, ['rdvHeure', 'rdvLieu', 'message']) }}
-            </fieldset>
-            {{ form_rest(form) }}
-            <div class="barre-actions">
-                <button type="submit" class="bouton principal">Enregistrer la convocation</button>
-            </div>
-        {{ form_end(form) }}
-    </section>
 {% endblock %}
