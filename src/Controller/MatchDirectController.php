@@ -408,9 +408,14 @@ class MatchDirectController extends AbstractController
         if ($changes) {
             $messages[] = \sprintf('%d changement%s', $changes, $changes > 1 ? 's' : '');
         }
+        // Feuille complétée de ce qui change le temps passé sur le terrain (remplacements, cartons, joueurs ajoutés) :
+        // temps de jeu recalculés, pour les statistiques. Des buts seuls ne les changent pas.
+        if ($changes || $reportes || $ajoutes) {
+            $rencontre->calculerTempsJeu();
+        }
         $this->em->flush();
         if ($ajoutes) {
-            $this->addFlash('info', 'Ajouté' . (\count($ajoutes) > 1 ? 's' : '') . ' à la feuille de match : ' . implode(', ', $ajoutes) . ' (complétez poste et temps de jeu).');
+            $this->addFlash('info', 'Ajouté' . (\count($ajoutes) > 1 ? 's' : '') . ' à la feuille de match : ' . implode(', ', $ajoutes) . ' (vérifiez numéro et poste).');
         }
         $this->addFlash($messages ? 'succes' : 'info', $messages
             ? implode(', ', $messages) . ' reporté' . ((($pour + $contre) + $reportes + $changes) > 1 ? 's' : '') . ' sur la feuille de match.'

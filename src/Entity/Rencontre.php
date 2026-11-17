@@ -838,6 +838,30 @@ class Rencontre implements AppartientAuClub
         return $intervalles;
     }
 
+    /**
+     * Temps de jeu de chaque joueur de la feuille, calculé comme la feuille de match (feuille_controller.js) :
+     * temps passé sur le terrain dans la durée du match de la catégorie, 10 minutes en moins pour un carton blanc
+     * (« BL »). Sert quand la feuille est complétée sans passer par son formulaire (report du match en direct).
+     */
+    public function calculerTempsJeu(): void
+    {
+        $duree = (float) ($this->categorie?->getDureeMatch() ?: 90);
+        $presences = $this->presences();
+        foreach ($this->participations as $p) {
+            if (!$p->getJoueur()) {
+                continue;
+            }
+            $total = 0.0;
+            foreach ($presences[spl_object_id($p->getJoueur())] ?? [] as [$debut, $fin]) {
+                $total += max(0.0, min($fin, $duree) - min($debut, $duree));
+            }
+            if ('BL' === $p->getCarton() && $total > 0) {
+                $total = max(0.0, $total - 10);
+            }
+            $p->setTempsJeu((int) round($total));
+        }
+    }
+
     /** « 45+2 » → 45,02 : pour ranger les minutes, arrêts de jeu compris ; null si la minute est inconnue. */
     public static function ordreMinute(?string $temps): ?float
     {

@@ -250,11 +250,16 @@ class MatchDirectTest extends WebTestCase
         self::assertCount(2, $remplacements, 'pas de doublon au second report');
         self::assertSame([$tomId, $leoId, 50, 'Blessure'], [$remplacements[0]->getSortant()->getId(), $remplacements[0]->getEntrant()->getId(), $remplacements[0]->getMinute(), $remplacements[0]->getMotif()]);
         self::assertSame([$leoId, null, 70], [$remplacements[1]->getSortant()->getId(), $remplacements[1]->getEntrant(), $remplacements[1]->getMinute()]);
+        $temps = [];
         foreach ($em->find(Rencontre::class, $matchId)->getParticipations() as $p) {
+            $temps[$p->getJoueur()->getId()] = $p->getTempsJeu();
             if ($p->getJoueur()->getId() === $leoId) {
                 self::assertSame(['BL', '20'], [$p->getCarton(), $p->getMinuteCarton()], 'carton blanc reporté sur la feuille');
             }
         }
+        // Temps de jeu recalculés au report (pour les statistiques) : Tom titulaire sorti à la 50e ;
+        // Léo entré à la 50e, sorti à la 70e, carton blanc (10 minutes en moins).
+        self::assertSame([50, 10], [$temps[$tomId], $temps[$leoId]]);
         $client->request('GET', "/matchs/$matchId/modifier");
         self::assertSelectorNotExists('.bandeau-direct');
     }
