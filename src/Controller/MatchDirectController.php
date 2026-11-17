@@ -117,6 +117,12 @@ class MatchDirectController extends AbstractController
                 ->setJoueur($joueurId && isset($joueurs[$joueurId]) ? $this->em->getReference(Joueur::class, $joueurId) : null)
                 ->placer((int) ($a['periode'] ?? 1), (int) ($a['minute'] ?? 0), (int) ($a['zx'] ?? 0), (int) ($a['zy'] ?? 1))
                 ->setDetails(\is_array($a['details'] ?? null) ? $a['details'] : null);
+            // Passeur décisif : un joueur du match, autre que le buteur ; sinon écarté.
+            $details = $action->getDetails();
+            if (isset($details['passeur']) && (!isset($joueurs[$details['passeur']]) || $details['passeur'] === $joueurId)) {
+                unset($details['passeur']);
+                $action->setDetails($details ?: null);
+            }
         }
         $infos = (array) ($donnees['infos'] ?? []);
         if (\in_array($infos['meteo'] ?? null, Rencontre::METEOS, true)) {
@@ -212,6 +218,7 @@ class MatchDirectController extends AbstractController
                 'minute' => $a->getMinute(),
                 'nom' => $a->getJoueur() ? $a->getJoueur()->getPrenom() . ' ' . $a->getJoueur()->getNom() : ('csc' === ($d['geste'] ?? null) ? 'CSC' : ''),
                 'geste' => ActionMatch::GESTES_BUT[$d['geste'] ?? ''] ?? null,
+                'passeur' => isset($d['passeur']) ? $this->em->find(Joueur::class, $d['passeur'])?->getPrenom() . ' ' . $this->em->find(Joueur::class, $d['passeur'])?->getNom() : null,
                 'depart' => $d['depart'] ?? [($a->getZx() + 0.5) * 17.5, ($a->getZy() + 0.5) * 68 / 3],
                 'arrivee' => $d['arrivee'] ?? [$adverse ? 0.0 : 105.0, 34.0],
             ];
@@ -307,6 +314,9 @@ class MatchDirectController extends AbstractController
                 'csc' => $but->setConditions('CSC')->setButeur(null),
                 default => null,
             };
+            if (isset($a->getDetails()['passeur'])) {
+                $but->setPasseur($this->em->getReference(Joueur::class, $a->getDetails()['passeur']));
+            }
             $rencontre->addBut($but);
             'BA' === $a->getType() ? ++$contre : ++$pour;
         }

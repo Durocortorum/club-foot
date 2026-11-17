@@ -52,6 +52,9 @@
                     <label class="choix-carte"><input type="radio" name="geste-but" value="{{ code }}" {{ loop.first ? 'checked' }}> {{ libelle }}</label>
                 {% endfor %}
             </div>
+            <label class="passeur-but" data-direct-target="champPasseur">Passeur décisif
+                <select data-direct-target="passeurBut"></select>
+            </label>
             <div class="dialogue-actions">
                 <button type="button" class="bouton" data-action="direct#annulerBut">Annuler</button>
                 <button type="button" class="bouton principal" data-action="direct#enregistrerBut">Enregistrer le but</button>

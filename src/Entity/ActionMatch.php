@@ -131,6 +131,8 @@ class ActionMatch implements AppartientAuClub
             'depart' => $point($details['depart'] ?? null),
             'arrivee' => $point($details['arrivee'] ?? null),
             'geste' => isset(self::GESTES_BUT[$details['geste'] ?? '']) ? $details['geste'] : null,
+            // Passeur décisif (id du joueur ; contrôlé par le contrôleur : joueur du match, autre que le buteur).
+            'passeur' => 'B' === $this->type && is_numeric($details['passeur'] ?? null) && (int) $details['passeur'] > 0 ? (int) $details['passeur'] : null,
         ], fn ($v) => null !== $v);
         $this->details = $propre ?: null;
 

@@ -21,7 +21,7 @@ export default class extends Controller {
     static values = { config: Object };
     static targets = ['joueurs', 'types', 'terrain', 'journal', 'score', 'chrono', 'minute', 'periode', 'boutonChrono', 'etat', 'consigne',
         'meteo', 'sol', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne', 'boutonNumeros', 'bilan', 'boutonBilan',
-        'proposeBut', 'texteProposeBut', 'dialogueBut', 'titreBut', 'terrainBut', 'gestesBut'];
+        'proposeBut', 'texteProposeBut', 'dialogueBut', 'titreBut', 'terrainBut', 'gestesBut', 'champPasseur', 'passeurBut'];
 
     connect() {
         this.cfg = this.configValue;
@@ -412,6 +412,10 @@ export default class extends Controller {
         this.titreButTarget.textContent = droite ? `But !${j ? ` ${j.numero ? `${j.numero} ` : ''}${j.nom}` : ''} · ${but.minute}'` : `But adverse · ${but.minute}'`;
         const geste = d.geste || 'tir';
         this.gestesButTarget.querySelectorAll('input').forEach((r) => { r.checked = r.value === geste; });
+        // Passeur décisif : les joueurs du match sauf le buteur (pas pour un but adverse).
+        this.champPasseurTarget.hidden = !droite;
+        this.passeurButTarget.innerHTML = '<option value="">Aucun</option>' + this.cfg.joueurs.filter((x) => x.id !== but.joueur)
+            .map((x) => `<option value="${x.id}" ${d.passeur === x.id ? 'selected' : ''}>${x.numero ? `${x.numero} ` : ''}${this.echapper(x.nom)} ${this.echapper(x.prenom)}</option>`).join('');
         this.dessinerBut();
         this.dialogueButTarget.showModal();
     }
@@ -431,6 +435,8 @@ export default class extends Controller {
             joueur: b.type === 'B' && geste !== 'csc' ? b.joueur : null,
             details: { depart: b.depart.map((v) => Math.round(v * 10) / 10), arrivee: b.arrivee.map((v) => Math.round(v * 10) / 10), geste },
         };
+        const passeur = Number(this.passeurButTarget.value);
+        if (b.type === 'B' && passeur) action.details.passeur = passeur;
         this.actions.set(action.uuid, { ...action, auteur: this.cfg.moi });
         this.enAttente[action.uuid] = action;
         this.garder();
@@ -734,7 +740,8 @@ export default class extends Controller {
     libelle(a) {
         const j = this.joueur(a.joueur);
         const geste = { tete: ' (tête)', csc: ' (contre son camp)' }[a.details?.geste] || '';
-        const quoi = (this.cfg.types[a.type] ?? this.cfg.adverses[a.type] ?? a.type) + geste;
+        const passeur = this.joueur(a.details?.passeur);
+        const quoi = (this.cfg.types[a.type] ?? this.cfg.adverses[a.type] ?? a.type) + geste + (passeur ? `, passe de ${passeur.nom}` : '');
         return j ? `${j.numero ? `${j.numero} ` : ''}${j.nom} · ${quoi}` : quoi;
     }
 

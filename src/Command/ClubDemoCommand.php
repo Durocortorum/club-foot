@@ -581,6 +581,7 @@ class ClubDemoCommand extends Command
             $y = mt_rand(220, 460) / 10;
             $ajouter($adverse ? 'BA' : 'B', $adverse ? null : $but->getButeur(), min($duree, (int) $but->getMinute()), $adverse ? 0 : 5, (int) min(2, floor($y / (68 / 3))), [
                 'depart' => [$x, $y], 'arrivee' => [$adverse ? 0 : 105, mt_rand(310, 370) / 10], 'geste' => 'Tête' === $but->getGeste() ? 'tete' : 'tir',
+                'passeur' => $adverse ? null : $but->getPasseur()?->getId(),
             ]);
         }
         // Un carton jaune de chaque côté.

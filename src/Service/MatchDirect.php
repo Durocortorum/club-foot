@@ -102,7 +102,7 @@ class MatchDirect
     public function statistiques(Rencontre $rencontre, array $actions): array
     {
         $parJoueur = [];
-        $equipe = array_fill_keys(array_merge(array_keys(ActionMatch::ACTIONS), array_keys(ActionMatch::ADVERSES)), 0);
+        $equipe = array_fill_keys(array_merge(array_keys(ActionMatch::ACTIONS), array_keys(ActionMatch::ADVERSES), ['PD']), 0);
         $vide = array_fill(0, ActionMatch::COLONNES, array_fill(0, ActionMatch::COULOIRS, 0));
         $zones = ['tout' => $vide];
         $duree = $this->duree($rencontre);
@@ -122,6 +122,12 @@ class MatchDirect
                 $parJoueur[$j->getId()] ??= ['joueur' => $j, 'actions' => [], 'total' => 0];
                 $parJoueur[$j->getId()]['actions'][$type] = ($parJoueur[$j->getId()]['actions'][$type] ?? 0) + 1;
                 ++$parJoueur[$j->getId()]['total'];
+            }
+            // Passe décisive (notée avec le but) : comptée au passeur (« PD »).
+            if ('B' === $type && ($passeur = $a->getDetails()['passeur'] ?? null) && ($p = $this->joueurs->find($passeur))) {
+                ++$equipe['PD'];
+                $parJoueur[$passeur] ??= ['joueur' => $p, 'actions' => [], 'total' => 0];
+                $parJoueur[$passeur]['actions']['PD'] = ($parJoueur[$passeur]['actions']['PD'] ?? 0) + 1;
             }
         }
         uasort($parJoueur, fn ($a, $b) => [$a['joueur']->getNom(), $a['joueur']->getPrenom()] <=> [$b['joueur']->getNom(), $b['joueur']->getPrenom()]);
