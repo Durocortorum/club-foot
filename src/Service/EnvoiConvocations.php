@@ -38,18 +38,19 @@ class EnvoiConvocations
 
     /**
      * @param bool $relance  seulement les joueurs qui n'ont pas encore répondu
-     * @param bool $nouveaux seulement les joueurs dont la famille n'a pas encore été prévenue (ajoutés après l'envoi)
+     * @param bool $nouveaux   seulement les joueurs dont la famille n'a pas encore été prévenue (ajoutés après l'envoi)
+     * @param bool $definitive convocation définitive : tous les convoqués sauf les absents
      *
      * @return array{emails: int, joueurs: int, sans_compte: list<Joueur>, echecs: list<string>}
      */
-    public function envoyer(Convocation $convocation, bool $relance = false, bool $nouveaux = false): array
+    public function envoyer(Convocation $convocation, bool $relance = false, bool $nouveaux = false, bool $definitive = false): array
     {
         $resultat = ['emails' => 0, 'joueurs' => 0, 'sans_compte' => [], 'echecs' => []];
         $club = $convocation->getRencontre()->getClub();
         $espace = $this->urls->generate('app_espace', [], UrlGeneratorInterface::ABSOLUTE_URL);
 
         foreach ($convocation->getConvoques() as $c) {
-            if (($relance && null !== $c->getReponse()) || ($nouveaux && null !== $c->getEnvoyeLe())) {
+            if (($relance && null !== $c->getReponse()) || ($nouveaux && null !== $c->getEnvoyeLe()) || ($definitive && Convoque::ABSENT === $c->getReponse())) {
                 continue;
             }
             // Famille prévenue (par e-mail, ou à prévenir autrement si elle n'a pas de compte) : plus « nouveau ».
@@ -58,7 +59,7 @@ class EnvoiConvocations
             $comptes = array_filter($this->acces->comptes($c->getJoueur()), fn ($u) => null !== $u->getPassword());
             $r = $convocation->getRencontre();
             $this->notifications->envoyer($comptes,
-                \sprintf('%s%s convoqué(e)', $relance ? 'Rappel : ' : '', $c->getJoueur()->getPrenom()),
+                \sprintf('%s%s convoqué(e)', $definitive ? 'Convocation définitive : ' : ($relance ? 'Rappel : ' : ''), $c->getJoueur()->getPrenom()),
                 \sprintf('%s – %s, %s %s%s. Répondez présent ou absent.', $r->getEquipeAffichee(), $r->getAdversaire(), self::JOURS[(int) $r->getDate()->format('w')], $r->getDate()->format('d/m'), $r->getHeure() ? ' à ' . $r->getHeure() : ''),
                 $espace);
             if (!$comptes || !$this->acces->emailActif()) {
@@ -68,10 +69,10 @@ class EnvoiConvocations
             foreach ($comptes as $compte) {
                 $message = $this->courriel->habiller((new TemplatedEmail())
                     ->to($compte->getEmail())
-                    ->subject(\sprintf('%s%s : %s convoqué(e) le %s', $relance ? 'Rappel – ' : '', $club->getNom(), $c->getJoueur()->getPrenom(), $convocation->getRencontre()->getDate()->format('d/m')))
+                    ->subject(\sprintf('%s%s : %s convoqué(e) le %s', $definitive ? 'Convocation définitive – ' : ($relance ? 'Rappel – ' : ''), $club->getNom(), $c->getJoueur()->getPrenom(), $convocation->getRencontre()->getDate()->format('d/m')))
                     ->htmlTemplate('emails/convocation.html.twig')
                     ->textTemplate('emails/convocation.txt.twig')
-                    ->context(['convocation' => $convocation, 'convoque' => $c, 'espace' => $espace, 'relance' => $relance]), $club);
+                    ->context(['convocation' => $convocation, 'convoque' => $c, 'espace' => $espace, 'relance' => $relance, 'definitive' => $definitive]), $club);
                 try {
                     $this->mailer->send($message);
                     ++$resultat['emails'];
@@ -237,7 +238,7 @@ class EnvoiConvocations
      *
      * @return array{sujet: string, corps: string, cible: string}
      */
-    public function pourMessagerie(Convocation $convocation, bool $relance): array
+    public function pourMessagerie(Convocation $convocation, bool $relance, bool $definitive = false): array
     {
         $r = $convocation->getRencontre();
         $quand = \sprintf('%s %s%s', self::JOURS[(int) $r->getDate()->format('w')], $r->getDate()->format('d/m'), $r->getHeure() ? ' à ' . $r->getHeure() : '');
@@ -252,12 +253,14 @@ class EnvoiConvocations
             $lignes[] = $convocation->getMessage();
         }
         $lignes[] = '';
-        $lignes[] = $relance
-            ? 'Nous n\'avons pas encore votre réponse : merci d\'indiquer présent ou absent dans « Mon espace ».'
-            : 'Merci de répondre présent ou absent dans « Mon espace ».';
+        $lignes[] = match (true) {
+            $definitive => 'Convocation définitive : le joueur fait partie du groupe retenu pour ce match. En cas d\'empêchement, prévenez-nous au plus vite (réponse « absent » dans « Mon espace »).',
+            $relance => 'Nous n\'avons pas encore votre réponse : merci d\'indiquer présent ou absent dans « Mon espace ».',
+            default => 'Merci de répondre présent ou absent dans « Mon espace ».',
+        };
 
         return [
-            'sujet' => mb_substr(\sprintf('%sConvocation %s contre %s, %s', $relance ? 'Rappel – ' : '', $r->getEquipeAffichee(), $r->getAdversaire(), mb_strtolower($quand)), 0, 120),
+            'sujet' => mb_substr(\sprintf('%sConvocation %s contre %s, %s', $definitive ? 'Définitive – ' : ($relance ? 'Rappel – ' : ''), $r->getEquipeAffichee(), $r->getAdversaire(), mb_strtolower($quand)), 0, 120),
             'corps' => implode("\n", $lignes),
             'cible' => \sprintf('%s – %s contre %s, %s', $relance ? 'Convoqués sans réponse' : 'Convoqués', $r->getEquipeAffichee(), $r->getAdversaire(), $r->getDate()->format('d/m')),
         ];

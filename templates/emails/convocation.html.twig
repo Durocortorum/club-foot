@@ -3,11 +3,12 @@
 {% set r = convocation.rencontre %}
 {% set jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] %}
 
-{% block titre %}{{ relance ? 'Rappel : convocation' : 'Convocation' }}{% endblock %}
+{% block titre %}{{ definitive|default(false) ? 'Convocation définitive' : (relance ? 'Rappel : convocation' : 'Convocation') }}{% endblock %}
 
 {% block corps %}
     <p style="margin: 0 0 12px;">Bonjour,</p>
-    {% if relance %}<p style="margin: 0 0 12px;"><strong>Petit rappel :</strong> nous attendons toujours votre réponse.</p>{% endif %}
+    {% if definitive|default(false) %}<p style="margin: 0 0 12px;"><strong>Convocation définitive :</strong> le groupe pour ce match est fixé. En cas d'empêchement, prévenez-nous au plus vite.</p>
+    {% elseif relance %}<p style="margin: 0 0 12px;"><strong>Petit rappel :</strong> nous attendons toujours votre réponse.</p>{% endif %}
     <p style="margin: 0 0 12px;"><strong>{{ convoque.joueur.prenom }} {{ convoque.joueur.nom }}</strong> est convoqué(e) pour le match :</p>
 
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin: 14px 0; border-left: 4px solid {{ club.couleur }}; background: #f8f8fa; border-radius: 0 8px 8px 0;">

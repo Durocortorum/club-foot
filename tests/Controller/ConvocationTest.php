@@ -150,8 +150,9 @@ class ConvocationTest extends WebTestCase
         $categorie = $em->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
         $lea = $this->joueur($club, $categorie, 'Léa');
         $max = $this->joueur($club, $categorie, 'Max');
+        $tom = $this->joueur($club, $categorie, 'Tom');
         $hasher = static::getContainer()->get(UserPasswordHasherInterface::class);
-        foreach (['lea' => $lea, 'max' => $max] as $qui => $joueur) {
+        foreach (['lea' => $lea, 'max' => $max, 'tom' => $tom] as $qui => $joueur) {
             $parent = (new Utilisateur())->setClub($club)->setFamille(true)->setEmail("parent-$qui-$id@exemple.test")->setNom('Martin')->setPrenom('Famille')->addJoueur($joueur);
             $parent->setPassword($hasher->hashPassword($parent, 'secret-famille'));
             $em->persist($parent);
@@ -193,8 +194,26 @@ class ConvocationTest extends WebTestCase
         $crawler = $this->client->request('GET', $page);
         $this->client->submit($crawler->selectButton('Enregistrer et envoyer aux joueurs ajoutés')->form());
         self::assertEmailCount(0);
-        $this->client->followRedirect();
+        $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('.flash-info', 'rien de nouveau');
+
+        // Max tombe malade : Tom le remplace → seuls les parents de Tom reçoivent la convocation ; Max noté absent.
+        $maxConvoque = $this->convoque($rencontre, 'Max');
+        $this->client->submit($crawler->selectButton('Convoquer et prévenir ses parents')->form(), [
+            'remplace' => (string) $maxConvoque->getId(), 'motif' => 'Malade', 'joueur' => (string) $tom->getId(),
+        ]);
+        self::assertEmailCount(1);
+        self::assertEmailAddressContains(self::getMailerMessage(), 'to', "parent-tom-$id@exemple.test");
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'à la place de Max');
+        self::assertSame([Convoque::ABSENT, 'Malade'], [$this->convoque($rencontre, 'Max')->getReponse(), $this->convoque($rencontre, 'Max')->getMotif()]);
+
+        // Convocation définitive : à tous les convoqués sauf les absents (Léa et Tom, pas Max).
+        $this->client->submit($crawler->selectButton('📣 Envoyer la convocation définitive')->form());
+        self::assertEmailCount(2);
+        $destinataires = array_map(fn ($m) => $m->getTo()[0]->getAddress(), self::getMailerMessages());
+        self::assertEqualsCanonicalizing(["parent-lea-$id@exemple.test", "parent-tom-$id@exemple.test"], $destinataires);
+        self::assertStringContainsString('Convocation définitive', self::getMailerMessage()->getSubject());
     }
 
     public function testConvocationJusquALaFeuilleDeMatch(): void
