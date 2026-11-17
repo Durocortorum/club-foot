@@ -5,6 +5,9 @@ namespace App\Controller;
 use App\Entity\ActionMatch;
 use App\Entity\But;
 use App\Entity\Joueur;
+use App\Entity\Convoque;
+use App\Entity\Participation;
+use App\Repository\ConvocationRepository;
 use App\Entity\Rencontre;
 use App\Repository\ActionMatchRepository;
 use App\Security\ActiviteVoter;
@@ -27,6 +30,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class MatchDirectController extends AbstractController
 {
     public function __construct(
+        private readonly ConvocationRepository $convocations,
         private readonly ActionMatchRepository $actions,
         private readonly MatchDirect $direct,
         private readonly EntityManagerInterface $em,
@@ -255,6 +259,12 @@ class MatchDirectController extends AbstractController
         }
         $actions = $this->actions->duMatch($rencontre);
         $messages = [];
+        // Feuille encore vide : d'abord les joueurs présents à la convocation (comme la feuille de match le fait).
+        if ($rencontre->getParticipations()->isEmpty() && ($convocation = $this->convocations->pour($rencontre))) {
+            foreach ($convocation->parReponse(Convoque::PRESENT) as $c) {
+                $rencontre->addParticipation((new Participation())->setJoueur($c->getJoueur())->setNumero($rencontre->getNumerosDirect()[$c->getJoueur()->getId()] ?? null));
+            }
+        }
 
         // Cartons : par joueur, dans l'ordre du match.
         $cartons = [];
@@ -264,18 +274,22 @@ class MatchDirectController extends AbstractController
             }
         }
         $reportes = 0;
-        $horsFeuille = [];
-        foreach ($cartons as $liste) {
-            $participation = null;
+        // Joueurs ajoutés à la feuille (buteur, passeur ou joueur averti qui n'y était pas encore).
+        $ajoutes = [];
+        $surFeuille = function (Joueur $joueur) use ($rencontre, &$ajoutes): Participation {
             foreach ($rencontre->getParticipations() as $p) {
-                if ($p->getJoueur()?->getId() === $liste[0]->getJoueur()->getId()) {
-                    $participation = $p;
+                if ($p->getJoueur()?->getId() === $joueur->getId()) {
+                    return $p;
                 }
             }
-            if (!$participation) {
-                $horsFeuille[] = $liste[0]->getJoueur()->getPrenom() . ' ' . $liste[0]->getJoueur()->getNom();
-                continue;
-            }
+            $p = (new Participation())->setJoueur($joueur)->setNumero($rencontre->getNumerosDirect()[$joueur->getId()] ?? null);
+            $rencontre->addParticipation($p);
+            $ajoutes[] = $joueur->getPrenom() . ' ' . $joueur->getNom();
+
+            return $p;
+        };
+        foreach ($cartons as $liste) {
+            $participation = $surFeuille($liste[0]->getJoueur());
             if ($participation->getCarton()) {
                 continue;
             }
@@ -314,8 +328,13 @@ class MatchDirectController extends AbstractController
                 'csc' => $but->setConditions('CSC')->setButeur(null),
                 default => null,
             };
-            if (isset($a->getDetails()['passeur'])) {
-                $but->setPasseur($this->em->getReference(Joueur::class, $a->getDetails()['passeur']));
+            if (isset($a->getDetails()['passeur']) && ($passeur = $this->em->find(Joueur::class, $a->getDetails()['passeur']))) {
+                $but->setPasseur($passeur);
+                $surFeuille($passeur);
+            }
+            // Le buteur doit être sur la feuille (sinon la feuille ne peut pas le proposer).
+            if ($but->getButeur()) {
+                $surFeuille($but->getButeur());
             }
             $rencontre->addBut($but);
             'BA' === $a->getType() ? ++$contre : ++$pour;
@@ -327,13 +346,14 @@ class MatchDirectController extends AbstractController
             array_unshift($messages, \sprintf('%d but%s', $pour + $contre, $pour + $contre > 1 ? 's' : ''));
         }
         $this->em->flush();
-        if ($horsFeuille) {
-            $this->addFlash('info', 'Cartons non reportés (joueur absent de la feuille de match) : ' . implode(', ', $horsFeuille) . '.');
+        if ($ajoutes) {
+            $this->addFlash('info', 'Ajouté' . (\count($ajoutes) > 1 ? 's' : '') . ' à la feuille de match : ' . implode(', ', $ajoutes) . ' (complétez poste et temps de jeu).');
         }
         $this->addFlash($messages ? 'succes' : 'info', $messages
-            ? implode(' et ', $messages) . ' reporté' . ((($pour + $contre) + $reportes) > 1 ? 's' : '') . ' sur la feuille de match. Complétez-la si besoin (passeurs, façon de marquer, motif des cartons).'
+            ? implode(' et ', $messages) . ' reporté' . ((($pour + $contre) + $reportes) > 1 ? 's' : '') . ' sur la feuille de match.'
             : 'Rien de nouveau à reporter sur la feuille de match.');
 
-        return $this->redirectToRoute('app_rencontre_voir', ['id' => $rencontre->getId()]);
+        // Retour vers la feuille de match pour la vérifier (ou la page d'où vient le bouton).
+        return $this->redirectToRoute($request->getPayload()->getString('retour') === 'feuille' ? 'app_rencontre_modifier' : 'app_rencontre_voir', ['id' => $rencontre->getId()]);
     }
 }

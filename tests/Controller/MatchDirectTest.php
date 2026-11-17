@@ -152,6 +152,10 @@ class MatchDirectTest extends WebTestCase
         $adverse = $client->request('GET', "/matchs/$matchId/direct/bilan?type=adverse");
         self::assertSame(2, array_sum(array_map('intval', $adverse->filter('.carte-chaleur .zone')->each(fn ($z) => $z->text()))));
 
+        // La feuille de match signale ce qui a été noté en direct et n'y est pas encore.
+        $client->request('GET', "/matchs/$matchId/modifier");
+        self::assertSelectorTextContains('.bandeau-direct', '2 buts et 1 carton');
+
         // Report sur la feuille : buts (43e Tom, 60e adversaire, score 1 – 1) et carton jaune de Tom à la 30e.
         $client->submit($crawler->selectButton('Reporter buts et cartons sur la feuille de match')->form());
         self::assertResponseRedirects("/matchs/$matchId");
@@ -163,7 +167,14 @@ class MatchDirectTest extends WebTestCase
         self::assertSame($tomId, $buts[0]->getButeur()?->getId());
         self::assertSame('Tête', $buts[0]->getGeste(), 'but de la tête noté en direct');
         self::assertSame($leoId, $buts[0]->getPasseur()?->getId(), 'passeur décisif noté en direct');
-        $feuilleTom = $match->getParticipations()->first();
+        $feuille = [];
+        foreach ($match->getParticipations() as $p) {
+            $feuille[$p->getJoueur()->getId()] = $p;
+        }
+        self::assertArrayHasKey($leoId, $feuille, 'passeur ajouté à la feuille de match');
+        $feuilleTom = $feuille[$tomId];
+        $client->request('GET', "/matchs/$matchId/modifier");
+        self::assertSelectorNotExists('.bandeau-direct');
         self::assertSame(['JJ', '30'], [$feuilleTom->getCarton(), $feuilleTom->getMinuteCarton()]);
 
         // Tracé du but gardé (champ inconnu écarté) ; schéma des buts dans le bilan ; but contre son camp sans buteur.

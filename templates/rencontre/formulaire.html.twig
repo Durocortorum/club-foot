@@ -41,6 +41,20 @@
     </p>
     <h1>{{ titre }}</h1>
 
+    {# Buts et cartons notés en direct (tablette) pas encore sur la feuille : les reporter d'un clic. #}
+    {% set direct = not nouveau ? direct_a_reporter(rencontre) : {buts: 0, cartons: 0} %}
+    {% if direct.buts or direct.cartons %}
+        <form method="post" action="{{ path('app_match_direct_reporter', {id: rencontre.id}) }}" id="reporter-direct" class="flash flash-info bandeau-direct">
+            <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ rencontre.id) }}">
+            <input type="hidden" name="retour" value="feuille">
+            <span>
+                ⚽ Noté en direct, pas encore sur la feuille :
+                {{ direct.buts ? direct.buts ~ ' but' ~ (direct.buts > 1 ? 's') }}{{ direct.buts and direct.cartons ? ' et ' }}{{ direct.cartons ? direct.cartons ~ ' carton' ~ (direct.cartons > 1 ? 's') }}.
+            </span>
+            <button type="submit" class="bouton petit principal">Reporter sur la feuille</button>
+        </form>
+    {% endif %}
+
     {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire', 'data-controller': 'feuille score'}}) }}
         {{ form_errors(form) }}
 
@@ -127,6 +141,10 @@
         <fieldset class="carte">
             <legend>Buts</legend>
             <p class="discret petit">Seuls les joueurs de la feuille de match sont proposés comme buteur ou passeur : remplissez-la d'abord.</p>
+            {% if direct.buts %}
+                <p class="petit">⚽ {{ direct.buts }} but{{ direct.buts > 1 ? 's' }} noté{{ direct.buts > 1 ? 's' }} en direct :
+                    <button type="submit" form="reporter-direct" class="bouton petit">Les reporter ici</button></p>
+            {% endif %}
             {{ s.collection(form.buts, ['Min.', 'Pour', 'Buteur', 'Passeur', 'Geste', 'Situation', 'Phase'], ['temps', 'adverse', 'buteur|numeroAdverse', 'passeur', 'geste', 'conditions', 'phase'], '+ Ajouter un but') }}
         </fieldset>
 
