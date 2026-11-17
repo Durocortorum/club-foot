@@ -337,22 +337,36 @@ export default class extends Controller {
 
     ouvrirChangement(c) {
         this.changementEnCours = c;
-        // Repères : joueurs déjà sortis ou déjà entrés (autres changements du match).
-        const autres = [...this.actions.values()].filter((a) => a.type === 'RP' && a.uuid !== c.uuid);
-        const sortis = new Set(autres.map((a) => a.joueur));
-        const entres = new Set(autres.map((a) => a.details?.entrant));
-        const options = (choisi) => '<option value="">— Choisir —</option>' + this.cfg.joueurs.map((j) => {
-            const note = sortis.has(j.id) ? ' (sorti)' : (entres.has(j.id) ? ' (entré)' : '');
-            return `<option value="${j.id}" ${choisi === j.id ? 'selected' : ''}>${j.numero ? `${j.numero} ` : ''}${this.echapper(j.nom)} ${this.echapper(j.prenom)}${note}</option>`;
-        }).join('');
-        this.sortantTarget.innerHTML = options(c.joueur);
-        this.entrantTarget.innerHTML = options(c.details?.entrant);
+        // Autres changements du match, dans l'ordre : un joueur sorti ne revient pas, un joueur entré est sur le terrain.
+        const autres = [...this.actions.values()].filter((a) => a.type === 'RP' && a.uuid !== c.uuid)
+            .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute));
+        this.sortisChangement = new Set(autres.map((a) => a.joueur));
+        this.entresChangement = new Set(autres.map((a) => a.details?.entrant).filter((id) => !this.sortisChangement.has(id)));
+        // Qui sort : pas un joueur déjà sorti.
+        this.sortantTarget.innerHTML = this.optionsChangement(this.cfg.joueurs.filter((j) => !this.sortisChangement.has(j.id) || j.id === c.joueur), c.joueur, (j) => (this.entresChangement.has(j.id) ? ' (entré)' : ''));
+        this.dessinerEntrants(c.details?.entrant);
         this.minuteChangementTarget.value = c.minute;
         const motif = c.details?.motif || 'Choix';
         this.motifsChangementTarget.querySelectorAll('input').forEach((r) => { r.checked = r.value === motif; });
         this.erreurChangementTarget.hidden = true;
         this.titreChangementTarget.textContent = this.actions.has(c.uuid) ? 'Corriger le changement' : 'Changement';
         this.dialogueChangementTarget.showModal();
+    }
+
+    optionsChangement(joueurs, choisi, note = () => '') {
+        return '<option value="">— Choisir —</option>' + joueurs.map((j) => `<option value="${j.id}" ${choisi === j.id ? 'selected' : ''}>${j.numero ? `${j.numero} ` : ''}${this.echapper(j.nom)} ${this.echapper(j.prenom)}${note(j)}</option>`).join('');
+    }
+
+    /** Qui entre : ni le joueur qui sort, ni un joueur déjà sorti, ni un joueur déjà entré (il est sur le terrain). */
+    dessinerEntrants(choisi) {
+        const sortant = Number(this.sortantTarget.value);
+        const possibles = this.cfg.joueurs.filter((j) => j.id !== sortant && !this.sortisChangement.has(j.id) && !this.entresChangement.has(j.id));
+        this.entrantTarget.innerHTML = this.optionsChangement(possibles, possibles.some((j) => j.id === choisi) ? choisi : null);
+    }
+
+    changerSortant() {
+        this.dessinerEntrants(Number(this.entrantTarget.value));
+        this.erreurChangementTarget.hidden = true;
     }
 
     annulerChangement() {
