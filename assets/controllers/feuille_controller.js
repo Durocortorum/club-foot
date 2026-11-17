@@ -148,14 +148,29 @@ export default class extends Controller {
         return joueurs > 0 ? joueurs : 11;
     }
 
-    /** « Titulaires : 9 / 11 », en rouge s'il y en a trop (l'enregistrement est alors refusé). */
+    /**
+     * « Titulaires : 9 / 11 », en rouge s'il y en a trop ; numéros portés par deux joueurs signalés en rouge
+     * (l'enregistrement est alors refusé).
+     */
     compterTitulaires(message = '') {
         const zone = this.element.querySelector('[data-feuille-compte]');
         if (!zone) return;
         const n = this.titulaires().size;
         const max = this.maxTitulaires();
-        zone.textContent = message || `Titulaires cochés : ${n} / ${max}${n > max ? ' — trop de titulaires : décochez les remplaçants.' : ''}`;
-        zone.classList.toggle('trop', !!message || n > max);
+        // Numéros en double.
+        const champs = this.lignesFeuille().filter(({ joueur }) => joueur.value !== '').map(({ ligne }) => ligne.querySelector('[data-feuille-numero]')).filter(Boolean);
+        const compte = new Map();
+        champs.forEach((c) => { if (c.value !== '') compte.set(c.value, (compte.get(c.value) ?? 0) + 1); });
+        const doubles = [...compte].filter(([, fois]) => fois > 1).map(([num]) => num);
+        champs.forEach((c) => this.signaler(c, doubles.includes(c.value), 'Ce numéro est déjà porté par un autre joueur.'));
+        const lignes = [message || `Titulaires cochés : ${n} / ${max}${n > max ? ' — trop de titulaires : décochez « Titulaire » pour les remplaçants.' : ''}`];
+        if (doubles.length) lignes.push(`Numéro${doubles.length > 1 ? 's' : ''} en double : ${doubles.map((d) => `n° ${d}`).join(', ')} — chaque joueur doit avoir son propre numéro.`);
+        zone.innerHTML = lignes.map((l) => this.echapper(l)).join('<br>');
+        zone.classList.toggle('trop', !!message || n > max || doubles.length > 0);
+    }
+
+    echapper(texte) {
+        return String(texte).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
     titulaires() {

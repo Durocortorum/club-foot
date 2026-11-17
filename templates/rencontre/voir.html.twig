@@ -154,6 +154,15 @@
     <section class="bloc">
         <h2 class="titre-bloc">Feuille de match</h2>
         {% if rencontre.participations|length %}
+            {# Feuille à corriger : plus de titulaires que de joueurs sur le terrain, ou un numéro porté par deux joueurs. #}
+            {% set n_tit = rencontre.nombreTitulaires %}{% set max_tit = rencontre.joueursSurLeTerrain %}
+            {% if n_tit > max_tit or rencontre.nombreNumerosEnDouble %}
+                <p class="flash flash-erreur">
+                    {% if n_tit > max_tit %}{{ n_tit }} titulaires pour {{ max_tit }} joueurs sur le terrain : décochez « Titulaire » pour les remplaçants.{% endif %}
+                    {% if rencontre.nombreNumerosEnDouble %}{% if n_tit > max_tit %}<br>{% endif %}Un même numéro est porté par plusieurs joueurs.{% endif %}
+                    <a href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}#feuille-de-match">Corriger la feuille de match</a>
+                </p>
+            {% endif %}
             <div class="table-defile">
                 <table class="liste liste-fiches">
                     <thead><tr><th>N°</th><th>Joueur</th><th>Poste</th><th>Min.</th><th>Note</th><th>Carton</th><th>Appréciation</th></tr></thead>

@@ -398,10 +398,16 @@ class RencontreController extends AbstractController
             return $this->redirectToRoute('app_rencontre_modifier', ['id' => $rencontre->getId()]);
         }
         $titulairesAvant = $rencontre->nombreTitulaires();
+        $doublonsAvant = $rencontre->nombreNumerosEnDouble();
         $form->handleRequest($request);
-        // Jamais plus de titulaires que de joueurs sur le terrain (on ne peut pas en ajouter au-delà).
-        if ($form->isSubmitted() && ($erreur = $rencontre->erreurTitulaires($titulairesAvant))) {
-            $form->addError(new FormError($erreur));
+        // Jamais plus de titulaires que de joueurs sur le terrain (on ne peut pas en ajouter au-delà),
+        // ni deux joueurs avec le même numéro (les anciennes feuilles importées restent enregistrables).
+        if ($form->isSubmitted()) {
+            foreach ([$rencontre->erreurTitulaires($titulairesAvant), $rencontre->erreurNumeros($doublonsAvant)] as $erreur) {
+                if ($erreur) {
+                    $form->addError(new FormError($erreur));
+                }
+            }
         }
 
         if ($form->isSubmitted() && $form->isValid()) {

@@ -148,6 +148,14 @@ class CompositionTest extends WebTestCase
         $participations[11]->setTitulaire(true);
         self::assertStringContainsString('Trop de titulaires : 12 cochés pour 11', (string) $match->erreurTitulaires(11));
         self::assertNull($match->erreurTitulaires(12));
+        // Deux joueurs avec le même numéro : refusé (sauf ancienne feuille déjà ainsi) ; signalé sur la page du match.
+        $participations[23]->setNumero(4);
+        self::assertSame(2, $match->nombreNumerosEnDouble());
+        self::assertStringContainsString('n° 4', (string) $match->erreurNumeros(0));
+        self::assertNull($match->erreurNumeros(2));
+        $em->flush();
+        $this->client->request('GET', '/matchs/' . $match->getId());
+        self::assertSelectorTextContains('.flash-erreur', 'Un même numéro est porté par plusieurs joueurs');
         // Système de foot à 8 : 8 joueurs sur le terrain.
         self::assertSame(8, $match->setSysteme('3 3 1')->joueursSurLeTerrain());
     }

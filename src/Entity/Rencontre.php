@@ -914,6 +914,25 @@ class Rencontre implements AppartientAuClub
         return Categorie::joueursParDefaut($this->categorie?->getNom());
     }
 
+    /** Joueurs de la feuille qui partagent leur numéro avec un autre (ex. deux n° 4 : 2). */
+    public function nombreNumerosEnDouble(): int
+    {
+        $numeros = array_count_values(array_filter(array_map(fn (Participation $p) => $p->getNumero(), $this->participations->toArray()), fn ($n) => null !== $n));
+
+        return array_sum(array_filter($numeros, fn (int $fois) => $fois > 1));
+    }
+
+    /** Message d'erreur si la feuille a plus de numéros en double qu'avant (les anciennes feuilles restent enregistrables). */
+    public function erreurNumeros(int $avant = 0): ?string
+    {
+        $numeros = array_count_values(array_filter(array_map(fn (Participation $p) => $p->getNumero(), $this->participations->toArray()), fn ($n) => null !== $n));
+        $doubles = array_keys(array_filter($numeros, fn (int $fois) => $fois > 1));
+
+        return $doubles && $this->nombreNumerosEnDouble() > $avant
+            ? \sprintf('Numéro%s porté%1$s par plusieurs joueurs : %s. Chaque joueur doit avoir son propre numéro.', \count($doubles) > 1 ? 's' : '', implode(', ', array_map(fn ($n) => 'n° ' . $n, $doubles)))
+            : null;
+    }
+
     public function nombreTitulaires(): int
     {
         return \count(array_filter($this->participations->toArray(), fn (Participation $p) => $p->getJoueur() && $p->isTitulaire()));
