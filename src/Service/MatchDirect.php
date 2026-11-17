@@ -112,8 +112,8 @@ class MatchDirect
         }
         foreach ($actions as $a) {
             $type = $a->getType();
-            // Changement : compté pour l'équipe seulement (pas une action de jeu : ni zone, ni quart d'heure, ni joueur).
-            if (ActionMatch::CHANGEMENT === $type) {
+            // Changement, exclusion temporaire : comptés pour l'équipe seulement (pas une action de jeu : ni zone, ni quart d'heure, ni joueur).
+            if (isset(ActionMatch::HORS_JEU[$type])) {
                 $equipe[$type] = ($equipe[$type] ?? 0) + 1;
                 continue;
             }

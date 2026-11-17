@@ -103,7 +103,7 @@ class MatchDirectController extends AbstractController
                 continue;
             }
             $changement = ActionMatch::CHANGEMENT === $type;
-            $joueurId = isset(ActionMatch::ACTIONS[$type]) || $changement ? (int) ($a['joueur'] ?? 0) : 0;
+            $joueurId = ActionMatch::deJoueur($type) ? (int) ($a['joueur'] ?? 0) : 0;
             // Changement : qui sort (joueur du match) et qui entre (s'il y en a un : un autre joueur du match).
             $entrant = (int) ($a['details']['entrant'] ?? 0);
             if ($changement && (!isset($joueurs[$joueurId]) || ($entrant && (!isset($joueurs[$entrant]) || $entrant === $joueurId)))) {
@@ -111,7 +111,7 @@ class MatchDirectController extends AbstractController
             }
             // Sans joueur : un corner, ou un but contre son camp d'un adversaire.
             $sansJoueur = 'CO' === $type || ('B' === $type && 'csc' === ($a['details']['geste'] ?? null));
-            if (isset(ActionMatch::ACTIONS[$type]) && !$sansJoueur && !isset($joueurs[$joueurId])) {
+            if (ActionMatch::deJoueur($type) && !$sansJoueur && !isset($joueurs[$joueurId])) {
                 continue; // action d'un joueur du club sans joueur du match
             }
             $action = $existantes[$uuid] ?? null;
@@ -206,7 +206,7 @@ class MatchDirectController extends AbstractController
                 '', 'nous', 'adverse' => true,
                 default => $a->getType() === $type,
             };
-            if (!$retenue || ActionMatch::CHANGEMENT === $a->getType() || ($joueur && $a->getJoueur()?->getId() !== $joueur)) {
+            if (!$retenue || isset(ActionMatch::HORS_JEU[$a->getType()]) ||($joueur && $a->getJoueur()?->getId() !== $joueur)) {
                 continue;
             }
             $camp = $a->isAdverse() ? 'adverse' : 'nous';
@@ -246,7 +246,9 @@ class MatchDirectController extends AbstractController
         // Changements : minute, qui sort, qui entre, motif.
         $changements = [];
         foreach ($actions as $a) {
-            if (ActionMatch::CHANGEMENT === $a->getType()) {
+            if (ActionMatch::EXCLUSION_TEMPORAIRE === $a->getType()) {
+                $changements[] = ['minute' => $a->getMinute(), 'sortant' => $a->getJoueur(), 'entrant' => null, 'motif' => 'Carton blanc'];
+            } elseif (ActionMatch::CHANGEMENT === $a->getType()) {
                 $entrant = isset($a->getDetails()['entrant']) ? $this->em->find(Joueur::class, $a->getDetails()['entrant']) : null;
                 $changements[] = ['minute' => $a->getMinute(), 'sortant' => $a->getJoueur(), 'entrant' => $entrant, 'motif' => $a->getDetails()['motif'] ?? 'Choix'];
             }
@@ -294,7 +296,7 @@ class MatchDirectController extends AbstractController
         // Cartons : par joueur, dans l'ordre du match.
         $cartons = [];
         foreach ($actions as $a) {
-            if (\in_array($a->getType(), ['CJ', 'CR'], true) && $a->getJoueur()) {
+            if (\in_array($a->getType(), ['CJ', 'CR', ActionMatch::EXCLUSION_TEMPORAIRE], true) && $a->getJoueur()) {
                 $cartons[$a->getJoueur()->getId()][] = $a;
             }
         }
@@ -318,13 +320,17 @@ class MatchDirectController extends AbstractController
             if ($participation->getCarton()) {
                 continue;
             }
-            $types = array_map(fn (ActionMatch $a) => $a->getType(), $liste);
+            // Un seul carton par joueur sur la feuille : rouge d'abord, puis l'exclusion temporaire (« BL », 10 minutes
+            // retirées du temps de jeu), puis le jaune.
+            $jaunes = array_values(array_filter($liste, fn (ActionMatch $a) => 'CJ' === $a->getType()));
             $rouge = array_values(array_filter($liste, fn (ActionMatch $a) => 'CR' === $a->getType()))[0] ?? null;
+            $temporaire = array_values(array_filter($liste, fn (ActionMatch $a) => ActionMatch::EXCLUSION_TEMPORAIRE === $a->getType()))[0] ?? null;
             [$code, $minute] = match (true) {
-                \count(array_keys($types, 'CJ')) >= 2 => ['J+R', $liste[1]->getMinute()],
-                null !== $rouge && \in_array('CJ', $types, true) => ['J+R', $rouge->getMinute()],
+                \count($jaunes) >= 2 => ['J+R', $jaunes[1]->getMinute()],
+                null !== $rouge && $jaunes => ['J+R', $rouge->getMinute()],
                 null !== $rouge => ['RJ', $rouge->getMinute()],
-                default => ['JJ', $liste[0]->getMinute()],
+                null !== $temporaire => ['BL', $temporaire->getMinute()],
+                default => ['JJ', $jaunes[0]->getMinute()],
             };
             $participation->setCarton($code)->setMinuteCarton((string) $minute);
             ++$reportes;

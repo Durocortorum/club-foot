@@ -50,7 +50,7 @@ class Participation implements AppartientAuClub
         'RJ' => 'Rouge (jeu)',
         'RC' => 'Rouge (contestation)',
         'J+R' => 'Jaune puis rouge',
-        'BL' => 'Exclusion temporaire (10 min)',
+        'BL' => 'Carton blanc (exclusion 10 min)',
     ];
     public const CARTONS_JAUNES = ['JJ', 'JC', 'J+R'];
     public const CARTONS_ROUGES = ['RJ', 'RC', 'J+R'];

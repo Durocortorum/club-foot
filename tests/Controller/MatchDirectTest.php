@@ -200,7 +200,8 @@ class MatchDirectTest extends WebTestCase
             ['uuid' => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'joueur' => $tomId, 'type' => 'RP', 'periode' => 2, 'minute' => 50, 'zx' => 0, 'zy' => 1, 'details' => ['entrant' => $leoId, 'motif' => 'Blessure']],
             ['uuid' => 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'joueur' => $tomId, 'type' => 'RP', 'periode' => 2, 'minute' => 52, 'zx' => 0, 'zy' => 1, 'details' => ['entrant' => $tomId]],
             ['uuid' => 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'joueur' => $tomId, 'type' => 'RP', 'periode' => 2, 'minute' => 53, 'zx' => 0, 'zy' => 1, 'details' => ['entrant' => 999999]],
-            // Léo sort à la 70e sans être remplacé (plus de remplaçant).
+            // Léo prend un carton blanc à la 20e (exclusion temporaire), puis sort à la 70e sans être remplacé (plus de remplaçant).
+            ['uuid' => 'abababab-abab-4bab-8bab-abababababab', 'joueur' => $leoId, 'type' => 'EX', 'periode' => 1, 'minute' => 20, 'zx' => 0, 'zy' => 1],
             ['uuid' => 'ffffffff-ffff-4fff-8fff-ffffffffffff', 'joueur' => $leoId, 'type' => 'RP', 'periode' => 2, 'minute' => 70, 'zx' => 0, 'zy' => 1, 'details' => ['motif' => 'Choix']],
         ]]);
         $em->clear();
@@ -209,12 +210,13 @@ class MatchDirectTest extends WebTestCase
         self::assertEquals(['entrant' => $leoId, 'motif' => 'Blessure'], $changement[0]->getDetails());
         self::assertSame(['motif' => 'Choix'], $changement[1]->getDetails());
         $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
-        self::assertStringContainsString('Changements (2)', $crawler->filter('.liste-changements')->ancestors()->first()->text());
+        self::assertStringContainsString('Changements (3)', $crawler->filter('.liste-changements')->ancestors()->first()->text());
         self::assertStringContainsString('sans remplaçant', $crawler->filter('.liste-changements')->text());
+        self::assertStringContainsString('carton blanc', $crawler->filter('.liste-changements')->text());
 
-        // Feuille de match : les changements sont signalés, puis reportés dans les remplacements (une seule fois).
+        // Feuille de match : carton blanc et changements signalés, puis reportés (carton « BL », remplacements, une seule fois).
         $crawler = $client->request('GET', "/matchs/$matchId/modifier");
-        self::assertSelectorTextContains('.bandeau-direct', '2 changements');
+        self::assertSelectorTextContains('.bandeau-direct', '1 carton et 2 changements');
         $client->submit($crawler->filter('#reporter-direct')->form());
         self::assertResponseRedirects("/matchs/$matchId/modifier");
         $client->request('POST', "/matchs/$matchId/direct/reporter", ['_token' => $crawler->filter('#reporter-direct input[name="_token"]')->attr('value')]);
@@ -224,6 +226,11 @@ class MatchDirectTest extends WebTestCase
         self::assertCount(2, $remplacements, 'pas de doublon au second report');
         self::assertSame([$tomId, $leoId, 50, 'Blessure'], [$remplacements[0]->getSortant()->getId(), $remplacements[0]->getEntrant()->getId(), $remplacements[0]->getMinute(), $remplacements[0]->getMotif()]);
         self::assertSame([$leoId, null, 70], [$remplacements[1]->getSortant()->getId(), $remplacements[1]->getEntrant(), $remplacements[1]->getMinute()]);
+        foreach ($em->find(Rencontre::class, $matchId)->getParticipations() as $p) {
+            if ($p->getJoueur()->getId() === $leoId) {
+                self::assertSame(['BL', '20'], [$p->getCarton(), $p->getMinuteCarton()], 'carton blanc reporté sur la feuille');
+            }
+        }
         $client->request('GET', "/matchs/$matchId/modifier");
         self::assertSelectorNotExists('.bandeau-direct');
     }

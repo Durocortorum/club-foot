@@ -121,7 +121,7 @@
                     {% for c in changements %}
                         <li><b>{{ c.minute }}'</b>
                             <span class="sort">↓ {{ c.sortant ? c.sortant.prenom ~ ' ' ~ c.sortant.nom : '—' }}</span>
-                            {% if c.entrant %}<span class="entre">↑ {{ c.entrant.prenom ~ ' ' ~ c.entrant.nom }}</span>{% else %}<span class="discret">sans remplaçant</span>{% endif %}
+                            {% if c.entrant %}<span class="entre">↑ {{ c.entrant.prenom ~ ' ' ~ c.entrant.nom }}</span>{% elseif c.motif == 'Carton blanc' %}<span class="discret">carton blanc, 10 min hors du terrain, revient ensuite</span>{% else %}<span class="discret">sans remplaçant</span>{% endif %}
                             {% if c.motif == 'Blessure' %}<span class="discret">(blessure)</span>{% endif %}</li>
                     {% endfor %}
                 </ul>

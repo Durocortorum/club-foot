@@ -55,6 +55,13 @@ class ActionMatch implements AppartientAuClub
      * Pas un bouton d'action : il a son propre cadre « Changements » sur la tablette.
      */
     public const CHANGEMENT = 'RP';
+    /**
+     * Carton blanc, exclusion temporaire (10 minutes) : le joueur sort sans être remplacé et revient seul ; notée depuis le cadre
+     * « Changements », reportée sur la feuille de match en carton « BL ».
+     */
+    public const EXCLUSION_TEMPORAIRE = 'EX';
+    /** Hors boutons d'action (cadre « Changements ») : code => libellé. */
+    public const HORS_JEU = [self::CHANGEMENT => 'Changement', self::EXCLUSION_TEMPORAIRE => 'Carton blanc (exclusion temporaire, 10 min)'];
     /** Groupes que chaque tablette choisit de suivre (« Mes statistiques ») : nom => codes. */
     public const GROUPES = [
         'Passes' => ['BP', 'MP'],
@@ -66,7 +73,7 @@ class ActionMatch implements AppartientAuClub
         'Corners' => ['CO'],
         'Buts' => ['B'],
         'Cartons' => ['CJ', 'CR'],
-        'Changements' => ['RP'],
+        'Changements' => ['RP', 'EX'],
         'Adversaire' => ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA', 'JA', 'RA'],
     ];
     public const COLONNES = 6;
@@ -186,12 +193,18 @@ class ActionMatch implements AppartientAuClub
 
     public static function existe(string $type): bool
     {
-        return isset(self::ACTIONS[$type]) || isset(self::ADVERSES[$type]) || self::CHANGEMENT === $type;
+        return isset(self::ACTIONS[$type]) || isset(self::ADVERSES[$type]) || isset(self::HORS_JEU[$type]);
+    }
+
+    /** Action d'un joueur du club (bouton d'action, changement, exclusion temporaire). */
+    public static function deJoueur(string $type): bool
+    {
+        return isset(self::ACTIONS[$type]) || isset(self::HORS_JEU[$type]);
     }
 
     public static function libelleDe(string $type): string
     {
-        return self::ACTIONS[$type][0] ?? self::ADVERSES[$type] ?? (self::CHANGEMENT === $type ? 'Changement' : $type);
+        return self::ACTIONS[$type][0] ?? self::ADVERSES[$type] ?? self::HORS_JEU[$type] ?? $type;
     }
 
     public function getId(): ?int

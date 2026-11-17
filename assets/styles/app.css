@@ -247,6 +247,7 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .action-TH.pastille-action { color: #1d1d1f; }
 .tuile-action[hidden] { display: none; }
 .action-CJ, .action-JA { --couleur-action: #f5c400; } .action-CR, .action-RA { --couleur-action: #d62839; }
+.action-RP { --couleur-action: #2f855a; } .action-EX { --couleur-action: #8a8f98; }
 .action-CJ.pastille-action, .action-JA.pastille-action { color: #1d1d1f; }
 .pastille-action { display: inline-block; min-width: 1.9rem; text-align: center; border-radius: 4px; padding: 0 .2rem; font-size: .75rem; color: #fff; background: var(--couleur-action, var(--gris)); }
 .action-MC.pastille-action, .action-FH.pastille-action, .action-MP.pastille-action, .action-DP.pastille-action { color: #1d1d1f; }

@@ -324,9 +324,9 @@ export default class extends Controller {
         const zone = this.joueursTarget.querySelector('[data-changements]');
         if (!zone) return;
         const nom = (id) => { const j = this.joueur(id); return j ? (j.numero ?? j.nom) : '?'; };
-        zone.innerHTML = [...this.actions.values()].filter((a) => a.type === 'RP')
+        zone.innerHTML = [...this.actions.values()].filter((a) => a.type === 'RP' || a.type === 'EX')
             .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute))
-            .map((a) => `<span class="changement-fait" title="${this.echapper(this.libelle(a))}"><b>${a.minute}'</b> <span class="sort">↓ ${this.echapper(nom(a.joueur))}</span>${a.details?.entrant ? ` <span class="entre">↑ ${this.echapper(nom(a.details.entrant))}</span>` : ''}</span>`).join('');
+            .map((a) => `<span class="changement-fait" title="${this.echapper(this.libelle(a))}"><b>${a.minute}'</b> <span class="sort">↓ ${this.echapper(nom(a.joueur))}</span>${a.details?.entrant ? ` <span class="entre">↑ ${this.echapper(nom(a.details.entrant))}</span>` : ''}${a.type === 'EX' ? ` <span class="discret">carton blanc, retour ${a.minute + 10}'</span>` : ''}</span>`).join('');
     }
 
     // ———————— Changement : qui sort, qui entre ————————
@@ -341,13 +341,18 @@ export default class extends Controller {
         // puis les changements dans l'ordre (un joueur sorti peut revenir, comme chez les jeunes) ; un joueur exclu
         // (carton rouge) ne revient pas. Sans titulaire connu (pas de numéros), seuls les changements renseignent.
         const avantLui = (a) => a.uuid !== c.uuid && (a.periode < c.periode || (a.periode === c.periode && a.minute <= c.minute));
-        const avant = [...this.actions.values()].filter((a) => (a.type === 'RP' || a.type === 'CR') && a.joueur && avantLui(a))
+        const avant = [...this.actions.values()].filter((a) => ['RP', 'CR', 'EX'].includes(a.type) && a.joueur && avantLui(a))
             .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute));
         const titulaires = this.cfg.joueurs.filter((j) => j.numero >= 1 && j.numero <= 11).map((j) => j.id);
         this.terrainConnu = titulaires.length > 0;
         this.etatTerrain = new Map(this.terrainConnu ? this.cfg.joueurs.map((j) => [j.id, titulaires.includes(j.id)]) : []);
         this.exclus = new Set();
         avant.forEach((a) => {
+            if (a.type === 'EX') {
+                // Exclusion temporaire : hors du terrain pendant 10 minutes, ni remplacé ni remplaçant ; revient seul.
+                if (a.periode === c.periode && c.minute < a.minute + 10) this.exclus.add(a.joueur);
+                return;
+            }
             this.etatTerrain.set(a.joueur, false);
             if (a.type === 'CR') this.exclus.add(a.joueur);
             else if (a.details?.entrant) this.etatTerrain.set(a.details.entrant, true);
@@ -375,14 +380,16 @@ export default class extends Controller {
      */
     dessinerEntrants(choisi) {
         const sortant = Number(this.sortantTarget.value);
-        const exclusion = this.motifChangement() === 'Exclusion';
+        const exclusion = ['Exclusion', 'Temporaire'].includes(this.motifChangement());
         const possibles = exclusion ? [] : this.cfg.joueurs.filter((j) => j.id !== sortant && this.etatTerrain.get(j.id) !== true && !this.exclus.has(j.id));
         const personne = !possibles.length || choisi === 'aucun';
         this.entrantTarget.innerHTML = (possibles.length ? `<option value="" ${choisi ? '' : 'selected'}>— Choisir —</option>` : '')
             + `<option value="aucun" ${personne ? 'selected' : ''}>Personne (sans remplaçant)</option>`
             + this.optionsChangement(possibles, choisi);
         this.entrantTarget.disabled = exclusion;
-        const aide = exclusion ? 'Exclusion : carton rouge, le joueur n\'est pas remplacé.'
+        const aide = exclusion ? (this.motifChangement() === 'Temporaire'
+            ? 'Carton blanc : le joueur sort 10 minutes sans être remplacé, puis revient sans changement.'
+            : 'Carton rouge : le joueur est exclu, il n\'est pas remplacé.')
             : (!possibles.length ? 'Aucun remplaçant disponible : le joueur sort sans être remplacé.'
                 : (!this.terrainConnu ? 'Astuce : donnez les numéros (✎ Numéros) : 1 à 11 = titulaires ; seuls les remplaçants seront alors proposés pour entrer.' : ''));
         this.aideChangementTarget.textContent = aide;
@@ -409,7 +416,7 @@ export default class extends Controller {
         if (!c) return;
         const sortant = Number(this.sortantTarget.value);
         const motif = this.motifChangement();
-        const choix = motif === 'Exclusion' ? 'aucun' : this.entrantTarget.value;
+        const choix = ['Exclusion', 'Temporaire'].includes(motif) ? 'aucun' : this.entrantTarget.value;
         const entrant = choix === 'aucun' ? null : Number(choix);
         if (!sortant || (choix !== 'aucun' && !entrant) || sortant === entrant) {
             this.erreurChangementTarget.textContent = !sortant ? 'Choisissez le joueur qui sort.'
@@ -418,19 +425,20 @@ export default class extends Controller {
             return;
         }
         const minute = Math.max(0, Math.min(130, parseInt(this.minuteChangementTarget.value, 10) || 0));
-        let action;
-        if (motif === 'Exclusion') {
-            // Exclusion : un carton rouge (repris sur la feuille de match), au milieu du terrain ; s'il corrige un
-            // changement déjà noté, celui-ci est remplacé.
-            if (this.actions.has(c.uuid)) {
-                this.actions.delete(c.uuid);
-                delete this.enAttente[c.uuid];
-                this.supprimes.push(c.uuid);
-            }
-            action = { uuid: this.nouvelUuid(), type: 'CR', joueur: sortant, periode: c.periode, minute, zx: 2, zy: 1 };
-        } else {
-            action = { uuid: c.uuid, type: 'RP', joueur: sortant, periode: c.periode, minute, zx: 0, zy: 1, details: entrant ? { entrant, motif } : { motif } };
+        // Exclusion : un carton rouge (au milieu du terrain) ; exclusion temporaire : « EX » ; sinon un changement.
+        const type = { Exclusion: 'CR', Temporaire: 'EX' }[motif] ?? 'RP';
+        const ancienne = this.actions.get(c.uuid);
+        let uuid = c.uuid;
+        if (ancienne && ancienne.type !== type) {
+            // Correction qui change de nature (changement devenu exclusion…) : l'ancienne action est remplacée.
+            this.actions.delete(c.uuid);
+            delete this.enAttente[c.uuid];
+            this.supprimes.push(c.uuid);
+            uuid = this.nouvelUuid();
         }
+        const action = type === 'RP'
+            ? { uuid, type, joueur: sortant, periode: c.periode, minute, zx: 0, zy: 1, details: entrant ? { entrant, motif } : { motif } }
+            : { uuid, type, joueur: sortant, periode: c.periode, minute, zx: type === 'CR' ? 2 : 0, zy: 1 };
         this.actions.set(action.uuid, { ...action, auteur: this.cfg.moi });
         this.enAttente[action.uuid] = action;
         this.garder();
@@ -674,8 +682,8 @@ export default class extends Controller {
             this.ouvrirBut({ ...a });
             return;
         }
-        if (a.type === 'RP') {
-            this.ouvrirChangement({ ...a });
+        if (a.type === 'RP' || a.type === 'EX') {
+            this.ouvrirChangement(a.type === 'EX' ? { ...a, details: { motif: 'Temporaire' } } : { ...a });
             return;
         }
         this.choix = { joueur: this.estAdverse(a.type) ? null : a.joueur, type: a.type, modifie: a.uuid };
@@ -885,9 +893,10 @@ export default class extends Controller {
 
     libelle(a) {
         const j = this.joueur(a.joueur);
+        if (a.type === 'EX') return `${j ? `${j.numero ? `${j.numero} ` : ''}${j.nom} · ` : ''}Carton blanc (10 min, retour à la ${a.minute + 10}e)`;
         if (a.type === 'RP') {
             const nom = (x) => (x ? `${x.numero ? `${x.numero} ` : ''}${x.nom}` : '?');
-            return `Changement : ${nom(j)} sort, ${a.details?.entrant ? `${nom(this.joueur(a.details.entrant))} entre` : 'sans remplaçant'}${a.details?.motif === 'Blessure' ? ' (blessure)' : ''}`;
+            return `Changement : ${nom(j)} sort,${a.details?.entrant ? `${nom(this.joueur(a.details.entrant))} entre` : 'sans remplaçant'}${a.details?.motif === 'Blessure' ? ' (blessure)' : ''}`;
         }
         const geste = { tete: ' (tête)', csc: ' (contre son camp)' }[a.details?.geste] || '';
         const passeur = this.joueur(a.details?.passeur);
