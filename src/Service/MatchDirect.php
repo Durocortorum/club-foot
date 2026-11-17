@@ -6,7 +6,9 @@ use App\Entity\ActionMatch;
 use App\Entity\Convoque;
 use App\Entity\Joueur;
 use App\Entity\Rencontre;
+use App\Repository\ActionMatchRepository;
 use App\Repository\ConvocationRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\JoueurRepository;
 
 /**
@@ -21,7 +23,72 @@ class MatchDirect
     public function __construct(
         private readonly ConvocationRepository $convocations,
         private readonly JoueurRepository $joueurs,
+        private readonly ActionMatchRepository $actions,
+        private readonly EntityManagerInterface $em,
     ) {
+    }
+
+    /**
+     * Feuille de match enregistrée avec des buts, pour un match suivi en direct : les buts du direct sont alignés
+     * sur ceux de la feuille (elle fait foi), pour que la page « En direct », son score, son journal et le bilan
+     * montrent les mêmes buts. Un but du direct qui correspond (même camp, même buteur, minute proche) est gardé
+     * (avec sa zone) et mis à jour (passeur, façon de marquer, place sur le terrain) ; les autres buts de la feuille
+     * sont ajoutés, ceux du direct absents de la feuille retirés. Sans but sur la feuille : rien ne change.
+     * À appeler avant le flush.
+     */
+    public function alignerButs(Rencontre $rencontre): void
+    {
+        if (!$rencontre->getId() || !\count($rencontre->getButs())) {
+            return;
+        }
+        $notees = $this->actions->duMatch($rencontre);
+        if (!$notees) {
+            return; // match pas suivi en direct
+        }
+        $restants = array_values(array_filter($notees, fn (ActionMatch $a) => \in_array($a->getType(), ['B', 'BA'], true)));
+        $mi = intdiv($this->duree($rencontre), 2);
+        foreach ($rencontre->getButs() as $b) {
+            $type = $b->isAdverse() ? 'BA' : 'B';
+            $csc = 'CSC' === $b->getConditions();
+            $buteur = $b->isAdverse() || $csc ? null : $b->getButeur();
+            $minute = (int) floor(Rencontre::ordreMinute($b->getTemps()) ?? 0) + (int) ($b->getAdditionnel() ?? 0);
+            // But du direct correspondant : même camp, même buteur, minute à 5 près (arrêts de jeu « 45+2 » = 47).
+            $trouve = null;
+            foreach ($restants as $i => $a) {
+                if ($a->getType() === $type && $a->getJoueur()?->getId() === $buteur?->getId() && abs($a->getMinute() - $minute) <= 5) {
+                    $trouve = $a;
+                    unset($restants[$i]);
+                    break;
+                }
+            }
+            $trace = $b->getTrace();
+            if (!$trouve) {
+                $trouve = new ActionMatch($rencontre, self::nouvelUuid());
+                $depart = $trace['depart'] ?? [$b->isAdverse() ? 8.75 : 96.25, 34];
+                $trouve->setType($type)
+                    ->placer($minute > $mi ? 2 : 1, $minute, (int) floor($depart[0] / 17.5), (int) floor($depart[1] / (68 / 3)));
+                $this->em->persist($trouve);
+            }
+            $ancien = $trouve->getDetails() ?? [];
+            $trouve->setJoueur($buteur)->setDetails(array_filter([
+                'depart' => $trace['depart'] ?? $ancien['depart'] ?? null,
+                'arrivee' => $trace['arrivee'] ?? $ancien['arrivee'] ?? null,
+                'geste' => $csc ? 'csc' : ('Tête' === $b->getGeste() ? 'tete' : (($ancien['geste'] ?? null) === 'tete' ? 'tir' : ($ancien['geste'] ?? null))),
+                'passeur' => $b->isAdverse() ? null : $b->getPasseur()?->getId(),
+            ], fn ($v) => null !== $v) ?: null);
+        }
+        foreach ($restants as $a) {
+            $this->em->remove($a);
+        }
+    }
+
+    private static function nouvelUuid(): string
+    {
+        $o = random_bytes(16);
+        $o[6] = \chr(\ord($o[6]) & 0x0F | 0x40);
+        $o[8] = \chr(\ord($o[8]) & 0x3F | 0x80);
+
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($o), 4));
     }
 
     /**

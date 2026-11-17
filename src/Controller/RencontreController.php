@@ -21,6 +21,7 @@ use App\Service\Apparence;
 use App\Service\BilanEquipe;
 use App\Service\CompositionTerrain;
 use App\Service\ImportMatchs;
+use App\Service\MatchDirect;
 use App\Service\SuiviDisciplinaire;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -39,7 +40,7 @@ class RencontreController extends AbstractController
     /** Le bouton « Annuler cet import » reste proposé 24 heures. */
     private const DUREE_ANNULATION = 86400;
 
-    public function __construct(private readonly ActiviteVoter $voter)
+    public function __construct(private readonly ActiviteVoter $voter, private readonly MatchDirect $direct)
     {
     }
 
@@ -389,6 +390,8 @@ class RencontreController extends AbstractController
         $nouveau = null === $rencontre->getId();
         if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($rencontre);
+            // Match suivi en direct : ses buts suivent ceux de la feuille (page « En direct », score, journal, bilan).
+            $this->direct->alignerButs($rencontre);
             $em->flush();
             if ($nouveau && 'convocation' === $request->getPayload()->getString('suite')) {
                 $this->addFlash('succes', 'Match enregistré. Choisissez maintenant les joueurs convoqués.');

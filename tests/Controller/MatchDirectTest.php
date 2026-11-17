@@ -192,6 +192,11 @@ class MatchDirectTest extends WebTestCase
         $em->clear();
         $traces = array_map(fn ($b) => $b->getTrace(), $em->find(Rencontre::class, $matchId)->getButs()->toArray());
         self::assertContainsEquals(['depart' => [8.0, 30.0], 'arrivee' => [0.0, 33.5]], $traces, 'tracé du but adverse enregistré depuis la feuille');
+        // Les buts du direct suivent la feuille : le but adverse noté en direct (même but) reçoit la place dessinée sur la feuille.
+        $buts = $em->getRepository(ActionMatch::class)->findBy(['rencontre' => $matchId, 'type' => ['B', 'BA']]);
+        self::assertCount(2, $buts, 'mêmes buts que la feuille, sans doublon');
+        $adverseDirect = $em->getRepository(ActionMatch::class)->findOneBy(['uuid' => '44444444-4444-4444-8444-444444444444']);
+        self::assertEquals(['depart' => [8.0, 30.0], 'arrivee' => [0.0, 33.5]], $adverseDirect->getDetails());
 
         // Statistiques du match : la feuille fait foi pour les buts (score, schémas, carte du terrain), même pour un but
         // placé seulement sur la feuille ; ses cartons comptent.

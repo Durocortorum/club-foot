@@ -24,7 +24,7 @@ export default class extends Controller {
     static targets = ['joueurs', 'types', 'terrain', 'journal', 'score', 'chrono', 'minute', 'periode', 'boutonChrono', 'etat', 'consigne',
         'meteo', 'sol', 'vent', 'temperature', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne', 'boutonNumeros', 'bilan', 'boutonBilan',
         'proposeBut', 'texteProposeBut', 'dialogueBut', 'titreBut', 'terrainBut', 'gestesBut', 'champPasseur', 'passeurBut',
-        'dialogueChangement', 'titreChangement', 'sortant', 'entrant', 'motifsChangement', 'minuteChangement', 'erreurChangement', 'aideChangement', 'boutonTitulaires'];
+        'dialogueChangement', 'titreChangement', 'sortant', 'entrant', 'motifsChangement', 'minuteChangement', 'erreurChangement', 'aideChangement', 'boutonTitulaires', 'boutonFin'];
 
     connect() {
         this.cfg = this.configValue;
@@ -137,8 +137,11 @@ export default class extends Controller {
         this.minuteTarget.textContent = `${this.minuteCourante()}'`;
         this.periodeTarget.textContent = this.chrono.fini ? 'Match terminé' : (this.chrono.periode === 1 ? '1re période' : '2e période');
         const c = this.chrono;
-        this.boutonChronoTarget.textContent = c.enCours ? '⏸ Pause' : (c.cumul > 0 ? '▶ Reprendre' : (c.periode === 1 ? '▶ Coup d\'envoi' : '▶ 2e période'));
-        this.boutonChronoTarget.classList.toggle('principal', !c.enCours);
+        this.boutonChronoTarget.textContent = c.fini ? '✓ Match terminé' : (c.enCours ? '⏸ Pause' : (c.cumul > 0 ? '▶ Reprendre' : (c.periode === 1 ? '▶ Coup d\'envoi' : '▶ 2e période')));
+        this.boutonChronoTarget.classList.toggle('principal', !c.enCours && !c.fini);
+        // Match terminé : plus de chrono à lancer ni de période à finir.
+        this.boutonChronoTarget.disabled = !!c.fini;
+        if (this.hasBoutonFinTarget) this.boutonFinTarget.disabled = !!c.fini;
         this.element.classList.toggle('chrono-arrete', !c.enCours);
     }
 
