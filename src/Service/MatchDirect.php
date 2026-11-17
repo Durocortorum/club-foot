@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\ActionMatch;
+use App\Entity\But;
 use App\Entity\Convoque;
 use App\Entity\Joueur;
 use App\Entity\Rencontre;
@@ -51,16 +52,8 @@ class MatchDirect
             $type = $b->isAdverse() ? 'BA' : 'B';
             $csc = 'CSC' === $b->getConditions();
             $buteur = $b->isAdverse() || $csc ? null : $b->getButeur();
-            $minute = (int) floor(Rencontre::ordreMinute($b->getTemps()) ?? 0) + (int) ($b->getAdditionnel() ?? 0);
-            // But du direct correspondant : même camp, même buteur, minute à 5 près (arrêts de jeu « 45+2 » = 47).
-            $trouve = null;
-            foreach ($restants as $i => $a) {
-                if ($a->getType() === $type && $a->getJoueur()?->getId() === $buteur?->getId() && abs($a->getMinute() - $minute) <= 5) {
-                    $trouve = $a;
-                    unset($restants[$i]);
-                    break;
-                }
-            }
+            $minute = self::minuteDuBut($b);
+            $trouve = self::butCorrespondant($restants, $type, $buteur, $minute);
             $trace = $b->getTrace();
             if (!$trouve) {
                 $trouve = new ActionMatch($rencontre, self::nouvelUuid());
@@ -80,6 +73,31 @@ class MatchDirect
         foreach ($restants as $a) {
             $this->em->remove($a);
         }
+    }
+
+    /** Minute d'un but de la feuille, arrêts de jeu compris (« 45+2 » = 47). */
+    private static function minuteDuBut(But $b): int
+    {
+        return (int) floor(Rencontre::ordreMinute($b->getTemps()) ?? 0) + (int) ($b->getAdditionnel() ?? 0);
+    }
+
+    /**
+     * But noté en direct qui correspond à un but de la feuille : même camp, même buteur, minute à 5 près.
+     * Retiré de la liste (chaque but du direct ne sert qu'une fois).
+     *
+     * @param list<ActionMatch> $buts
+     */
+    private static function butCorrespondant(array &$buts, string $type, ?Joueur $buteur, int $minute): ?ActionMatch
+    {
+        foreach ($buts as $i => $a) {
+            if ($a->getType() === $type && $a->getJoueur()?->getId() === $buteur?->getId() && abs($a->getMinute() - $minute) <= 5) {
+                unset($buts[$i]);
+
+                return $a;
+            }
+        }
+
+        return null;
     }
 
     private static function nouvelUuid(): string
@@ -240,17 +258,24 @@ class MatchDirect
         // Buts : la feuille fait foi dès qu'elle en a.
         $buts = $rencontre->getButs();
         if (\count($buts)) {
+            $direct = array_values(array_filter($actions, fn (ActionMatch $a) => \in_array($a->getType(), ['B', 'BA'], true)));
             $actions = array_values(array_filter($actions, fn (ActionMatch $a) => !\in_array($a->getType(), ['B', 'BA'], true)));
             foreach ($buts as $b) {
-                $trace = $b->getTrace();
+                $type = $b->isAdverse() ? 'BA' : 'B';
                 $csc = 'CSC' === $b->getConditions();
+                $buteur = $b->isAdverse() || $csc ? null : $b->getButeur();
+                $minute = self::minuteDuBut($b);
+                // Pas placé sur la feuille : la place du même but noté en direct (tracé, sinon sa zone).
+                $note = self::butCorrespondant($direct, $type, $buteur, $minute);
+                $trace = $b->getTrace() ?? (isset($note?->getDetails()['depart'], $note?->getDetails()['arrivee'])
+                    ? ['depart' => $note->getDetails()['depart'], 'arrivee' => $note->getDetails()['arrivee']] : null);
                 $details = ($trace ?? []) + array_filter([
                     'geste' => $csc ? 'csc' : ('Tête' === $b->getGeste() ? 'tete' : ($trace ? 'tir' : null)),
                     'passeur' => $b->isAdverse() ? null : $b->getPasseur()?->getId(),
                 ]);
-                // Sans place sur le terrain : comptés, mais pas sur la carte.
-                $actions[] = $nouvelle($b->isAdverse() ? 'BA' : 'B', $b->isAdverse() ? null : $b->getButeur(),
-                    (int) floor(Rencontre::ordreMinute($b->getTemps()) ?? 0), $trace['depart'] ?? null, $details ?: null);
+                $place = $trace['depart'] ?? ($note ? [($note->getZx() + 0.5) * 17.5, ($note->getZy() + 0.5) * 68 / 3] : null);
+                // Ni placé sur la feuille ni noté en direct : compté, mais pas sur la carte.
+                $actions[] = $nouvelle($type, $buteur, $minute, $place, $details ?: null);
             }
         }
 

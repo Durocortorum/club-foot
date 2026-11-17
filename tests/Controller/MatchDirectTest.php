@@ -220,6 +220,9 @@ class MatchDirectTest extends WebTestCase
         self::assertEquals(['depart' => [96.4, 30.2], 'arrivee' => [105, 36.1], 'geste' => 'tete', 'passeur' => $leoId], $tete->getDetails());
         $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
         self::assertStringContainsString('Buts marqués (1)', $crawler->filter('.buts-schemas')->text());
+        // But adverse de la feuille pas placé sur le terrain : la zone notée en direct reste sur la carte.
+        $carteBA = $client->request('GET', "/matchs/$matchId/direct/bilan?type=BA");
+        self::assertSame(['1'], array_values(array_filter($carteBA->filter('.carte-chaleur .zone')->each(fn ($z) => trim($z->text())))));
         $envoyer(['jeton' => $config['jeton'], 'actions' => [
             ['uuid' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'joueur' => null, 'type' => 'B', 'periode' => 2, 'minute' => 70, 'zx' => 5, 'zy' => 1,
                 'details' => ['depart' => [101, 34], 'arrivee' => [105, 33], 'geste' => 'csc']],
