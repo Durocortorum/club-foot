@@ -6,7 +6,6 @@ use App\Entity\ActionMatch;
 use App\Entity\Categorie;
 use App\Entity\Club;
 use App\Entity\Joueur;
-use App\Entity\Participation;
 use App\Entity\Rencontre;
 use App\Entity\Utilisateur;
 use App\Service\CreationClub;
@@ -120,15 +119,23 @@ class MatchDirectTest extends WebTestCase
         $em->clear();
         self::assertSame(['MP', 'DG', 'B', 'BA'], array_map(fn (ActionMatch $a) => $a->getType(), $em->getRepository(ActionMatch::class)->findBy(['rencontre' => $matchId], ['minute' => 'ASC'])));
 
-        // Numéros de maillot donnés sur la tablette (pas de feuille de match) : gardés avec le match, renvoyés à toutes
+        // La feuille de match a suivi tout de suite : le but de Tom (passe de Léo) et le but adverse, score 1 – 1 ;
+        // buteur et passeur ajoutés à la feuille.
+        $match = $em->find(Rencontre::class, $matchId);
+        self::assertSame([1, 1], [$match->getButsDomicile(), $match->getButsExterieur()]);
+        $buts = $match->getButs()->toArray();
+        self::assertCount(2, $buts);
+        self::assertSame([$tomId, 'Tête', $leoId], [$buts[0]->getButeur()?->getId(), $buts[0]->getGeste(), $buts[0]->getPasseur()?->getId()]);
+        self::assertEquals(['depart' => [96.4, 30.2], 'arrivee' => [105, 36.1]], $buts[0]->getTrace(), 'tracé du but repris sur la feuille');
+        self::assertCount(2, $match->getParticipations());
+
+        // Numéros de maillot donnés sur la tablette : sur la feuille pour les joueurs qui y sont, renvoyés à toutes
         // les tablettes ; un numéro hors 1-99 efface.
         $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['jeton' => $config['jeton'], 'numeros' => [$tomId => 23, $leoId => 150]]));
+            json_encode(['jeton' => $config['jeton'], 'numeros' => [$tomId => 9, $leoId => 150]]));
         $numeros = array_column(json_decode($client->getResponse()->getContent(), true)['joueurs'], 'numero', 'id');
-        self::assertSame(23, $numeros[$tomId]);
+        self::assertSame(9, $numeros[$tomId]);
         self::assertNull($numeros[$leoId]);
-        $em->clear();
-        self::assertSame([$tomId => 23], $em->find(Rencontre::class, $matchId)->getNumerosDirect());
 
         // Titulaires choisis sur la tablette : communs aux tablettes, joueurs du match seulement.
         self::assertNull($config['titulaires']);
@@ -142,10 +149,7 @@ class MatchDirectTest extends WebTestCase
         $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['actions' => $actions]));
         self::assertResponseStatusCodeSame(403);
 
-        // Cartons : Tom (sur la feuille de match) prend un jaune à la 30e ; l'adversaire aussi.
-        $em->persist((new Participation())->setClub($em->getReference(Club::class, $this->clubId))->setRencontre($em->getReference(Rencontre::class, $matchId))
-            ->setJoueur($em->getReference(Joueur::class, $tomId))->setNumero(9));
-        $em->flush();
+        // Cartons : Tom prend un jaune à la 30e ; l'adversaire aussi.
         $envoyer(['jeton' => $config['jeton'], 'actions' => [
             ['uuid' => '88888888-8888-4888-8888-888888888888', 'joueur' => $tomId, 'type' => 'CJ', 'periode' => 1, 'minute' => 30, 'zx' => 3, 'zy' => 1],
             ['uuid' => '99999999-9999-4999-8999-999999999999', 'joueur' => null, 'type' => 'JA', 'periode' => 2, 'minute' => 55, 'zx' => 2, 'zy' => 2],
@@ -161,23 +165,17 @@ class MatchDirectTest extends WebTestCase
         $adverse = $client->request('GET', "/matchs/$matchId/direct/bilan?type=adverse");
         self::assertSame(2, array_sum(array_map('intval', $adverse->filter('.carte-chaleur .zone')->each(fn ($z) => $z->text()))));
 
-        // La feuille de match signale ce qui a été noté en direct et n'y est pas encore.
+        // Feuille de match déjà à jour (carton jaune de Tom à la 30e) : rien à signaler ; le rattrapage ne change rien.
         $client->request('GET', "/matchs/$matchId/modifier");
-        self::assertSelectorTextContains('.bandeau-direct', '2 buts et 1 carton');
-
-        // Report sur la feuille : buts (43e Tom, 60e adversaire, score 1 – 1) et carton jaune de Tom à la 30e.
-        $client->submit($crawler->selectButton('Reporter sur la feuille de match')->form());
-        self::assertResponseRedirects("/matchs/$matchId");
+        self::assertSelectorNotExists('.bandeau-direct');
         $em->clear();
         $match = $em->find(Rencontre::class, $matchId);
-        self::assertSame([1, 1], [$match->getButsDomicile(), $match->getButsExterieur()]);
-        $buts = $match->getButs()->toArray();
-        self::assertCount(2, $buts);
-        self::assertSame($tomId, $buts[0]->getButeur()?->getId());
-        self::assertSame('Tête', $buts[0]->getGeste(), 'but de la tête noté en direct');
-        self::assertSame($leoId, $buts[0]->getPasseur()?->getId(), 'passeur décisif noté en direct');
-        self::assertEquals(['depart' => [96.4, 30.2], 'arrivee' => [105, 36.1]], $buts[0]->getTrace(), 'tracé du but reporté sur la feuille');
-        self::assertNull($buts[1]->getTrace(), 'but adverse sans tracé');
+        self::assertNull($match->getButs()->toArray()[1]->getTrace(), 'but adverse sans tracé');
+        $pageDirect = $client->request('GET', "/matchs/$matchId/direct");
+        $client->submit($pageDirect->selectButton('Reporter sur la feuille de match')->form());
+        self::assertResponseRedirects("/matchs/$matchId/modifier");
+        $messages = implode(' | ', $client->followRedirect()->filter('.flash')->each(fn ($f) => trim($f->text())));
+        self::assertStringContainsString('déjà à jour', $messages);
 
         // Page du match : schéma du but placé ; feuille de match : le tracé se modifie (champ caché de la ligne du but).
         $crawler = $client->request('GET', "/matchs/$matchId");
@@ -254,12 +252,9 @@ class MatchDirectTest extends WebTestCase
         self::assertStringContainsString('sans remplaçant', $crawler->filter('.liste-changements')->text());
         self::assertStringContainsString('carton blanc', $crawler->filter('.liste-changements')->text());
 
-        // Feuille de match : carton blanc et changements signalés, puis reportés (carton « BL », remplacements, une seule fois).
-        $crawler = $client->request('GET', "/matchs/$matchId/modifier");
-        self::assertSelectorTextContains('.bandeau-direct', '1 carton et 2 changements');
-        $client->submit($crawler->filter('#reporter-direct')->form());
-        self::assertResponseRedirects("/matchs/$matchId/modifier");
-        $client->request('POST', "/matchs/$matchId/direct/reporter", ['_token' => $crawler->filter('#reporter-direct input[name="_token"]')->attr('value')]);
+        // Feuille de match à jour toute seule : carton blanc (« BL ») et remplacements, une seule fois (envoi rejoué).
+        $client->request('GET', "/matchs/$matchId/modifier");
+        self::assertSelectorNotExists('.bandeau-direct');
         $em->clear();
         $remplacements = $em->find(Rencontre::class, $matchId)->getRemplacements()->toArray();
         usort($remplacements, fn ($a, $b) => $a->getMinute() <=> $b->getMinute());
@@ -278,5 +273,34 @@ class MatchDirectTest extends WebTestCase
         self::assertSame([50, 10], [$temps[$tomId], $temps[$leoId]]);
         $client->request('GET', "/matchs/$matchId/modifier");
         self::assertSelectorNotExists('.bandeau-direct');
+
+        // Feuille restée ouverte pendant qu'une tablette note un carton : l'enregistrement est refusé (rien d'écrasé).
+        $ouverte = $client->request('GET', "/matchs/$matchId/modifier")->filter('form[name="rencontre"]')->form();
+        $envoyer(['jeton' => $config['jeton'], 'actions' => [
+            ['uuid' => 'acacacac-acac-4cac-8cac-acacacacacac', 'joueur' => $tomId, 'type' => 'CJ', 'periode' => 2, 'minute' => 48, 'zx' => 2, 'zy' => 1],
+        ]]);
+        $client->submit($ouverte);
+        self::assertResponseRedirects("/matchs/$matchId/modifier");
+        $client->followRedirect();
+        self::assertSelectorTextContains('.flash-erreur', 'notés en direct');
+        $em->clear();
+        $tom = array_values(array_filter($em->find(Rencontre::class, $matchId)->getParticipations()->toArray(), fn ($p) => $p->getJoueur()->getId() === $tomId))[0];
+        self::assertSame(['J+R', '48'], [$tom->getCarton(), $tom->getMinuteCarton()], 'deux jaunes notés en direct : jaune puis rouge');
+
+        // Feuille → direct : le carton de Tom corrigé sur la feuille (un seul jaune, à la 30e) l'est aussi dans le direct.
+        $crawler = $client->request('GET', "/matchs/$matchId/modifier");
+        $formulaire = $crawler->filter('form[name="rencontre"]')->form();
+        foreach ($formulaire->getValues() as $nom => $valeur) {
+            if (str_ends_with($nom, '[carton]') && 'J+R' === $valeur) {
+                $formulaire[$nom] = 'JJ';
+                $formulaire[str_replace('[carton]', '[minuteCarton]', $nom)] = '30';
+            }
+        }
+        $client->submit($formulaire);
+        self::assertResponseRedirects("/matchs/$matchId");
+        $em->clear();
+        $cartonsTom = array_map(fn (ActionMatch $a) => [$a->getType(), $a->getMinute()],
+            $em->getRepository(ActionMatch::class)->findBy(['rencontre' => $matchId, 'joueur' => $tomId, 'type' => ['CJ', 'CR']]));
+        self::assertSame([['CJ', 30]], $cartonsTom);
     }
 }

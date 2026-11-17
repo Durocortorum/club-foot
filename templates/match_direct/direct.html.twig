@@ -117,7 +117,7 @@
             <a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Feuille de match</a>
             {# Buts et cartons notés ici, reportés sur la feuille de match (puis ouverture de la feuille pour la vérifier). #}
             <form method="post" action="{{ path('app_match_direct_reporter', {id: rencontre.id}) }}" class="en-ligne"
-                  data-confirmation="Reporter sur la feuille de match les buts (si elle n'en a pas encore), les cartons et les changements notés en direct ?" data-confirmation-bouton="Reporter">
+                  data-confirmation="La feuille de match se met à jour toute seule à chaque but, carton ou changement. Vérifier quand même que rien ne manque (actions notées avant) et ouvrir la feuille ?" data-confirmation-bouton="Vérifier">
                 <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ rencontre.id) }}">
                 <input type="hidden" name="retour" value="feuille">
                 <button type="submit" class="bouton">Reporter sur la feuille de match</button>

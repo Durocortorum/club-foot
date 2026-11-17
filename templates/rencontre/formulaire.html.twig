@@ -61,6 +61,7 @@
 
     {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire', 'data-controller': 'feuille score'}}) }}
         {{ form_errors(form) }}
+        {% if not nouveau %}<input type="hidden" name="etat_feuille" value="{{ etat_feuille }}">{% endif %}
 
         <fieldset class="carte">
             <legend>Match</legend>

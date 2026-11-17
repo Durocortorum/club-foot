@@ -21,7 +21,7 @@ use App\Service\Apparence;
 use App\Service\BilanEquipe;
 use App\Service\CompositionTerrain;
 use App\Service\ImportMatchs;
-use App\Service\MatchDirect;
+use App\Service\SynchroFeuille;
 use App\Service\SuiviDisciplinaire;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -40,7 +40,7 @@ class RencontreController extends AbstractController
     /** Le bouton « Annuler cet import » reste proposé 24 heures. */
     private const DUREE_ANNULATION = 86400;
 
-    public function __construct(private readonly ActiviteVoter $voter, private readonly MatchDirect $direct)
+    public function __construct(private readonly ActiviteVoter $voter, private readonly SynchroFeuille $synchro)
     {
     }
 
@@ -385,13 +385,25 @@ class RencontreController extends AbstractController
             'joueurs' => $this->joueursSelectionnables($rencontre, $secteurs, $joueurs),
             'duree' => $rencontre->getCategorie()?->getDureeMatch() ?? 90,
         ]);
+        $nouveau = null === $rencontre->getId();
+        // Match suivi en direct : les tablettes peuvent changer la feuille (buts, cartons, changements) pendant
+        // qu'elle est ouverte ici. Si c'est le cas, on n'écrase rien : la feuille est rouverte à jour.
+        $photo = $nouveau ? null : SynchroFeuille::photoFeuille($rencontre);
+        $etat = $nouveau ? '' : SynchroFeuille::empreinte($rencontre);
+        if ($request->isMethod('POST') && !$nouveau && $request->request->has('etat_feuille')
+            && $request->request->getString('etat_feuille') !== $etat && $this->synchro->suiviEnDirect($rencontre)) {
+            $this->addFlash('erreur', 'Pendant que vous modifiiez la feuille, des buts, cartons ou changements ont été notés en direct. Rien n\'a été enregistré pour ne pas les effacer : la feuille est rouverte à jour, refaites vos modifications.');
+
+            return $this->redirectToRoute('app_rencontre_modifier', ['id' => $rencontre->getId()]);
+        }
         $form->handleRequest($request);
 
-        $nouveau = null === $rencontre->getId();
         if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($rencontre);
-            // Match suivi en direct : ses buts suivent ceux de la feuille (page « En direct », score, journal, bilan).
-            $this->direct->alignerButs($rencontre);
+            // Match suivi en direct : ce qui a changé sur la feuille l'est aussi dans le direct (tablettes, bilan).
+            if ($photo) {
+                $this->synchro->versDirect($rencontre, $photo);
+            }
             $em->flush();
             if ($nouveau && 'convocation' === $request->getPayload()->getString('suite')) {
                 $this->addFlash('succes', 'Match enregistré. Choisissez maintenant les joueurs convoqués.');
@@ -408,6 +420,8 @@ class RencontreController extends AbstractController
             'rencontre' => $rencontre,
             'form' => $form,
             'titre' => $titre,
+            // État de la feuille à l'ouverture : comparé à l'enregistrement (changée entre-temps par une tablette ?).
+            'etat_feuille' => $etat,
         ]);
     }
 

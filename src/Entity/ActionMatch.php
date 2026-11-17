@@ -131,6 +131,12 @@ class ActionMatch implements AppartientAuClub
         return $this->details;
     }
 
+    /** Venue de la feuille de match sans place sur le terrain : comptée, mais pas sur la carte. */
+    public function isHorsCarte(): bool
+    {
+        return true === ($this->details['horsCarte'] ?? null);
+    }
+
     /** Tracé contrôlé : seulement pour un but, points ramenés sur le terrain (le but et ses filets compris). */
     public function setDetails(?array $details): static
     {
@@ -142,8 +148,10 @@ class ActionMatch implements AppartientAuClub
 
             return $this;
         }
+        // « Hors carte » : venue de la feuille de match sans place sur le terrain (pas dessinée sur la carte).
+        $horsCarte = true === ($details['horsCarte'] ?? null);
         if (null === $details || !\in_array($this->type ?? null, ['B', 'BA'], true)) {
-            $this->details = null;
+            $this->details = $horsCarte ? ['horsCarte' => true] : null;
 
             return $this;
         }
@@ -155,6 +163,7 @@ class ActionMatch implements AppartientAuClub
             'geste' => isset(self::GESTES_BUT[$details['geste'] ?? '']) ? $details['geste'] : null,
             // Passeur décisif (id du joueur ; contrôlé par le contrôleur : joueur du match, autre que le buteur).
             'passeur' => 'B' === $this->type && is_numeric($details['passeur'] ?? null) && (int) $details['passeur'] > 0 ? (int) $details['passeur'] : null,
+            'horsCarte' => $horsCarte && !isset($details['depart']) ? true : null,
         ], fn ($v) => null !== $v);
         $this->details = $propre ?: null;
 

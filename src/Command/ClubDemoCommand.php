@@ -579,13 +579,21 @@ class ClubDemoCommand extends Command
             $adverse = $but->isAdverse();
             $x = $adverse ? mt_rand(40, 160) / 10 : 105 - mt_rand(40, 160) / 10;
             $y = mt_rand(220, 460) / 10;
+            $arrivee = [$adverse ? 0 : 105, mt_rand(310, 370) / 10];
             $ajouter($adverse ? 'BA' : 'B', $adverse ? null : $but->getButeur(), min($duree, (int) $but->getMinute()), $adverse ? 0 : 5, (int) min(2, floor($y / (68 / 3))), [
-                'depart' => [$x, $y], 'arrivee' => [$adverse ? 0 : 105, mt_rand(310, 370) / 10], 'geste' => 'Tête' === $but->getGeste() ? 'tete' : 'tir',
+                'depart' => [$x, $y], 'arrivee' => $arrivee, 'geste' => 'Tête' === $but->getGeste() ? 'tete' : 'tir',
                 'passeur' => $adverse ? null : $but->getPasseur()?->getId(),
             ]);
+            // Même dessin sur la feuille de match (direct et feuille se tiennent à jour l'un l'autre).
+            $but->setTrace(['depart' => [$x, $y], 'arrivee' => $arrivee]);
         }
-        // Un carton jaune de chaque côté.
+        // Un carton jaune de chaque côté (le nôtre aussi sur la feuille de match).
         $ajouter('CJ', $joueurs[3] ?? null, 34, 2, 1);
+        foreach ($r->getParticipations() as $p) {
+            if (isset($joueurs[3]) && $p->getJoueur() === $joueurs[3]) {
+                $p->setCarton('JJ')->setMinuteCarton('34');
+            }
+        }
         $ajouter('JA', null, 58, 3, 2);
     }
 

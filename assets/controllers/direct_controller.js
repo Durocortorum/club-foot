@@ -714,6 +714,19 @@ export default class extends Controller {
     }
 
     /** Bilan du match sous la saisie (cadre Turbo), rechargé à chaque ouverture pour compter les dernières actions. */
+    /**
+     * Bilan ouvert : rechargé (même filtre) quand les actions du serveur ont changé — notées ici, sur une autre
+     * tablette, ou venues de la feuille de match.
+     */
+    rafraichirBilan(actions) {
+        const empreinte = JSON.stringify(actions.map((a) => [a.uuid, a.type, a.joueur, a.minute, a.zx, a.zy, a.details]));
+        const change = this.empreinteBilan !== undefined && empreinte !== this.empreinteBilan;
+        this.empreinteBilan = empreinte;
+        if (!change || this.bilanTarget.hidden) return;
+        const cadre = this.bilanTarget.querySelector('turbo-frame');
+        if (typeof cadre?.reload === 'function' && cadre.src) cadre.reload();
+    }
+
     basculerBilan() {
         const zone = this.bilanTarget;
         if (!zone.hidden) {
@@ -886,6 +899,7 @@ export default class extends Controller {
                 if (this.editionTitulaires) this.dessinerJoueurs();
             }
             this.fusionner(donnees.actions ?? []);
+            this.rafraichirBilan(donnees.actions ?? []);
             this.garder();
             this.afficher();
         } catch (e) {
