@@ -112,6 +112,11 @@ class MatchDirect
         }
         foreach ($actions as $a) {
             $type = $a->getType();
+            // Changement : compté pour l'équipe seulement (pas une action de jeu : ni zone, ni quart d'heure, ni joueur).
+            if (ActionMatch::CHANGEMENT === $type) {
+                $equipe[$type] = ($equipe[$type] ?? 0) + 1;
+                continue;
+            }
             ++$equipe[$type];
             $zones[$type] ??= $vide;
             ++$zones[$type][$a->getZx()][$a->getZy()];

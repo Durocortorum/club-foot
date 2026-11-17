@@ -49,6 +49,11 @@ class ActionMatch implements AppartientAuClub
         'JA' => 'Carton jaune adverse',
         'RA' => 'Carton rouge adverse',
     ];
+    /**
+     * Changement de joueur : le joueur de l'action est celui qui sort ; details : entrant (id), motif (Choix, Blessure).
+     * Pas un bouton d'action : il a son propre cadre « Changements » sur la tablette.
+     */
+    public const CHANGEMENT = 'RP';
     /** Groupes que chaque tablette choisit de suivre (« Mes statistiques ») : nom => codes. */
     public const GROUPES = [
         'Passes' => ['BP', 'MP'],
@@ -60,6 +65,7 @@ class ActionMatch implements AppartientAuClub
         'Corners' => ['CO'],
         'Buts' => ['B'],
         'Cartons' => ['CJ', 'CR'],
+        'Changements' => ['RP'],
         'Adversaire' => ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA', 'JA', 'RA'],
     ];
     public const COLONNES = 6;
@@ -120,6 +126,13 @@ class ActionMatch implements AppartientAuClub
     /** Tracé contrôlé : seulement pour un but, points ramenés sur le terrain (le but et ses filets compris). */
     public function setDetails(?array $details): static
     {
+        // Changement : joueur entrant et motif.
+        if (self::CHANGEMENT === ($this->type ?? null)) {
+            $entrant = is_numeric($details['entrant'] ?? null) ? (int) $details['entrant'] : 0;
+            $this->details = $entrant > 0 ? ['entrant' => $entrant, 'motif' => 'Blessure' === ($details['motif'] ?? null) ? 'Blessure' : 'Choix'] : null;
+
+            return $this;
+        }
         if (null === $details || !\in_array($this->type ?? null, ['B', 'BA'], true)) {
             $this->details = null;
 
@@ -171,12 +184,12 @@ class ActionMatch implements AppartientAuClub
 
     public static function existe(string $type): bool
     {
-        return isset(self::ACTIONS[$type]) || isset(self::ADVERSES[$type]);
+        return isset(self::ACTIONS[$type]) || isset(self::ADVERSES[$type]) || self::CHANGEMENT === $type;
     }
 
     public static function libelleDe(string $type): string
     {
-        return self::ACTIONS[$type][0] ?? self::ADVERSES[$type] ?? $type;
+        return self::ACTIONS[$type][0] ?? self::ADVERSES[$type] ?? (self::CHANGEMENT === $type ? 'Changement' : $type);
     }
 
     public function getId(): ?int

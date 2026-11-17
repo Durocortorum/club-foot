@@ -61,6 +61,35 @@
             </div>
         </dialog>
 
+        {# Fenêtre « Changement » : qui sort, qui entre, minute (prise au chrono), motif. #}
+        <dialog class="dialogue dialogue-changement" data-direct-target="dialogueChangement">
+            <h2 class="dialogue-titre" data-direct-target="titreChangement">Changement</h2>
+            <div class="champs-changement">
+                <label class="sort">↓ Sort
+                    <select data-direct-target="sortant"></select>
+                </label>
+                <label class="entre">↑ Entre
+                    <select data-direct-target="entrant"></select>
+                </label>
+            </div>
+            <div class="minute-changement">
+                <span>Minute</span>
+                <button type="button" class="bouton petit" data-action="direct#minuteChangementMoins" aria-label="Une minute de moins">−1</button>
+                <input type="number" min="0" max="130" inputmode="numeric" data-direct-target="minuteChangement" aria-label="Minute du changement">
+                <button type="button" class="bouton petit" data-action="direct#minuteChangementPlus" aria-label="Une minute de plus">+1</button>
+            </div>
+            <div class="gestes-but" data-direct-target="motifsChangement">
+                {% for motif in ['Choix', 'Blessure'] %}
+                    <label class="choix-carte"><input type="radio" name="motif-changement" value="{{ motif }}" {{ loop.first ? 'checked' }}> {{ motif == 'Choix' ? 'Choix de l\'entraîneur' : 'Blessure' }}</label>
+                {% endfor %}
+            </div>
+            <p class="flash flash-erreur petit" data-direct-target="erreurChangement" hidden></p>
+            <div class="dialogue-actions">
+                <button type="button" class="bouton" data-action="direct#annulerChangement">Annuler</button>
+                <button type="button" class="bouton principal" data-action="direct#enregistrerChangement">Enregistrer le changement</button>
+            </div>
+        </dialog>
+
         <div class="direct-saisie">
             <section class="direct-panneau panneau-joueur">
                 <h2>1. Joueur <button type="button" class="lien-bouton petit" data-direct-target="boutonNumeros" data-action="direct#editerNumeros" title="Donner ou changer les numéros de maillot">✎ Numéros</button></h2>
@@ -86,7 +115,7 @@
             <a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Feuille de match</a>
             {# Buts et cartons notés ici, reportés sur la feuille de match (puis ouverture de la feuille pour la vérifier). #}
             <form method="post" action="{{ path('app_match_direct_reporter', {id: rencontre.id}) }}" class="en-ligne"
-                  data-confirmation="Reporter sur la feuille de match les buts (si elle n'en a pas encore) et les cartons notés en direct ?" data-confirmation-bouton="Reporter">
+                  data-confirmation="Reporter sur la feuille de match les buts (si elle n'en a pas encore), les cartons et les changements notés en direct ?" data-confirmation-bouton="Reporter">
                 <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ rencontre.id) }}">
                 <input type="hidden" name="retour" value="feuille">
                 <button type="submit" class="bouton">Reporter sur la feuille de match</button>
@@ -104,12 +133,16 @@
         </section>
 
         <details class="direct-infos carte">
-            <summary>Infos du match (météo, terrain)</summary>
+            <summary>Infos du match (terrain, météo, vent, température)</summary>
             <div class="champs">
+                <div class="champ"><label for="direct-sol">Terrain</label>
+                    <select id="direct-sol" data-direct-target="sol" data-action="direct#changerInfos"><option value="">—</option>{% for t in terrains %}<option {{ rencontre.terrain == t ? 'selected' }}>{{ t }}</option>{% endfor %}</select></div>
                 <div class="champ"><label for="direct-meteo">Météo</label>
                     <select id="direct-meteo" data-direct-target="meteo" data-action="direct#changerInfos"><option value="">—</option>{% for m in meteos %}<option {{ rencontre.meteo == m ? 'selected' }}>{{ m }}</option>{% endfor %}</select></div>
-                <div class="champ"><label for="direct-sol">État du terrain</label>
-                    <select id="direct-sol" data-direct-target="sol" data-action="direct#changerInfos"><option value="">—</option>{% for t in terrains %}<option {{ rencontre.terrain == t ? 'selected' }}>{{ t }}</option>{% endfor %}</select></div>
+                <div class="champ"><label for="direct-vent">Vent</label>
+                    <select id="direct-vent" data-direct-target="vent" data-action="direct#changerInfos"><option value="">—</option>{% for v in vents %}<option {{ rencontre.vent == v ? 'selected' }}>{{ v }}</option>{% endfor %}</select></div>
+                <div class="champ"><label for="direct-temperature">Température (°C)</label>
+                    <select id="direct-temperature" data-direct-target="temperature" data-action="direct#changerInfos"><option value="">—</option>{% for t in temperatures %}<option value="{{ t }}" {{ rencontre.temperature is same as(t) ? 'selected' }}>{{ t }}</option>{% endfor %}</select></div>
             </div>
             <p class="discret petit">
                 Sans réseau au stade : ouvrez cette page une fois avant le match (avec du réseau), elle reste ensuite sur la tablette.

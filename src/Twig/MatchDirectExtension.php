@@ -2,6 +2,7 @@
 
 namespace App\Twig;
 
+use App\Entity\ActionMatch;
 use App\Entity\Rencontre;
 use App\Repository\ActionMatchRepository;
 use App\Service\MatchDirect;
@@ -26,11 +27,11 @@ class MatchDirectExtension extends AbstractExtension
         ];
     }
 
-    /** @return array{buts: int, cartons: int} buts (si la feuille n'en a aucun) et cartons de joueurs encore sans carton sur la feuille */
+    /** @return array{buts: int, cartons: int, changements: int} buts (si la feuille n'en a aucun), cartons de joueurs encore sans carton sur la feuille, changements absents des remplacements */
     public function aReporter(Rencontre $rencontre): array
     {
         if (!$rencontre->getId()) {
-            return ['buts' => 0, 'cartons' => 0];
+            return ['buts' => 0, 'cartons' => 0, 'changements' => 0];
         }
         $avecCarton = [];
         foreach ($rencontre->getParticipations() as $p) {
@@ -38,15 +39,21 @@ class MatchDirectExtension extends AbstractExtension
                 $avecCarton[$p->getJoueur()->getId()] = true;
             }
         }
-        $buts = $cartons = 0;
+        $remplacements = [];
+        foreach ($rencontre->getRemplacements() as $r) {
+            $remplacements[] = [$r->getSortant()?->getId(), $r->getEntrant()?->getId(), $r->getMinute()];
+        }
+        $buts = $cartons = $changements = 0;
         foreach ($this->actions->duMatch($rencontre) as $a) {
             if (\in_array($a->getType(), ['B', 'BA'], true)) {
                 ++$buts;
+            } elseif (ActionMatch::CHANGEMENT === $a->getType()) {
+                $changements += $a->getJoueur() && !\in_array([$a->getJoueur()->getId(), $a->getDetails()['entrant'] ?? 0, $a->getMinute()], $remplacements, true) ? 1 : 0;
             } elseif (\in_array($a->getType(), ['CJ', 'CR'], true) && $a->getJoueur() && !isset($avecCarton[$a->getJoueur()->getId()])) {
                 ++$cartons;
             }
         }
 
-        return ['buts' => \count($rencontre->getButs()) ? 0 : $buts, 'cartons' => $cartons];
+        return ['buts' => \count($rencontre->getButs()) ? 0 : $buts, 'cartons' => $cartons, 'changements' => $changements];
     }
 }

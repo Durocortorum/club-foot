@@ -75,7 +75,7 @@ class MatchDirectTest extends WebTestCase
             ['uuid' => '55555555-5555-4555-8555-555555555555', 'joueur' => 999999, 'type' => 'BP', 'periode' => 1, 'minute' => 7, 'zx' => 2, 'zy' => 1],
             ['uuid' => '66666666-6666-4666-8666-666666666666', 'joueur' => $tomId, 'type' => 'XX', 'periode' => 1, 'minute' => 7, 'zx' => 2, 'zy' => 1],
         ];
-        $envoyer(['actions' => $actions, 'infos' => ['meteo' => 'Pluie', 'terrain' => 'Synthétique']]);
+        $envoyer(['actions' => $actions, 'infos' => ['meteo' => 'Pluie', 'terrain' => 'Synthétique', 'vent' => 'Fort', 'temperature' => '-3']]);
         self::assertResponseIsSuccessful();
         self::assertSame(4, json_decode($client->getResponse()->getContent(), true)['total']);
         // Réseau coupé puis rétabli : le même envoi rejoué ne crée pas de doublon.
@@ -88,6 +88,7 @@ class MatchDirectTest extends WebTestCase
         $types = array_map(fn (ActionMatch $a) => $a->getType(), $em->getRepository(ActionMatch::class)->findBy(['rencontre' => $matchId], ['minute' => 'ASC']));
         self::assertSame(['MP', 'B', 'BA'], $types);
         self::assertSame('Pluie', $em->find(Rencontre::class, $matchId)->getMeteo());
+        self::assertSame(['Fort', '-3'], [$em->find(Rencontre::class, $matchId)->getVent(), $em->find(Rencontre::class, $matchId)->getTemperature()]);
 
         // Deuxième tablette (autre compte de l'encadrement) : elle reçoit les actions de la première avec leur auteur,
         // ne peut ni les corriger ni les supprimer, et ses actions s'ajoutent ; le chrono est commun.
@@ -193,5 +194,31 @@ class MatchDirectTest extends WebTestCase
         self::assertNotNull($csc, 'but contre son camp accepté sans joueur');
         self::assertSame('csc', $csc->getDetails()['geste']);
         self::assertSame(['geste' => 'tir'], $em->getRepository(ActionMatch::class)->findOneBy(['uuid' => 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'])->getDetails());
+
+        // Changement : Tom sort sur blessure, Léo entre à la 50e ; refusés : même joueur qui sort et entre, entrant hors du match.
+        $envoyer(['jeton' => $config['jeton'], 'actions' => [
+            ['uuid' => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'joueur' => $tomId, 'type' => 'RP', 'periode' => 2, 'minute' => 50, 'zx' => 0, 'zy' => 1, 'details' => ['entrant' => $leoId, 'motif' => 'Blessure']],
+            ['uuid' => 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'joueur' => $tomId, 'type' => 'RP', 'periode' => 2, 'minute' => 52, 'zx' => 0, 'zy' => 1, 'details' => ['entrant' => $tomId]],
+            ['uuid' => 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'joueur' => $tomId, 'type' => 'RP', 'periode' => 2, 'minute' => 53, 'zx' => 0, 'zy' => 1, 'details' => ['entrant' => 999999]],
+        ]]);
+        $em->clear();
+        $changement = $em->getRepository(ActionMatch::class)->findBy(['rencontre' => $matchId, 'type' => 'RP']);
+        self::assertCount(1, $changement);
+        self::assertEquals(['entrant' => $leoId, 'motif' => 'Blessure'], $changement[0]->getDetails());
+        $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
+        self::assertStringContainsString('Changements (1)', $crawler->filter('.liste-changements')->ancestors()->first()->text());
+
+        // Feuille de match : le changement est signalé, puis reporté dans les remplacements (une seule fois).
+        $crawler = $client->request('GET', "/matchs/$matchId/modifier");
+        self::assertSelectorTextContains('.bandeau-direct', '1 changement');
+        $client->submit($crawler->filter('#reporter-direct')->form());
+        self::assertResponseRedirects("/matchs/$matchId/modifier");
+        $client->request('POST', "/matchs/$matchId/direct/reporter", ['_token' => $crawler->filter('#reporter-direct input[name="_token"]')->attr('value')]);
+        $em->clear();
+        $remplacements = $em->find(Rencontre::class, $matchId)->getRemplacements()->toArray();
+        self::assertCount(1, $remplacements, 'pas de doublon au second report');
+        self::assertSame([$tomId, $leoId, 50, 'Blessure'], [$remplacements[0]->getSortant()->getId(), $remplacements[0]->getEntrant()->getId(), $remplacements[0]->getMinute(), $remplacements[0]->getMotif()]);
+        $client->request('GET', "/matchs/$matchId/modifier");
+        self::assertSelectorNotExists('.bandeau-direct');
     }
 }

@@ -20,8 +20,9 @@ const CLE_MES_STATS = 'direct-mes-statistiques';
 export default class extends Controller {
     static values = { config: Object };
     static targets = ['joueurs', 'types', 'terrain', 'journal', 'score', 'chrono', 'minute', 'periode', 'boutonChrono', 'etat', 'consigne',
-        'meteo', 'sol', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne', 'boutonNumeros', 'bilan', 'boutonBilan',
-        'proposeBut', 'texteProposeBut', 'dialogueBut', 'titreBut', 'terrainBut', 'gestesBut', 'champPasseur', 'passeurBut'];
+        'meteo', 'sol', 'vent', 'temperature', 'sens', 'tout', 'plein', 'mesStats', 'resumeStats', 'horsLigne', 'boutonNumeros', 'bilan', 'boutonBilan',
+        'proposeBut', 'texteProposeBut', 'dialogueBut', 'titreBut', 'terrainBut', 'gestesBut', 'champPasseur', 'passeurBut',
+        'dialogueChangement', 'titreChangement', 'sortant', 'entrant', 'motifsChangement', 'minuteChangement', 'erreurChangement'];
 
     connect() {
         this.cfg = this.configValue;
@@ -299,7 +300,7 @@ export default class extends Controller {
                 <span class="nom">${this.echapper(j.nom)}</span><span class="prenom">${this.echapper(j.prenom)}</span></label>`).join('');
             return;
         }
-        const avecJoueurs = suivis.some((t) => !this.estAdverse(t));
+        const avecJoueurs = suivis.some((t) => !this.estAdverse(t) && t !== 'RP');
         const tuiles = avecJoueurs ? this.cfg.joueurs.map((j) => `<button type="button" class="tuile-joueur" data-joueur="${j.id}" data-action="direct#choisirJoueur">
             <span class="num${j.numero ? '' : ' sans'}">${j.numero ?? '?'}</span><span class="nom">${this.echapper(j.nom)}</span><span class="prenom">${this.echapper(j.prenom)}</span></button>`) : [];
         // Actions de l'adversaire, toujours visibles sous les joueurs : l'action puis la zone (2 touches).
@@ -308,7 +309,87 @@ export default class extends Controller {
             tuiles.push(`<div class="bloc-adverse"><span class="titre-adverse">Adversaire</span>
                 <div class="actions-adverses">${adverses.map(([c, l]) => this.boutonAction(c, l, true)).join('')}</div></div>`);
         }
+        // Changements : un petit cadre avec son bouton (fenêtre : qui sort, qui entre, minute, motif).
+        if (suivis.includes('RP')) {
+            tuiles.push(`<div class="bloc-changements"><span class="titre-changements">Changements</span>
+                <button type="button" class="bouton petit" data-action="direct#nouveauChangement">⇄ Faire un changement</button>
+                <span class="liste-changements-direct" data-changements></span></div>`);
+        }
         this.joueursTarget.innerHTML = tuiles.join('');
+        this.dessinerChangements();
+    }
+
+    /** Changements déjà faits, sous le bouton : « 60' ↓ 9 ↑ 14 ». */
+    dessinerChangements() {
+        const zone = this.joueursTarget.querySelector('[data-changements]');
+        if (!zone) return;
+        const nom = (id) => { const j = this.joueur(id); return j ? (j.numero ?? j.nom) : '?'; };
+        zone.innerHTML = [...this.actions.values()].filter((a) => a.type === 'RP')
+            .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute))
+            .map((a) => `<span class="changement-fait" title="${this.echapper(this.libelle(a))}"><b>${a.minute}'</b> <span class="sort">↓ ${this.echapper(nom(a.joueur))}</span> <span class="entre">↑ ${this.echapper(nom(a.details?.entrant))}</span></span>`).join('');
+    }
+
+    // ———————— Changement : qui sort, qui entre ————————
+
+    nouveauChangement() {
+        this.ouvrirChangement({ uuid: this.nouvelUuid(), type: 'RP', joueur: null, periode: this.chrono.periode, minute: this.minuteCourante(), zx: 0, zy: 1, details: {} });
+    }
+
+    ouvrirChangement(c) {
+        this.changementEnCours = c;
+        // Repères : joueurs déjà sortis ou déjà entrés (autres changements du match).
+        const autres = [...this.actions.values()].filter((a) => a.type === 'RP' && a.uuid !== c.uuid);
+        const sortis = new Set(autres.map((a) => a.joueur));
+        const entres = new Set(autres.map((a) => a.details?.entrant));
+        const options = (choisi) => '<option value="">— Choisir —</option>' + this.cfg.joueurs.map((j) => {
+            const note = sortis.has(j.id) ? ' (sorti)' : (entres.has(j.id) ? ' (entré)' : '');
+            return `<option value="${j.id}" ${choisi === j.id ? 'selected' : ''}>${j.numero ? `${j.numero} ` : ''}${this.echapper(j.nom)} ${this.echapper(j.prenom)}${note}</option>`;
+        }).join('');
+        this.sortantTarget.innerHTML = options(c.joueur);
+        this.entrantTarget.innerHTML = options(c.details?.entrant);
+        this.minuteChangementTarget.value = c.minute;
+        const motif = c.details?.motif || 'Choix';
+        this.motifsChangementTarget.querySelectorAll('input').forEach((r) => { r.checked = r.value === motif; });
+        this.erreurChangementTarget.hidden = true;
+        this.titreChangementTarget.textContent = this.actions.has(c.uuid) ? 'Corriger le changement' : 'Changement';
+        this.dialogueChangementTarget.showModal();
+    }
+
+    annulerChangement() {
+        this.changementEnCours = null;
+        this.dialogueChangementTarget.close();
+    }
+
+    enregistrerChangement() {
+        const c = this.changementEnCours;
+        if (!c) return;
+        const sortant = Number(this.sortantTarget.value);
+        const entrant = Number(this.entrantTarget.value);
+        if (!sortant || !entrant || sortant === entrant) {
+            this.erreurChangementTarget.textContent = !sortant || !entrant ? 'Choisissez le joueur qui sort et celui qui entre.' : 'Le joueur qui entre doit être différent de celui qui sort.';
+            this.erreurChangementTarget.hidden = false;
+            return;
+        }
+        const minute = Math.max(0, Math.min(130, parseInt(this.minuteChangementTarget.value, 10) || 0));
+        const motif = this.motifsChangementTarget.querySelector('input:checked')?.value === 'Blessure' ? 'Blessure' : 'Choix';
+        const action = { uuid: c.uuid, type: 'RP', joueur: sortant, periode: c.periode, minute, zx: 0, zy: 1, details: { entrant, motif } };
+        this.actions.set(action.uuid, { ...action, auteur: this.cfg.moi });
+        this.enAttente[action.uuid] = action;
+        this.garder();
+        this.changementEnCours = null;
+        this.dialogueChangementTarget.close();
+        navigator.vibrate?.(25);
+        this.afficher();
+        this.envoyer();
+    }
+
+    /** Minute du changement : −1 / +1 dans la fenêtre. */
+    minuteChangementMoins() {
+        this.minuteChangementTarget.value = Math.max(0, (parseInt(this.minuteChangementTarget.value, 10) || 0) - 1);
+    }
+
+    minuteChangementPlus() {
+        this.minuteChangementTarget.value = Math.min(130, (parseInt(this.minuteChangementTarget.value, 10) || 0) + 1);
     }
 
     /** Bouton d'action ; « adverse » abrégé (place comptée sur la tablette), nom complet dans le journal et le bilan. */
@@ -535,6 +616,10 @@ export default class extends Controller {
             this.ouvrirBut({ ...a });
             return;
         }
+        if (a.type === 'RP') {
+            this.ouvrirChangement({ ...a });
+            return;
+        }
         this.choix = { joueur: this.estAdverse(a.type) ? null : a.joueur, type: a.type, modifie: a.uuid };
         this.etape('zone');
         this.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -579,7 +664,7 @@ export default class extends Controller {
     }
 
     changerInfos() {
-        this.infos = { meteo: this.meteoTarget.value, terrain: this.solTarget.value };
+        this.infos = { meteo: this.meteoTarget.value, terrain: this.solTarget.value, vent: this.ventTarget.value, temperature: this.temperatureTarget.value };
         this.infosAEnvoyer = true;
         this.garder();
         this.envoyer();
@@ -651,9 +736,12 @@ export default class extends Controller {
         }).join('') || '<li class="discret">Aucune action notée.</li>';
         this.toutTarget.hidden = triees.length <= 6;
         this.toutTarget.textContent = this.journalComplet ? 'Moins' : `Tout le journal (${triees.length})`;
+        this.dessinerChangements();
         this.etatEnvoi();
         if (this.infos.meteo) this.meteoTarget.value = this.infos.meteo;
         if (this.infos.terrain) this.solTarget.value = this.infos.terrain;
+        if (this.infos.vent) this.ventTarget.value = this.infos.vent;
+        if (this.infos.temperature) this.temperatureTarget.value = this.infos.temperature;
     }
 
     etatEnvoi(erreur) {
@@ -739,6 +827,10 @@ export default class extends Controller {
 
     libelle(a) {
         const j = this.joueur(a.joueur);
+        if (a.type === 'RP') {
+            const nom = (x) => (x ? `${x.numero ? `${x.numero} ` : ''}${x.nom}` : '?');
+            return `Changement : ${nom(j)} sort, ${nom(this.joueur(a.details?.entrant))} entre${a.details?.motif === 'Blessure' ? ' (blessure)' : ''}`;
+        }
         const geste = { tete: ' (tête)', csc: ' (contre son camp)' }[a.details?.geste] || '';
         const passeur = this.joueur(a.details?.passeur);
         const quoi = (this.cfg.types[a.type] ?? this.cfg.adverses[a.type] ?? a.type) + geste + (passeur ? `, passe de ${passeur.nom}` : '');

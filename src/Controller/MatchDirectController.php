@@ -7,6 +7,7 @@ use App\Entity\But;
 use App\Entity\Joueur;
 use App\Entity\Convoque;
 use App\Entity\Participation;
+use App\Entity\Remplacement;
 use App\Repository\ConvocationRepository;
 use App\Entity\Rencontre;
 use App\Repository\ActionMatchRepository;
@@ -62,6 +63,8 @@ class MatchDirectController extends AbstractController
             ],
             'meteos' => Rencontre::METEOS,
             'terrains' => Rencontre::TERRAINS,
+            'vents' => Rencontre::VENTS,
+            'temperatures' => array_map('strval', range(-15, 40)),
         ]);
     }
 
@@ -99,7 +102,13 @@ class MatchDirectController extends AbstractController
             if (!preg_match('/^[0-9a-f-]{8,36}$/', $uuid) || !ActionMatch::existe($type)) {
                 continue;
             }
-            $joueurId = isset(ActionMatch::ACTIONS[$type]) ? (int) ($a['joueur'] ?? 0) : 0;
+            $changement = ActionMatch::CHANGEMENT === $type;
+            $joueurId = isset(ActionMatch::ACTIONS[$type]) || $changement ? (int) ($a['joueur'] ?? 0) : 0;
+            // Changement : qui sort et qui entre, deux joueurs différents du match.
+            $entrant = (int) ($a['details']['entrant'] ?? 0);
+            if ($changement && (!isset($joueurs[$joueurId], $joueurs[$entrant]) || $entrant === $joueurId)) {
+                continue;
+            }
             // Sans joueur : un corner, ou un but contre son camp d'un adversaire.
             $sansJoueur = 'CO' === $type || ('B' === $type && 'csc' === ($a['details']['geste'] ?? null));
             if (isset(ActionMatch::ACTIONS[$type]) && !$sansJoueur && !isset($joueurs[$joueurId])) {
@@ -134,6 +143,12 @@ class MatchDirectController extends AbstractController
         }
         if (\in_array($infos['terrain'] ?? null, Rencontre::TERRAINS, true)) {
             $rencontre->setTerrain($infos['terrain']);
+        }
+        if (\in_array($infos['vent'] ?? null, Rencontre::VENTS, true)) {
+            $rencontre->setVent($infos['vent']);
+        }
+        if (\in_array($infos['temperature'] ?? null, array_map('strval', range(-15, 40)), true)) {
+            $rencontre->setTemperature($infos['temperature']);
         }
         if (\is_array($donnees['chrono'] ?? null)) {
             $rencontre->majChronoDirect($donnees['chrono']);
@@ -191,7 +206,7 @@ class MatchDirectController extends AbstractController
                 '', 'nous', 'adverse' => true,
                 default => $a->getType() === $type,
             };
-            if (!$retenue || ($joueur && $a->getJoueur()?->getId() !== $joueur)) {
+            if (!$retenue || ActionMatch::CHANGEMENT === $a->getType() || ($joueur && $a->getJoueur()?->getId() !== $joueur)) {
                 continue;
             }
             $camp = $a->isAdverse() ? 'adverse' : 'nous';
@@ -228,7 +243,17 @@ class MatchDirectController extends AbstractController
             ];
         }
 
+        // Changements : minute, qui sort, qui entre, motif.
+        $changements = [];
+        foreach ($actions as $a) {
+            if (ActionMatch::CHANGEMENT === $a->getType()) {
+                $entrant = $this->em->find(Joueur::class, $a->getDetails()['entrant'] ?? 0);
+                $changements[] = ['minute' => $a->getMinute(), 'sortant' => $a->getJoueur(), 'entrant' => $entrant, 'motif' => $a->getDetails()['motif'] ?? 'Choix'];
+            }
+        }
+
         return $this->render('match_direct/bilan.html.twig', [
+            'changements' => $changements,
             'traces' => $traces,
             'rencontre' => $rencontre,
             'actions' => $actions,
@@ -345,12 +370,34 @@ class MatchDirectController extends AbstractController
         if ($pour + $contre) {
             array_unshift($messages, \sprintf('%d but%s', $pour + $contre, $pour + $contre > 1 ? 's' : ''));
         }
+
+        // Changements : ajoutés aux remplacements de la feuille s'ils n'y sont pas déjà (même sortant, entrant et minute).
+        $changes = 0;
+        foreach ($actions as $a) {
+            $entrant = ActionMatch::CHANGEMENT === $a->getType() && $a->getJoueur() ? $this->em->find(Joueur::class, $a->getDetails()['entrant'] ?? 0) : null;
+            if (!$entrant) {
+                continue;
+            }
+            foreach ($rencontre->getRemplacements() as $r) {
+                if ($r->getSortant()?->getId() === $a->getJoueur()->getId() && $r->getEntrant()?->getId() === $entrant->getId() && $r->getMinute() === $a->getMinute()) {
+                    continue 2;
+                }
+            }
+            $rencontre->addRemplacement((new Remplacement())->setSortant($a->getJoueur())->setEntrant($entrant)->setMinute($a->getMinute())
+                ->setMotif($a->getDetails()['motif'] ?? 'Choix'));
+            $surFeuille($a->getJoueur());
+            $surFeuille($entrant);
+            ++$changes;
+        }
+        if ($changes) {
+            $messages[] = \sprintf('%d changement%s', $changes, $changes > 1 ? 's' : '');
+        }
         $this->em->flush();
         if ($ajoutes) {
             $this->addFlash('info', 'Ajouté' . (\count($ajoutes) > 1 ? 's' : '') . ' à la feuille de match : ' . implode(', ', $ajoutes) . ' (complétez poste et temps de jeu).');
         }
         $this->addFlash($messages ? 'succes' : 'info', $messages
-            ? implode(' et ', $messages) . ' reporté' . ((($pour + $contre) + $reportes) > 1 ? 's' : '') . ' sur la feuille de match.'
+            ? implode(', ', $messages) . ' reporté' . ((($pour + $contre) + $reportes + $changes) > 1 ? 's' : '') . ' sur la feuille de match.'
             : 'Rien de nouveau à reporter sur la feuille de match.');
 
         // Retour vers la feuille de match pour la vérifier (ou la page d'où vient le bouton).

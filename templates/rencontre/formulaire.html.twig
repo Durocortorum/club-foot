@@ -42,14 +42,18 @@
     <h1>{{ titre }}</h1>
 
     {# Buts et cartons notés en direct (tablette) pas encore sur la feuille : les reporter d'un clic. #}
-    {% set direct = not nouveau ? direct_a_reporter(rencontre) : {buts: 0, cartons: 0} %}
-    {% if direct.buts or direct.cartons %}
+    {% set direct = not nouveau ? direct_a_reporter(rencontre) : {buts: 0, cartons: 0, changements: 0} %}
+    {% if direct.buts or direct.cartons or direct.changements %}
         <form method="post" action="{{ path('app_match_direct_reporter', {id: rencontre.id}) }}" id="reporter-direct" class="flash flash-info bandeau-direct">
             <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ rencontre.id) }}">
             <input type="hidden" name="retour" value="feuille">
             <span>
                 ⚽ Noté en direct, pas encore sur la feuille :
-                {{ direct.buts ? direct.buts ~ ' but' ~ (direct.buts > 1 ? 's') }}{{ direct.buts and direct.cartons ? ' et ' }}{{ direct.cartons ? direct.cartons ~ ' carton' ~ (direct.cartons > 1 ? 's') }}.
+                {% set elements = [] %}
+                {% if direct.buts %}{% set elements = elements|merge([direct.buts ~ ' but' ~ (direct.buts > 1 ? 's')]) %}{% endif %}
+                {% if direct.cartons %}{% set elements = elements|merge([direct.cartons ~ ' carton' ~ (direct.cartons > 1 ? 's')]) %}{% endif %}
+                {% if direct.changements %}{% set elements = elements|merge([direct.changements ~ ' changement' ~ (direct.changements > 1 ? 's')]) %}{% endif %}
+                {{ elements|join(', ', ' et ') }}.
             </span>
             <button type="submit" class="bouton petit principal">Reporter sur la feuille</button>
         </form>
@@ -154,6 +158,10 @@
                 Seuls les joueurs de la feuille de match sont proposés. Les temps de jeu de la feuille se calculent à partir des titulaires et de ces remplacements.
                 Expulsion et exclusion temporaire : se notent en carton sur la feuille de match (rouge avec sa minute ; « BL » : 10 minutes retirées du temps de jeu).
             </p>
+            {% if direct.changements %}
+                <p class="petit">⇄ {{ direct.changements }} changement{{ direct.changements > 1 ? 's' }} noté{{ direct.changements > 1 ? 's' }} en direct :
+                    <button type="submit" form="reporter-direct" class="bouton petit">Les reporter ici</button></p>
+            {% endif %}
             {{ s.collection(form.remplacements, ['Min.', 'Sort', 'Entre', 'Motif'], ['minute', 'sortant', 'entrant', 'motif'], '+ Ajouter un remplacement') }}
         </fieldset>
         </div>

@@ -114,6 +114,20 @@
             </section>
         {% endif %}
 
+        {% if changements %}
+            <section class="carte bloc">
+                <h2>Changements ({{ changements|length }})</h2>
+                <ul class="liste-changements">
+                    {% for c in changements %}
+                        <li><b>{{ c.minute }}'</b>
+                            <span class="sort">↓ {{ c.sortant ? c.sortant.prenom ~ ' ' ~ c.sortant.nom : '—' }}</span>
+                            <span class="entre">↑ {{ c.entrant ? c.entrant.prenom ~ ' ' ~ c.entrant.nom : '—' }}</span>
+                            {% if c.motif == 'Blessure' %}<span class="discret">(blessure)</span>{% endif %}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
         <section class="carte bloc">
             <h2>Par joueur</h2>
             <div class="table-defile">
