@@ -56,6 +56,7 @@ class MatchDirectController extends AbstractController
                 'moi' => $this->moi()->getId(),
                 'chrono' => $rencontre->getChronoDirect(),
                 'titulaires' => $rencontre->titulairesPourLeDirect(),
+                'maxTitulaires' => $rencontre->joueursSurLeTerrain(),
                 'maintenant' => self::maintenant(),
             ],
             'meteos' => Rencontre::METEOS,
@@ -160,7 +161,9 @@ class MatchDirectController extends AbstractController
         }
         // Titulaires choisis sur la tablette (joueurs du match seulement) ; la dernière tablette qui les change l'emporte.
         if (\is_array($donnees['titulaires'] ?? null)) {
-            $rencontre->setTitulairesDirect(array_values(array_filter(array_map('intval', $donnees['titulaires']), fn (int $id) => isset($joueurs[$id]))));
+            // Joueurs du match seulement, et pas plus que de joueurs sur le terrain.
+            $choisis = array_values(array_filter(array_map('intval', $donnees['titulaires']), fn (int $id) => isset($joueurs[$id])));
+            $rencontre->setTitulairesDirect(\array_slice($choisis, 0, $rencontre->joueursSurLeTerrain()));
         }
         // Numéros de maillot donnés sur la tablette (1 à 99, vide : effacé), pour les joueurs du match seulement.
         foreach ((array) ($donnees['numeros'] ?? []) as $joueurId => $numero) {

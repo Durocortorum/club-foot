@@ -61,6 +61,8 @@ class RencontreType extends AbstractType
                 // catégories dont les joueurs peuvent être surclassés dans celle-ci (contrôleur « feuille »).
                 'choice_attr' => fn (Categorie $c) => [
                     'data-duree' => $c->getDureeMatch(),
+                    // Joueurs sur le terrain (sans système choisi) : nombre maximum de titulaires (contrôleur « feuille »).
+                    'data-joueurs' => Categorie::joueursParDefaut($c->getNom()),
                     'data-surclassement' => implode(',', array_map(fn (Categorie $a) => $a->getId(),
                         array_filter($toutes, fn (Categorie $a) => $c->accueilleEnSurclassement($a)))),
                 ],

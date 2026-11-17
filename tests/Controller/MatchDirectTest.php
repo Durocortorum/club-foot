@@ -137,9 +137,10 @@ class MatchDirectTest extends WebTestCase
         self::assertSame(9, $numeros[$tomId]);
         self::assertNull($numeros[$leoId]);
 
-        // Titulaires : ceux de la feuille de match (Tom et Léo, ajoutés sans numéro : titulaires d'office) ; choisis sur
-        // la tablette, ils sont communs aux tablettes (joueurs du match seulement) et cochés sur la feuille.
-        self::assertEqualsCanonicalizing([$tomId, $leoId], $config['titulaires']);
+        // Titulaires : ceux de la feuille de match (Tom et Léo, ajoutés sans numéro : pas encore titulaires) ; choisis
+        // sur la tablette, ils sont communs aux tablettes (joueurs du match seulement) et cochés sur la feuille.
+        self::assertSame([], $config['titulaires']);
+        self::assertSame(11, $config['maxTitulaires'], 'U15 sans système choisi : foot à 11');
         $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'],
             json_encode(['jeton' => $config['jeton'], 'titulaires' => [$tomId, 999999]]));
         self::assertSame([$tomId], json_decode($client->getResponse()->getContent(), true)['titulaires']);

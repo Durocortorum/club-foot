@@ -140,6 +140,8 @@
                 <input type="checkbox" data-feuille-target="autres" data-action="feuille#filtrer">
                 Afficher tous les joueurs du club (cas exceptionnel)
             </label>
+            {# Titulaires cochés / joueurs sur le terrain (feuille_controller.js) : jamais plus que le terrain n'en compte. #}
+            <p class="compte-titulaires" data-feuille-compte aria-live="polite"></p>
             {{ s.collection(form.participations, ['N°', 'Titulaire', 'Joueur', 'Poste', 'Min.', 'Note', 'Carton', 'Appréciation'], ['numero', 'titulaire', 'joueur', 'poste', 'tempsJeu', 'note', 'carton|minuteCarton', 'appreciation'], '+ Ajouter un joueur') }}
         </fieldset>
 

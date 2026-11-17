@@ -40,24 +40,34 @@ export default class extends Controller {
             }
         });
         // Numéros, postes et minutes changent l'état du terrain. Un numéro coche « Titulaire » (1 à 11) tant que la
-        // case n'a pas été changée à la main sur cette ligne.
+        // case n'a pas été changée à la main sur cette ligne, et seulement s'il reste une place sur le terrain.
         this.element.addEventListener('input', (event) => {
             if (event.target.matches('[data-feuille-numero]')) {
                 const caseTitulaire = event.target.closest('tr')?.querySelector('[data-feuille-titulaire]');
                 const numero = parseInt(event.target.value, 10);
-                if (caseTitulaire && !caseTitulaire.dataset.manuel) caseTitulaire.checked = isNaN(numero) || numero <= 11;
+                if (caseTitulaire && !caseTitulaire.dataset.manuel) {
+                    caseTitulaire.checked = !isNaN(numero) && numero <= 11 && (caseTitulaire.checked || this.titulaires().size < this.maxTitulaires());
+                }
             }
             if (event.target.matches('[data-feuille-numero], [data-feuille-poste], [data-feuille-minute]')) {
                 this.filtrer();
             }
         });
-        // Case « Titulaire » changée à la main : gardée telle quelle, et le terrain est recalculé.
+        // Case « Titulaire » changée à la main : gardée telle quelle (refusée si le terrain est déjà complet).
         this.element.addEventListener('change', (event) => {
             if (event.target.matches('[data-feuille-titulaire]')) {
+                if (event.target.checked && this.titulaires().size > this.maxTitulaires()) {
+                    event.target.checked = false;
+                    this.compterTitulaires(`Déjà ${this.maxTitulaires()} titulaires : décochez d'abord un titulaire pour le mettre sur le banc.`);
+                    return;
+                }
                 event.target.dataset.manuel = '1';
                 this.filtrer();
             }
+            // Système de jeu ou catégorie : le nombre de joueurs sur le terrain change.
+            if (event.target.matches('[name="rencontre[systeme]"]')) this.compterTitulaires();
         });
+        this.compterTitulaires();
     }
 
     // Lignes ajoutées ou retirées par le contrôleur « collection ».
@@ -110,6 +120,7 @@ export default class extends Controller {
         if (this.pret) {
             this.tempsGardes = false;
             this.appliquerTemps();
+            this.compterTitulaires();
         }
     }
 
@@ -123,6 +134,28 @@ export default class extends Controller {
         const poste = (ligne.querySelector('[data-feuille-poste]')?.value ?? '').trim().toLowerCase();
         const caseTitulaire = ligne.querySelector('[data-feuille-titulaire]');
         return poste !== 'non utilisé' && (caseTitulaire ? caseTitulaire.checked : true);
+    }
+
+    /**
+     * Joueurs sur le terrain (gardien compris) : d'après le système de jeu choisi (« 4 4 2 » : 11), sinon la
+     * catégorie (foot à 5, à 8 ou à 11). Même règle que Rencontre::joueursSurLeTerrain().
+     */
+    maxTitulaires() {
+        const systeme = this.element.querySelector('[name="rencontre[systeme]"]')?.value ?? '';
+        const chiffres = systeme.match(/\d+/g);
+        if (chiffres) return chiffres.reduce((s, n) => s + Number(n), 0) + 1;
+        const joueurs = this.hasCategorieTarget ? parseInt(this.categorieTarget.selectedOptions[0]?.dataset.joueurs, 10) : NaN;
+        return joueurs > 0 ? joueurs : 11;
+    }
+
+    /** « Titulaires : 9 / 11 », en rouge s'il y en a trop (l'enregistrement est alors refusé). */
+    compterTitulaires(message = '') {
+        const zone = this.element.querySelector('[data-feuille-compte]');
+        if (!zone) return;
+        const n = this.titulaires().size;
+        const max = this.maxTitulaires();
+        zone.textContent = message || `Titulaires cochés : ${n} / ${max}${n > max ? ' — trop de titulaires : décochez les remplaçants.' : ''}`;
+        zone.classList.toggle('trop', !!message || n > max);
     }
 
     titulaires() {

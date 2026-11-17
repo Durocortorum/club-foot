@@ -902,6 +902,38 @@ class Rencontre implements AppartientAuClub
     }
 
     /**
+     * Joueurs sur le terrain (gardien compris) : d'après le système de jeu s'il est choisi (« 4 4 2 » : 11),
+     * sinon d'après la catégorie (foot à 5, à 8 ou à 11).
+     */
+    public function joueursSurLeTerrain(): int
+    {
+        if (preg_match_all('/\d+/', (string) $this->systeme, $m) && $m[0]) {
+            return array_sum(array_map('intval', $m[0])) + 1;
+        }
+
+        return Categorie::joueursParDefaut($this->categorie?->getNom());
+    }
+
+    public function nombreTitulaires(): int
+    {
+        return \count(array_filter($this->participations->toArray(), fn (Participation $p) => $p->getJoueur() && $p->isTitulaire()));
+    }
+
+    /**
+     * Pas plus de titulaires que de joueurs sur le terrain : message d'erreur si la feuille en compte trop et en
+     * compte plus qu'avant (les anciennes feuilles importées déjà au-dessus restent enregistrables).
+     */
+    public function erreurTitulaires(int $avant = 0): ?string
+    {
+        $max = $this->joueursSurLeTerrain();
+        $n = $this->nombreTitulaires();
+
+        return $n > $max && $n > $avant
+            ? \sprintf('Trop de titulaires : %d cochés pour %d joueurs sur le terrain. Décochez « Titulaire » pour les remplaçants.', $n, $max)
+            : null;
+    }
+
+    /**
      * Buteur, passeur et joueur averti doivent être sur le terrain à la minute du but ou du carton.
      * Seuls les buts et cartons saisis ou modifiés sont contrôlés (voir But::$aControler) : les anciens
      * matchs aux remplacements incomplets restent enregistrables.

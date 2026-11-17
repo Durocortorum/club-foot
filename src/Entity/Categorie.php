@@ -79,6 +79,20 @@ class Categorie implements AppartientAuClub
         };
     }
 
+    /** Joueurs sur le terrain d'après le nom (gardien compris) : foot à 5 jusqu'en U9, à 8 en U10 – U13, à 11 ensuite. */
+    public static function joueursParDefaut(?string $nom): int
+    {
+        if (!preg_match('/^U\s?(\d+)/i', trim((string) $nom), $m)) {
+            return 11;
+        }
+
+        return match (true) {
+            (int) $m[1] <= 9 => 5,
+            (int) $m[1] <= 13 => 8,
+            default => 11,
+        };
+    }
+
     public function getId(): ?int
     {
         return $this->id;

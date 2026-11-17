@@ -141,5 +141,14 @@ class CompositionTest extends WebTestCase
         self::assertCount(11, $crawler->filter('.terrain-compo .pion'));
         self::assertCount(1, $crawler->filter('.terrain-compo .pion[data-joueur="' . $participations[23]->getJoueur()->getId() . '"]'), 'n° 23 sur le terrain');
         self::assertStringContainsString('JOUEUR11', $crawler->filter('.banc')->text(), 'n° 11 sur le banc');
+
+        // Jamais plus de titulaires que de joueurs sur le terrain : un 12e coché est refusé ; une ancienne feuille
+        // déjà au-dessus (12 avant) reste enregistrable.
+        self::assertSame(11, $match->setSysteme('4 4 2')->joueursSurLeTerrain());
+        $participations[11]->setTitulaire(true);
+        self::assertStringContainsString('Trop de titulaires : 12 cochés pour 11', (string) $match->erreurTitulaires(11));
+        self::assertNull($match->erreurTitulaires(12));
+        // Système de foot à 8 : 8 joueurs sur le terrain.
+        self::assertSame(8, $match->setSysteme('3 3 1')->joueursSurLeTerrain());
     }
 }

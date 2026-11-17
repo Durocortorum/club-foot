@@ -22,6 +22,7 @@ use App\Service\BilanEquipe;
 use App\Service\CompositionTerrain;
 use App\Service\ImportMatchs;
 use App\Service\SynchroFeuille;
+use Symfony\Component\Form\FormError;
 use App\Service\SuiviDisciplinaire;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -396,7 +397,12 @@ class RencontreController extends AbstractController
 
             return $this->redirectToRoute('app_rencontre_modifier', ['id' => $rencontre->getId()]);
         }
+        $titulairesAvant = $rencontre->nombreTitulaires();
         $form->handleRequest($request);
+        // Jamais plus de titulaires que de joueurs sur le terrain (on ne peut pas en ajouter au-delà).
+        if ($form->isSubmitted() && ($erreur = $rencontre->erreurTitulaires($titulairesAvant))) {
+            $form->addError(new FormError($erreur));
+        }
 
         if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($rencontre);

@@ -338,6 +338,14 @@ export default class extends Controller {
     basculerTitulaire(event) {
         const id = Number(event.currentTarget.dataset.joueurTitulaire);
         const liste = new Set(this.titulaires());
+        const max = this.cfg.maxTitulaires || 11;
+        if (!liste.has(id) && liste.size >= max) {
+            // Terrain complet : il faut d'abord remettre un titulaire sur le banc.
+            this.messageTitulaires = `Déjà ${max} titulaires (joueurs sur le terrain) : touchez d'abord un titulaire pour le mettre sur le banc.`;
+            this.dessinerJoueurs();
+            return;
+        }
+        this.messageTitulaires = null;
         if (liste.has(id)) liste.delete(id); else liste.add(id);
         this.cfg.titulaires = [...liste];
         this.titulairesAEnvoyer = this.cfg.titulaires;
@@ -351,7 +359,7 @@ export default class extends Controller {
         if (this.editionTitulaires) {
             // Choix des titulaires : toucher un joueur le met sur le terrain ou sur le banc.
             const titulaires = this.titulaires();
-            this.joueursTarget.innerHTML = `<p class="consigne-titulaires">Touchez les joueurs sur le terrain au coup d'envoi : <b>${titulaires.length}</b> titulaire${titulaires.length > 1 ? 's' : ''}.</p>`
+            this.joueursTarget.innerHTML = `<p class="consigne-titulaires">Touchez les joueurs sur le terrain au coup d'envoi : <b>${titulaires.length} / ${this.cfg.maxTitulaires || 11}</b> titulaires.${this.messageTitulaires ? `<br><span class="alerte-titulaires">${this.echapper(this.messageTitulaires)}</span>` : ''}</p>`
                 + this.cfg.joueurs.map((j) => `<button type="button" class="tuile-joueur${titulaires.includes(j.id) ? ' titulaire' : ' banc'}" data-joueur-titulaire="${j.id}" data-action="direct#basculerTitulaire" aria-pressed="${titulaires.includes(j.id)}">
                 <span class="num${j.numero ? '' : ' sans'}">${j.numero ?? '?'}</span><span class="nom">${this.echapper(j.nom)}</span><span class="prenom">${titulaires.includes(j.id) ? '⚽ Terrain' : 'Banc'}</span></button>`).join('');
             return;

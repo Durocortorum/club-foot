@@ -513,6 +513,10 @@ class SynchroFeuille
         if (null !== ($choisis = $rencontre->getTitulairesDirect())) {
             $p->setTitulaire(\in_array((int) $joueur->getId(), $choisis, true));
         }
+        // Jamais plus de titulaires que de joueurs sur le terrain.
+        if ($p->getTitulaire() && $rencontre->nombreTitulaires() >= $rencontre->joueursSurLeTerrain()) {
+            $p->setTitulaire(false);
+        }
         $rencontre->addParticipation($p);
         $this->ajoutes[] = trim($joueur->getPrenom() . ' ' . $joueur->getNom());
 
@@ -528,6 +532,9 @@ class SynchroFeuille
                 $p = (new Participation())->setJoueur($c->getJoueur())->setNumero($rencontre->getNumerosDirect()[$c->getJoueur()->getId()] ?? null);
                 if (null !== $choisis) {
                     $p->setTitulaire(\in_array((int) $c->getJoueur()->getId(), $choisis, true));
+                }
+                if ($p->getTitulaire() && $rencontre->nombreTitulaires() >= $rencontre->joueursSurLeTerrain()) {
+                    $p->setTitulaire(false);
                 }
                 $rencontre->addParticipation($p);
             }
