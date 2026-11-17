@@ -32,12 +32,13 @@
             {% endif %}
         </div>
         <div class="actions">
+            {# Dans l'ordre de la vie du match : convocation, feuille de match, direct, statistiques, transport. #}
             <a class="bouton" href="{{ path('app_convocation', {id: rencontre.id}) }}">{{ convocation ? 'Convocation' : 'Convoquer' }}</a>
+            <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}" title="Modifier le match : feuille de match (joueurs, numéros, postes), score, buts, remplacements, conditions, rapport">Feuille de match</a>
             <a class="bouton" href="{{ path('app_match_direct', {id: rencontre.id}) }}" title="Noter les actions pendant le match sur la tablette ou le téléphone : joueur, action, zone, minute">⏱ En direct</a>
             <a class="bouton" href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}" title="Passes, duels, frappes… par joueur, carte du terrain, quarts d'heure">Statistiques du direct</a>
             {% if rencontre.butsPour is not null %}<a class="bouton" href="{{ path('app_message_nouveau', {compte_rendu: rencontre.id}) }}" title="Envoyer le score et les buteurs aux familles de l'équipe, avec votre mot">Compte rendu aux familles</a>{% endif %}
             {% if not rencontre.aDomicile %}<a class="bouton" href="{{ path('app_transport_nouveau', {match: rencontre.id}) }}" title="Noter le déplacement : car, minibus, voitures et frais kilométriques">Transport</a>{% endif %}
-            <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Modifier</a>
             {{ m.supprimer(path('app_rencontre_supprimer', {id: rencontre.id}), 'supprimer-match' ~ rencontre.id, 'Supprimer ce match et sa feuille de match ?') }}
         </div>
     </div>
@@ -171,8 +172,19 @@
                     </tbody>
                 </table>
             </div>
+            <div class="actions-ligne">
+                <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}#feuille-de-match">Modifier la feuille de match</a>
+                <a class="bouton" href="{{ path('app_rencontre_composition', {id: rencontre.id}) }}">Composition sur le terrain</a>
+            </div>
+            <p class="discret petit">Numéros 1 à 11 : titulaires, placés sur le terrain dans « Composition sur le terrain ».</p>
         {% else %}
-            <p class="discret">Feuille de match non remplie.</p>
+            <div class="carte">
+                <p class="sans-marge">La feuille de match n'est pas encore remplie{{ convocation ? ' : elle se préremplit avec les joueurs présents à la convocation' }}.</p>
+            </div>
+            <div class="actions-ligne">
+                <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}#feuille-de-match">Remplir la feuille de match</a>
+            </div>
+            <p class="discret petit">Donnez ensuite les numéros (1 à 11 : titulaires) et les postes, puis placez les titulaires dans « Composition sur le terrain ».</p>
         {% endif %}
     </section>
 {% endblock %}
