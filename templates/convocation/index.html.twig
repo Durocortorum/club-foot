@@ -24,40 +24,6 @@
         {% set presents = convocation.parReponse('present') %}
         {% set absents = convocation.parReponse('absent') %}
         {% set attente = convocation.parReponse(null) %}
-
-        <div class="grille-fiches">
-            <section class="carte">
-                <h2>Envoi</h2>
-                {% if convocation.envoyeeLe %}
-                    <p>Envoyée aux familles le {{ convocation.envoyeeLe|date('d/m/Y à H:i') }}.</p>
-                {% else %}
-                    <p><span class="pastille alerte">pas encore envoyée</span> Les familles ne voient la convocation qu'une fois envoyée.</p>
-                {% endif %}
-                <div class="actions-ligne">
-                    <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
-                        <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
-                        <button class="bouton principal">{{ convocation.envoyeeLe ? 'Renvoyer à tous' : 'Envoyer aux familles' }}</button>
-                    </form>
-                    {% if convocation.envoyeeLe and attente %}
-                        <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
-                            <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
-                            <input type="hidden" name="relance" value="1">
-                            <button class="bouton">{{ attente|length > 1 ? 'Relancer les ' ~ attente|length ~ ' joueurs sans réponse' : 'Relancer le joueur sans réponse' }}</button>
-                        </form>
-                    {% endif %}
-                </div>
-                <p class="discret petit">Un e-mail part vers chaque compte famille actif. Pour les autres : message du groupe ci-contre, ou boutons « SMS » du tableau des réponses (en bas de la page) (depuis un téléphone, le SMS s'ouvre tout prêt).</p>
-            </section>
-
-            <section class="carte" data-controller="copier" data-copier-texte-value="{{ message_groupe }}">
-                <h2>Message pour le groupe</h2>
-                <p class="memo petit">{{ message_groupe }}</p>
-                <div class="actions-ligne">
-                    <button type="button" class="bouton petit" data-action="copier#copier" data-copier-target="bouton">Copier le message</button>
-                    <a class="bouton petit" href="https://wa.me/?text={{ message_groupe|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
-                </div>
-            </section>
-        </div>
     {% endif %}
 
     {# Déplacement (module Transport), en premier : repris dans la convocation envoyée,
@@ -196,5 +162,42 @@
             </form>
             <datalist id="motifs-absence">{% for mo in motifs %}<option value="{{ mo }}">{% endfor %}</datalist>
         </section>
+    {% endif %}
+
+    {# Envoi aux familles et message pour le groupe, tout en bas. #}
+    {% if convocation %}
+        <div class="grille-fiches">
+            <section class="carte">
+                <h2>Envoi</h2>
+                {% if convocation.envoyeeLe %}
+                    <p>Envoyée aux familles le {{ convocation.envoyeeLe|date('d/m/Y à H:i') }}.</p>
+                {% else %}
+                    <p><span class="pastille alerte">pas encore envoyée</span> Les familles ne voient la convocation qu'une fois envoyée.</p>
+                {% endif %}
+                <div class="actions-ligne">
+                    <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
+                        <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
+                        <button class="bouton principal">{{ convocation.envoyeeLe ? 'Renvoyer à tous' : 'Envoyer aux familles' }}</button>
+                    </form>
+                    {% if convocation.envoyeeLe and attente %}
+                        <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
+                            <input type="hidden" name="relance" value="1">
+                            <button class="bouton">{{ attente|length > 1 ? 'Relancer les ' ~ attente|length ~ ' joueurs sans réponse' : 'Relancer le joueur sans réponse' }}</button>
+                        </form>
+                    {% endif %}
+                </div>
+                <p class="discret petit">Un e-mail part vers chaque compte famille actif. Pour les autres : message du groupe ci-contre, ou boutons « SMS » du tableau des réponses au-dessus (depuis un téléphone, le SMS s'ouvre tout prêt).</p>
+            </section>
+
+            <section class="carte" data-controller="copier" data-copier-texte-value="{{ message_groupe }}">
+                <h2>Message pour le groupe</h2>
+                <p class="memo petit">{{ message_groupe }}</p>
+                <div class="actions-ligne">
+                    <button type="button" class="bouton petit" data-action="copier#copier" data-copier-target="bouton">Copier le message</button>
+                    <a class="bouton petit" href="https://wa.me/?text={{ message_groupe|url_encode }}" target="_blank" rel="noopener">WhatsApp</a>
+                </div>
+            </section>
+        </div>
     {% endif %}
 {% endblock %}
