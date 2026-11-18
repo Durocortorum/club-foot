@@ -508,16 +508,8 @@ class SynchroFeuille
         if ($p = $this->participation($rencontre, (int) $joueur->getId())) {
             return $p;
         }
-        $p = (new Participation())->setJoueur($joueur)->setNumero($rencontre->getNumerosDirect()[$joueur->getId()] ?? null);
-        // Titulaire choisi sur la tablette (« ⚽ Titulaires ») : repris ; sinon d'après le numéro.
-        if (null !== ($choisis = $rencontre->getTitulairesDirect())) {
-            $p->setTitulaire(\in_array((int) $joueur->getId(), $choisis, true));
-        }
-        // Jamais plus de titulaires que de joueurs sur le terrain.
-        if ($p->getTitulaire() && $rencontre->nombreTitulaires() >= $rencontre->joueursSurLeTerrain()) {
-            $p->setTitulaire(false);
-        }
-        $rencontre->addParticipation($p);
+        // Numéro (tablette, sinon premier libre) et titulaire (tablette, sinon numéro ; jamais au-delà du terrain).
+        $p = $rencontre->ajouterAFeuille($joueur);
         $this->ajoutes[] = trim($joueur->getPrenom() . ' ' . $joueur->getNom());
 
         return $p;
@@ -527,16 +519,8 @@ class SynchroFeuille
     private function preremplir(Rencontre $rencontre): void
     {
         if ($rencontre->getParticipations()->isEmpty() && ($convocation = $this->convocations->pour($rencontre))) {
-            $choisis = $rencontre->getTitulairesDirect();
             foreach ($convocation->parReponse(Convoque::PRESENT) as $c) {
-                $p = (new Participation())->setJoueur($c->getJoueur())->setNumero($rencontre->getNumerosDirect()[$c->getJoueur()->getId()] ?? null);
-                if (null !== $choisis) {
-                    $p->setTitulaire(\in_array((int) $c->getJoueur()->getId(), $choisis, true));
-                }
-                if ($p->getTitulaire() && $rencontre->nombreTitulaires() >= $rencontre->joueursSurLeTerrain()) {
-                    $p->setTitulaire(false);
-                }
-                $rencontre->addParticipation($p);
+                $rencontre->ajouterAFeuille($c->getJoueur());
             }
         }
     }

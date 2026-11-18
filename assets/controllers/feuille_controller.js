@@ -34,6 +34,14 @@ export default class extends Controller {
         this.appliquerTemps();
 
         this.element.addEventListener('change', (event) => {
+            // Joueur choisi sur une ligne sans numéro : le premier numéro libre (1, 2, 3…), modifiable ensuite.
+            if (this.convoqueTargets.includes(event.target) && event.target.value !== '') {
+                const numero = event.target.closest('tr')?.querySelector('[data-feuille-numero]');
+                if (numero && numero.value === '') {
+                    numero.value = this.numeroLibre();
+                    numero.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
             if (this.convoqueTargets.includes(event.target) || this.joueurTargets.includes(event.target)
                 || event.target.matches('[data-feuille-carton], [data-feuille-minute-carton], [data-score-target="butMinute"]')) {
                 this.filtrer();
@@ -134,6 +142,14 @@ export default class extends Controller {
         const poste = (ligne.querySelector('[data-feuille-poste]')?.value ?? '').trim().toLowerCase();
         const caseTitulaire = ligne.querySelector('[data-feuille-titulaire]');
         return poste !== 'non utilisé' && (caseTitulaire ? caseTitulaire.checked : true);
+    }
+
+    /** Premier numéro pas encore porté sur la feuille : 1, 2, 3… */
+    numeroLibre() {
+        const pris = new Set(this.lignesFeuille().map(({ ligne }) => parseInt(ligne.querySelector('[data-feuille-numero]')?.value, 10)).filter((n) => !isNaN(n)));
+        let n = 1;
+        while (pris.has(n)) n += 1;
+        return n;
     }
 
     /**

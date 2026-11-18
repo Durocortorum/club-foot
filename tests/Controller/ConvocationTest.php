@@ -345,13 +345,17 @@ class ConvocationTest extends WebTestCase
         self::assertSelectorTextContains('.flash-info', 'préremplie avec les 2 joueurs');
         $choisis = $crawler->filter('select[name$="[joueur]"] option[selected]')->each(fn ($o) => $o->text());
         self::assertCount(2, $choisis);
+        // Numérotés dans l'ordre (1, 2), titulaires d'office.
+        self::assertEqualsCanonicalizing(['1', '2'], $crawler->filter('input[name$="[numero]"]')->each(fn ($i) => $i->attr('value')));
+        self::assertCount(2, $crawler->filter('input[name$="[titulaire]"][checked]'));
 
-        // --- Convocation supprimée (erreur) : la ligne vierge de Tom quitte la feuille, celle de Léa (n° saisi) reste.
+        // --- Convocation supprimée (erreur) : la ligne de Tom, juste numérotée d'office, quitte la feuille ; celle de
+        // Léa (poste saisi) reste.
         $em = $this->em();
         $em->clear();
         $r = $em->find(Rencontre::class, $rencontre->getId());
-        $r->addParticipation((new Participation())->setClub($r->getClub())->setJoueur($em->find(Joueur::class, $tom->getId())));
-        $r->addParticipation((new Participation())->setClub($r->getClub())->setJoueur($em->find(Joueur::class, $lea->getId()))->setNumero(9));
+        $r->addParticipation((new Participation())->setClub($r->getClub())->setJoueur($em->find(Joueur::class, $tom->getId()))->setNumero(1));
+        $r->addParticipation((new Participation())->setClub($r->getClub())->setJoueur($em->find(Joueur::class, $lea->getId()))->setNumero(2)->setPoste('Gardien'));
         $em->flush();
         $crawler = $this->client->request('GET', "$match/convocation");
         $this->client->submit($crawler->filter('form[action$="/convocation/supprimer"]')->form());

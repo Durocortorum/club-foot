@@ -361,8 +361,9 @@ class ConvocationController extends AbstractController
 
     /**
      * Convocation supprimée (erreur) : ses joueurs quittent aussi la feuille de match, mais seulement
-     * les lignes restées telles que le préremplissage les a créées. Un numéro, un poste, une note,
-     * un carton, une appréciation, un but ou un remplacement : la ligne est gardée.
+     * les lignes restées telles que le préremplissage les a créées. Un poste, une note, un carton,
+     * une appréciation, un but ou un remplacement : la ligne est gardée. (Le numéro ne compte pas :
+     * il est donné d'office, 1, 2, 3…, au préremplissage.)
      */
     /** @param list<Joueur>|null $seulement joueurs à retirer (tous les convoqués par défaut) */
     private function retirerDeLaFeuille(Rencontre $rencontre, Convocation $convocation, ?array $seulement = null): int
@@ -381,7 +382,7 @@ class ConvocationController extends AbstractController
         $retires = 0;
         foreach ($rencontre->getParticipations() as $p) {
             $id = $p->getJoueur()?->getId();
-            $vierge = null === $p->getNumero() && '' === trim((string) $p->getPoste()) && null === $p->getNote()
+            $vierge = '' === trim((string) $p->getPoste()) && null === $p->getNote()
                 && !$p->getCarton() && '' === trim((string) $p->getAppreciation());
             if (\in_array($id, $convoques, true) && $vierge && !\in_array($id, $utilises, true)) {
                 $rencontre->removeParticipation($p);

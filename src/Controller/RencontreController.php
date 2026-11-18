@@ -353,8 +353,8 @@ class RencontreController extends AbstractController
         $prerempli = 0;
         if ($request->isMethod('GET') && $rencontre->getParticipations()->isEmpty() && ($convocation = $convocations->pour($rencontre))) {
             foreach ($convocation->parReponse(Convoque::PRESENT) as $c) {
-                // Numéro éventuellement déjà donné sur la tablette (match en direct).
-                $rencontre->addParticipation((new Participation())->setJoueur($c->getJoueur())->setNumero($rencontre->getNumerosDirect()[$c->getJoueur()->getId()] ?? null));
+                // Numéro donné sur la tablette (match en direct), sinon le premier libre : 1, 2, 3…
+                $rencontre->ajouterAFeuille($c->getJoueur());
                 ++$prerempli;
             }
         }

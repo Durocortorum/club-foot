@@ -914,6 +914,33 @@ class Rencontre implements AppartientAuClub
         return Categorie::joueursParDefaut($this->categorie?->getNom());
     }
 
+    /** Premier numéro libre (1, 2, 3…) : ni sur la feuille, ni déjà donné à un autre joueur sur la tablette. */
+    public function numeroLibre(): int
+    {
+        $pris = array_merge(array_map(fn (Participation $p) => $p->getNumero(), $this->participations->toArray()), array_values($this->getNumerosDirect()));
+        for ($n = 1; \in_array($n, $pris, true); ++$n);
+
+        return $n;
+    }
+
+    /**
+     * Joueur ajouté à la feuille de match : le numéro donné sur la tablette, sinon le premier numéro libre ;
+     * titulaire choisi sur la tablette, sinon d'après le numéro (1 à 11), jamais au-delà des joueurs sur le terrain.
+     */
+    public function ajouterAFeuille(Joueur $joueur): Participation
+    {
+        $p = (new Participation())->setJoueur($joueur)->setNumero($this->getNumerosDirect()[$joueur->getId()] ?? $this->numeroLibre());
+        if (null !== ($choisis = $this->getTitulairesDirect())) {
+            $p->setTitulaire(\in_array((int) $joueur->getId(), $choisis, true));
+        }
+        if ($p->getTitulaire() && $this->nombreTitulaires() >= $this->joueursSurLeTerrain()) {
+            $p->setTitulaire(false);
+        }
+        $this->addParticipation($p);
+
+        return $p;
+    }
+
     /** Joueurs de la feuille qui partagent leur numéro avec un autre (ex. deux n° 4 : 2). */
     public function nombreNumerosEnDouble(): int
     {
