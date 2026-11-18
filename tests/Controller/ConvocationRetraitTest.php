@@ -69,7 +69,7 @@ class ConvocationRetraitTest extends WebTestCase
         }
         $this->client->submit($form);
         $crawler = $this->client->followRedirect();
-        $this->client->submit($crawler->selectButton('Envoyer aux parents')->form());
+        $this->client->submit($crawler->selectButton('Enregistrer et envoyer')->form());
         $crawler = $this->client->followRedirect();
 
         // Tom décoché, enregistré : il n'est plus convoqué.

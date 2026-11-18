@@ -92,20 +92,18 @@
                 {% do form.joueurs.setRendered %}
             </fieldset>
             {{ form_rest(form) }}
-            {# Envoi aux parents : à tous la première fois ; ensuite seulement aux joueurs ajoutés (par exemple pour
-               remplacer des absents), ceux déjà prévenus ne reçoivent rien de plus. #}
+            {# Un seul envoi : la convocation part aux joueurs cochés qui ne l'ont pas encore reçue (tous la première
+               fois, ensuite seulement les joueurs ajoutés) ; personne ne la reçoit deux fois. #}
             {% set deja_envoyee = convocation and convocation.envoyeeLe %}
             <div class="barre-actions">
                 <button type="submit" name="suite" value="envoyer" class="bouton principal"
-                        data-confirmation="{{ deja_envoyee ? 'Enregistrer, puis envoyer la convocation aux parents des joueurs ajoutés ? Ceux déjà prévenus ne reçoivent rien de plus.' : 'Enregistrer, puis envoyer la convocation aux parents des joueurs cochés ?' }}"
-                        data-confirmation-bouton="Envoyer">
-                    {{ deja_envoyee ? 'Enregistrer et envoyer aux joueurs ajoutés' : 'Enregistrer et envoyer aux parents' }}
-                </button>
+                        data-confirmation="{{ deja_envoyee ? 'Enregistrer, puis envoyer la convocation aux joueurs ajoutés (ceux déjà prévenus ne reçoivent rien de plus) ?' : 'Enregistrer, puis envoyer la convocation aux joueurs cochés ?' }}"
+                        data-confirmation-bouton="Envoyer">Enregistrer et envoyer</button>
                 <button type="submit" class="bouton">Enregistrer sans envoyer</button>
             </div>
             <p class="discret petit">
-                {% if deja_envoyee %}Des absents ? Cochez d'autres joueurs, puis « Enregistrer et envoyer aux joueurs ajoutés » : seuls leurs parents reçoivent la convocation.
-                {% else %}Les parents reçoivent un e-mail (et un message dans leur espace) pour répondre présent ou absent.{% endif %}
+                La convocation part aux joueurs cochés qui ne l'ont pas encore reçue (aux parents, ou au joueur s'il est majeur) : tous la première fois, ensuite seulement les joueurs ajoutés.
+                {% if deja_envoyee %}Un convoqué empêché ? « Remplacer » sur sa ligne dans les réponses, puis cochez son remplaçant ici.{% endif %}
             </p>
         {{ form_end(form) }}
     </section>
@@ -127,13 +125,19 @@
                             <tr>
                                 <td class="nowrap principal">
                                     <a href="{{ path('app_joueur_voir', {id: c.joueur.id}) }}"><strong>{{ c.joueur.nom }}</strong> {{ c.joueur.prenom }}</a>
-                                    {% if convocation.envoyeeLe and not c.envoyeLe %}<span class="pastille alerte petit" title="Ajouté après l'envoi : bouton « Envoyer aux parents » pour le prévenir">pas encore prévenu</span>{% endif %}
+                                    {% if convocation.envoyeeLe and not c.envoyeLe %}<span class="pastille alerte petit" title="Ajouté après l'envoi : bouton « Enregistrer et envoyer » pour le prévenir">pas encore prévenu</span>{% endif %}
                                     <form method="post" action="{{ path('app_convocation_retirer', {id: rencontre.id, convoque: c.id}) }}" class="en-ligne"
                                           data-confirmation="Retirer {{ c.joueur.prenom }} {{ c.joueur.nom }} de la convocation ?{{ convocation.envoyeeLe ? ' Sa famille sera prévenue (e-mail et messagerie).' }}"
                                           data-confirmation-bouton="Retirer">
                                         <input type="hidden" name="_token" value="{{ csrf_token('retirer-convoque' ~ c.id) }}">
                                         <button class="lien-discret petit" title="Retirer de la convocation">Retirer</button>
                                     </form>
+                                    {# Empêché (malade, blessé…) : noté absent avec le motif tapé sur sa ligne, puis on coche son remplaçant. #}
+                                    {% if c.reponse != 'absent' %}
+                                        <button type="submit" form="toutes-reponses" name="remplacer" value="{{ c.id }}" class="lien-discret petit"
+                                                formaction="{{ path('app_convocation_remplacer', {id: rencontre.id}) }}"
+                                                title="Noter {{ c.joueur.prenom }} absent (motif tapé sur sa ligne) et choisir son remplaçant">Remplacer</button>
+                                    {% endif %}
                                 </td>
                                 <td class="nowrap large">
                                     {# Famille avec un espace : prévenue par e-mail et dans son espace, pas besoin de SMS. #}
@@ -184,48 +188,6 @@
             <datalist id="motifs-absence">{% for mo in motifs %}<option value="{{ mo }}">{% endfor %}</datalist>
         </section>
 
-        {# Un joueur malade, blessé ou empêché d'ici le match : un autre est convoqué à sa place (ses parents prévenus). #}
-        <section class="bloc" id="remplacer">
-            <h2 class="titre-bloc">{% set etape = etape + 1 %}<span class="etape-num" aria-hidden="true">{{ etape }}</span> Remplacer un joueur convoqué</h2>
-            <form method="post" action="{{ path('app_convocation_remplacer', {id: rencontre.id}) }}">
-                <input type="hidden" name="_token" value="{{ csrf_token('remplacer' ~ convocation.id) }}">
-                <div class="carte">
-                    <div class="champs remplacer-champs">
-                        <div class="champ">
-                            <label for="remplace">Convoqué empêché</label>
-                            <select id="remplace" name="remplace">
-                                <option value="">— Aucun (ajouter seulement) —</option>
-                                {% for c in convocation.convoques %}
-                                    <option value="{{ c.id }}">{{ c.joueur.nom }} {{ c.joueur.prenom }}{{ c.reponse == 'absent' ? ' (absent)' }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="champ">
-                            <label for="motif-remplacement">Motif</label>
-                            <input type="text" id="motif-remplacement" name="motif" list="motifs-absence" placeholder="Malade, blessé…" maxlength="120">
-                        </div>
-                        <div class="champ">
-                            <label for="remplacant">Joueur convoqué à sa place</label>
-                            {# Joueur majeur : c'est lui qui est prévenu, sinon ses parents (texte du bouton adapté au choix). #}
-                            <select id="remplacant" name="joueur" required
-                                    onchange="const b = document.getElementById('bouton-remplacer'); if (b && b.dataset.envoyee) { const o = this.selectedOptions[0]; b.textContent = !o || !o.value ? 'Convoquer et prévenir' : (o.dataset.majeur ? 'Convoquer et prévenir le joueur' : 'Convoquer et prévenir ses parents'); }">
-                                <option value="">— Choisir —</option>
-                                {% for groupe, liste in remplacants %}
-                                    <optgroup label="{{ groupe }}">
-                                        {% for j in liste %}<option value="{{ j.id }}" {{ not j.mineur ? 'data-majeur=1' }}>{{ j.nom }} {{ j.prenom }}</option>{% endfor %}
-                                    </optgroup>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="actions-ligne">
-                    <button type="submit" class="bouton principal" id="bouton-remplacer" {{ convocation.envoyeeLe ? 'data-envoyee=1' }}>{{ convocation.envoyeeLe ? 'Convoquer et prévenir' : 'Convoquer' }}</button>
-                </div>
-                <p class="discret petit">Le convoqué empêché est noté absent (avec le motif) ; le remplaçant est ajouté à la convocation{{ convocation.envoyeeLe ? ' et la reçoit aussitôt (lui-même s\'il est majeur, sinon ses parents)' }}.</p>
-            </form>
-        </section>
-
         {# Envoi aux parents : le premier envoi, puis la convocation définitive (groupe fixé), les joueurs ajoutés, la relance. #}
         {% set pas_prevenus = convocation.convoques|filter(c => not c.envoyeLe)|length %}
         <section class="bloc" id="envoi">
@@ -235,23 +197,21 @@
                     <p class="sans-marge">Envoyée aux parents le {{ convocation.envoyeeLe|date('d/m/Y à H:i') }}.</p>
                     {% if pas_prevenus %}
                         <p class="sans-marge petit"><span class="pastille alerte petit">{{ pas_prevenus }} pas encore prévenu{{ pas_prevenus > 1 ? 's' }}</span>
-                            Bouton « Enregistrer et envoyer aux joueurs ajoutés » (sous les joueurs convoqués), ou la convocation définitive qui part aussi à eux.</p>
+                            Bouton « Enregistrer et envoyer » (sous les joueurs convoqués), ou la convocation définitive qui part aussi à eux.</p>
                     {% endif %}
                 {% else %}
-                    <p class="sans-marge"><span class="pastille alerte">pas encore envoyée</span> Les parents ne voient la convocation qu'une fois envoyée.</p>
+                    <p class="sans-marge"><span class="pastille alerte">pas encore envoyée</span> Les parents ne voient la convocation qu'une fois envoyée : bouton « Enregistrer et envoyer » sous les joueurs convoqués.</p>
                 {% endif %}
             </div>
             <div class="actions-ligne">
-                <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne"
-                      {% if convocation.envoyeeLe %}data-confirmation="Envoyer la convocation définitive aux parents de tous les convoqués (sauf les absents) ?" data-confirmation-bouton="Envoyer"{% endif %}>
-                    <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
-                    {% if convocation.envoyeeLe %}
+                {% if convocation.envoyeeLe %}
+                    <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne"
+                          data-confirmation="Envoyer la convocation définitive aux parents de tous les convoqués (sauf les absents) ?" data-confirmation-bouton="Envoyer">
+                        <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">
                         <input type="hidden" name="definitive" value="1">
                         <button class="bouton principal">📣 Envoyer la convocation définitive</button>
-                    {% else %}
-                        <button class="bouton principal">Envoyer aux parents</button>
-                    {% endif %}
-                </form>
+                    </form>
+                {% endif %}
                 {% if convocation.envoyeeLe and attente %}
                     <form method="post" action="{{ path('app_convocation_envoyer', {id: rencontre.id}) }}" class="en-ligne">
                         <input type="hidden" name="_token" value="{{ csrf_token('envoyer-convocation' ~ convocation.id) }}">

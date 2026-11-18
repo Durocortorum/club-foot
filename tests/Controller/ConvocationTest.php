@@ -136,7 +136,7 @@ class ConvocationTest extends WebTestCase
     }
 
     /**
-     * « Enregistrer et envoyer aux parents » : la première fois à tous ; un joueur ajouté ensuite (pour remplacer
+     * « Enregistrer et envoyer » : la première fois à tous ; un joueur ajouté ensuite (pour remplacer
      * un absent) : seuls ses parents reçoivent la convocation.
      */
     public function testEnvoiAuxJoueursAjoutes(): void
@@ -166,7 +166,7 @@ class ConvocationTest extends WebTestCase
 
         // Léa seule, envoyée tout de suite : un e-mail, à ses parents.
         $crawler = $this->client->request('GET', $page);
-        $form = $crawler->selectButton('Enregistrer et envoyer aux parents')->form();
+        $form = $crawler->selectButton('Enregistrer et envoyer')->form();
         $form['form[joueurs]'][0]->tick(); // Léa, Max
         $this->client->submit($form);
         self::assertEmailCount(1);
@@ -182,8 +182,8 @@ class ConvocationTest extends WebTestCase
         self::assertSelectorTextContains('#reponses', 'pas encore prévenu');
         self::assertSelectorTextContains('#envoi', '1 pas encore prévenu');
 
-        // « Enregistrer et envoyer aux joueurs ajoutés » : seuls les parents de Max reçoivent la convocation.
-        $this->client->submit($crawler->selectButton('Enregistrer et envoyer aux joueurs ajoutés')->form());
+        // « Enregistrer et envoyer » : seuls les parents de Max reçoivent la convocation.
+        $this->client->submit($crawler->selectButton('Enregistrer et envoyer')->form());
         self::assertEmailCount(1);
         self::assertEmailAddressContains(self::getMailerMessage(), 'to', "parent-max-$id@exemple.test");
         $this->client->followRedirect();
@@ -192,21 +192,26 @@ class ConvocationTest extends WebTestCase
 
         // Plus personne de nouveau : rien n'est renvoyé.
         $crawler = $this->client->request('GET', $page);
-        $this->client->submit($crawler->selectButton('Enregistrer et envoyer aux joueurs ajoutés')->form());
+        $this->client->submit($crawler->selectButton('Enregistrer et envoyer')->form());
         self::assertEmailCount(0);
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('.flash-info', 'rien de nouveau');
 
-        // Max tombe malade : Tom le remplace → seuls les parents de Tom reçoivent la convocation ; Max noté absent.
-        $maxConvoque = $this->convoque($rencontre, 'Max');
-        $this->client->submit($crawler->selectButton('Convoquer et prévenir')->form(), [
-            'remplace' => (string) $maxConvoque->getId(), 'motif' => 'Malade', 'joueur' => (string) $tom->getId(),
-        ]);
+        // Max tombe malade : « Remplacer » sur sa ligne (motif tapé) → noté absent, rien n'est envoyé ;
+        // puis Tom coché et « Enregistrer et envoyer » → seuls les parents de Tom reçoivent la convocation.
+        $maxId = $this->convoque($rencontre, 'Max')->getId();
+        $this->client->submit($crawler->filter('button[name="remplacer"][value="' . $maxId . '"]')->form(), ["motif[$maxId]" => 'Malade']);
+        self::assertEmailCount(0);
+        self::assertResponseRedirects();
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-info', 'Cochez son remplaçant');
+        self::assertSame([Convoque::ABSENT, 'Malade'], [$this->convoque($rencontre, 'Max')->getReponse(), $this->convoque($rencontre, 'Max')->getMotif()]);
+        $form = $crawler->selectButton('Enregistrer et envoyer')->form();
+        $form['form[joueurs]'][2]->tick(); // Tom
+        $this->client->submit($form);
         self::assertEmailCount(1);
         self::assertEmailAddressContains(self::getMailerMessage(), 'to', "parent-tom-$id@exemple.test");
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('.flash-succes', 'à la place de Max');
-        self::assertSame([Convoque::ABSENT, 'Malade'], [$this->convoque($rencontre, 'Max')->getReponse(), $this->convoque($rencontre, 'Max')->getMotif()]);
 
         // Convocation définitive : à tous les convoqués sauf les absents (Léa et Tom, pas Max).
         $this->client->submit($crawler->selectButton('📣 Envoyer la convocation définitive')->form());
@@ -264,7 +269,7 @@ class ConvocationTest extends WebTestCase
         // --- Envoi : un e-mail pour la famille de Léa ; Tom n'a pas de compte, il est signalé.
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', "$match/convocation");
-        $this->client->submit($crawler->selectButton('Envoyer aux parents')->form());
+        $this->client->submit($crawler->selectButton('Enregistrer et envoyer')->form());
         self::assertEmailCount(1);
         $email = self::getMailerMessage();
         self::assertEmailAddressContains($email, 'to', "parent-$id@exemple.test");

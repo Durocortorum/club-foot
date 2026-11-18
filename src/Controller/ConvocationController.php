@@ -123,14 +123,6 @@ class ConvocationController extends AbstractController
             'motifs' => Convoque::MOTIFS,
             'niveaux_dessous' => $this->niveauxDessous,
             'niveaux_vides' => $this->niveauxVides($rencontre, $proposes),
-            // Remplaçants possibles (cadre « Remplacer un joueur ») : proposés, ni convoqués ici, ni ailleurs ce week-end.
-            'remplacants' => array_reduce($proposes, function (array $groupes, Joueur $j) use ($dejaIci, $ailleurs, $rencontre) {
-                if (!\in_array($j->getId(), $dejaIci, true) && !$ailleurs($j)) {
-                    $groupes[$this->groupeJoueur($j, $rencontre)][] = $j;
-                }
-
-                return $groupes;
-            }, []),
         ]);
     }
 
@@ -192,52 +184,30 @@ class ConvocationController extends AbstractController
     }
 
     /**
-     * Remplacer un joueur (malade, blessé, empêché) entre la convocation et le match : le remplaçant est convoqué,
-     * ses parents prévenus si la convocation était déjà envoyée ; le joueur remplacé est noté absent.
+     * « Remplacer » sur la ligne d'un convoqué empêché (malade, blessé…) : il est noté absent, avec le motif tapé sur
+     * sa ligne ; on revient aux cases à cocher pour choisir son remplaçant, prévenu par « Enregistrer et envoyer ».
      */
     #[Route('/remplacer', name: 'app_convocation_remplacer', methods: ['POST'])]
-    public function remplacer(Request $request, Rencontre $rencontre, JoueurRepository $joueurs, ConvoqueRepository $convoques, Messagerie $messagerie): Response
+    public function remplacer(Request $request, Rencontre $rencontre): Response
     {
         $convocation = $this->convocations->pour($rencontre) ?? throw $this->createNotFoundException();
-        if (!$this->isCsrfTokenValid('remplacer' . $convocation->getId(), $request->getPayload()->getString('_token'))) {
+        if (!$this->isCsrfTokenValid('reponses-convocation' . $rencontre->getId(), $request->getPayload()->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
-        $retour = $this->redirectToRoute('app_convocation', ['id' => $rencontre->getId(), '_fragment' => 'reponses']);
-        // Remplaçant : un joueur proposable (tous les niveaux), pas déjà convoqué ici ni ailleurs ce jour ou ce week-end.
-        $this->niveauxDessous = 0;
-        $remplacant = null;
-        foreach ($this->joueursProposes($rencontre, $convocation, $joueurs) as $j) {
-            if ($j->getId() === $request->getPayload()->getInt('joueur')) {
-                $remplacant = $j;
-            }
-        }
-        $occupes = $convoques->dejaConvoques($rencontre);
-        if (!$remplacant || \in_array($remplacant, $convocation->getJoueurs(), true) || isset($occupes[$remplacant->getId()])) {
-            $this->addFlash('erreur', 'Choisissez un joueur qui n\'est pas déjà convoqué (ici ou pour un autre match ce week-end).');
-
-            return $retour;
-        }
+        $id = $request->getPayload()->getInt('remplacer');
+        $motifs = $request->getPayload()->all('motif');
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
-        // Le joueur remplacé : noté absent, avec le motif (malade, blessé…), s'il n'était pas déjà absent.
         foreach ($convocation->getConvoques() as $c) {
-            if ($c->getId() === $request->getPayload()->getInt('remplace') && Convoque::ABSENT !== $c->getReponse()) {
-                $c->repondre(Convoque::ABSENT, $request->getPayload()->getString('motif') ?: 'Remplacé', 'Éducateur : ' . $moi);
-                $remplace = $c->getJoueur();
+            if ($c->getId() === $id) {
+                $c->repondre(Convoque::ABSENT, trim((string) ($motifs[$id] ?? '')) ?: 'Remplacé', 'Éducateur : ' . $moi);
+                $this->em->flush();
+                $this->addFlash('info', \sprintf('%s noté(e) absent(e). Cochez son remplaçant ci-dessous, puis « Enregistrer et envoyer ».', $c->getJoueur()->getNomComplet()));
             }
         }
-        $convocation->setJoueurs([...$convocation->getJoueurs(), $remplacant]);
-        $this->em->flush();
-        $this->addFlash('succes', \sprintf('%s convoqué(e)%s.', $remplacant->getNomComplet(), isset($remplace) ? ' à la place de ' . $remplace->getNomComplet() : ''));
-        if ($convocation->getEnvoyeeLe()) {
-            $this->diffuser($convocation, $messagerie, false, true);
-        } else {
-            $this->addFlash('info', 'La convocation n\'est pas encore envoyée : « Enregistrer et envoyer aux parents » quand elle est prête.');
-        }
 
-        return $retour;
+        return $this->redirectToRoute('app_convocation', ['id' => $rencontre->getId(), '_fragment' => 'joueurs-convoques']);
     }
-
     /** Retirer un joueur de la convocation (erreur, décision du staff) : sa famille est prévenue si elle était déjà envoyée. */
     #[Route('/retirer/{convoque}', name: 'app_convocation_retirer', requirements: ['convoque' => '\d+'], methods: ['POST'])]
     public function retirer(Request $request, Rencontre $rencontre, Convoque $convoque, Messagerie $messagerie): Response

@@ -61,8 +61,8 @@ Le mois en cours : matchs, entraînements (annulés barrés), événements, stag
 
 - **Nouveau match** : équipe, date, heure, domicile / extérieur, adversaire, lieu, compétition.
 - **Importer le calendrier** (Matchs → Importer) : copier-coller la page calendrier de l'équipe sur le site de la FFF ou de Transfermarkt ; ou bouton favori « ➜ Club Foot » à installer dans la barre de favoris et à cliquer sur la page FFF.
-- **Page d'un match** : boutons Convocation, ⏱ En direct, Statistiques du direct, Compte rendu aux familles (quand le score est saisi), Transport (match à l'extérieur), Modifier.
-- **Feuille de match** (bouton « Feuille de match » de la page du match ; « Composition sur le terrain » sous la feuille pour placer les titulaires) : météo, terrain, scores (et mi-temps), joueurs avec numéro, case **Titulaire** (sur le terrain au coup d'envoi : cochée d'office pour les numéros 1 à 11, modifiable, un titulaire peut porter le n° 23 ; jamais plus de titulaires que de joueurs sur le terrain : 11, 8 ou 5 selon la catégorie, ou d'après le système de jeu choisi, avec le compteur « Titulaires cochés : 9 / 11 ») et poste, temps de jeu, note, cartons, remplacements, buts (buteur, passeur, minute, façon de marquer), rapport de l'éducateur. Pour chaque but, **⚽ Placer** (colonne « Terrain ») ouvre le terrain : déplacer le ballon au départ du tir, tirer la flèche jusqu'à l'entrée dans le but, **Valider**, puis enregistrer le match ; les schémas « Buts marqués / encaissés » s'affichent sur la page du match. Si une convocation existe, la feuille est préremplie avec les présents.
+- **Page d'un match** : boutons Convocation, Feuille de match, ⏱ En direct, Statistiques du direct, Compte rendu aux familles (quand le score est saisi), Transport (match à l'extérieur), Supprimer.
+- **Feuille de match** (bouton « Feuille de match » de la page du match ; titulaires placés sur le terrain avec « Placer les joueurs » du cadre Composition) : météo, terrain, scores (et mi-temps), joueurs avec numéro, case **Titulaire** (sur le terrain au coup d'envoi : cochée d'office pour les numéros 1 à 11, modifiable, un titulaire peut porter le n° 23 ; jamais plus de titulaires que de joueurs sur le terrain : 11, 8 ou 5 selon la catégorie, ou d'après le système de jeu choisi, avec le compteur « Titulaires cochés : 9 / 11 ») et poste, temps de jeu, note, cartons, remplacements, buts (buteur, passeur, minute, façon de marquer), rapport de l'éducateur. Pour chaque but, **⚽ Placer** (colonne « Terrain ») ouvre le terrain : déplacer le ballon au départ du tir, tirer la flèche jusqu'à l'entrée dans le but, **Valider**, puis enregistrer le match ; les schémas « Buts marqués / encaissés » s'affichent sur la page du match. Si une convocation existe, la feuille est préremplie avec les présents.
 - **Composition** : schéma du terrain, titulaires placés selon le système de jeu, déplaçables au doigt.
 - **Compte rendu aux familles** : envoie le score et les buteurs aux familles de l'équipe, avec un mot de l'éducateur.
 - **Championnat** : classement de la poule (copié de la FFF), forme, prochain adversaire ; on peut taper les scores des autres matchs de la poule et le classement se recalcule.
@@ -70,10 +70,12 @@ Le mois en cours : matchs, entraînements (annulés barrés), événements, stag
 
 ## Convocations
 
-1. Sur la page du match → **Convocation**.
+1. Sur la page du match → **Convocation** (étapes numérotées : déplacement, rendez-vous, joueurs convoqués, réponses, envoi, message du groupe).
 2. Cocher les joueurs (ceux de l'équipe, et si besoin des catégories voisines), indiquer l'heure et le lieu du rendez-vous et un message.
-3. Envoyer : par e-mail, dans l'espace famille, notification sur le téléphone ; boutons pour WhatsApp ou SMS depuis son téléphone.
-4. Les familles répondent « Présent » ou « Absent » (avec motif) depuis leur espace ; l'éducateur voit les réponses et peut relancer ceux qui n'ont pas répondu.
+3. **Enregistrer et envoyer** : la convocation part (e-mail, espace famille, notification sur le téléphone) aux joueurs cochés **qui ne l'ont pas encore reçue** — tous la première fois, ensuite seulement les joueurs ajoutés. Personne ne la reçoit deux fois. (« Enregistrer sans envoyer » pour préparer à l'avance.) Familles sans espace : bouton SMS depuis le téléphone, ou le message du groupe (WhatsApp).
+4. Les familles répondent « Présent » ou « Absent » (avec motif) depuis leur espace ; l'éducateur voit les réponses et peut **relancer** ceux qui n'ont pas répondu.
+5. **Un convoqué empêché** (malade, blessé…) : taper le motif sur sa ligne dans les réponses, puis **Remplacer** : il est noté absent ; cocher son remplaçant et **Enregistrer et envoyer** (seul le remplaçant la reçoit).
+6. Facultatif : **📣 Envoyer la convocation définitive** quand le groupe est fixé (tous les convoqués sauf les absents).
 Le déplacement (car, minibus, voitures, heure et lieu de départ) apparaît dans la convocation s'il est noté dans Transport.
 - **Noter ou valider toutes les réponses** (éducateur) : réponses reçues par téléphone ou de vive voix : dans le tableau « Réponses » de la convocation, choisir Présent / Absent (et le motif) pour chaque joueur, puis **Enregistrer toutes les réponses** (un seul bouton pour tout le tableau). **Tous les sans-réponse : présents** note d'un coup présents tous ceux qui n'ont pas répondu.
 
