@@ -1229,6 +1229,32 @@ table.droits thead th.droits-nom { z-index: 3; }
     .droits-legende dd { margin-bottom: .4rem; }
 }
 
+/* Feuille de match sur téléphone (joueurs, buts, remplacements) : une carte par ligne, chaque case sous son intitulé,
+   au lieu d'un tableau serré à faire défiler. */
+@media (max-width: 700px) {
+    .liste.saisie thead { display: none; }
+    .liste.saisie, .liste.saisie tbody { display: block; }
+    .table-defile:has(.liste.saisie) { overflow: visible; background: none; border: 0; }
+    .liste.saisie tr {
+        position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem .7rem;
+        margin-bottom: .7rem; padding: .7rem .8rem; background: #fff; border: 1px solid var(--bordure); border-radius: var(--rayon);
+    }
+    .liste.saisie td { display: flex; flex-direction: column; gap: .2rem; padding: 0; border: 0; min-width: 0; }
+    .liste.saisie td[data-label]:not([data-label=""])::before { content: attr(data-label); font-size: .75rem; font-weight: 600; color: var(--gris); }
+    .liste.saisie select, .liste.saisie input:not([type="checkbox"]), .liste.saisie textarea { width: 100%; min-width: 0; font-size: 1rem; }
+    .liste.saisie textarea { min-width: 0; }
+    .liste.saisie select.minute-but, .liste.saisie select.note-liste { width: 100%; }
+    /* Joueur, buteur, sortant/entrant, situation, appréciation : toute la largeur. */
+    .liste.saisie td[data-champ="joueur"], .liste.saisie td[data-champ="buteur"], .liste.saisie td[data-champ="conditions"],
+    .liste.saisie td[data-champ="appreciation"], .liste.saisie td[data-champ="carton"] { grid-column: 1 / -1; }
+    .liste.saisie td[data-champ="joueur"] { order: -1; }
+    /* Case « Titulaire » : à côté de son intitulé. */
+    .liste.saisie td[data-champ="titulaire"] { flex-direction: row; align-items: center; gap: .5rem; }
+    .liste.saisie td[data-champ="titulaire"] input { width: 1.3rem; height: 1.3rem; }
+    /* Retirer la ligne : en bas de la carte, à droite. */
+    .liste.saisie td.retirer-ligne { grid-column: 1 / -1; align-items: flex-end; }
+}
+
 /* Listes sur téléphone (joueurs, matchs) : une fiche par ligne au lieu d'un tableau à faire défiler.
    td.principal : première ligne de la fiche ; td.a-cote : à sa droite (le score) ; data-label : intitulé devant la valeur. */
 @media (max-width: 600px) {

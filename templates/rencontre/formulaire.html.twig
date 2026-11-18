@@ -4,24 +4,25 @@
 {% block title %}{{ titre }}{% endblock %}
 
 {# Ligne d'une collection (feuille de match, buts, remplacements) sous forme de ligne de tableau. #}
-{% macro ligne(entree, champs) %}
+{# Sur téléphone, chaque ligne devient une carte : intitulé (data-label) au-dessus de chaque case. #}
+{% macro ligne(entree, champs, colonnes = []) %}
     <tr data-collection-target="ligne">
         {# « buteur|numeroAdverse » : plusieurs champs dans la même case. #}
         {% for noms in champs %}
-            <td>{% for nom in noms|split('|') %}{{ form_widget(entree[nom]) }}{{ form_errors(entree[nom]) }}{% endfor %}</td>
+            <td data-label="{{ colonnes[loop.index0] ?? '' }}" data-champ="{{ noms|split('|')|first }}">{% for nom in noms|split('|') %}{{ form_widget(entree[nom]) }}{{ form_errors(entree[nom]) }}{% endfor %}</td>
         {% endfor %}
-        <td><button type="button" class="bouton danger petit" data-action="collection#retirer" title="Retirer la ligne">×</button></td>
+        <td class="retirer-ligne"><button type="button" class="bouton danger petit" data-action="collection#retirer" title="Retirer la ligne">×</button></td>
     </tr>
 {% endmacro %}
 
 {% macro collection(champ, colonnes, champs, ajout) %}
     {% import _self as s %}
-    <div data-controller="collection" data-collection-prototype-value="{{ s.ligne(champ.vars.prototype, champs)|e('html_attr') }}" data-collection-index-value="{{ champ|length > 0 ? champ|keys|last + 1 : 0 }}">
+    <div data-controller="collection" data-collection-prototype-value="{{ s.ligne(champ.vars.prototype, champs, colonnes)|e('html_attr') }}" data-collection-index-value="{{ champ|length > 0 ? champ|keys|last + 1 : 0 }}">
         <div class="table-defile">
             <table class="liste saisie">
                 <thead><tr>{% for c in colonnes %}<th>{{ c }}</th>{% endfor %}<th></th></tr></thead>
                 <tbody data-collection-target="corps">
-                    {% for entree in champ %}{{ s.ligne(entree, champs) }}{% endfor %}
+                    {% for entree in champ %}{{ s.ligne(entree, champs, colonnes) }}{% endfor %}
                 </tbody>
             </table>
         </div>
