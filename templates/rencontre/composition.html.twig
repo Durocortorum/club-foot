@@ -33,6 +33,11 @@
                 <button type="submit" name="action" value="replacer" class="bouton" data-confirmation="Replacer tous les joueurs selon le système choisi ? Les places déplacées à la main seront perdues." data-confirmation-bouton="Replacer">Replacer selon le système</button>
             </div>
 
+            {# Joueurs déplacés à la main : la disposition n'est plus celle du système affiché. #}
+            {% if rencontre.placements is not empty %}
+                <p class="placement-educateur"><span class="pastille">Placement de l'éducateur</span>
+                    Les joueurs ont été placés à la main{{ rencontre.systeme ? ' (point de départ : ' ~ rencontre.systeme ~ ')' }}. « Replacer selon le système » pour revenir à une organisation type.</p>
+            {% endif %}
             <p class="discret petit">Faites glisser les joueurs à la souris ou au doigt, puis enregistrez. Notre but est en bas.</p>
             {% include 'rencontre/_terrain_compo.html.twig' with {modifiable: true} %}
 

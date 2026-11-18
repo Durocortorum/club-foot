@@ -96,6 +96,7 @@ class CompositionTest extends WebTestCase
         self::assertSame([40.0, 70.0], $place($crawler, 9));
         $crawler = $this->client->request('GET', '/matchs/' . $match->getId());
         self::assertSame([40.0, 70.0], $place($crawler, 9), 'même place sur la page du match');
+        self::assertStringContainsString('Placement de l\'éducateur', $crawler->filter('h2:contains("Composition")')->text(), 'plus le système type');
 
         // Changement de système et retour aux places du système.
         $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/composition');
