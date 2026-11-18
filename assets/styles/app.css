@@ -1,4 +1,6 @@
 :root {
+    /* Vrai rouge (carton rouge, joueur qui sort) : ne suit pas la couleur du club (--rouge). */
+    --rouge-carton: #d62839;
     --rouge: #c8102e;
     --rouge-fonce: #9e0b23;
     --sur-rouge: #ffffff;
@@ -332,7 +334,7 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .changement-fait { padding: .1rem .4rem; border-radius: 999px; background: #fff; border: 1px solid #d5dbd6; white-space: nowrap; }
 .changement-fait .sort, .liste-changements .sort, .changement-fait .entre, .liste-changements .entre { font-size: inherit; margin-left: 0; }
 .champs-changement .sort, .champs-changement .entre { font-size: 1rem; margin-left: 0; }
-.champs-changement .sort { color: var(--rouge); }
+.champs-changement .sort { color: var(--rouge-carton); }
 .champs-changement .entre { color: var(--succes); }
 .dialogue-changement { width: min(30rem, calc(100vw - 2rem)); }
 .champs-changement { display: grid; gap: .6rem; margin: .5rem 0 .7rem; }
@@ -583,7 +585,7 @@ input.majuscules { text-transform: uppercase; }
 .minute { display: inline-block; min-width: 2.5rem; color: var(--gris); font-variant-numeric: tabular-nums; }
 .liste-simple li.adverse { color: var(--gris); }
 .entre { color: var(--succes); font-size: .8rem; }
-.sort { color: var(--rouge); font-size: .8rem; margin-left: .5rem; }
+.sort { color: var(--rouge-carton); font-size: .8rem; margin-left: .5rem; }
 tr.remplacant td { background: #fafafb; }
 .note { font-weight: 700; padding: .05rem .4rem; border-radius: 5px; }
 .note-haute { background: #e5f4ea; color: var(--succes); }
@@ -591,7 +593,7 @@ tr.remplacant td { background: #fafafb; }
 .note-basse { background: var(--danger-clair); color: var(--danger-fonce); }
 .carton { display: inline-block; width: 12px; height: 16px; border-radius: 2px; vertical-align: middle; }
 .carton.jaune { background: #f5c400; }
-.carton.rouge { background: var(--rouge); }
+.carton.rouge { background: var(--rouge-carton); }
 .carton.blanc { background: #fff; border: 1px solid var(--gris); }
 
 /* Saisie en tableau (feuille de match, buts) */
