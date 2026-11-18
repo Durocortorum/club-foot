@@ -30,6 +30,11 @@ h2.titre-leger { font-weight: 400; }
 .remplacer-champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: .7rem 1rem; }
 .remplacer-champs select, .remplacer-champs input { width: 100%; }
 .sans-marge { margin: 0; }
+/* Étapes numérotées (page de la convocation) : pastille ronde devant le titre. */
+.etape-num {
+    display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; margin-right: .35rem;
+    border-radius: 50%; background: var(--bleu, #1f6fd1); color: #fff; font-size: .9rem; font-weight: 700; vertical-align: .1em;
+}
 /* Boutons SMS : seulement sur un téléphone (écran tactile et petit, en hauteur comme en largeur) ; sur tablette et
    ordinateur, qui n'envoient en général pas de SMS, une mention à la place. */
 .seulement-telephone { display: none !important; }

@@ -4,6 +4,8 @@
 {% block title %}Convocation · {{ rencontre }}{% endblock %}
 
 {% block body %}
+    {# Étapes numérotées dans l'ordre de la convocation (déplacement, rendez-vous, joueurs, réponses…). #}
+    {% set etape = 0 %}
     {% set jours = constant('App\\Service\\EnvoiConvocations::JOURS') %}
     <p><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← Retour au match</a></p>
 
@@ -32,7 +34,7 @@
        le message du groupe et l'espace famille. #}
     {% if rencontre.deplacements is not empty or not rencontre.aDomicile %}
         <section class="carte bloc" id="deplacement">
-            <h2 class="titre-leger">Déplacement</h2>
+            <h2 class="titre-leger">{% set etape = etape + 1 %}<span class="etape-num" aria-hidden="true">{{ etape }}</span> Déplacement</h2>
             {% if rencontre.deplacements is not empty %}
                 <ul class="liste-simple">
                     {% for d in rencontre.deplacements %}
@@ -54,12 +56,12 @@
         {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
             {{ form_errors(form) }}
             <fieldset class="carte">
-                <legend>Rendez-vous</legend>
+                <legend>{% set etape = etape + 1 %}<span class="etape-num" aria-hidden="true">{{ etape }}</span> Rendez-vous</legend>
                 {{ m.groupe(form, ['rdvHeure', 'rdvLieu', 'message']) }}
             </fieldset>
 
             <fieldset class="carte" id="joueurs-convoques">
-                <legend>Joueurs convoqués</legend>
+                <legend>{% set etape = etape + 1 %}<span class="etape-num" aria-hidden="true">{{ etape }}</span> Joueurs convoqués</legend>
                 {# Jeunes joueurs appelés (surclassement) : 1, 2, 3 niveaux en dessous, ou tous. #}
                 <nav class="niveaux-dessous petit" aria-label="Niveaux en dessous proposés">
                     <span class="discret">Niveaux en dessous :</span>
@@ -111,7 +113,7 @@
     {% if convocation %}
         <section class="bloc" id="reponses">
             <h2 class="titre-bloc">
-                Réponses
+                {% set etape = etape + 1 %}<span class="etape-num" aria-hidden="true">{{ etape }}</span> Réponses
                 <span class="pastille succes">{{ presents|length }} présent{{ presents|length > 1 ? 's' }}</span>
                 <span class="pastille alerte">{{ absents|length }} absent{{ absents|length > 1 ? 's' }}</span>
                 <span class="pastille">{{ attente|length }} sans réponse</span>
@@ -184,7 +186,7 @@
 
         {# Un joueur malade, blessé ou empêché d'ici le match : un autre est convoqué à sa place (ses parents prévenus). #}
         <section class="bloc" id="remplacer">
-            <h2 class="titre-bloc">Remplacer un joueur</h2>
+            <h2 class="titre-bloc">{% set etape = etape + 1 %}<span class="etape-num" aria-hidden="true">{{ etape }}</span> Remplacer un joueur</h2>
             <form method="post" action="{{ path('app_convocation_remplacer', {id: rencontre.id}) }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('remplacer' ~ convocation.id) }}">
                 <div class="carte">
@@ -225,7 +227,7 @@
         {# Envoi aux parents : le premier envoi, puis la convocation définitive (groupe fixé), les joueurs ajoutés, la relance. #}
         {% set pas_prevenus = convocation.convoques|filter(c => not c.envoyeLe)|length %}
         <section class="bloc" id="envoi">
-            <h2 class="titre-bloc">Envoi aux parents</h2>
+            <h2 class="titre-bloc">{% set etape = etape + 1 %}<span class="etape-num" aria-hidden="true">{{ etape }}</span> Envoi aux parents</h2>
             <div class="carte">
                 {% if convocation.envoyeeLe %}
                     <p class="sans-marge">Envoyée aux parents le {{ convocation.envoyeeLe|date('d/m/Y à H:i') }}.</p>
@@ -263,7 +265,7 @@
         </section>
 
         <section class="bloc" id="message-groupe" data-controller="copier" data-copier-texte-value="{{ message_groupe }}">
-            <h2 class="titre-bloc">Message pour le groupe</h2>
+            <h2 class="titre-bloc">{% set etape = etape + 1 %}<span class="etape-num" aria-hidden="true">{{ etape }}</span> Message pour le groupe</h2>
             <div class="carte">
                 <p class="memo petit sans-marge">{{ message_groupe }}</p>
             </div>
