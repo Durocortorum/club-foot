@@ -131,6 +131,12 @@ class CompositionTest extends WebTestCase
         $participations[23]->setTitulaire(true);
         $participations[11]->setTitulaire(false);
         $match->calculerTempsJeu();
+        // Deux buts du n° 23 : deux petits ballons à côté de son numéro.
+        foreach ([12, 30] as $minute) {
+            $match->addBut((new \App\Entity\But())->setClub($club)->setMinute($minute)->setButeur($participations[23]->getJoueur()));
+        }
+        // Carton jaune du n° 2 : petit carton à côté de son numéro.
+        $participations[2]->setCarton('JJ')->setMinuteCarton('20');
         $em->persist($match);
         $em->flush();
         $duree = $equipe->getDureeMatch() ?: 90;
@@ -140,6 +146,9 @@ class CompositionTest extends WebTestCase
         $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/composition');
         self::assertCount(11, $crawler->filter('.terrain-compo .pion'));
         self::assertCount(1, $crawler->filter('.terrain-compo .pion[data-joueur="' . $participations[23]->getJoueur()->getId() . '"]'), 'n° 23 sur le terrain');
+        self::assertSame('⚽⚽', $crawler->filter('.pion[data-joueur="' . $participations[23]->getJoueur()->getId() . '"] .pion-buts')->text());
+        self::assertCount(1, $crawler->filter('.terrain-compo .pion-buts'), 'seul le buteur a des ballons');
+        self::assertCount(1, $crawler->filter('.pion[data-joueur="' . $participations[2]->getJoueur()->getId() . '"] .pion-cartons .carton.jaune'));
         self::assertStringContainsString('JOUEUR11', $crawler->filter('.banc')->text(), 'n° 11 sur le banc');
 
         // Jamais plus de titulaires que de joueurs sur le terrain : un 12e coché est refusé ; une ancienne feuille

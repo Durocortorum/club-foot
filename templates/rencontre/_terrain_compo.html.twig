@@ -1,4 +1,15 @@
-{# Terrain vu de dessus, notre but en bas : titulaires placés (x, y en %), déplaçables si « modifiable ». #}
+{# Terrain vu de dessus, notre but en bas : titulaires placés (x, y en %), déplaçables si « modifiable ».
+   Buteurs : un petit ballon par but marqué (buts de la feuille de match, contre son camp exclu). #}
+{% set buts_par_joueur = {} %}
+{% for b in rencontre.buts|filter(b => not b.adverse and b.buteur and b.conditions != 'CSC') %}
+    {% set buts_par_joueur = buts_par_joueur|merge({('j' ~ b.buteur.id): (buts_par_joueur['j' ~ b.buteur.id] ?? 0) + 1}) %}
+{% endfor %}
+{% macro ballons(n) %}{% if n %}<span class="pion-buts" title="{{ n }} but{{ n > 1 ? 's' }}">{% if n > 3 %}⚽ ×{{ n }}{% else %}{% for i in 1..n %}⚽{% endfor %}{% endif %}</span>{% endif %}{% endmacro %}
+{# Cartons de la feuille de match : jaune, rouge, jaune puis rouge, blanc (exclusion temporaire). #}
+{% macro cartons(p) %}{% if p.carton %}<span class="pion-cartons" title="{{ p.cartonLibelle }}{{ p.minuteCarton ? ' (' ~ p.minuteCarton ~ '\')' }}">
+    {%- if p.carton == 'J+R' %}<span class="carton jaune"></span><span class="carton rouge"></span>{% else %}<span class="carton {{ p.couleurCarton }}"></span>{% endif -%}
+</span>{% endif %}{% endmacro %}
+{% import _self as compo_m %}
 <div class="terrain-compo{{ modifiable ? ' modifiable' }}" {% if modifiable %}data-composition-target="terrain"{% endif %}>
     <svg class="terrain-lignes" viewBox="0 0 68 105" preserveAspectRatio="none" aria-hidden="true">
         <g fill="none" stroke="rgba(255,255,255,.85)" stroke-width=".35">
@@ -16,7 +27,7 @@
     {% for t in compo.titulaires %}
         {% set j = t.participation.joueur %}
         <div class="pion" style="left: {{ t.x }}%; top: {{ 100 - t.y }}%" data-joueur="{{ j.id }}" {% if modifiable %}data-composition-target="pion"{% endif %} title="{{ j.prenom }} {{ j.nom }}{{ t.participation.poste ? ' – ' ~ t.participation.poste }}">
-            <span class="pion-numero">{{ t.participation.numero }}</span>
+            <span class="pion-tete">{{ compo_m.cartons(t.participation) }}<span class="pion-numero">{{ t.participation.numero }}</span>{{ compo_m.ballons(buts_par_joueur['j' ~ j.id] ?? 0) }}</span>
             <span class="pion-nom">{{ j.nom }}</span>
         </div>
     {% endfor %}
@@ -25,7 +36,7 @@
     <div class="banc">
         <strong>Banc :</strong>
         {% for p in compo.remplacants %}
-            <span class="banc-joueur"><span class="pion-numero petit-pion">{{ p.numero ?? '–' }}</span> {{ p.joueur.prenom }} {{ p.joueur.nom }}{% if p.poste == 'Non utilisé' %} <span class="discret petit">(non utilisé)</span>{% endif %}</span>
+            <span class="banc-joueur"><span class="pion-numero petit-pion">{{ p.numero ?? '–' }}</span> {{ p.joueur.prenom }} {{ p.joueur.nom }}{{ compo_m.ballons(buts_par_joueur['j' ~ p.joueur.id] ?? 0) }}{{ compo_m.cartons(p) }}{% if p.poste == 'Non utilisé' %} <span class="discret petit">(non utilisé)</span>{% endif %}</span>
         {% endfor %}
     </div>
 {% endif %}
