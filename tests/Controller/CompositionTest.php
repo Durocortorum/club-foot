@@ -115,6 +115,7 @@ class CompositionTest extends WebTestCase
         $em->clear();
         self::assertNotSame([], $em->find(Rencontre::class, $match->getId())->getPlacements());
         $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/modifier');
+        self::assertSelectorTextContains('.placement-educateur', 'Placement de l\'éducateur');
         $form = $crawler->filter('form[name="rencontre"]')->form();
         $form['rencontre[systeme]'] = '4 4 2 losange';
         $this->client->submit($form);

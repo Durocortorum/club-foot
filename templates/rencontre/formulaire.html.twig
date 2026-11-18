@@ -122,6 +122,12 @@
         <fieldset class="carte">
             <legend>Conditions</legend>
             {{ m.groupe(form, ['terrain', 'meteo', 'vent', 'temperature', 'systeme']) }}
+            {# Joueurs placés à la main sur le terrain (page « Composition ») : l'organisation n'est plus qu'un point de départ. #}
+            {% if not nouveau and rencontre.placements is not empty %}
+                <p class="placement-educateur"><span class="pastille">Placement de l'éducateur</span>
+                    Les joueurs ont été placés à la main sur le terrain{{ rencontre.systeme ? ' (point de départ : ' ~ rencontre.systeme ~ ')' }}. Changer l'organisation de jeu les replacera selon la nouvelle organisation.
+                    <a href="{{ path('app_rencontre_composition', {id: rencontre.id}) }}">Voir la composition</a></p>
+            {% endif %}
         </fieldset>
 
         <fieldset class="carte">
