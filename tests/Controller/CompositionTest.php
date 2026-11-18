@@ -165,6 +165,13 @@ class CompositionTest extends WebTestCase
         $em->flush();
         $this->client->request('GET', '/matchs/' . $match->getId());
         self::assertSelectorTextContains('.flash-erreur', 'Un même numéro est porté par plusieurs joueurs');
+        // Un joueur entré en cours de match n'est pas titulaire : case décochée.
+        $participations[11]->setTitulaire(true);
+        $match->addRemplacement((new \App\Entity\Remplacement())->setClub($club)->setMinute(3)
+            ->setSortant($participations[1]->getJoueur())->setEntrant($participations[11]->getJoueur()));
+        self::assertSame(['Test JOUEUR11'], $match->decocherTitulairesEntres());
+        self::assertFalse($participations[11]->getTitulaire());
+        self::assertTrue($participations[1]->getTitulaire(), 'le joueur qui sort reste titulaire');
         // Un joueur ne figure qu'une fois sur la feuille.
         self::assertNull($match->erreurJoueursEnDouble());
         $match->addParticipation((new Participation())->setClub($club)->setJoueur($participations[1]->getJoueur()));

@@ -85,6 +85,8 @@ export default class extends Controller {
     joueurTargetDisconnected() { this.filtrer(); }
 
     filtrer() {
+        // Un joueur qui entre en cours de match n'est pas titulaire.
+        this.decocherEntres();
         const categorie = this.hasCategorieTarget ? this.categorieTarget.value : '';
         const surclassables = new Set((this.hasCategorieTarget ? this.categorieTarget.selectedOptions[0]?.dataset.surclassement ?? '' : '')
             .split(',').filter((id) => id !== ''));
@@ -136,6 +138,26 @@ export default class extends Controller {
     // Lignes de la feuille de match : joueur et case du temps de jeu.
     lignesFeuille() {
         return this.convoqueTargets.map((joueur) => ({ joueur, ligne: joueur.closest('tr'), temps: joueur.closest('tr').querySelector('[data-feuille-temps]') }));
+    }
+
+    /**
+     * Joueurs entrés en cours de match (leur premier remplacement les fait entrer) : pas titulaires. Leur case
+     * « Titulaire » est décochée et bloquée, avec l'explication au survol.
+     */
+    decocherEntres() {
+        const premier = new Map();
+        for (const { sortant, entrant } of this.lignesRemplacement()) {
+            if (sortant.value !== '' && !premier.has(sortant.value)) premier.set(sortant.value, 'sort');
+            if (entrant.value !== '' && !premier.has(entrant.value)) premier.set(entrant.value, 'entre');
+        }
+        this.lignesFeuille().forEach(({ joueur, ligne }) => {
+            const caseTitulaire = ligne.querySelector('[data-feuille-titulaire]');
+            if (!caseTitulaire) return;
+            const entre = joueur.value !== '' && premier.get(joueur.value) === 'entre';
+            if (entre) caseTitulaire.checked = false;
+            caseTitulaire.disabled = entre;
+            caseTitulaire.title = entre ? 'Entré en cours de match (remplacement) : pas titulaire.' : 'Titulaire : sur le terrain au coup d\'envoi';
+        });
     }
 
     // Titulaire : case « Titulaire » cochée (d'office pour les n° 1 à 11), hors poste « Non utilisé ».

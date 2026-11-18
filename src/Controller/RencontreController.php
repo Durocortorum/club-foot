@@ -406,6 +406,8 @@ class RencontreController extends AbstractController
         $titulairesAvant = $rencontre->nombreTitulaires();
         $doublonsAvant = $rencontre->nombreNumerosEnDouble();
         $form->handleRequest($request);
+        // Un joueur entré en cours de match n'est pas titulaire (case décochée d'office).
+        $corriges = $form->isSubmitted() ? $rencontre->decocherTitulairesEntres() : [];
         // Jamais plus de titulaires que de joueurs sur le terrain (on ne peut pas en ajouter au-delà),
         // ni deux joueurs avec le même numéro (les anciennes feuilles importées restent enregistrables).
         if ($form->isSubmitted()) {
@@ -429,6 +431,9 @@ class RencontreController extends AbstractController
                 return $this->redirectToRoute('app_convocation', ['id' => $rencontre->getId()]);
             }
             $this->addFlash('succes', 'Match enregistré.');
+            if ($corriges) {
+                $this->addFlash('info', 'Entré' . (\count($corriges) > 1 ? 's' : '') . ' en cours de match, donc pas titulaire' . (\count($corriges) > 1 ? 's' : '') . ' : ' . implode(', ', $corriges) . '.');
+            }
 
             return $this->redirectToRoute('app_rencontre_voir', ['id' => $rencontre->getId()]);
         }

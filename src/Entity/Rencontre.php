@@ -949,6 +949,36 @@ class Rencontre implements AppartientAuClub
         return array_sum(array_filter($numeros, fn (int $fois) => $fois > 1));
     }
 
+    /**
+     * Un joueur entré en cours de match (son premier remplacement le fait entrer) n'est pas titulaire :
+     * sa case est décochée. Renvoie les noms des joueurs corrigés.
+     *
+     * @return list<string>
+     */
+    public function decocherTitulairesEntres(): array
+    {
+        $remplacements = $this->remplacements->toArray();
+        usort($remplacements, fn (Remplacement $a, Remplacement $b) => ($a->getMinute() ?? 999) <=> ($b->getMinute() ?? 999));
+        $premier = [];
+        foreach ($remplacements as $r) {
+            if ($s = $r->getSortant()) {
+                $premier[$s->getId()] ??= 'sort';
+            }
+            if ($e = $r->getEntrant()) {
+                $premier[$e->getId()] ??= 'entre';
+            }
+        }
+        $corriges = [];
+        foreach ($this->participations as $p) {
+            if ($p->getJoueur() && $p->getTitulaire() && 'entre' === ($premier[$p->getJoueur()->getId()] ?? null)) {
+                $p->setTitulaire(false);
+                $corriges[] = $p->getJoueur()->getPrenom() . ' ' . $p->getJoueur()->getNom();
+            }
+        }
+
+        return $corriges;
+    }
+
     /** Un joueur ne figure qu'une fois sur la feuille de match. */
     public function erreurJoueursEnDouble(): ?string
     {

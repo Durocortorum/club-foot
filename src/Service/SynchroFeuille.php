@@ -147,6 +147,8 @@ class SynchroFeuille
         if ($butsChanges) {
             $this->recalculerScore($rencontre);
         }
+        // Joueur entré par un changement noté en direct : pas titulaire.
+        $rencontre->decocherTitulairesEntres();
         $rencontre->calculerTempsJeu();
 
         return $compte;
