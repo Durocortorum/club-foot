@@ -183,9 +183,8 @@
             </div>
             <div class="actions-ligne">
                 <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}#feuille-de-match">Modifier la feuille de match</a>
-                <a class="bouton" href="{{ path('app_rencontre_composition', {id: rencontre.id}) }}">Composition sur le terrain</a>
             </div>
-            <p class="discret petit">Lignes claires : titulaires (case « Titulaire » de la feuille), placés sur le terrain dans « Composition sur le terrain ».</p>
+            <p class="discret petit">Lignes claires : titulaires (case « Titulaire » de la feuille), placés sur le terrain dans « Composition » (bouton « Placer les joueurs »).</p>
         {% else %}
             <div class="carte">
                 <p class="sans-marge">La feuille de match n'est pas encore remplie{{ convocation ? ' : elle se préremplit avec les joueurs présents à la convocation' }}.</p>
@@ -193,7 +192,7 @@
             <div class="actions-ligne">
                 <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}#feuille-de-match">Remplir la feuille de match</a>
             </div>
-            <p class="discret petit">Donnez ensuite les numéros, les postes et cochez les titulaires (d'office pour les numéros 1 à 11), puis placez-les dans « Composition sur le terrain ».</p>
+            <p class="discret petit">Donnez ensuite les numéros, les postes et cochez les titulaires (d'office pour les numéros 1 à 11), puis placez-les sur le terrain dans « Composition » (bouton « Placer les joueurs »).</p>
         {% endif %}
     </section>
 {% endblock %}
