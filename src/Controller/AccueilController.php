@@ -63,7 +63,6 @@ class AccueilController extends AbstractController
             // Option paiement en ligne choisie, mais compte HelloAsso pas encore relié : rappel à l'administrateur.
             'helloasso_a_terminer' => $this->isGranted('ROLE_ADMIN') && $this->getUser()?->getClub()?->isPaiementEnLigne() && !$paiementsEnLigne->connexion($this->getUser()->getClub()),
             'totaux_secteurs' => $totaux,
-            'plus_grande' => max([1, ...array_column(array_merge(...array_values($secteurs)), 'total')]),
             'nb_joueurs' => array_sum($totaux),
             'nb_equipes' => \count($equipes),
             'stages' => $stages->entre($aujourdhui, $aujourdhui->modify('+' . TableauAccueil::HORIZON . ' days'), $equipes),

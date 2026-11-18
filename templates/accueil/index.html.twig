@@ -223,7 +223,6 @@
                     <a class="tuile equipe" href="{{ path('app_joueur_index', {categorie: c.id}) }}">
                         <span class="equipe-niveau">{{ c.nom }}{% if c.feminine %}<span class="pastille feminine" title="Équipe féminine">F</span>{% endif %}</span>
                         <span class="equipe-effectif">{{ c.total }} joueur{{ c.total > 1 ? 's' }}</span>
-                        <span class="equipe-jauge" aria-hidden="true"><span style="width: {{ (100 * c.total / plus_grande)|round }}%"></span></span>
                         <span class="equipe-prochain">
                             {% if c.prochain %}
                                 ⚽ {{ a.jour(c.prochain.date) }} · {{ c.prochain.aDomicile ? 'vs' : '@' }} {{ c.prochain.adversaire }}
