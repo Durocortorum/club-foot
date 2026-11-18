@@ -82,7 +82,9 @@ class JoueurType extends AbstractType
             ->add('niveauScolaire', null, ['label' => 'Classe', 'required' => false])
             ->add('ecole', null, ['label' => 'École', 'required' => false])
             ->add('etablissement', null, ['label' => 'Établissement', 'required' => false])
-            ->add('situationScolaire', null, ['label' => 'Régime', 'required' => false, 'attr' => ['placeholder' => 'Externe, interne CREPS…']]);
+            ->add('situationScolaire', null, ['label' => 'Régime', 'required' => false, 'attr' => ['placeholder' => 'Externe, interne CREPS…']])
+            // Joueur majeur : les bulletins scolaires ne sont suivis que s'il est encore scolarisé.
+            ->add('encoreScolarise', CheckboxType::class, ['label' => 'Majeur encore scolarisé (lycée, études) : garder le suivi des bulletins', 'required' => false]);
 
         if ($options['avec_medical']) {
             $builder

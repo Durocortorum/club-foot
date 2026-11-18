@@ -56,6 +56,12 @@ class JoueurMajeurParentsTest extends WebTestCase
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', '/joueurs/' . $joueur->getId());
         self::assertSelectorTextContains('#famille', 'majeur');
+        // Majeur pas « encore scolarisé » : pas de bulletins scolaires ; coché, ils reviennent.
+        self::assertStringNotContainsString('Bulletins scolaires', $crawler->filter('main')->text());
+        $this->em()->find(Joueur::class, $joueur->getId())->setEncoreScolarise(true);
+        $this->em()->flush();
+        self::assertStringContainsString('Bulletins scolaires', $this->client->request('GET', '/joueurs/' . $joueur->getId())->filter('main')->text());
+        $crawler = $this->client->request('GET', '/joueurs/' . $joueur->getId());
         // Majeur : le parent de la fiche est repris dans « Personnes à contacter » (visible, plus en double ni caché).
         self::assertSelectorTextContains('#proches-' . $joueur->getId(), $parent);
         $proche = $this->em()->getRepository(Proche::class)->findOneBy(['joueur' => $joueur->getId()]);

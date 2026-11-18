@@ -54,6 +54,8 @@
         <fieldset class="carte">
             <legend>Scolarité</legend>
             {{ m.groupe(form, ['niveauScolaire', 'ecole', 'etablissement', 'situationScolaire']) }}
+            {# Joueur majeur : bulletins scolaires suivis seulement s'il est encore scolarisé. #}
+            {{ m.groupe(form, ['encoreScolarise']) }}
         </fieldset>
 
         {% if form.numeroSecu is defined %}

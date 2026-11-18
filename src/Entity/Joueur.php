@@ -239,6 +239,28 @@ class Joueur implements AppartientAuClub
         return $this->getAge() === null || $this->getAge() < 18;
     }
 
+    /** Joueur majeur encore scolarisé (lycée, études) : son suivi scolaire (bulletins) reste affiché. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $encoreScolarise = false;
+
+    public function isEncoreScolarise(): bool
+    {
+        return $this->encoreScolarise;
+    }
+
+    public function setEncoreScolarise(bool $encoreScolarise): static
+    {
+        $this->encoreScolarise = $encoreScolarise;
+
+        return $this;
+    }
+
+    /** Suivi scolaire (bulletins) : pour un mineur, ou un majeur encore scolarisé. */
+    public function isSuiviScolaire(): bool
+    {
+        return $this->isMineur() || $this->encoreScolarise;
+    }
+
     /** Un renseignement sur les parents est-il saisi (nom, profession, téléphone ou e-mail) ? */
     public function hasInfosParents(): bool
     {

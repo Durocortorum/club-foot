@@ -346,7 +346,8 @@
     {# Droit Scolarité : « voir » ou « modifier ». Les éducateurs du joueur voient aussi ses sanctions (suspensions). #}
     {% if scol_voir or disc_voir or sanctions %}
         <section class="bloc" id="scolarite">
-            {% if scol_voir %}
+            {# Bulletins : pour un mineur, ou un majeur encore scolarisé (case de la fiche). #}
+            {% if scol_voir and joueur.suiviScolaire %}
                 <div class="titre-page">
                     <h2 class="titre-bloc">Bulletins scolaires</h2>
                     {% if scol_modif %}<a class="bouton" href="{{ path('app_bulletin_nouveau', {joueur: joueur.id}) }}">+ Bulletin</a>{% endif %}
