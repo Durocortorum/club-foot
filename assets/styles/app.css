@@ -30,6 +30,14 @@ h2.titre-leger { font-weight: 400; }
 .remplacer-champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: .7rem 1rem; }
 .remplacer-champs select, .remplacer-champs input { width: 100%; }
 .sans-marge { margin: 0; }
+/* Boutons SMS : seulement sur un téléphone (écran tactile et petit, en hauteur comme en largeur) ; sur tablette et
+   ordinateur, qui n'envoient en général pas de SMS, une mention à la place. */
+.seulement-telephone { display: none !important; }
+.seulement-ordinateur { display: inline; }
+@media (pointer: coarse) and (max-width: 520px), (pointer: coarse) and (max-height: 520px) {
+    .seulement-telephone { display: inline-block !important; }
+    .seulement-ordinateur { display: none; }
+}
 #reponses .actions-ligne, #remplacer .actions-ligne, #envoi .actions-ligne, #message-groupe .actions-ligne { margin: .8rem 0 .4rem; }
 .discret { color: var(--gris); margin-top: 0; }
 
