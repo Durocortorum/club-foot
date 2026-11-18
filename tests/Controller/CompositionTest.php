@@ -105,6 +105,23 @@ class CompositionTest extends WebTestCase
         self::assertSame(82.0, $place($crawler, 9)[1]);
         $em->clear();
         self::assertSame([], $em->find(Rencontre::class, $match->getId())->getPlacements());
+
+        // Places choisies à la main, puis organisation changée sur la feuille de match : les joueurs se replacent.
+        $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/composition');
+        $form = $crawler->selectButton('Enregistrer la composition')->form();
+        $form['placements'] = json_encode([$joueurs[9]->getId() => [40, 70]]);
+        $this->client->submit($form);
+        $em->clear();
+        self::assertNotSame([], $em->find(Rencontre::class, $match->getId())->getPlacements());
+        $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/modifier');
+        $form = $crawler->filter('form[name="rencontre"]')->form();
+        $form['rencontre[systeme]'] = '4 4 2 losange';
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.flash-info', 'joueurs replacés');
+        $em->clear();
+        self::assertSame([], $em->find(Rencontre::class, $match->getId())->getPlacements());
     }
 
     /** Case « Titulaire » : un titulaire peut porter le n° 23, un n° 11 peut commencer sur le banc. */

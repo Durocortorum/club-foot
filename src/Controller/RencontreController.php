@@ -405,6 +405,7 @@ class RencontreController extends AbstractController
         }
         $titulairesAvant = $rencontre->nombreTitulaires();
         $doublonsAvant = $rencontre->nombreNumerosEnDouble();
+        $systemeAvant = $rencontre->getSysteme();
         $form->handleRequest($request);
         // Un joueur entré en cours de match n'est pas titulaire (case décochée d'office).
         $corriges = $form->isSubmitted() ? $rencontre->decocherTitulairesEntres() : [];
@@ -419,6 +420,12 @@ class RencontreController extends AbstractController
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Organisation de jeu changée : les places choisies à la main sont oubliées, les joueurs se placent
+            // selon la nouvelle organisation (comme « Replacer selon le système » de la composition).
+            $replaces = $systemeAvant !== $rencontre->getSysteme() && $rencontre->getPlacements();
+            if ($replaces) {
+                $rencontre->setPlacements([]);
+            }
             $em->persist($rencontre);
             // Match suivi en direct : ce qui a changé sur la feuille l'est aussi dans le direct (tablettes, bilan).
             if ($photo) {
@@ -431,6 +438,9 @@ class RencontreController extends AbstractController
                 return $this->redirectToRoute('app_convocation', ['id' => $rencontre->getId()]);
             }
             $this->addFlash('succes', 'Match enregistré.');
+            if ($replaces) {
+                $this->addFlash('info', \sprintf('Organisation %s : joueurs replacés sur le terrain selon cette organisation (« Placer les joueurs » pour les déplacer).', $rencontre->getSysteme() ?: 'retirée'));
+            }
             if ($corriges) {
                 $this->addFlash('info', 'Entré' . (\count($corriges) > 1 ? 's' : '') . ' en cours de match, donc pas titulaire' . (\count($corriges) > 1 ? 's' : '') . ' : ' . implode(', ', $corriges) . '.');
             }
