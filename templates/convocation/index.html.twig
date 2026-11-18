@@ -12,12 +12,14 @@
             <p class="discret">{{ rencontre.equipeAffichee }} · {{ jours[rencontre.date|date('w')] }} {{ rencontre.date|date('d/m/Y') }}{% if rencontre.heure %} à {{ rencontre.heure }}{% endif %}</p>
             <h1>Convocation · {{ rencontre.domicile }} – {{ rencontre.exterieur }}</h1>
         </div>
-        {% if convocation %}
-            <div class="actions">
+        <div class="actions">
+            {# Feuille de match : préremplie avec les joueurs présents à la convocation. #}
+            <a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}#feuille-de-match" title="Feuille de match : numéros, titulaires, postes (préremplie avec les joueurs présents)">Feuille de match</a>
+            {% if convocation %}
                 <a class="bouton" href="{{ path('app_message_nouveau', {rencontre: rencontre.id}) }}" title="Message aux familles des convoqués (tous, présents, sans réponse...)">Écrire aux convoqués</a>
                 {{ m.supprimer(path('app_convocation_supprimer', {id: rencontre.id}), 'supprimer-convocation' ~ convocation.id, 'Supprimer la convocation et les réponses des familles ? Les convoqués encore vierges sur la feuille de match (sans numéro, poste, note…) en seront aussi retirés. Les familles ne sont pas prévenues.') }}
-            </div>
-        {% endif %}
+            {% endif %}
+        </div>
     </div>
 
     {% if convocation %}
