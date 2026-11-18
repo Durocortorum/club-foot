@@ -172,6 +172,11 @@ textarea { min-height: 90px; }
 .liste td { padding: .6rem .8rem; border-bottom: 1px solid var(--bordure); }
 .liste tbody tr:hover { background: #fafafb; }
 .liste tr:last-child td { border-bottom: 0; }
+/* Tableaux larges (statistiques du match) : première colonne (joueur, minutes) figée à gauche quand on fait défiler. */
+.colonne-figee th:first-child, .colonne-figee td:first-child {
+    position: sticky; left: 0; z-index: 1; background: #fff; box-shadow: 3px 0 4px -3px rgba(0, 0, 0, .18);
+}
+.colonne-figee tbody tr:hover td:first-child, .colonne-figee tfoot td:first-child { background: #fafafb; }
 /* Message « Aucun … » d'un tableau vide ; pas les créneaux non remplis de la grille de présences (select.creneau.vide). */
 .vide:not(select) { text-align: center; color: var(--gris); padding: 2rem !important; }
 .pastille { font-size: .75rem; background: #f0f0f3; color: var(--gris); border-radius: 99px; padding: .1rem .5rem; margin-left: .3rem; font-weight: 400; }

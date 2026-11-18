@@ -132,7 +132,7 @@
         <section class="carte bloc">
             <h2>Par joueur</h2>
             <div class="table-defile">
-                <table class="liste chiffres stats-direct">
+                <table class="liste chiffres stats-direct colonne-figee">
                     <thead><tr>
                         <th class="texte">Joueur</th>
                         <th title="Bonnes passes / mauvaises passes">Passes</th><th>%</th>
@@ -174,7 +174,7 @@
         <section class="carte bloc">
             <h2>Par quart d'heure</h2>
             <div class="table-defile">
-                <table class="liste chiffres">
+                <table class="liste chiffres colonne-figee">
                     <thead><tr><th class="texte">Minutes</th><th>Passes ✓/✗</th><th>Duels ✓/✗</th><th title="Frappes et têtes">Frappes</th><th title="Frappes et têtes de l'adversaire">Frappes adverses</th><th>Buts</th><th title="Nos cartons – ceux de l'adversaire">Cartons</th></tr></thead>
                     <tbody>
                         {% for q in stats.quarts %}
