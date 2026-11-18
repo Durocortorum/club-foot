@@ -362,7 +362,11 @@ class RencontreController extends AbstractController
             $this->addFlash('info', \sprintf('Feuille de match préremplie avec les %d joueur%s présent%2$s à la convocation : complétez numéros et postes, puis enregistrez.', $prerempli, $prerempli > 1 ? 's' : ''));
         }
 
-        return $this->formulaire($request, $rencontre, $em, $joueurs, 'Modifier le match ' . $rencontre);
+        // Joueurs proposés sur la feuille : les convoqués, sauf ceux qui ont répondu absent.
+        $convocation = $convocations->pour($rencontre);
+        $convoques = $convocation ? array_values(array_map(fn ($c) => $c->getJoueur()->getId(), array_filter($convocation->getConvoques(), fn ($c) => Convoque::ABSENT !== $c->getReponse()))) : null;
+
+        return $this->formulaire($request, $rencontre, $em, $joueurs, 'Modifier le match ' . $rencontre, $convoques);
     }
 
     #[Route('/matchs/{id}/supprimer', name: 'app_rencontre_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -378,13 +382,15 @@ class RencontreController extends AbstractController
         return $this->redirectToRoute('app_rencontre_index');
     }
 
-    private function formulaire(Request $request, Rencontre $rencontre, EntityManagerInterface $em, JoueurRepository $joueurs, string $titre): Response
+    /** @param list<int>|null $convoques joueurs convoqués (hors absents) proposés sur la feuille ; null : pas de convocation */
+    private function formulaire(Request $request, Rencontre $rencontre, EntityManagerInterface $em, JoueurRepository $joueurs, string $titre, ?array $convoques = null): Response
     {
         $secteurs = $this->voter->secteursMatchs() ?? array_keys(Categorie::SECTEURS);
         $form = $this->createForm(RencontreType::class, $rencontre, [
             'secteurs' => $secteurs,
             'joueurs' => $this->joueursSelectionnables($rencontre, $secteurs, $joueurs),
             'duree' => $rencontre->getCategorie()?->getDureeMatch() ?? 90,
+            'convoques' => $convoques,
         ]);
         $nouveau = null === $rencontre->getId();
         // Match suivi en direct : les tablettes peuvent changer la feuille (buts, cartons, changements) pendant
@@ -403,7 +409,7 @@ class RencontreController extends AbstractController
         // Jamais plus de titulaires que de joueurs sur le terrain (on ne peut pas en ajouter au-delà),
         // ni deux joueurs avec le même numéro (les anciennes feuilles importées restent enregistrables).
         if ($form->isSubmitted()) {
-            foreach ([$rencontre->erreurTitulaires($titulairesAvant), $rencontre->erreurNumeros($doublonsAvant)] as $erreur) {
+            foreach ([$rencontre->erreurTitulaires($titulairesAvant), $rencontre->erreurNumeros($doublonsAvant), $rencontre->erreurJoueursEnDouble()] as $erreur) {
                 if ($erreur) {
                     $form->addError(new FormError($erreur));
                 }

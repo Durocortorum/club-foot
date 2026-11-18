@@ -95,9 +95,10 @@ export default class extends Controller {
             || (categorie !== '' && (option.dataset.categorie === categorie || surclassables.has(option.dataset.categorie)));
 
         // Un joueur ne figure qu'une fois sur la feuille : déjà choisi sur une autre ligne, il n'est plus proposé.
+        // Match avec une convocation : seuls les convoqués (hors absents) sont proposés, sauf « tous les joueurs du club ».
         this.convoqueTargets.forEach((select) => {
             const ailleurs = new Set(this.convoqueTargets.filter((autre) => autre !== select).map((autre) => autre.value).filter((v) => v !== ''));
-            this.restreindre(select, (option) => dansCategorie(option) && !ailleurs.has(option.value));
+            this.restreindre(select, (option) => dansCategorie(option) && !ailleurs.has(option.value) && (toutes || option.dataset.convoque !== '0'));
             this.ranger(select, surclasse);
             const vide = select.querySelector('option[value=""]');
             if (vide) vide.textContent = categorie === '' && !toutes ? '— Choisissez d\'abord la catégorie —' : '— Joueur —';

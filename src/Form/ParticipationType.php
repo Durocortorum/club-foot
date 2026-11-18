@@ -31,7 +31,9 @@ class ParticipationType extends AbstractType
                 'placeholder' => '— Joueur —',
                 'attr' => ['data-feuille-target' => 'convoque'],
                 // Catégorie du joueur : filtre de la feuille et mention « (U15) » s'il est surclassé (contrôleur « feuille »).
-                'choice_attr' => fn (Joueur $j) => ['data-categorie' => $j->getCategorie()?->getId(), 'data-categorie-nom' => (string) $j->getCategorie()],
+                // « data-convoque » : convoqué (1) ou non (0) quand le match a une convocation : seuls les convoqués sont proposés.
+                'choice_attr' => fn (Joueur $j) => ['data-categorie' => $j->getCategorie()?->getId(), 'data-categorie-nom' => (string) $j->getCategorie()]
+                    + (null === $options['convoques'] ? [] : ['data-convoque' => \in_array($j->getId(), $options['convoques'], true) ? '1' : '0']),
             ])
             ->add('poste', ListeOuverteType::class, ['suggestions' => Participation::POSTES, 'attr' => ['data-feuille-poste' => '']])
             // Calculé dans la page à partir des titulaires et des remplacements (contrôleur « feuille ») ;
@@ -60,7 +62,7 @@ class ParticipationType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         // duree : durée de match de la catégorie du match (minutes proposées pour les cartons, voir RencontreType).
-        $resolver->setDefaults(['data_class' => Participation::class, 'joueurs' => [], 'duree' => 90]);
+        $resolver->setDefaults(['data_class' => Participation::class, 'joueurs' => [], 'duree' => 90, 'convoques' => null]);
         $resolver->setAllowedTypes('duree', 'int');
     }
 }

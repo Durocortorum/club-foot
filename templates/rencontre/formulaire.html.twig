@@ -132,7 +132,7 @@
         <fieldset class="carte" id="feuille-de-match">
             <legend>Feuille de match</legend>
             <p class="discret petit">
-                Joueurs de la catégorie du match, puis ceux qui peuvent être surclassés (catégorie entre parenthèses).
+                Joueurs proposés : les convoqués (sauf les absents) s'il y a une convocation, sinon ceux de la catégorie du match, puis ceux qui peuvent être surclassés (catégorie entre parenthèses). Un joueur ne figure qu'une fois.
                 Case « Titulaire » : sur le terrain au coup d'envoi (cochée d'office pour les numéros 1 à 11, modifiable : un titulaire peut porter le n° 23). Poste « Non utilisé » pour un remplaçant resté sur le banc.
                 {% if rencontre.id %}Après l'enregistrement, placez les titulaires sur le terrain : <a href="{{ path('app_rencontre_composition', {id: rencontre.id}) }}">Composition sur le terrain</a>.{% endif %}
             </p>

@@ -165,6 +165,10 @@ class CompositionTest extends WebTestCase
         $em->flush();
         $this->client->request('GET', '/matchs/' . $match->getId());
         self::assertSelectorTextContains('.flash-erreur', 'Un même numéro est porté par plusieurs joueurs');
+        // Un joueur ne figure qu'une fois sur la feuille.
+        self::assertNull($match->erreurJoueursEnDouble());
+        $match->addParticipation((new Participation())->setClub($club)->setJoueur($participations[1]->getJoueur()));
+        self::assertStringContainsString('Joueur présent deux fois', (string) $match->erreurJoueursEnDouble());
         // Système de foot à 8 : 8 joueurs sur le terrain.
         self::assertSame(8, $match->setSysteme('3 3 1')->joueursSurLeTerrain());
     }

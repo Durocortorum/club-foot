@@ -949,6 +949,20 @@ class Rencontre implements AppartientAuClub
         return array_sum(array_filter($numeros, fn (int $fois) => $fois > 1));
     }
 
+    /** Un joueur ne figure qu'une fois sur la feuille de match. */
+    public function erreurJoueursEnDouble(): ?string
+    {
+        $vus = [];
+        $doubles = [];
+        foreach ($this->participations as $p) {
+            if ($j = $p->getJoueur()) {
+                isset($vus[$j->getId()]) ? $doubles[$j->getId()] = $j->getPrenom() . ' ' . $j->getNom() : $vus[$j->getId()] = true;
+            }
+        }
+
+        return $doubles ? \sprintf('Joueur présent deux fois sur la feuille de match : %s. Retirez la ligne en trop.', implode(', ', $doubles)) : null;
+    }
+
     /** Message d'erreur si la feuille a plus de numéros en double qu'avant (les anciennes feuilles restent enregistrables). */
     public function erreurNumeros(int $avant = 0): ?string
     {

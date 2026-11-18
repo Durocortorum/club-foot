@@ -348,6 +348,9 @@ class ConvocationTest extends WebTestCase
         // Numérotés dans l'ordre (1, 2), titulaires d'office.
         self::assertEqualsCanonicalizing(['1', '2'], $crawler->filter('input[name$="[numero]"]')->each(fn ($i) => $i->attr('value')));
         self::assertCount(2, $crawler->filter('input[name$="[titulaire]"][checked]'));
+        // Liste « Joueur » : les convoqués (Léa, Tom) marqués comme tels, Max (pas convoqué) proposé seulement avec « tous ».
+        $max = $crawler->filter('select[name$="[joueur]"]')->first()->filter('option[data-convoque="0"]')->each(fn ($o) => $o->text());
+        self::assertSame(['MARTIN Max'], $max);
 
         // --- Convocation supprimée (erreur) : la ligne de Tom, juste numérotée d'office, quitte la feuille ; celle de
         // Léa (poste saisi) reste.

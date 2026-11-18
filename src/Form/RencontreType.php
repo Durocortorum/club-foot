@@ -75,7 +75,8 @@ class RencontreType extends AbstractType
             ->add('butsExterieur', IntegerType::class, $score('finExt'))
             ->add('lieu', null, ['label' => 'Stade', 'required' => false])
             ->add('rapport', TextareaType::class, ['label' => 'Rapport de l\'éducateur', 'required' => false, 'attr' => ['rows' => 8]])
-            ->add('participations', CollectionType::class, array_merge_recursive($collection(ParticipationType::class), ['entry_options' => ['duree' => $options['duree']]]))
+            // Joueurs convoqués (hors absents) : seuls proposés sur la feuille, sauf « tous les joueurs » (contrôleur « feuille »).
+            ->add('participations', CollectionType::class, array_merge_recursive($collection(ParticipationType::class), ['entry_options' => ['duree' => $options['duree'], 'convoques' => $options['convoques']]]))
             ->add('buts', CollectionType::class, array_merge_recursive($collection(ButType::class), ['entry_options' => ['duree' => $options['duree']]]))
             ->add('remplacements', CollectionType::class, $collection(RemplacementType::class));
 
@@ -168,11 +169,14 @@ class RencontreType extends AbstractType
             'data_class' => Rencontre::class,
             'secteurs' => [],
             'joueurs' => [],
+            // Ids des joueurs convoqués (hors absents) ; null : pas de convocation, tous les joueurs proposés.
+            'convoques' => null,
             // Durée de match de la catégorie (minutes proposées pour les buts).
             'duree' => 90,
         ]);
         $resolver->setAllowedTypes('duree', 'int');
         $resolver->setAllowedTypes('secteurs', 'array');
         $resolver->setAllowedTypes('joueurs', 'array');
+        $resolver->setAllowedTypes('convoques', ['null', 'array']);
     }
 }
