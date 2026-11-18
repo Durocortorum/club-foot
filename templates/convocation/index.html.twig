@@ -134,14 +134,18 @@
                                     </form>
                                 </td>
                                 <td class="nowrap large">
-                                    {% if s.compte %}<span class="pastille succes" title="Reçoit la convocation par e-mail et répond dans son espace">compte famille</span>{% endif %}
-                                    {% for qui, numero in s.numeros %}
-                                        {# SMS tout prêt : seulement sur un téléphone (sur tablette et ordinateur, une simple mention). #}
-                                        <a class="bouton petit seulement-telephone" href="sms:{{ numero }}?&body={{ s.texte|url_encode }}" title="SMS au {{ qui|lower }} ({{ numero }}) depuis votre téléphone">SMS {{ qui|lower }}</a>
-                                        <span class="seulement-ordinateur discret petit" title="Ouvrez cette page sur votre téléphone pour envoyer le SMS tout prêt">📱 SMS {{ qui|lower }} depuis le téléphone</span>
+                                    {# Famille avec un espace : prévenue par e-mail et dans son espace, pas besoin de SMS. #}
+                                    {% if s.compte %}
+                                        <span class="pastille succes" title="Reçoit la convocation par e-mail et dans son espace, et y répond">espace famille</span>
                                     {% else %}
-                                        {% if not s.compte %}<span class="pastille alerte">ni compte ni portable</span>{% endif %}
-                                    {% endfor %}
+                                        {% for qui, numero in s.numeros %}
+                                            {# SMS tout prêt : seulement sur un téléphone (sur tablette et ordinateur, une simple mention). #}
+                                            <a class="bouton petit seulement-telephone" href="sms:{{ numero }}?&body={{ s.texte|url_encode }}" title="SMS au {{ qui|lower }} ({{ numero }}) depuis votre téléphone">SMS {{ qui|lower }}</a>
+                                            <span class="seulement-ordinateur discret petit" title="Ouvrez cette page sur votre téléphone pour envoyer le SMS tout prêt">📱 SMS {{ qui|lower }} depuis le téléphone</span>
+                                        {% else %}
+                                            <span class="pastille alerte" title="Pas d'espace famille ni de portable : à prévenir autrement (appel, message du groupe)">ni espace ni portable</span>
+                                        {% endfor %}
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if c.reponse == 'present' %}<span class="pastille succes">présent</span>

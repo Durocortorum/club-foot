@@ -277,7 +277,7 @@ class ConvocationTest extends WebTestCase
         self::assertCount(1, $sms);
         self::assertStringStartsWith('sms:0612345678?&body=', $sms->attr('href'));
         self::assertStringContainsString('répondre par SMS', urldecode($sms->attr('href')));
-        self::assertSelectorTextContains('#reponses', 'compte famille');
+        self::assertSelectorTextContains('#reponses', 'espace famille');
 
         // La convocation est aussi déposée dans la messagerie interne (un seul e-mail : celui de la convocation).
         $this->em()->clear();
