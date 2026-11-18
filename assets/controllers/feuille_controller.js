@@ -312,11 +312,27 @@ export default class extends Controller {
         const surTerrain = new Map([...titulaires].map((id) => [id, true]));
         const etat = (id) => (surTerrain.has(id) ? surTerrain.get(id) : (titulaires.size > 0 ? false : null));
 
-        for (const { ligne } of this.lignesRemplacement()) {
+        // Cartons rouges (joueur exclu) dans l'ordre des minutes : à partir de sa minute, le joueur n'est plus sur le
+        // terrain et ne peut ni sortir ni entrer. Carton rouge sans minute : exclu pour tous les remplacements.
+        const rouges = this.lignesFeuille()
+            .filter(({ joueur, ligne }) => joueur.value !== '' && ligne.querySelector('[data-feuille-carton]')?.selectedOptions[0]?.dataset.couleur === 'rouge')
+            .map(({ joueur, ligne }) => ({ id: joueur.value, minute: this.ordre(ligne.querySelector('[data-feuille-minute-carton]')?.value) }));
+        const exclus = new Set();
+
+        for (const { ligne, minute } of this.lignesRemplacement()) {
+            rouges.forEach(({ id, minute: m }) => {
+                if (isNaN(m) || isNaN(minute) || m <= minute) {
+                    exclus.add(id);
+                    surTerrain.set(id, false);
+                }
+            });
             const sortant = ligne.querySelector('[data-feuille-sens="sortant"]');
             const entrant = ligne.querySelector('[data-feuille-sens="entrant"]');
-            this.restreindre(sortant, (o) => o.value !== entrant.value && surFeuille(o) && etat(o.value) !== false);
-            this.restreindre(entrant, (o) => o.value !== sortant.value && surFeuille(o) && etat(o.value) !== true);
+            this.restreindre(sortant, (o) => o.value !== entrant.value && surFeuille(o) && etat(o.value) !== false && !exclus.has(o.value));
+            this.restreindre(entrant, (o) => o.value !== sortant.value && surFeuille(o) && etat(o.value) !== true && !exclus.has(o.value));
+            // Joueur déjà choisi mais exclu (carton rouge avant cette minute) : signalé.
+            this.signaler(sortant, sortant.value !== '' && exclus.has(sortant.value), 'Exclu par un carton rouge avant cette minute : il n\'est plus sur le terrain.');
+            this.signaler(entrant, entrant.value !== '' && exclus.has(entrant.value), 'Exclu par un carton rouge : il ne peut pas revenir.');
             if (sortant.value !== '') surTerrain.set(sortant.value, false);
             if (entrant.value !== '') surTerrain.set(entrant.value, true);
         }
