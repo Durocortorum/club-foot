@@ -250,6 +250,64 @@
         {% endif %}
     </section>
 
+    {# ---------- Actions notées en direct ---------- #}
+    {% if actions.matchs %}
+        {% import 'rencontre/_macros_actions.html.twig' as ma %}
+        <section class="bloc" id="actions">
+            <h2 class="titre-bloc">Actions de match (notées en direct)</h2>
+            <div class="table-defile">
+                <table class="liste chiffres stats-direct">
+                    <thead><tr><th class="texte">Saison</th><th title="Matchs suivis en direct où il a joué">Matchs</th><th>Min.</th>{{ ma.entetes() }}</tr></thead>
+                    <tbody>
+                        {% for saison, s in actions.saisons %}
+                            <tr>
+                                <td class="texte principal">{{ saison }}</td>
+                                <td data-label="matchs">{{ s.matchs }}</td>
+                                <td data-label="min.">{{ s.minutes ?: '' }}</td>
+                                {{ ma.cellules(s.a, s.equipe, null) }}
+                            </tr>
+                            <tr class="discret">
+                                <td class="texte petit">par 90 min</td><td></td><td></td>
+                                {{ ma.cellules(s.a, null, s.minutes >= minutes_mini ? s.minutes / 90 : 0) }}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="discret petit">
+                Matchs suivis sur la tablette « ⏱ En direct ». ▲ / ▼ : son pourcentage est supérieur / inférieur d'au moins 5 points à celui de l'équipe dans les mêmes matchs (passez la souris pour le chiffre).
+                Moyennes par 90 minutes à partir de {{ minutes_mini }} minutes jouées.
+            </p>
+
+            {% set saisons_actions = actions.saisons|keys %}
+            <div data-controller="periode">
+                <div class="titre-page">
+                    <h3>Match par match</h3>
+                    <select data-periode-target="choix" data-action="periode#afficher" aria-label="Saison">
+                        {% for s in saisons_actions %}<option value="{{ s }}">Saison {{ s }}</option>{% endfor %}
+                        <option value="toutes">Toutes les saisons ({{ actions.matchs|length }} {{ accord(actions.matchs|length, 'match') }})</option>
+                    </select>
+                </div>
+                <div class="table-defile">
+                    <table class="liste chiffres stats-direct colonne-figee">
+                        <thead><tr><th class="texte">Match</th><th>Min.</th>{{ ma.entetes() }}<th>Total</th></tr></thead>
+                        <tbody>
+                            {% for l in actions.matchs %}
+                                {% set r = l.rencontre %}
+                                <tr data-periode-target="ligne" data-saison="{{ r.saison }}" {{ r.saison != saisons_actions|first ? 'hidden' }}>
+                                    <td class="texte nowrap"><a href="{{ path('app_match_direct_bilan', {id: r.id, joueur: joueur.id}) }}#carte">{{ r.date ? r.date|date('d/m') }} · {{ r.adversaire }}</a> <span class="discret">{{ m.score(r) }}</span></td>
+                                    <td data-label="min.">{{ l.minutes ?: '' }}</td>
+                                    {{ ma.cellules(l.a, l.equipe, null) }}
+                                    <td class="fort">{{ l.total }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
     {# ---------- Présences ---------- #}
     <section class="bloc" id="presences">
         <h2 class="titre-bloc">Présences à l'entraînement</h2>

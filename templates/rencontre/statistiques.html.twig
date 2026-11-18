@@ -17,6 +17,16 @@
                     <option value="{{ cle }}" {{ filtres.tri == cle ? 'selected' }}>Trier par : {{ libelle }}</option>
                 {% endfor %}
             </select>
+        {% elseif filtres.vue == 'actions' %}
+            <select name="tri" onchange="this.form.requestSubmit()" aria-label="Tri">
+                {% for cle, libelle in tris_actions %}
+                    <option value="{{ cle }}" {{ filtres.triActions == cle ? 'selected' }}>Trier par : {{ libelle }}</option>
+                {% endfor %}
+            </select>
+            <select name="mode" onchange="this.form.requestSubmit()" aria-label="Affichage">
+                <option value="totaux">Totaux de la période</option>
+                <option value="par90" {{ filtres.mode == 'par90' ? 'selected' }}>Moyennes par 90 minutes</option>
+            </select>
         {% endif %}
         <noscript><button type="submit" class="bouton">Filtrer</button></noscript>
     </form>
@@ -24,6 +34,7 @@
     <nav class="onglets">
         <a href="{{ path('app_statistiques', lien|merge({vue: 'equipe'})) }}" class="{{ filtres.vue == 'equipe' ? 'actif' }}">Équipe</a>
         <a href="{{ path('app_statistiques', lien|merge({vue: 'joueurs'})) }}" class="{{ filtres.vue == 'joueurs' ? 'actif' }}">Joueurs</a>
+        <a href="{{ path('app_statistiques', lien|merge({vue: 'actions'})) }}" class="{{ filtres.vue == 'actions' ? 'actif' }}" title="Passes, duels, contrôles, frappes… notés en direct">Actions</a>
         <a href="{{ path('app_statistiques', lien|merge({vue: 'discipline'})) }}" class="{{ filtres.vue == 'discipline' ? 'actif' }}">Discipline</a>
     </nav>
 
@@ -34,6 +45,8 @@
         {% include 'rencontre/_buts_situations.html.twig' %}
     {% elseif filtres.vue == 'joueurs' %}
         {% include 'rencontre/_stats_joueurs.html.twig' %}
+    {% elseif filtres.vue == 'actions' %}
+        {% include 'rencontre/_stats_actions.html.twig' %}
     {% else %}
         {% include 'rencontre/_stats_discipline.html.twig' %}
     {% endif %}

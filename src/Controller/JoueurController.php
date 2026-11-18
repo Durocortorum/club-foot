@@ -22,6 +22,7 @@ use App\Service\AccesFamille;
 use App\Service\AccesMedical;
 use App\Service\ProchesJoueur;
 use App\Service\BilanJoueur;
+use App\Service\StatsActions;
 use App\Service\CatalogueTests;
 use App\Service\Progression;
 use App\Service\Photos;
@@ -136,6 +137,7 @@ class JoueurController extends AbstractController
         BilanJoueur $bilan,
         AccesFamille $acces,
         ProchesJoueur $proches,
+        StatsActions $statsActions,
     ): Response {
         $matchs = $participations->parJoueur($joueur);
         $scolaire = $this->isGranted('ROLE_SCOLAIRE_LECTURE');
@@ -146,6 +148,9 @@ class JoueurController extends AbstractController
             'matchs' => $matchs,
             'buts_par_match' => $bilan->butsParMatch($joueur),
             'bilan' => $bilan->parSaison($joueur, $matchs),
+            // Actions notées en direct (passes, duels…), par saison et match par match.
+            'actions' => $statsActions->joueur($joueur, $matchs),
+            'minutes_mini' => StatsActions::MINUTES_MINI,
             'presences' => $presences->bilanParSaison($joueur),
             'blessures' => $this->isGranted('ROLE_INFIRMERIE_LECTURE') && $this->medical->estOuvert() ? $blessures->findBy(['joueur' => $joueur], ['date' => 'DESC']) : [],
             // Visite médicale (poids, taille...) : données de santé, droit « Visite médicale ».

@@ -21,6 +21,7 @@ use App\Service\Apparence;
 use App\Service\BilanEquipe;
 use App\Service\CompositionTerrain;
 use App\Service\ImportMatchs;
+use App\Service\StatsActions;
 use App\Service\SynchroFeuille;
 use Symfony\Component\Form\FormError;
 use App\Service\SuiviDisciplinaire;
@@ -78,10 +79,11 @@ class RencontreController extends AbstractController
         CategorieRepository $categories,
         SuiviDisciplinaire $discipline,
         BilanEquipe $bilanEquipe,
+        StatsActions $statsActions,
     ): Response {
         $secteurs = $this->voter->secteursMatchs();
         $filtres = $this->filtres($request, $rencontres, $categories);
-        $filtres['vue'] = \in_array($v = $request->query->getString('vue'), ['equipe', 'joueurs', 'discipline'], true) ? $v : 'equipe';
+        $filtres['vue'] = \in_array($v = $request->query->getString('vue'), ['equipe', 'joueurs', 'actions', 'discipline'], true) ? $v : 'equipe';
         $tris = [
             'minutes' => 'Temps de jeu', 'matchs' => 'Matchs joués', 'titularisations' => 'Titularisations',
             'complets' => 'Matchs joués entièrement', 'convocations' => 'Convocations', 'remplacantDepart' => 'Remplaçant au départ',
@@ -119,6 +121,20 @@ class RencontreController extends AbstractController
             $stats = $participations->statistiques($secteurs, $s, $c);
             usort($stats['joueurs'], fn (array $a, array $b) => [$b[$filtres['tri']], $b['minutes'], $a['nom']] <=> [$a[$filtres['tri']], $a['minutes'], $b['nom']]);
             $vue['stats'] = $stats;
+        } elseif ('actions' === $filtres['vue']) {
+            // Actions notées en direct, additionnées sur les matchs suivis ; en totaux ou ramenées à 90 minutes.
+            $trisActions = [
+                'total' => 'Nombre d\'actions', 'minutes' => 'Minutes', 'passes' => 'Passes réussies', 'pctPasses' => '% de passes réussies',
+                'duels' => 'Duels gagnés', 'pctDuels' => '% de duels gagnés', 'controles' => 'Bons contrôles', 'pctControles' => '% de bons contrôles',
+                'frappes' => 'Frappes et têtes', 'centres' => 'Centres', 'buts' => 'Buts', 'pd' => 'Passes décisives',
+            ];
+            $filtres['triActions'] = isset($trisActions[$t = $request->query->getString('tri')]) ? $t : 'total';
+            $filtres['mode'] = 'par90' === $request->query->getString('mode') ? 'par90' : 'totaux';
+            $actions = $statsActions->saison($rencontres->filtrer($rencontres->createQueryBuilder('r'), $secteurs, $s, $c)->getQuery()->getResult());
+            usort($actions['joueurs'], fn (array $a, array $b) => [StatsActions::valeur($b, $filtres['triActions']), $b['minutes'], $a['nom']]
+                <=> [StatsActions::valeur($a, $filtres['triActions']), $a['minutes'], $b['nom']]);
+            $vue['filtres'] = $filtres;
+            $vue += ['actions' => $actions, 'tris_actions' => $trisActions, 'minutes_mini' => StatsActions::MINUTES_MINI];
         } else {
             $cartons = $participations->cartons($secteurs, $s, $c);
             $vue += ['cartons' => $cartons, 'suivi' => $discipline->analyser($cartons, $rencontres->dernierMatch($secteurs, $s, $c))];

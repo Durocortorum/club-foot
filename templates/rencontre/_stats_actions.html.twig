@@ -1,0 +1,86 @@
+{# Onglet « Actions » : ce qui a été noté en direct (tablette), additionné sur les matchs suivis de la période. #}
+{% import 'rencontre/_macros_actions.html.twig' as ma %}
+{% set e = actions.equipe %}
+{% set nb = actions.matchs %}
+{% set par90 = filtres.mode == 'par90' %}
+
+{% if not nb %}
+    <p class="vide carte">Aucun match suivi en direct pour ces critères. Ces statistiques viennent de la saisie « ⏱ En direct » pendant les matchs.</p>
+{% else %}
+    {% set tirs = e.FC + e.FH + e.TC + e.TH %}
+    {% set tirs_contre = e.AC + e.AH + e.ATC + e.ATH %}
+    <div class="tuiles bilan">
+        <div class="tuile"><span class="tuile-valeur">{{ nb }}</span><span class="tuile-libelle">{{ accord(nb, 'match suivi', 'matchs suivis') }} en direct</span></div>
+        <div class="tuile"><span class="tuile-valeur">{{ ma.pct(reussite(e, 'passe')) }}</span><span class="tuile-libelle">passes réussies ({{ ((e.BP + e.MP) / nb)|number_format(0) }} par match)</span></div>
+        <div class="tuile"><span class="tuile-valeur">{{ ma.pct(reussite(e, 'duel')) }}</span><span class="tuile-libelle">duels gagnés ({{ ((e.DG + e.DP) / nb)|number_format(0) }} par match)</span></div>
+        <div class="tuile"><span class="tuile-valeur">{{ ma.pct(reussite(e, 'controle')) }}</span><span class="tuile-libelle">bons contrôles</span></div>
+        <div class="tuile"><span class="tuile-valeur">{{ (tirs / nb)|number_format(1, ',') }} – {{ (tirs_contre / nb)|number_format(1, ',') }}</span><span class="tuile-libelle">frappes et têtes par match, pour – contre</span></div>
+        <div class="tuile"><span class="tuile-valeur">{{ tirs ? ((e.FC + e.TC) * 100 / tirs)|round ~ ' %' : '–' }} – {{ tirs_contre ? ((e.AC + e.ATC) * 100 / tirs_contre)|round ~ ' %' : '–' }}</span><span class="tuile-libelle">cadrées, pour – contre</span></div>
+        <div class="tuile"><span class="tuile-valeur">{{ e.B }} – {{ e.BA }}</span><span class="tuile-libelle">buts pour – contre{% if tirs %} ({{ (e.B * 100 / tirs)|round }} % des frappes marquées){% endif %}</span></div>
+        <div class="tuile"><span class="tuile-valeur">{{ (e.C / nb)|number_format(1, ',') }}</span><span class="tuile-libelle">centres par match</span></div>
+        <div class="tuile"><span class="tuile-valeur">{{ (e.CO / nb)|number_format(1, ',') }} – {{ (e.CA / nb)|number_format(1, ',') }}</span><span class="tuile-libelle">corners par match, pour – contre</span></div>
+    </div>
+
+    <section class="carte bloc">
+        <h2>Par joueur{{ par90 ? ' · moyennes par 90 minutes' }}</h2>
+        <div class="table-defile">
+            <table class="liste chiffres stats-direct colonne-figee">
+                <thead><tr>
+                    <th class="texte">Joueur</th>
+                    <th title="Matchs suivis où il a joué">Matchs</th><th>Min.</th>
+                    {{ ma.entetes() }}
+                    <th>Total</th>
+                </tr></thead>
+                <tbody>
+                    {% for l in actions.joueurs %}
+                        {% set div = par90 ? (l.minutes >= minutes_mini ? l.minutes / 90 : 0) : null %}
+                        <tr>
+                            <td class="texte nowrap"><a href="{{ path('app_joueur_voir', {id: l.id}) }}#actions">{{ l.nom }} {{ l.prenom }}</a></td>
+                            <td data-label="matchs">{{ l.matchs }}</td>
+                            <td data-label="min.">{{ l.minutes ?: '' }}</td>
+                            {{ ma.cellules(l.a, e, div) }}
+                            <td class="fort">{{ ma.n(l.total, div) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                {% set totalNous = 0 %}{% for code, t in constant('App\\Entity\\ActionMatch::ACTIONS') %}{% set totalNous = totalNous + e[code] %}{% endfor %}
+                <tfoot>
+                    <tr class="total-equipe">
+                        <th class="texte">Équipe{{ par90 ? ' (par match)' }}</th>
+                        <td>{{ nb }}</td><td></td>
+                        {{ ma.cellules(e, null, par90 ? nb : null) }}
+                        <td class="fort">{{ ma.n(totalNous, par90 ? nb : null) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <p class="discret petit">
+            Seuls comptent les {{ nb }} {{ accord(nb, 'match suivi', 'matchs suivis') }} en direct (au moins une action notée sur la tablette), complétés par leur feuille de match (buts, passes décisives, cartons).
+            Les minutes viennent de la feuille de match.
+            ▲ / ▼ : pourcentage du joueur supérieur / inférieur d'au moins 5 points à celui de l'équipe (passez la souris pour voir l'écart).
+            {% if par90 %}Moyennes par 90 minutes : seulement pour les joueurs ayant joué au moins {{ minutes_mini }} minutes ; ligne Équipe : moyenne par match.{% endif %}
+        </p>
+    </section>
+
+    <section class="carte bloc">
+        <h2>Par quart d'heure</h2>
+        <p class="discret petit">Tous les matchs suivis additionnés : à quel moment nous jouons bien, marquons ou encaissons.</p>
+        <div class="table-defile">
+            <table class="liste chiffres colonne-figee">
+                <thead><tr><th class="texte">Minutes</th><th>Passes ✓/✗</th><th>%</th><th>Duels ✓/✗</th><th>%</th><th title="Frappes et têtes">Frappes</th><th title="Frappes et têtes de l'adversaire">Frappes adverses</th><th>Buts pour – contre</th><th title="Nos cartons – ceux de l'adversaire">Cartons</th></tr></thead>
+                <tbody>
+                    {% for q in actions.quarts %}
+                        {% set a = q.actions %}
+                        <tr>
+                            <td class="texte nowrap">{{ q.debut }}′ – {{ q.fin }}′</td>
+                            <td>{{ a.BP ?? 0 }} / {{ a.MP ?? 0 }}</td><td>{{ ma.pct(reussite(a, 'passe')) }}</td>
+                            <td>{{ a.DG ?? 0 }} / {{ a.DP ?? 0 }}</td><td>{{ ma.pct(reussite(a, 'duel')) }}</td>
+                            <td>{{ (a.FC ?? 0) + (a.FH ?? 0) + (a.TC ?? 0) + (a.TH ?? 0) }}</td><td>{{ (a.AC ?? 0) + (a.AH ?? 0) + (a.ATC ?? 0) + (a.ATH ?? 0) }}</td>
+                            <td>{{ a.B ?? 0 }} – {{ a.BA ?? 0 }}</td><td>{{ (a.CJ ?? 0) + (a.CR ?? 0) }} – {{ (a.JA ?? 0) + (a.RA ?? 0) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% endif %}

@@ -100,7 +100,11 @@ Après le match : **Voir le bilan du match** (au-dessus du journal) : passes ré
 
 ## Statistiques
 
-Par équipe et par saison : bilan (victoires, nuls, défaites), forme, domicile / extérieur, par compétition, buts par quart d'heure, meilleurs buteurs et passeurs ; par joueur : temps de jeu, buts, passes, cartons, moyenne des notes. Les familles voient les statistiques de leur enfant (sans les notes).
+Par équipe et par saison : bilan (victoires, nuls, défaites), forme, domicile / extérieur, par compétition, buts par quart d'heure, meilleurs buteurs et passeurs ; par joueur : temps de jeu, buts, passes, cartons, moyenne des notes.
+
+Onglet **Actions** : tout ce qui a été noté en direct, additionné sur les matchs suivis de la saison. Pour chaque joueur et pour l'équipe : passes, duels, contrôles (réussis / ratés et %), frappes, têtes, centres, buts, passes décisives. Choix « Totaux » ou « Moyennes par 90 minutes » (à partir de 90 minutes jouées) ; ▲ / ▼ à côté d'un pourcentage : le joueur fait au moins 5 points de mieux / de moins que l'équipe. En haut : frappes et corners pour et contre par match ; en bas : les quarts d'heure de tous les matchs. Sur la **fiche du joueur**, partie « Actions de match » : ses chiffres par saison (et par 90 minutes), puis match par match, comparés à l'équipe dans les mêmes matchs.
+
+Les familles voient les statistiques de leur enfant (sans les notes).
 
 ## Présences et entraînements
 

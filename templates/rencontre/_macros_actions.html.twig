@@ -1,0 +1,33 @@
+{# Affichage des actions notées en direct, additionnées sur plusieurs matchs (voir StatsActions). #}
+
+{# Pourcentage de réussite coloré : vert à partir de 70 %, rouge sous 50 %. #}
+{% macro pct(v) %}{% if v is not null %}<span class="pct {{ v >= 70 ? 'bon' : (v < 50 ? 'faible') }}">{{ v }} %</span>{% else %}<span class="discret">–</span>{% endif %}{% endmacro %}
+
+{# Écart avec l'équipe : flèche quand le joueur fait 5 points de mieux (▲) ou de moins (▼) que l'équipe. #}
+{% macro ecart(v, equipe) %}{% if v is not null and equipe is not null %}{% set d = v - equipe %}<span class="ecart-equipe {{ d >= 5 ? 'mieux' : (d <= -5 ? 'moins') }}" title="Équipe : {{ equipe }} % ({{ d > 0 ? '+' }}{{ d }} points)">{{ d >= 5 ? '▲' : (d <= -5 ? '▼' : '=') }}</span>{% endif %}{% endmacro %}
+
+{# Nombre brut (diviseur null) ou ramené à une moyenne (diviseur : 90 minutes jouées, ou matchs) ; « – » sans diviseur. #}
+{% macro n(v, div) %}{% if div is null %}{{ v }}{% elseif div > 0 %}{{ (v / div)|number_format(1, ',') }}{% else %}<span class="discret">–</span>{% endif %}{% endmacro %}
+
+{# Cellules d'une ligne : a = actions, e = actions de l'équipe (comparaison, ou null), div = diviseur (voir n). #}
+{% macro cellules(a, e, div) %}
+    {% import _self as m %}
+    <td data-label="passes ✓/✗">{{ m.n(a.BP ?? 0, div) }} / {{ m.n(a.MP ?? 0, div) }}</td>
+    <td data-label="% passes">{{ m.pct(reussite(a, 'passe')) }} {{ e ? m.ecart(reussite(a, 'passe'), reussite(e, 'passe')) }}</td>
+    <td data-label="duels ✓/✗">{{ m.n(a.DG ?? 0, div) }} / {{ m.n(a.DP ?? 0, div) }}</td>
+    <td data-label="% duels">{{ m.pct(reussite(a, 'duel')) }} {{ e ? m.ecart(reussite(a, 'duel'), reussite(e, 'duel')) }}</td>
+    <td data-label="contrôles ✓/✗">{{ m.n(a.BC ?? 0, div) }} / {{ m.n(a.MC ?? 0, div) }}</td>
+    <td data-label="% contrôles">{{ m.pct(reussite(a, 'controle')) }} {{ e ? m.ecart(reussite(a, 'controle'), reussite(e, 'controle')) }}</td>
+    <td data-label="frappes cadrées / total">{{ m.n(a.FC ?? 0, div) }} / {{ m.n((a.FC ?? 0) + (a.FH ?? 0), div) }}</td>
+    <td data-label="têtes cadrées / total">{{ m.n(a.TC ?? 0, div) }} / {{ m.n((a.TC ?? 0) + (a.TH ?? 0), div) }}</td>
+    <td data-label="centres">{{ m.n(a.C ?? 0, div) }}</td>
+    <td data-label="buts">{{ m.n(a.B ?? 0, div) }}</td>
+    <td data-label="passes D.">{{ m.n(a.PD ?? 0, div) }}</td>
+{% endmacro %}
+
+{% macro entetes() %}
+    <th title="Bonnes passes / mauvaises passes">Passes ✓/✗</th><th>%</th>
+    <th title="Duels gagnés / perdus">Duels ✓/✗</th><th>%</th>
+    <th title="Bons contrôles / mauvais contrôles">Contrôles ✓/✗</th><th>%</th>
+    <th title="Frappes cadrées / total">Frappes</th><th title="Têtes cadrées / total">Têtes</th><th>Centres</th><th>Buts</th><th title="Passes décisives">Passes D.</th>
+{% endmacro %}

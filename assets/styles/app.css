@@ -376,6 +376,9 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .stats-direct td, .stats-direct th { white-space: nowrap; }
 .stats-direct tfoot .total-equipe th, .stats-direct tfoot .total-equipe td { border-top: 2px solid var(--bordure); background: #fafafb; font-weight: 600; color: var(--encre); }
 .pct.bon { color: var(--succes); font-weight: 600; } .pct.faible { color: var(--danger-fonce); }
+/* Écart avec l'équipe (statistiques des actions sur plusieurs matchs) : ▲ mieux, ▼ moins bien, = pareil. */
+.ecart-equipe { font-size: .75em; color: var(--gris); cursor: help; }
+.ecart-equipe.mieux { color: var(--succes); } .ecart-equipe.moins { color: var(--danger-fonce); }
 /* Tablette en portrait : terrain vertical à droite, tout tient sans faire défiler. */
 @media (max-width: 1100px) {
     .direct-saisie { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, .9fr); gap: .6rem; }
