@@ -186,13 +186,13 @@
 
         {# Un joueur malade, blessé ou empêché d'ici le match : un autre est convoqué à sa place (ses parents prévenus). #}
         <section class="bloc" id="remplacer">
-            <h2 class="titre-bloc">{% set etape = etape + 1 %}<span class="etape-num" aria-hidden="true">{{ etape }}</span> Remplacer un joueur</h2>
+            <h2 class="titre-bloc">{% set etape = etape + 1 %}<span class="etape-num" aria-hidden="true">{{ etape }}</span> Remplacer un joueur convoqué</h2>
             <form method="post" action="{{ path('app_convocation_remplacer', {id: rencontre.id}) }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('remplacer' ~ convocation.id) }}">
                 <div class="carte">
                     <div class="champs remplacer-champs">
                         <div class="champ">
-                            <label for="remplace">Joueur empêché</label>
+                            <label for="remplace">Convoqué empêché</label>
                             <select id="remplace" name="remplace">
                                 <option value="">— Aucun (ajouter seulement) —</option>
                                 {% for c in convocation.convoques %}
