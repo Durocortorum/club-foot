@@ -199,7 +199,7 @@ class ConvocationTest extends WebTestCase
 
         // Max tombe malade : Tom le remplace → seuls les parents de Tom reçoivent la convocation ; Max noté absent.
         $maxConvoque = $this->convoque($rencontre, 'Max');
-        $this->client->submit($crawler->selectButton('Convoquer et prévenir ses parents')->form(), [
+        $this->client->submit($crawler->selectButton('Convoquer et prévenir')->form(), [
             'remplace' => (string) $maxConvoque->getId(), 'motif' => 'Malade', 'joueur' => (string) $tom->getId(),
         ]);
         self::assertEmailCount(1);

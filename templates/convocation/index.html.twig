@@ -206,11 +206,13 @@
                         </div>
                         <div class="champ">
                             <label for="remplacant">Joueur convoqué à sa place</label>
-                            <select id="remplacant" name="joueur" required>
+                            {# Joueur majeur : c'est lui qui est prévenu, sinon ses parents (texte du bouton adapté au choix). #}
+                            <select id="remplacant" name="joueur" required
+                                    onchange="const b = document.getElementById('bouton-remplacer'); if (b && b.dataset.envoyee) { const o = this.selectedOptions[0]; b.textContent = !o || !o.value ? 'Convoquer et prévenir' : (o.dataset.majeur ? 'Convoquer et prévenir le joueur' : 'Convoquer et prévenir ses parents'); }">
                                 <option value="">— Choisir —</option>
                                 {% for groupe, liste in remplacants %}
                                     <optgroup label="{{ groupe }}">
-                                        {% for j in liste %}<option value="{{ j.id }}">{{ j.nom }} {{ j.prenom }}</option>{% endfor %}
+                                        {% for j in liste %}<option value="{{ j.id }}" {{ not j.mineur ? 'data-majeur=1' }}>{{ j.nom }} {{ j.prenom }}</option>{% endfor %}
                                     </optgroup>
                                 {% endfor %}
                             </select>
@@ -218,9 +220,9 @@
                     </div>
                 </div>
                 <div class="actions-ligne">
-                    <button type="submit" class="bouton principal">{{ convocation.envoyeeLe ? 'Convoquer et prévenir ses parents' : 'Convoquer' }}</button>
+                    <button type="submit" class="bouton principal" id="bouton-remplacer" {{ convocation.envoyeeLe ? 'data-envoyee=1' }}>{{ convocation.envoyeeLe ? 'Convoquer et prévenir' : 'Convoquer' }}</button>
                 </div>
-                <p class="discret petit">Le joueur empêché est noté absent (avec le motif) ; le remplaçant est ajouté à la convocation{{ convocation.envoyeeLe ? ' et ses parents la reçoivent aussitôt' }}.</p>
+                <p class="discret petit">Le convoqué empêché est noté absent (avec le motif) ; le remplaçant est ajouté à la convocation{{ convocation.envoyeeLe ? ' et la reçoit aussitôt (lui-même s\'il est majeur, sinon ses parents)' }}.</p>
             </form>
         </section>
 
