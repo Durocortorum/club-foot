@@ -69,7 +69,7 @@
                 {{ m.ligne('Météo', rencontre.meteo) }}
                 {{ m.ligne('Vent', rencontre.vent) }}
                 {{ m.ligne('Température', rencontre.temperature ? rencontre.temperature ~ ' °C') }}
-                {{ m.ligne('Organisation', rencontre.systeme) }}
+                {{ m.ligne('Organisation', rencontre.systemeLibelle) }}
                 {{ m.ligne('Note du match', rencontre.note ? rencontre.note|number_format(1, ',') ~ ' / 10') }}
             </dl>
         </section>
@@ -145,7 +145,7 @@
         <section class="carte bloc">
             <div class="titre-page">
                 {# Placés à la main par l'éducateur : ce n'est plus le système type. #}
-                <h2>Composition{% if rencontre.placements is not empty %} <span class="pastille" title="{{ rencontre.systeme ? 'Point de départ : ' ~ rencontre.systeme }}">Placement de l'éducateur</span>{% elseif rencontre.systeme %} <span class="pastille">{{ rencontre.systeme }}</span>{% endif %}</h2>
+                <h2>Composition{% if rencontre.placements is not empty or rencontre.placementEducateur %} <span class="pastille">{{ constant('App\\Entity\\Rencontre::LIBELLE_EDUCATEUR') }}</span>{% elseif rencontre.systeme %} <span class="pastille">{{ rencontre.systeme }}</span>{% endif %}</h2>
                 <a class="bouton petit" href="{{ path('app_rencontre_composition', {id: rencontre.id}) }}">Placer les joueurs</a>
             </div>
             {% include 'rencontre/_terrain_compo.html.twig' with {modifiable: false} %}

@@ -96,7 +96,7 @@ class CompositionTest extends WebTestCase
         self::assertSame([40.0, 70.0], $place($crawler, 9));
         $crawler = $this->client->request('GET', '/matchs/' . $match->getId());
         self::assertSame([40.0, 70.0], $place($crawler, 9), 'même place sur la page du match');
-        self::assertStringContainsString('Placement de l\'éducateur', $crawler->filter('h2:contains("Composition")')->text(), 'plus le système type');
+        self::assertStringContainsString('Placement par l\'éducateur', $crawler->filter('h2:contains("Composition")')->text(), 'plus le système type');
 
         // Changement de système et retour aux places du système.
         $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/composition');
@@ -115,7 +115,8 @@ class CompositionTest extends WebTestCase
         $em->clear();
         self::assertNotSame([], $em->find(Rencontre::class, $match->getId())->getPlacements());
         $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/modifier');
-        self::assertSelectorTextContains('.placement-educateur', 'Placement de l\'éducateur');
+        self::assertSelectorExists('.placement-educateur');
+        self::assertSame(\App\Entity\Rencontre::SYSTEME_EDUCATEUR, $crawler->filter('form[name="rencontre"]')->form()['rencontre[systeme]']->getValue(), 'organisation « Placement par l\'éducateur »');
         $form = $crawler->filter('form[name="rencontre"]')->form();
         $form['rencontre[systeme]'] = '4 4 2 losange';
         $this->client->submit($form);

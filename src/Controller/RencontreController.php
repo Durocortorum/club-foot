@@ -322,15 +322,19 @@ class RencontreController extends AbstractController
         $donnees = $request->getPayload();
         if ($request->isMethod('POST') && $this->isCsrfTokenValid('composition' . $rencontre->getId(), $donnees->getString('_token'))) {
             $systeme = $donnees->getString('systeme');
-            if (\in_array($systeme, array_merge(...array_values(Rencontre::SYSTEMES)), true)) {
+            if (\in_array($systeme, [Rencontre::SYSTEME_EDUCATEUR, ...array_merge(...array_values(Rencontre::SYSTEMES))], true)) {
                 $rencontre->setSysteme($systeme);
             }
             if ('replacer' === $donnees->getString('action')) {
                 $rencontre->setPlacements([]);
-                $this->addFlash('succes', 'Joueurs replacés selon le système ' . ($rencontre->getSysteme() ?? 'par défaut') . '.');
+                $this->addFlash('succes', 'Joueurs replacés selon le système ' . ($rencontre->getSystemeLibelle() ?? 'par défaut') . '.');
             } else {
                 $places = json_decode($donnees->getString('placements'), true);
                 $rencontre->setPlacements(\is_array($places) ? $places : []);
+                // Joueurs déplacés à la main : l'organisation devient « Placement par l'éducateur ».
+                if ($rencontre->getPlacements()) {
+                    $rencontre->setSysteme(Rencontre::SYSTEME_EDUCATEUR);
+                }
                 $this->addFlash('succes', 'Composition enregistrée.');
             }
             $em->flush();
@@ -422,7 +426,8 @@ class RencontreController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             // Organisation de jeu changée : les places choisies à la main sont oubliées, les joueurs se placent
             // selon la nouvelle organisation (comme « Replacer selon le système » de la composition).
-            $replaces = $systemeAvant !== $rencontre->getSysteme() && $rencontre->getPlacements();
+            // (« Placement par l'éducateur » choisi : les places à la main sont gardées.)
+            $replaces = $systemeAvant !== $rencontre->getSysteme() && $rencontre->getPlacements() && !$rencontre->isPlacementEducateur();
             if ($replaces) {
                 $rencontre->setPlacements([]);
             }
@@ -439,7 +444,7 @@ class RencontreController extends AbstractController
             }
             $this->addFlash('succes', 'Match enregistré.');
             if ($replaces) {
-                $this->addFlash('info', \sprintf('Organisation %s : joueurs replacés sur le terrain selon cette organisation (« Placer les joueurs » pour les déplacer).', $rencontre->getSysteme() ?: 'retirée'));
+                $this->addFlash('info', \sprintf('Organisation %s : joueurs replacés sur le terrain selon cette organisation (« Placer les joueurs » pour les déplacer).', $rencontre->getSystemeLibelle() ?: 'retirée'));
             }
             if ($corriges) {
                 $this->addFlash('info', 'Entré' . (\count($corriges) > 1 ? 's' : '') . ' en cours de match, donc pas titulaire' . (\count($corriges) > 1 ? 's' : '') . ' : ' . implode(', ', $corriges) . '.');

@@ -23,6 +23,9 @@
                 <label class="en-ligne">Système
                     <select name="systeme">
                         <option value="">—</option>
+                        <optgroup label="Placement libre">
+                            <option value="{{ constant('App\\Entity\\Rencontre::SYSTEME_EDUCATEUR') }}" {{ rencontre.placementEducateur ? 'selected' }}>{{ constant('App\\Entity\\Rencontre::LIBELLE_EDUCATEUR') }}</option>
+                        </optgroup>
                         {% for groupe, liste in systemes %}
                             <optgroup label="{{ groupe }}">
                                 {% for s in liste %}<option value="{{ s }}" {{ s == rencontre.systeme ? 'selected' }}>{{ s }}</option>{% endfor %}
@@ -35,8 +38,8 @@
 
             {# Joueurs déplacés à la main : la disposition n'est plus celle du système affiché. #}
             {% if rencontre.placements is not empty %}
-                <p class="placement-educateur"><span class="pastille">Placement de l'éducateur</span>
-                    Les joueurs ont été placés à la main{{ rencontre.systeme ? ' (point de départ : ' ~ rencontre.systeme ~ ')' }}. « Replacer selon le système » pour revenir à une organisation type.</p>
+                <p class="placement-educateur"><span class="pastille">Placement par l'éducateur</span>
+                    Les joueurs ont été placés à la main. Pour revenir à une organisation type : choisissez-la ci-dessus, puis « Replacer selon le système ».</p>
             {% endif %}
             <p class="discret petit">Faites glisser les joueurs à la souris ou au doigt, puis enregistrez. Notre but est en bas.</p>
             {% include 'rencontre/_terrain_compo.html.twig' with {modifiable: true} %}

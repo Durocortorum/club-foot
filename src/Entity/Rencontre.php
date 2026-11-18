@@ -491,6 +491,24 @@ class Rencontre implements AppartientAuClub
         return $this;
     }
 
+    /**
+     * Organisation « Placement par l'éducateur » : joueurs placés à la main sur le terrain (page « Composition »),
+     * pas une organisation type. Valeur courte enregistrée (colonne de 20 caractères), libellé complet affiché.
+     */
+    public const SYSTEME_EDUCATEUR = 'Éducateur';
+    public const LIBELLE_EDUCATEUR = 'Placement par l\'éducateur';
+
+    public function isPlacementEducateur(): bool
+    {
+        return self::SYSTEME_EDUCATEUR === $this->systeme;
+    }
+
+    /** Organisation affichée : « 4 3 2 1 », ou « Placement par l'éducateur ». */
+    public function getSystemeLibelle(): ?string
+    {
+        return $this->isPlacementEducateur() ? self::LIBELLE_EDUCATEUR : $this->systeme;
+    }
+
     public function getSysteme(): ?string
     {
         return $this->systeme;

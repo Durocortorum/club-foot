@@ -92,6 +92,11 @@ class RencontreType extends AbstractType
                 $groupes = array_is_list($valeurs) ? $this->choix($valeurs) : array_map(fn (array $v) => $this->choix($v), $valeurs);
                 $actuelle = $valeur($nom);
                 $connues = array_is_list($valeurs) ? $valeurs : array_merge(...array_values($valeurs));
+                // Organisation : aussi « Placement par l'éducateur » (joueurs placés à la main sur le terrain).
+                if ('systeme' === $nom) {
+                    $groupes = ['Placement libre' => [Rencontre::LIBELLE_EDUCATEUR => Rencontre::SYSTEME_EDUCATEUR]] + $groupes;
+                    $connues[] = Rencontre::SYSTEME_EDUCATEUR;
+                }
                 if (null !== $actuelle && '' !== $actuelle && !\in_array($actuelle, $connues, true)) {
                     $groupes = array_is_list($valeurs) ? $groupes + [$actuelle => $actuelle] : $groupes + ['Autre' => [$actuelle => $actuelle]];
                 }
