@@ -180,7 +180,7 @@ class ConvocationTest extends WebTestCase
         self::assertEmailCount(0);
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('#reponses', 'pas encore prévenu');
-        self::assertSelectorExists('button:contains("Envoyer aux 1 joueur ajouté")');
+        self::assertSelectorTextContains('#envoi', '1 pas encore prévenu');
 
         // « Enregistrer et envoyer aux joueurs ajoutés » : seuls les parents de Max reçoivent la convocation.
         $this->client->submit($crawler->selectButton('Enregistrer et envoyer aux joueurs ajoutés')->form());
