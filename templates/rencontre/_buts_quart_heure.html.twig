@@ -35,8 +35,12 @@
             {% endfor %}
         </div>
 
+        {# Une colonne de phases n'apparaît que si au moins un de ses buts a une phase renseignée
+           (sinon elle ne dirait que « Non renseignée : 100 % »). #}
+        {% set cotesPhases = {pour: p, contre: c}|filter(d => d.total > d.phases['inconnue']) %}
+        {% if cotesPhases|length > 0 %}
         <div class="phases">
-            {% for cote, d in {pour: p, contre: c} %}
+            {% for cote, d in cotesPhases %}
                 <div>
                     <h3>Buts {{ cote }} par phase de jeu</h3>
                     <dl>
@@ -50,6 +54,7 @@
                 </div>
             {% endfor %}
         </div>
+        {% endif %}
 
         <details class="petit">
             <summary>Voir le tableau des chiffres</summary>

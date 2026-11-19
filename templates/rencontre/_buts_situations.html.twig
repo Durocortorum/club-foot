@@ -1,6 +1,7 @@
 {# Situation des buts (champ « Conditions » d'Access) : pour à gauche, contre à droite,
-   de la plus fréquente à la plus rare. Remplace les camemberts d'Access, illisibles à 15 parts. #}
-{% if analyse.situations %}
+   de la plus fréquente à la plus rare. Remplace les camemberts d'Access, illisibles à 15 parts.
+   Caché si aucun but n'a de situation renseignée : la seule ligne « Non renseignée » redirait le total des buts. #}
+{% if analyse.situations|keys|filter(s => s != 'Non renseignée')|length > 0 %}
     <section class="carte bloc analyse-buts">
         <div class="titre-page">
             <h2>Situation des buts</h2>
