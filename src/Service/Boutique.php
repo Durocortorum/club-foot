@@ -116,6 +116,33 @@ class Boutique
      */
     public function commanderPourJoueur(Joueur $joueur, array $lignes, ?string $note): CommandeBoutique
     {
+        self::verifierLignes($lignes);
+        $compte = $this->compteFamille($joueur);
+
+        return $this->creer($compte, $compte ? self::nomClient($compte) : 'Famille ' . $joueur->getNom(), $joueur, $lignes, $note);
+    }
+
+    /**
+     * Vente à une personne extérieure au club (supporter, parent d'un autre club…) : ni compte ni joueur,
+     * le nom (et le contact éventuel) est gardé dans « client ».
+     *
+     * @param list<array{article: ArticleBoutique, taille: string, quantite: int}> $lignes
+     *
+     * @throws \InvalidArgumentException nom manquant, aucune ligne, article indisponible, stock insuffisant
+     */
+    public function commanderPourExterieur(string $nom, ?string $contact, array $lignes, ?string $note): CommandeBoutique
+    {
+        if ('' === $nom = trim($nom)) {
+            throw new \InvalidArgumentException('Indiquez le nom de la personne.');
+        }
+        self::verifierLignes($lignes);
+
+        return $this->creer(null, $nom . (($contact = trim((string) $contact)) ? ' · ' . $contact : ''), null, $lignes, $note);
+    }
+
+    /** @param list<array{article: ArticleBoutique, taille: string, quantite: int}> $lignes */
+    private static function verifierLignes(array $lignes): void
+    {
         if (!$lignes) {
             throw new \InvalidArgumentException('Ajoutez au moins un article.');
         }
@@ -124,9 +151,6 @@ class Boutique
                 throw new \InvalidArgumentException(\sprintf('« %s » en %s n\'est plus en vente.', $l['article']->getNom(), $l['taille']));
             }
         }
-        $compte = $this->compteFamille($joueur);
-
-        return $this->creer($compte, $compte ? self::nomClient($compte) : 'Famille ' . $joueur->getNom(), $joueur, $lignes, $note);
     }
 
     /** Compte famille rattaché au joueur (le premier s'il y en a plusieurs), ou null. */
@@ -151,7 +175,7 @@ class Boutique
      *
      * @param list<array{article: ArticleBoutique, taille: string, quantite: int}> $lignes
      */
-    private function creer(?Utilisateur $compte, string $client, Joueur $joueur, array $lignes, ?string $note): CommandeBoutique
+    private function creer(?Utilisateur $compte, string $client, ?Joueur $joueur, array $lignes, ?string $note): CommandeBoutique
     {
         $voulu = [];
         foreach ($lignes as $l) {

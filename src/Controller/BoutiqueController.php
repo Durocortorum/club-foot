@@ -8,6 +8,7 @@ use App\Entity\Cotisation;
 use App\Entity\Rencontre;
 use App\Form\ArticleBoutiqueType;
 use App\Repository\ArticleBoutiqueRepository;
+use App\Repository\CategorieRepository;
 use App\Repository\CommandeBoutiqueRepository;
 use App\Repository\JoueurRepository;
 use App\Service\Boutique;
@@ -73,11 +74,11 @@ class BoutiqueController extends AbstractController
      */
     #[Route('/commande/nouvelle', name: 'app_boutique_commande_nouvelle', methods: ['GET', 'POST'])]
     #[IsGranted('ROLE_FINANCES')]
-    public function nouvelleCommande(Request $request, ArticleBoutiqueRepository $articles, JoueurRepository $joueurs): Response
+    public function nouvelleCommande(Request $request, ArticleBoutiqueRepository $articles, JoueurRepository $joueurs, CategorieRepository $categories): Response
     {
         $enVente = $articles->findBy(['enVente' => true], ['ordre' => 'ASC', 'nom' => 'ASC']);
         $modes = array_values(array_diff(Cotisation::MODES, [Cotisation::MODE_EN_LIGNE]));
-        $saisie = ['joueur' => $request->query->getInt('joueur'), 'lignes' => [], 'reglement' => '', 'note' => ''];
+        $saisie = ['pour' => 'joueur', 'joueur' => $request->query->getInt('joueur'), 'categorie' => '', 'nom' => '', 'contact' => '', 'lignes' => [], 'reglement' => '', 'note' => ''];
 
         if ($request->isMethod('POST')) {
             $p = $request->getPayload();
@@ -85,7 +86,12 @@ class BoutiqueController extends AbstractController
                 throw $this->createAccessDeniedException();
             }
             $brut = $request->request->all('lignes');
-            $saisie = ['joueur' => $p->getInt('joueur'), 'lignes' => $brut, 'reglement' => $p->getString('reglement'), 'note' => trim($p->getString('note'))];
+            $saisie = [
+                'pour' => 'exterieur' === $p->getString('pour') ? 'exterieur' : 'joueur',
+                'joueur' => $p->getInt('joueur'), 'categorie' => $p->getString('categorie'),
+                'nom' => trim($p->getString('nom')), 'contact' => trim($p->getString('contact')),
+                'lignes' => $brut, 'reglement' => $p->getString('reglement'), 'note' => trim($p->getString('note')),
+            ];
             $parId = [];
             foreach ($enVente as $a) {
                 $parId[$a->getId()] = $a;
@@ -98,17 +104,20 @@ class BoutiqueController extends AbstractController
                     $lignes[] = ['article' => $parId[(int) $id], 'taille' => $taille, 'quantite' => $quantite];
                 }
             }
-            $joueur = $saisie['joueur'] ? $joueurs->find($saisie['joueur']) : null;
+            $joueur = 'joueur' === $saisie['pour'] && $saisie['joueur'] ? $joueurs->find($saisie['joueur']) : null;
             try {
-                if (!$joueur) {
+                if ('exterieur' === $saisie['pour']) {
+                    $commande = $this->boutique->commanderPourExterieur($saisie['nom'], $saisie['contact'] ?: null, $lignes, $saisie['note'] ?: null);
+                } elseif ($joueur) {
+                    $commande = $this->boutique->commanderPourJoueur($joueur, $lignes, $saisie['note'] ?: null);
+                } else {
                     throw new \InvalidArgumentException('Choisissez le joueur pour qui est la commande.');
                 }
-                $commande = $this->boutique->commanderPourJoueur($joueur, $lignes, $saisie['note'] ?: null);
                 if (\in_array($saisie['reglement'], $modes, true)) {
                     $commande->marquerPayee($saisie['reglement']);
                     $this->em->flush();
                 }
-                $this->addFlash('succes', \sprintf('Commande n° %s enregistrée pour %s (%s)%s.', $commande->getNumero(), $joueur->getNomComplet(),
+                $this->addFlash('succes', \sprintf('Commande n° %s enregistrée pour %s (%s)%s.', $commande->getNumero(), $joueur ? $joueur->getNomComplet() : $saisie['nom'],
                     number_format($commande->getTotalEuros(), 2, ',', ' ') . ' €',
                     $commande->isPayee() ? ', réglée : à préparer' : ', à régler'));
 
@@ -121,6 +130,7 @@ class BoutiqueController extends AbstractController
         return $this->render('boutique/commande_nouvelle.html.twig', [
             'articles' => $enVente,
             'joueurs' => $joueurs->findBy(['ancien' => false], ['nom' => 'ASC', 'prenom' => 'ASC']),
+            'categories' => $categories->findBy([], ['ordre' => 'ASC', 'nom' => 'ASC']),
             'modes' => $modes,
             'saisie' => $saisie,
             'nb_lignes' => self::LIGNES_SAISIE,

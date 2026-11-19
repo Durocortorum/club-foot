@@ -10,12 +10,12 @@
         <h1>Commandes de la boutique</h1>
         <span class="actions">
             <span class="discret">Ventes de la saison : <strong>{{ f.euros(ventes_saison) }}</strong></span>
-            {% if modif %}<a class="bouton principal" href="{{ path('app_boutique_commande_nouvelle') }}">+ Commande pour une famille</a>{% endif %}
+            {% if modif %}<a class="bouton principal" href="{{ path('app_boutique_commande_nouvelle') }}">+ Saisir une commande</a>{% endif %}
         </span>
     </div>
     <p class="discret">
         Les familles commandent depuis leur espace (menu Boutique) : leurs commandes arrivent ici.
-        {% if modif %}Une famille commande au guichet ou par téléphone ? Saisissez-la avec « + Commande pour une famille ».{% endif %}
+        {% if modif %}Une commande au guichet ou par téléphone, même d'une personne extérieure au club ? Saisissez-la avec « + Saisir une commande ».{% endif %}
     </p>
 
     <nav class="filtres-pastilles">
@@ -28,7 +28,7 @@
         <section class="carte bloc commande-club" id="commande-{{ c.id }}">
             <div class="titre-page">
                 <div>
-                    <h2>N° {{ c.numero }} · {{ c.client }}{% if c.joueur %} <span class="discret">pour {{ c.joueur.prenom }} {{ c.joueur.nom }} ({{ c.joueur.categorie }})</span>{% endif %}</h2>
+                    <h2>N° {{ c.numero }} · {{ c.client }}{% if c.joueur %} <span class="discret">pour {{ c.joueur.prenom }} {{ c.joueur.nom }} ({{ c.joueur.categorie }})</span>{% elseif not c.compte %} <span class="pastille">extérieur</span>{% endif %}</h2>
                     <p class="discret petit">Commandée le {{ c.creeLe|date('d/m/Y à H:i', 'Europe/Paris') }}{% if c.payeeLe %} · réglée le {{ c.payeeLe|date('d/m', 'Europe/Paris') }} ({{ c.modeReglement }}){% endif %}{% if c.remiseLe %} · remise le {{ c.remiseLe|date('d/m', 'Europe/Paris') }}{% endif %}</p>
                 </div>
                 <span class="pastille {{ c.statut == 'a_regler' ? 'alerte' : (c.statut in ['payee', 'prete'] ? 'succes' : '') }}">{{ c.statutLibelle }}</span>

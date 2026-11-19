@@ -1,18 +1,18 @@
 {% extends 'base.html.twig' %}
 {% import 'commun/_macros.html.twig' as m %}
 
-{# Commande saisie par le club pour une famille (au guichet, par téléphone) : pour qui, quoi, réglée ou non. #}
+{# Commande saisie par le club (au guichet, par téléphone) pour un joueur ou une personne extérieure : pour qui, quoi, réglée ou non. #}
 
-{% block title %}Commande pour une famille{% endblock %}
+{% block title %}Saisir une commande{% endblock %}
 
 {% block body %}
     {{ m.retour(path('app_boutique'), 'Commandes de la boutique') }}
     <div class="titre-page">
-        <h1>Commande pour une famille</h1>
+        <h1>Saisir une commande</h1>
     </div>
     <p class="discret">
-        Pour une famille qui commande au guichet ou par téléphone. Si la famille a un compte, elle retrouve la commande
-        dans son espace et elle est prévenue quand elle est prête.
+        Pour une commande passée au guichet ou par téléphone, par la famille d'un joueur ou par une personne extérieure au club.
+        Si la famille a un compte, elle retrouve la commande dans son espace et elle est prévenue quand elle est prête.
     </p>
 
     {% if not articles %}
@@ -21,20 +21,72 @@
         <form method="post" class="formulaire formulaire-operation">
             <input type="hidden" name="_token" value="{{ csrf_token('commande-club') }}">
 
-            <section class="carte etape-operation">
+            {# Pour qui : un joueur du club (liste filtrable par catégorie) ou une personne extérieure (nom, contact).
+               Le bloc affiché suit le choix (CSS :has), sans rechargement. #}
+            <section class="carte etape-operation pour-qui">
                 <h2><span class="etape-num">1</span> Pour qui ?</h2>
-                <div class="champs">
+                <div class="choix-pour-qui">
+                    <label class="choix-carte">
+                        <input type="radio" name="pour" value="joueur" {{ saisie.pour != 'exterieur' ? 'checked' }}>
+                        <span><strong>Un joueur du club</strong><small>La famille retrouve la commande dans son espace.</small></span>
+                    </label>
+                    <label class="choix-carte">
+                        <input type="radio" name="pour" value="exterieur" {{ saisie.pour == 'exterieur' ? 'checked' }}>
+                        <span><strong>Une personne extérieure</strong><small>Supporter, voisin, parent d'un autre club…</small></span>
+                    </label>
+                </div>
+
+                <div class="champs bloc-joueur">
+                    <div class="champ">
+                        <label for="categorie">Catégorie</label>
+                        <select id="categorie" name="categorie">
+                            <option value="">Toutes les catégories</option>
+                            {% for c in categories %}
+                                <option value="{{ c.id }}" {{ saisie.categorie == c.id ? 'selected' }}>{{ c.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="champ">
                         <label for="joueur">Joueur</label>
-                        <select id="joueur" name="joueur" required>
+                        <select id="joueur" name="joueur">
                             <option value="">— Choisir le joueur —</option>
                             {% for j in joueurs %}
-                                <option value="{{ j.id }}" {{ saisie.joueur == j.id ? 'selected' }}>{{ j.nom }} {{ j.prenom }}{{ j.categorie ? ' (' ~ j.categorie ~ ')' }}</option>
+                                <option value="{{ j.id }}" data-categorie="{{ j.categorie ? j.categorie.id }}" {{ saisie.joueur == j.id ? 'selected' }}>{{ j.nom }} {{ j.prenom }}{{ j.categorie ? ' (' ~ j.categorie ~ ')' }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
+
+                <div class="champs bloc-exterieur">
+                    <div class="champ">
+                        <label for="nom">Nom et prénom</label>
+                        <input type="text" id="nom" name="nom" value="{{ saisie.nom }}" maxlength="100" placeholder="ex. : Jean Dupont">
+                    </div>
+                    <div class="champ">
+                        <label for="contact">Téléphone ou e-mail <span class="discret">(facultatif)</span></label>
+                        <input type="text" id="contact" name="contact" value="{{ saisie.contact }}" maxlength="50" placeholder="Pour le prévenir quand c'est prêt">
+                    </div>
+                </div>
             </section>
+            <script>
+                // Filtre de la liste des joueurs par catégorie : la liste est reconstruite avec les joueurs de la catégorie choisie.
+                (() => {
+                    const categorie = document.getElementById('categorie');
+                    const joueur = document.getElementById('joueur');
+                    if (!categorie || !joueur || joueur.dataset.filtre) { return; }
+                    joueur.dataset.filtre = '1';
+                    const tous = [...joueur.options].slice(1).map((o) => o.cloneNode(true));
+                    const filtrer = () => {
+                        const choisi = joueur.value;
+                        joueur.length = 1;
+                        tous.filter((o) => !categorie.value || o.dataset.categorie === categorie.value)
+                            .forEach((o) => joueur.add(o.cloneNode(true)));
+                        joueur.value = [...joueur.options].some((o) => o.value === choisi) ? choisi : '';
+                    };
+                    categorie.addEventListener('change', filtrer);
+                    if (categorie.value) { filtrer(); }
+                })();
+            </script>
 
             <section class="carte etape-operation">
                 <h2><span class="etape-num">2</span> Quels articles ?</h2>
