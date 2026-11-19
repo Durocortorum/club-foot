@@ -1699,3 +1699,81 @@ select:not([multiple]):not([size]):disabled { cursor: default; opacity: .6; }
 .liste.saisie select:not([multiple]):not([size]), select.creneau:not([multiple]):not([size]) { padding-right: 1.5rem; background-position: right .45rem center, 0 0; background-size: 9px 6px, 100% 100%; }
 /* Créneaux colorés (présent, absence) : on garde leur couleur de fond, sans le dégradé blanc. */
 select.creneau.present:not([multiple]):not([size]), select.creneau.absence:not([multiple]):not([size]) { background-size: 9px 6px, 0 0; }
+
+/* ==========================================================================
+   Relooking général (novembre 2026) : finitions communes à toutes les pages.
+   Bloc autonome en fin de feuille : ombres douces, en-têtes de tableau, champs,
+   boutons, onglets, messages. Le retirer d'un bloc rend l'ancien look.
+   ========================================================================== */
+:root {
+    --rayon: 12px;
+    --fond: #f3f4f7;
+    --bordure: #e2e3e9;
+    --ombre: 0 1px 2px rgba(16, 24, 40, .04), 0 4px 14px rgba(16, 24, 40, .04);
+    --ombre-forte: 0 2px 4px rgba(16, 24, 40, .06), 0 10px 28px rgba(16, 24, 40, .08);
+}
+
+/* Titres */
+h1 { font-weight: 700; letter-spacing: -.015em; }
+h2 { letter-spacing: -.005em; }
+.titre-bloc { display: flex; align-items: center; gap: .5rem; }
+.titre-bloc::before { content: ""; width: 4px; height: 1.1em; border-radius: 2px; background: var(--rouge); flex: none; }
+.compteur { background: color-mix(in srgb, var(--rouge) 12%, #fff); color: var(--rouge-fonce); font-weight: 600; font-size: .8rem; }
+
+/* En-tête : léger dégradé et ombre sous le bandeau */
+.entete {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--rouge) 92%, #fff) 0%, var(--rouge) 100%);
+    box-shadow: 0 2px 10px rgba(16, 24, 40, .12);
+}
+.menu a { border-radius: 8px; transition: background-color .15s, opacity .15s; }
+.menu a.actif { font-weight: 600; box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--sur-rouge) 70%, transparent); }
+
+/* Cartes, listes, tableaux : ombre douce au lieu du simple trait */
+.carte, .liste-simple, .table-defile, .boite-reception, .journal { box-shadow: var(--ombre); border-color: var(--bordure); }
+
+/* Tableaux : en-tête sur fond gris clair, intitulés en petites capitales, survol teinté de la couleur du club */
+.liste thead th {
+    background: #f8f9fb; font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #70727c;
+}
+.liste tbody tr { transition: background-color .12s; }
+.liste tbody tr:hover { background: color-mix(in srgb, var(--rouge) 4%, #fff); }
+.table-defile > .liste thead th:first-child, .carte > .liste thead th:first-child { border-top-left-radius: var(--rayon); }
+.table-defile > .liste thead th:last-child, .carte > .liste thead th:last-child { border-top-right-radius: var(--rayon); }
+
+/* Boutons : un peu plus de relief, transitions, survol coloré */
+.bouton {
+    font-weight: 500; border-radius: 9px; box-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+    transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s, transform .1s;
+}
+.bouton:hover { border-color: color-mix(in srgb, var(--rouge) 40%, var(--bordure)); color: var(--rouge-fonce); }
+.bouton:active { transform: translateY(1px); }
+.bouton.principal { box-shadow: 0 1px 2px rgba(16, 24, 40, .1), 0 2px 8px color-mix(in srgb, var(--rouge) 25%, transparent); }
+.bouton.principal:hover { color: var(--sur-rouge); border-color: var(--rouge-fonce); }
+.bouton.danger:hover { background: var(--danger-clair); border-color: var(--danger); color: var(--danger-fonce); }
+.bouton.danger-plein:hover { color: #fff; }
+
+/* Champs : coins plus arrondis, bordure qui se colore au survol, halo au clic (comme les listes déroulantes) */
+input[type=text], input[type=password], input[type=search], input[type=email], input[type=tel], input[type=date],
+input[type=time], input[type=datetime-local], input[type=number], input[type=file], textarea {
+    border-radius: 8px; box-shadow: inset 0 1px 2px rgba(16, 24, 40, .04); transition: border-color .15s, box-shadow .15s;
+}
+input[type=text]:hover, input[type=password]:hover, input[type=search]:hover, input[type=email]:hover, input[type=tel]:hover,
+input[type=date]:hover, input[type=time]:hover, input[type=datetime-local]:hover, input[type=number]:hover, textarea:hover {
+    border-color: color-mix(in srgb, var(--rouge) 35%, var(--bordure));
+}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):focus, textarea:focus {
+    outline: none; border-color: var(--rouge); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rouge) 18%, transparent);
+}
+select:not([multiple]):not([size]):focus { outline: none; }
+input::placeholder, textarea::placeholder { color: #9a9ca5; }
+
+/* Onglets : l'onglet actif sur fond teinté, coins arrondis en haut */
+.onglets a { border-radius: 8px 8px 0 0; transition: color .15s, background-color .15s; }
+.onglets a:hover { background: color-mix(in srgb, var(--rouge) 5%, transparent); }
+.onglets a.actif { background: color-mix(in srgb, var(--rouge) 8%, transparent); border-bottom-width: 3px; }
+
+/* Pastilles : un peu plus de présence */
+.pastille { font-weight: 600; padding: .12rem .55rem; }
+
+/* Messages : liseré coloré à gauche */
+.flash { border-left: 4px solid currentColor; box-shadow: var(--ombre); }
