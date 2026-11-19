@@ -14,11 +14,11 @@
         <div class="tuile"><span class="tuile-valeur">{{ ma.pct(reussite(e, 'passe')) }}</span><span class="tuile-libelle">passes réussies ({{ ((e.BP + e.MP) / nb)|number_format(0) }} par match)</span></div>
         <div class="tuile"><span class="tuile-valeur">{{ ma.pct(reussite(e, 'duel')) }}</span><span class="tuile-libelle">duels gagnés ({{ ((e.DG + e.DP) / nb)|number_format(0) }} par match)</span></div>
         <div class="tuile"><span class="tuile-valeur">{{ ma.pct(reussite(e, 'controle')) }}</span><span class="tuile-libelle">bons contrôles</span></div>
-        <div class="tuile"><span class="tuile-valeur">{{ (tirs / nb)|number_format(1, ',') }} – {{ (tirs_contre / nb)|number_format(1, ',') }}</span><span class="tuile-libelle">frappes et têtes par match, pour – contre</span></div>
-        <div class="tuile"><span class="tuile-valeur">{{ tirs ? ((e.FC + e.TC) * 100 / tirs)|round ~ ' %' : '–' }} – {{ tirs_contre ? ((e.AC + e.ATC) * 100 / tirs_contre)|round ~ ' %' : '–' }}</span><span class="tuile-libelle">cadrées, pour – contre</span></div>
-        <div class="tuile"><span class="tuile-valeur">{{ e.B }} – {{ e.BA }}</span><span class="tuile-libelle">buts pour – contre{% if tirs %} ({{ (e.B * 100 / tirs)|round }} % des frappes marquées){% endif %}</span></div>
+        <div class="tuile"><span class="tuile-valeur double">{{ (tirs / nb)|number_format(1, ',') }} – {{ (tirs_contre / nb)|number_format(1, ',') }}</span><span class="tuile-libelle">frappes et têtes par match, pour – contre</span></div>
+        <div class="tuile"><span class="tuile-valeur double">{{ tirs ?((e.FC + e.TC) * 100 / tirs)|round ~ ' %' : '–' }} – {{ tirs_contre ? ((e.AC + e.ATC) * 100 / tirs_contre)|round ~ ' %' : '–' }}</span><span class="tuile-libelle">cadrées, pour – contre</span></div>
+        <div class="tuile"><span class="tuile-valeur double">{{ e.B }} – {{ e.BA }}</span><span class="tuile-libelle">buts pour – contre{% if tirs %} ({{ (e.B * 100 / tirs)|round }} % des frappes marquées){% endif %}</span></div>
         <div class="tuile"><span class="tuile-valeur">{{ (e.C / nb)|number_format(1, ',') }}</span><span class="tuile-libelle">centres par match</span></div>
-        <div class="tuile"><span class="tuile-valeur">{{ (e.CO / nb)|number_format(1, ',') }} – {{ (e.CA / nb)|number_format(1, ',') }}</span><span class="tuile-libelle">corners par match, pour – contre</span></div>
+        <div class="tuile"><span class="tuile-valeur double">{{ (e.CO / nb)|number_format(1, ',') }} – {{ (e.CA / nb)|number_format(1, ',') }}</span><span class="tuile-libelle">corners par match, pour – contre</span></div>
     </div>
 
     <section class="carte bloc">

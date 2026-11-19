@@ -590,6 +590,29 @@ input.majuscules { text-transform: uppercase; }
 .affiche .score { font-size: 1.6rem; }
 .tuiles.bilan { margin-bottom: 1rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 .tuiles.bilan .tuile-valeur { white-space: nowrap; }
+/* Cases de chiffres (bilans, statistiques) : liseré de couleur en haut, fond à peine teinté,
+   gros chiffre en vedette. La couleur (--accent) suit le sens du chiffre : vert = bon, rouge = mauvais. */
+.tuiles.bilan .tuile {
+    --accent: var(--rouge);
+    position: relative; overflow: hidden; gap: .3rem; padding: 1.15rem 1.1rem 1rem;
+    border-color: color-mix(in srgb, var(--accent) 16%, var(--bordure)); border-radius: 14px;
+    background: linear-gradient(165deg, color-mix(in srgb, var(--accent) 8%, #fff) 0%, #fff 65%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 4px 14px rgba(0, 0, 0, .03);
+    transition: box-shadow .15s, border-color .15s;
+}
+.tuiles.bilan .tuile::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--accent); }
+.tuiles.bilan .tuile:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--bordure)); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 14%, transparent); }
+.tuiles.bilan .tuile { container-type: inline-size; }
+.tuiles.bilan .tuile-valeur { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--accent); }
+/* Valeur double « pour – contre » : rapetisse selon la largeur de la case (container-type), pour que « 45 % – 43 % » tienne. */
+.tuiles.bilan .tuile-valeur.double { font-size: min(2rem, 17cqi); }
+.tuiles.bilan.finances-tuiles .tuile-valeur { font-size: 1.45rem; }
+.tuiles.bilan .tuile-valeur.petit-valeur { font-size: 1.1rem; }
+.tuiles.bilan .tuile-libelle { font-size: .85rem; line-height: 1.35; }
+.tuiles.bilan .tuile:has(.resultat-V), .tuiles.bilan .tuile:has(.pct.bon) { --accent: var(--succes); }
+.tuiles.bilan .tuile:has(.resultat-D), .tuiles.bilan .tuile:has(.pct.faible) { --accent: var(--danger-fonce); }
+.tuiles.bilan .tuile:has(.resultat-N) { --accent: var(--gris); }
+.tuiles.bilan .tuile-valeur .pct { color: inherit; font-weight: inherit; }
 /* Prochain match : bloc élargi au nom de l'adversaire (deux cases), le nom revient à la ligne s'il est trop long. */
 .tuiles.bilan .tuile-prochain { grid-column: span 2; }
 .tuiles.bilan .tuile-prochain .tuile-valeur { white-space: normal; }
@@ -663,6 +686,14 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .discipline h3 { font-size: .95rem; margin: 1rem 0 .3rem; }
 .grille-fiches.discipline { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
 .cartons-type .tuile-valeur { display: flex; align-items: center; gap: .5rem; color: var(--encre); }
+.tuiles.bilan.cartons-type .tuile-valeur { color: var(--encre); }
+.cartons-type .tuile.carton-jaune { --accent: var(--jaune-carton); }
+.cartons-type .tuile.carton-rouge { --accent: var(--rouge-carton); }
+.cartons-type .tuile.carton-blanc { --accent: #b9bcc4; }
+.cartons-type .carton { width: 14px; height: 19px; border-radius: 3px; box-shadow: 0 1px 2px rgba(0, 0, 0, .15); }
+/* Aucun carton de ce type : case estompée, pour que l'œil aille aux cartons reçus. */
+.cartons-type .tuile.nulle { opacity: .55; box-shadow: none; }
+.cartons-type .tuile.nulle::before { background: var(--bordure); }
 .cartons-type .tuile-libelle { font-size: .82rem; }
 .phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem 2rem; margin: 1.2rem 0 .6rem; }
 .phases h3 { font-size: .95rem; margin: 0 0 .5rem; }

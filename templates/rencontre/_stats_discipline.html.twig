@@ -4,9 +4,9 @@
 
 <div class="tuiles bilan cartons-type">
     {% for code, n in suivi.parType %}
-        <div class="tuile" title="{{ libelles[code] }}">
+        <div class="tuile carton-{{ couleurs[code] }}{{ n ? '' : ' nulle' }}" title="{{ libelles[code] }}">
             <span class="tuile-valeur"><span class="carton {{ couleurs[code] }}"></span> {{ n }}</span>
-            <span class="tuile-libelle">{{ code }} · {{ libelles[code] }}</span>
+            <span class="tuile-libelle">{{ libelles[code] }}</span>
         </div>
     {% endfor %}
 </div>

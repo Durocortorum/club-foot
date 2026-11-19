@@ -5,6 +5,6 @@
         <div class="tuile"><span class="tuile-valeur resultat-V">{{ bilan.V }}</span><span class="tuile-libelle">{{ accord(bilan.V, 'victoire') }}</span></div>
         <div class="tuile"><span class="tuile-valeur resultat-N">{{ bilan.N }}</span><span class="tuile-libelle">{{ accord(bilan.N, 'nul') }}</span></div>
         <div class="tuile"><span class="tuile-valeur resultat-D">{{ bilan.D }}</span><span class="tuile-libelle">{{ accord(bilan.D, 'défaite') }}</span></div>
-        <div class="tuile"><span class="tuile-valeur">{{ bilan.pour }} – {{ bilan.contre }}</span><span class="tuile-libelle">buts pour – contre</span></div>
+        <div class="tuile"><span class="tuile-valeur double">{{ bilan.pour }} – {{ bilan.contre }}</span><span class="tuile-libelle">buts pour – contre</span></div>
     </div>
 {% endif %}
