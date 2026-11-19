@@ -9,6 +9,7 @@ use App\Entity\Rencontre;
 use App\Form\ArticleBoutiqueType;
 use App\Repository\ArticleBoutiqueRepository;
 use App\Repository\CommandeBoutiqueRepository;
+use App\Repository\JoueurRepository;
 use App\Service\Boutique;
 use App\Service\Photos;
 use Doctrine\ORM\EntityManagerInterface;
@@ -60,6 +61,70 @@ class BoutiqueController extends AbstractController
             'compte' => $compte,
             'ventes_saison' => array_sum(array_map(fn (CommandeBoutique $c) => $c->isPayee() && $c->getPayeeLe() >= $debut && $c->getPayeeLe() <= $fin->setTime(23, 59, 59) ? $c->getTotalEuros() : 0, $toutes)),
             'modes' => array_values(array_diff(Cotisation::MODES, [Cotisation::MODE_EN_LIGNE])),
+        ]);
+    }
+
+    /** Lignes proposées dans le formulaire de commande saisie par le club. */
+    private const LIGNES_SAISIE = 6;
+
+    /**
+     * Commande saisie par le club pour une famille (au guichet, par téléphone) : joueur, articles, règlement déjà fait
+     * ou à régler. Rattachée au compte famille du joueur s'il en a un.
+     */
+    #[Route('/commande/nouvelle', name: 'app_boutique_commande_nouvelle', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_FINANCES')]
+    public function nouvelleCommande(Request $request, ArticleBoutiqueRepository $articles, JoueurRepository $joueurs): Response
+    {
+        $enVente = $articles->findBy(['enVente' => true], ['ordre' => 'ASC', 'nom' => 'ASC']);
+        $modes = array_values(array_diff(Cotisation::MODES, [Cotisation::MODE_EN_LIGNE]));
+        $saisie = ['joueur' => $request->query->getInt('joueur'), 'lignes' => [], 'reglement' => '', 'note' => ''];
+
+        if ($request->isMethod('POST')) {
+            $p = $request->getPayload();
+            if (!$this->isCsrfTokenValid('commande-club', $p->getString('_token'))) {
+                throw $this->createAccessDeniedException();
+            }
+            $brut = $request->request->all('lignes');
+            $saisie = ['joueur' => $p->getInt('joueur'), 'lignes' => $brut, 'reglement' => $p->getString('reglement'), 'note' => trim($p->getString('note'))];
+            $parId = [];
+            foreach ($enVente as $a) {
+                $parId[$a->getId()] = $a;
+            }
+            $lignes = [];
+            foreach ($brut as $l) {
+                [$id, $taille] = explode('|', (string) ($l['choix'] ?? ''), 2) + [1 => ''];
+                $quantite = max(0, min(Boutique::QUANTITE_MAX, (int) ($l['quantite'] ?? 0)));
+                if (isset($parId[(int) $id]) && $quantite > 0) {
+                    $lignes[] = ['article' => $parId[(int) $id], 'taille' => $taille, 'quantite' => $quantite];
+                }
+            }
+            $joueur = $saisie['joueur'] ? $joueurs->find($saisie['joueur']) : null;
+            try {
+                if (!$joueur) {
+                    throw new \InvalidArgumentException('Choisissez le joueur pour qui est la commande.');
+                }
+                $commande = $this->boutique->commanderPourJoueur($joueur, $lignes, $saisie['note'] ?: null);
+                if (\in_array($saisie['reglement'], $modes, true)) {
+                    $commande->marquerPayee($saisie['reglement']);
+                    $this->em->flush();
+                }
+                $this->addFlash('succes', \sprintf('Commande n° %s enregistrée pour %s (%s)%s.', $commande->getNumero(), $joueur->getNomComplet(),
+                    number_format($commande->getTotalEuros(), 2, ',', ' ') . ' €',
+                    $commande->isPayee() ? ', réglée : à préparer' : ', à régler'));
+
+                return $this->redirect($this->generateUrl('app_boutique') . '#commande-' . $commande->getId());
+            } catch (\InvalidArgumentException $e) {
+                $this->addFlash('erreur', $e->getMessage());
+            }
+        }
+
+        return $this->render('boutique/commande_nouvelle.html.twig', [
+            'articles' => $enVente,
+            'joueurs' => $joueurs->findBy(['ancien' => false], ['nom' => 'ASC', 'prenom' => 'ASC']),
+            'modes' => $modes,
+            'saisie' => $saisie,
+            'nb_lignes' => self::LIGNES_SAISIE,
+            'quantite_max' => Boutique::QUANTITE_MAX,
         ]);
     }
 

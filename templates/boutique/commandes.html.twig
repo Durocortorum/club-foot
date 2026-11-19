@@ -8,8 +8,15 @@
     {% include 'boutique/_onglets.html.twig' with {actif: 'commandes'} %}
     <div class="titre-page">
         <h1>Commandes de la boutique</h1>
-        <span class="discret">Ventes de la saison : <strong>{{ f.euros(ventes_saison) }}</strong></span>
+        <span class="actions">
+            <span class="discret">Ventes de la saison : <strong>{{ f.euros(ventes_saison) }}</strong></span>
+            {% if modif %}<a class="bouton principal" href="{{ path('app_boutique_commande_nouvelle') }}">+ Commande pour une famille</a>{% endif %}
+        </span>
     </div>
+    <p class="discret">
+        Les familles commandent depuis leur espace (menu Boutique) : leurs commandes arrivent ici.
+        {% if modif %}Une famille commande au guichet ou par téléphone ? Saisissez-la avec « + Commande pour une famille ».{% endif %}
+    </p>
 
     <nav class="filtres-pastilles">
         {% for cle, ff in filtres %}

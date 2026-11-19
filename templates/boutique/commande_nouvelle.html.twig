@@ -1,0 +1,95 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{# Commande saisie par le club pour une famille (au guichet, par téléphone) : pour qui, quoi, réglée ou non. #}
+
+{% block title %}Commande pour une famille{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_boutique'), 'Commandes de la boutique') }}
+    <div class="titre-page">
+        <h1>Commande pour une famille</h1>
+    </div>
+    <p class="discret">
+        Pour une famille qui commande au guichet ou par téléphone. Si la famille a un compte, elle retrouve la commande
+        dans son espace et elle est prévenue quand elle est prête.
+    </p>
+
+    {% if not articles %}
+        <p class="flash flash-info">Aucun article en vente : ajoutez-en d'abord dans l'onglet <a href="{{ path('app_boutique_articles') }}">Articles</a>.</p>
+    {% else %}
+        <form method="post" class="formulaire formulaire-operation">
+            <input type="hidden" name="_token" value="{{ csrf_token('commande-club') }}">
+
+            <section class="carte etape-operation">
+                <h2><span class="etape-num">1</span> Pour qui ?</h2>
+                <div class="champs">
+                    <div class="champ">
+                        <label for="joueur">Joueur</label>
+                        <select id="joueur" name="joueur" required>
+                            <option value="">— Choisir le joueur —</option>
+                            {% for j in joueurs %}
+                                <option value="{{ j.id }}" {{ saisie.joueur == j.id ? 'selected' }}>{{ j.nom }} {{ j.prenom }}{{ j.categorie ? ' (' ~ j.categorie ~ ')' }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="carte etape-operation">
+                <h2><span class="etape-num">2</span> Quels articles ?</h2>
+                <p class="discret petit">Une ligne par article et par taille ; les lignes laissées vides sont ignorées.</p>
+                <div class="lignes-commande">
+                    {% for i in 0..(nb_lignes - 1) %}
+                        {% set l = saisie.lignes[i] ?? {} %}
+                        <div class="ligne-commande">
+                            <label class="champ-mini large-article"><span>Article {{ i + 1 }}</span>
+                                <select name="lignes[{{ i }}][choix]">
+                                    <option value="">—</option>
+                                    {% for a in articles %}
+                                        <optgroup label="{{ a.nom }} — {{ a.prix|number_format(2, ',', ' ') }} €">
+                                            {% for t in a.tailles %}
+                                                {% set dispo = a.disponible(t) %}
+                                                {% set valeur = a.id ~ '|' ~ t %}
+                                                <option value="{{ valeur }}" {{ (l.choix ?? '') == valeur ? 'selected' }} {{ dispo is not null and dispo <= 0 ? 'disabled' }}>
+                                                    {{ a.nom }} · {{ t }}{{ dispo is not null ? (dispo > 0 ? ' (reste ' ~ dispo ~ ')' : ' (épuisé)') }}
+                                                </option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="champ-mini"><span>Quantité</span>
+                                <input type="number" name="lignes[{{ i }}][quantite]" min="0" max="{{ quantite_max }}" value="{{ l.quantite ?? 1 }}">
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="carte etape-operation">
+                <h2><span class="etape-num">3</span> Réglée ?</h2>
+                <div class="champs">
+                    <div class="champ">
+                        <label for="reglement">Règlement</label>
+                        <select id="reglement" name="reglement">
+                            <option value="">Pas encore : à régler</option>
+                            {% for mode in modes %}
+                                <option value="{{ mode }}" {{ saisie.reglement == mode ? 'selected' }}>Déjà réglée : {{ mode|lower }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="champ">
+                        <label for="note">Note <span class="discret">(facultatif)</span></label>
+                        <input type="text" id="note" name="note" value="{{ saisie.note }}" maxlength="255" placeholder="Flocage, date de retrait…">
+                    </div>
+                </div>
+            </section>
+
+            <div class="barre-actions">
+                <button type="submit" class="bouton principal">Enregistrer la commande</button>
+                <a class="bouton" href="{{ path('app_boutique') }}">Annuler</a>
+            </div>
+        </form>
+    {% endif %}
+{% endblock %}

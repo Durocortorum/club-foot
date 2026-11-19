@@ -100,21 +100,77 @@ class Boutique
         if (!$lignes) {
             throw new \InvalidArgumentException('Votre panier est vide.');
         }
+        $commande = $this->creer($compte, self::nomClient($compte), $joueur, $lignes, $note);
+        $this->vider();
+
+        return $commande;
+    }
+
+    /**
+     * Commande saisie par le club pour une famille (au guichet, par téléphone…) : rattachée au compte famille du joueur
+     * s'il en a un (la famille la voit alors dans son espace et est prévenue quand elle est prête).
+     *
+     * @param list<array{article: ArticleBoutique, taille: string, quantite: int}> $lignes
+     *
+     * @throws \InvalidArgumentException aucune ligne, article ou taille indisponible, stock insuffisant (message lisible)
+     */
+    public function commanderPourJoueur(Joueur $joueur, array $lignes, ?string $note): CommandeBoutique
+    {
+        if (!$lignes) {
+            throw new \InvalidArgumentException('Ajoutez au moins un article.');
+        }
         foreach ($lignes as $l) {
+            if (!$l['article']->isEnVente() || !\in_array($l['taille'], $l['article']->getTailles(), true)) {
+                throw new \InvalidArgumentException(\sprintf('« %s » en %s n\'est plus en vente.', $l['article']->getNom(), $l['taille']));
+            }
+        }
+        $compte = $this->compteFamille($joueur);
+
+        return $this->creer($compte, $compte ? self::nomClient($compte) : 'Famille ' . $joueur->getNom(), $joueur, $lignes, $note);
+    }
+
+    /** Compte famille rattaché au joueur (le premier s'il y en a plusieurs), ou null. */
+    public function compteFamille(Joueur $joueur): ?Utilisateur
+    {
+        return $this->em->createQueryBuilder()
+            ->select('u')->from(Utilisateur::class, 'u')
+            ->join('u.joueurs', 'j')
+            ->where('j = :joueur')->andWhere('u.famille = true')
+            ->setParameter('joueur', $joueur)
+            ->orderBy('u.id')->setMaxResults(1)
+            ->getQuery()->getOneOrNullResult();
+    }
+
+    private static function nomClient(Utilisateur $compte): string
+    {
+        return $compte->isFamille() && 'Famille' === $compte->getPrenom() ? 'Famille ' . $compte->getNom() : trim($compte->getPrenom() . ' ' . $compte->getNom());
+    }
+
+    /**
+     * Crée la commande : stock vérifié (par article et taille, lignes identiques additionnées) puis retiré.
+     *
+     * @param list<array{article: ArticleBoutique, taille: string, quantite: int}> $lignes
+     */
+    private function creer(?Utilisateur $compte, string $client, Joueur $joueur, array $lignes, ?string $note): CommandeBoutique
+    {
+        $voulu = [];
+        foreach ($lignes as $l) {
+            $cle = spl_object_id($l['article']) . '|' . $l['taille'];
+            $voulu[$cle] = ['article' => $l['article'], 'taille' => $l['taille'], 'quantite' => ($voulu[$cle]['quantite'] ?? 0) + $l['quantite']];
+        }
+        foreach ($voulu as $l) {
             $disponible = $l['article']->disponible($l['taille']);
             if (null !== $disponible && $l['quantite'] > $disponible) {
                 throw new \InvalidArgumentException(\sprintf('« %s » en %s : il n\'en reste que %d.', $l['article']->getNom(), $l['taille'], $disponible));
             }
         }
-        $client = $compte->isFamille() && 'Famille' === $compte->getPrenom() ? 'Famille ' . $compte->getNom() : trim($compte->getPrenom() . ' ' . $compte->getNom());
         $commande = (new CommandeBoutique($compte, $client, $joueur))->setNote($note);
-        foreach ($lignes as $l) {
+        foreach ($voulu as $l) {
             $commande->ajouterLigne($l['article'], $l['taille'], $l['quantite']);
             $l['article']->mouvementStock($l['taille'], $l['quantite']);
         }
         $this->em->persist($commande);
         $this->em->flush();
-        $this->vider();
 
         return $commande;
     }

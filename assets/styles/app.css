@@ -1902,3 +1902,9 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 .calcul-entrees[open] > summary { margin-bottom: .4rem; }
 .calcul-entrees > .discret { margin: 0 0 .7rem; }
 .formulaire-operation .barre-actions { display: flex; gap: .6rem; }
+
+/* Commande saisie par le club : une ligne par article (article et taille, quantité). */
+.lignes-commande { display: grid; gap: .55rem; margin-top: .6rem; }
+.ligne-commande { display: grid; grid-template-columns: minmax(0, 1fr) 6.5rem; gap: .7rem; align-items: end; }
+.ligne-commande input[type=number] { text-align: right; }
+.titre-page > .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; }

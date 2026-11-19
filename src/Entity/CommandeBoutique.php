@@ -75,10 +75,13 @@ class CommandeBoutique implements AppartientAuClub
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $remiseLe = null;
 
-    public function __construct(Utilisateur $compte, string $client, ?Joueur $joueur)
+    /** $compte null : commande saisie par le club pour une famille sans compte (le club vient alors du joueur). */
+    public function __construct(?Utilisateur $compte, string $client, ?Joueur $joueur)
     {
         $this->compte = $compte;
-        $this->setClub($compte->getClub());
+        if ($club = $compte?->getClub() ?? $joueur?->getClub()) {
+            $this->setClub($club);
+        }
         $this->client = mb_substr($client, 0, 160);
         $this->joueur = $joueur;
         $this->lignes = new ArrayCollection();
