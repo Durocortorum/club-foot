@@ -5,7 +5,7 @@
 
 {% block body %}
     <div class="recapitulatif-frais">
-        <p class="sans-impression"><a href="{{ path('app_transport_frais', {annee: annee}) }}">← Frais kilométriques</a> · <button type="button" class="bouton petit" onclick="window.print()">Imprimer</button></p>
+        <p class="lien-retour sans-impression"><a href="{{ path('app_transport_frais', {annee: annee}) }}">← Frais kilométriques</a> · <button type="button" class="bouton petit" onclick="window.print()">Imprimer</button></p>
         <h1>Frais engagés et abandonnés au profit de l'association</h1>
         <p><strong>{{ app.user.club.nom ?? '' }}</strong> · Année {{ annee }}</p>
         <p>Bénévole : <strong>{{ conducteur }}</strong></p>

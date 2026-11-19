@@ -19,7 +19,7 @@
 
 {% block body %}
     {% set blessure = form.vars.value %}
-    <p><a href="{{ retour }}">← Retour</a></p>
+    <p class="lien-retour"><a href="{{ retour }}">← Retour</a></p>
     <div class="titre-page">
         <h1>{{ titre }}</h1>
         {% if suppression is defined %}

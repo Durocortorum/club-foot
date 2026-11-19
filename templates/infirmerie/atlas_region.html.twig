@@ -3,7 +3,7 @@
 {% block title %}{{ localisation }} – {{ joueur.nomComplet }}{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_dossier_medical_localiser', {id: joueur.id, vue: vue, date: date}) }}">← Corps entier</a></p>
+    <p class="lien-retour"><a href="{{ path('app_dossier_medical_localiser', {id: joueur.id, vue: vue, date: date}) }}">← Corps entier</a></p>
 
     <div class="titre-page">
         <h1>{{ localisation }} · {{ joueur.prenom }} <strong>{{ joueur.nom }}</strong></h1>

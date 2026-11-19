@@ -4,7 +4,7 @@
 {% block title %}Séance {{ seance.categorie }} du {{ seance.date|date('d/m/Y') }}{% endblock %}
 
 {% block body %}
-    <p class="sans-impression"><a href="{{ path('app_seance_index') }}">← Entraînements</a></p>
+    <p class="lien-retour sans-impression"><a href="{{ path('app_seance_index') }}">← Entraînements</a></p>
 
     <div class="titre-page">
         <div>

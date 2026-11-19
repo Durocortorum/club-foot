@@ -4,7 +4,7 @@
 
 {% block body %}
     {% set jours = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'] %}
-    <p><a href="{{ path('app_seance_index') }}">← Entraînements</a></p>
+    <p class="lien-retour"><a href="{{ path('app_seance_index') }}">← Entraînements</a></p>
     <div class="titre-page">
         <h1>Effort ressenti <span class="compteur">{{ categorie }}</span></h1>
     </div>

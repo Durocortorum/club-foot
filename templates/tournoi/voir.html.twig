@@ -5,7 +5,7 @@
 
 {% block body %}
     {% set b = t.bilan %}
-    <p><a href="{{ path('app_tournoi_index', t.dernierJour < date('today') ? {periode: 'passes'} : {}) }}">← Tournois</a></p>
+    <p class="lien-retour"><a href="{{ path('app_tournoi_index', t.dernierJour < date('today') ? {periode: 'passes'} : {}) }}">← Tournois</a></p>
 
     <div class="titre-page">
         <div>

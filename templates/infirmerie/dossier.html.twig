@@ -7,7 +7,7 @@
     {% set inf_voir, inf_modif = is_granted('ROLE_INFIRMERIE_LECTURE'), is_granted('ROLE_INFIRMERIE') %}
     {% set vm_voir, vm_modif = is_granted('ROLE_VISITE_MEDICALE_LECTURE'), is_granted('ROLE_VISITE_MEDICALE') %}
 
-    <p><a href="{{ path('app_dossier_medical_index') }}">← Dossiers médicaux</a></p>
+    <p class="lien-retour"><a href="{{ path('app_dossier_medical_index') }}">← Dossiers médicaux</a></p>
 
     <div class="titre-page">
         <div class="identite">

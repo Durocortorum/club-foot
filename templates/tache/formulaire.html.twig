@@ -4,9 +4,9 @@
 {% block title %}{{ titre }}{% endblock %}
 
 {% block body %}
-    <p>
+    <p class="lien-retour">
         {% if t.id %}
-            <a href="{{ path('app_tache_voir', {id: t.id}) }}">← Retour à la tâche</a>
+            <a href="{{ path('app_tache_voir', {id: t.id}) }}">← Tâche</a>
         {% else %}
             <a href="{{ path('app_tache_index') }}">← Tâches</a>
         {% endif %}

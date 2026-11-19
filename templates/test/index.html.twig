@@ -1,8 +1,10 @@
 {% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
 
 {% block title %}Catalogue des tests{% endblock %}
 
 {% block body %}
+    {{ m.retour(path('app_seance_index'), 'Entraînements') }}
     {% set icones = {'Endurance': '🫁', 'Vitesse': '⚡', 'Agilité': '🔀', 'Puissance': '🦵', 'Technique': '⚽', 'Souplesse et gainage': '🧘'} %}
     <div class="titre-page">
         <h1>Tests physiques et techniques <span class="compteur">{{ total }}</span></h1>

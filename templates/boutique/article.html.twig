@@ -4,7 +4,7 @@
 {% block title %}{{ article.id ? article.nom : 'Nouvel article' }}{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_boutique_articles') }}">← Articles</a></p>
+    <p class="lien-retour"><a href="{{ path('app_boutique_articles') }}">← Articles</a></p>
     <div class="titre-page">
         <h1>{{ article.id ? article.nom : 'Nouvel article' }}</h1>
         {% if article.id %}

@@ -3,7 +3,7 @@
 {% block title %}Localiser une blessure – {{ joueur.nomComplet }}{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_dossier_medical', {id: joueur.id}) }}#infirmerie">← Dossier médical de {{ joueur.prenom }} {{ joueur.nom }}</a></p>
+    <p class="lien-retour"><a href="{{ path('app_dossier_medical', {id: joueur.id}) }}#infirmerie">← Dossier médical de {{ joueur.prenom }} {{ joueur.nom }}</a></p>
 
     <div class="titre-page">
         <h1>Localiser une blessure · {{ joueur.prenom }} <strong>{{ joueur.nom }}</strong></h1>

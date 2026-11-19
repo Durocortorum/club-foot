@@ -4,9 +4,9 @@
 
 {% block body %}
     {% if seance %}
-        <p><a href="{{ path('app_seance_voir', {id: seance.id}) }}">← {{ seance }}</a></p>
+        <p class="lien-retour"><a href="{{ path('app_seance_voir', {id: seance.id}) }}">← {{ seance }}</a></p>
     {% else %}
-        <p><a href="{{ path('app_seance_index') }}">← Entraînements</a></p>
+        <p class="lien-retour"><a href="{{ path('app_seance_index') }}">← Entraînements</a></p>
     {% endif %}
     <div class="titre-page">
         <div>

@@ -10,7 +10,7 @@
     {# Cadre Turbo : la page « En direct » affiche ce bilan sous la saisie (bouton « Voir le bilan du match »),
        sans quitter la page ; les liens vers d'autres pages sortent du cadre (data-turbo-frame="_top"). #}
     <turbo-frame id="bilan-direct">
-    <p class="bilan-retour"><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}" data-turbo-frame="_top">← Match</a></p>
+    <p class="lien-retour bilan-retour"><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}" data-turbo-frame="_top">← Match</a></p>
     <div class="titre-page">
         <div>
             <h1>Statistiques du match</h1>

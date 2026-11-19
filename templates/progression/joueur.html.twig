@@ -4,7 +4,7 @@
 {% block title %}Progression – {{ joueur.nomComplet }}{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_joueur_voir', {id: joueur.id}) }}">← Fiche de {{ joueur.prenom }}</a>{% if is_granted('ROLE_TESTS_PHYSIQUES_LECTURE') and joueur.categorie %} · <a href="{{ path('app_progression_equipe', {categorie: joueur.categorie.id}) }}">Progression de l'équipe {{ joueur.categorie }}</a>{% endif %}</p>
+    <p class="lien-retour"><a href="{{ path('app_joueur_voir', {id: joueur.id}) }}">← Fiche de {{ joueur.prenom }}</a>{% if is_granted('ROLE_TESTS_PHYSIQUES_LECTURE') and joueur.categorie %} · <a href="{{ path('app_progression_equipe', {categorie: joueur.categorie.id}) }}">Progression de l'équipe {{ joueur.categorie }}</a>{% endif %}</p>
     <div class="titre-page">
         <h1>Progression <span class="compteur">{{ joueur.prenom }} {{ joueur.nom }}</span></h1>
         {% if is_granted('ROLE_TESTS_PHYSIQUES') %}<a class="bouton" href="{{ path('app_test_nouveau', {id: joueur.id}) }}">+ Résultat de test</a>{% endif %}

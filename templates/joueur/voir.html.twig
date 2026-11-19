@@ -44,7 +44,7 @@
     {% set tests_voir = is_granted('ROLE_TESTS_PHYSIQUES_LECTURE') %}
     {% set tests_modif = is_granted('ROLE_TESTS_PHYSIQUES') and (peut_modifier or is_granted('ROLE_INFIRMERIE')) %}
 
-    <p><a href="{{ path('app_joueur_index') }}">← Retour à la liste</a></p>
+    <p class="lien-retour"><a href="{{ path('app_joueur_index') }}">← Joueurs</a></p>
 
     <div class="titre-page">
         <div class="identite">

@@ -4,7 +4,7 @@
 {% block title %}{{ titre }}{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_utilisateur_index') }}">← Utilisateurs</a></p>
+    <p class="lien-retour"><a href="{{ path('app_utilisateur_index') }}">← Utilisateurs</a></p>
     <div class="titre-page">
         <h1>{{ titre }}</h1>
         {% if suppression is defined %}

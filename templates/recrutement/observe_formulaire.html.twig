@@ -4,9 +4,9 @@
 {% block title %}{{ titre }}{% endblock %}
 
 {% block body %}
-    <p>
+    <p class="lien-retour">
         {% if o.id %}
-            <a href="{{ path('app_observe_voir', {id: o.id}) }}">← Retour à la fiche</a>
+            <a href="{{ path('app_observe_voir', {id: o.id}) }}">← Fiche</a>
         {% else %}
             <a href="{{ path('app_observe_index') }}">← Joueurs observés</a>
         {% endif %}

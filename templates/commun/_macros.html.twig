@@ -1,3 +1,9 @@
+{# Lien de retour en haut d'une page secondaire, toujours le même : « ← Page parente » (classe lien-retour).
+   Toute nouvelle page qui n'est pas dans le menu en a un, en première ligne du bloc body. #}
+{% macro retour(url, libelle) %}
+    <p class="lien-retour"><a href="{{ url }}">← {{ libelle }}</a></p>
+{% endmacro %}
+
 {# Photo de la fiche, ou initiales à défaut. #}
 {% macro avatar(personne, classe = '') %}
     {% if personne.photo %}

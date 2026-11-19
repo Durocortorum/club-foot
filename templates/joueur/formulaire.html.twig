@@ -5,11 +5,11 @@
 {% import 'commun/_macros.html.twig' as m %}
 
 {% block body %}
-    <p>
+    <p class="lien-retour">
         {% if joueur.id %}
-            <a href="{{ path('app_joueur_voir', {id: joueur.id}) }}">← Retour à la fiche</a>
+            <a href="{{ path('app_joueur_voir', {id: joueur.id}) }}">← Fiche de {{ joueur.prenom }}</a>
         {% else %}
-            <a href="{{ path('app_joueur_index') }}">← Retour à la liste</a>
+            <a href="{{ path('app_joueur_index') }}">← Joueurs</a>
         {% endif %}
     </p>
     <h1>{{ titre }}</h1>

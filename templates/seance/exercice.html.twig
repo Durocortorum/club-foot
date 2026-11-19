@@ -12,7 +12,7 @@
 {% import _self as s %}
 
 {% block body %}
-    <p><a href="{{ path('app_seance_voir', {id: seance.id}) }}">← {{ seance }}</a></p>
+    <p class="lien-retour"><a href="{{ path('app_seance_voir', {id: seance.id}) }}">← {{ seance }}</a></p>
     <h1>{{ titre }}</h1>
 
     {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}

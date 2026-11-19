@@ -1,9 +1,11 @@
 {% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
 {% import 'progression/_courbe.html.twig' as c %}
 
 {% block title %}Progression {{ categorie }}{% endblock %}
 
 {% block body %}
+    {{ m.retour(path('app_tests'), 'Catalogue des tests') }}
     <div class="titre-page">
         <h1>Progression <span class="compteur">{{ categorie }}</span></h1>
         <span class="actions">

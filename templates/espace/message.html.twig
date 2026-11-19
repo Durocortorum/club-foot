@@ -3,7 +3,7 @@
 {% block title %}{{ message.sujet }}{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_espace_messages') }}">← Messages</a></p>
+    <p class="lien-retour"><a href="{{ path('app_espace_messages') }}">← Messages</a></p>
 
     <h1>{{ message.sujet }}{% if message.important %} <span class="pastille alerte">important</span>{% endif %}</h1>
     <p class="discret">{{ message.auteurNom }} · {{ message.creeLe|date('d/m/Y à H:i') }}{% if joueurs %} · pour {{ joueurs|join(', ', ' et ') }}{% endif %}</p>

@@ -4,7 +4,7 @@
 {% block title %}{{ sponsor }}{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_sponsor_index', sponsor.ancien ? {statut: 'anciens'} : {}) }}">← Sponsors</a></p>
+    <p class="lien-retour"><a href="{{ path('app_sponsor_index', sponsor.ancien ? {statut: 'anciens'} : {}) }}">← Sponsors</a></p>
     <div class="titre-page">
         <div>
             <h1>{{ sponsor.nom }}</h1>

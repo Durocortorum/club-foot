@@ -4,7 +4,7 @@
 {% block title %}{{ intervenant.nomComplet }}{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_intervenant_index', {type: type}) }}">← {{ libelles.pluriel }}</a></p>
+    <p class="lien-retour"><a href="{{ path('app_intervenant_index', {type: type}) }}">← {{ libelles.pluriel }}</a></p>
 
     <div class="titre-page">
         <div class="identite">

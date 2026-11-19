@@ -7,7 +7,7 @@
     {# Étapes numérotées dans l'ordre de la convocation (déplacement, rendez-vous, joueurs, réponses…). #}
     {% set etape = 0 %}
     {% set jours = constant('App\\Service\\EnvoiConvocations::JOURS') %}
-    <p><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← Retour au match</a></p>
+    <p class="lien-retour"><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← Match</a></p>
 
     <div class="titre-page">
         <div>

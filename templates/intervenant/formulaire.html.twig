@@ -4,11 +4,11 @@
 {% block title %}{{ titre }}{% endblock %}
 
 {% block body %}
-    <p>
+    <p class="lien-retour">
         {% if intervenant.id %}
-            <a href="{{ path('app_intervenant_voir', {type: type, id: intervenant.id}) }}">← Retour à la fiche</a>
+            <a href="{{ path('app_intervenant_voir', {type: type, id: intervenant.id}) }}">← Fiche</a>
         {% else %}
-            <a href="{{ path('app_intervenant_index', {type: type}) }}">← Retour à la liste</a>
+            <a href="{{ path('app_intervenant_index', {type: type}) }}">← Encadrement</a>
         {% endif %}
     </p>
     <h1>{{ titre }}</h1>

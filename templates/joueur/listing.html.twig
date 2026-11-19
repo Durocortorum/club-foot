@@ -7,7 +7,7 @@
     {% set avec_groupe = categorie is null and qui in ['joueurs', 'encadrement', 'tous', 'exterieurs'] %}
     {% set avec_fonction = qui != 'joueurs' %}
     <div class="impression-a4">
-    <p class="sans-impression"><a href="{{ path('app_joueur_effectifs') }}">← Effectifs</a></p>
+    <p class="lien-retour sans-impression"><a href="{{ path('app_joueur_effectifs') }}">← Effectifs</a></p>
     <div class="titre-page">
         <h1>
             {{ app.user.club.nom ?? '' }} · {{ titre }}

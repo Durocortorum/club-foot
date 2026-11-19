@@ -1,9 +1,11 @@
 {% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
 {% import 'stage/_resume.html.twig' as r %}
 
 {% block title %}Stages{% endblock %}
 
 {% block body %}
+    {{ m.retour(path('app_calendrier'), 'Calendrier') }}
     <div class="titre-page">
         <h1>Stages <span class="compteur">{{ stages|length }}</span></h1>
         <span class="actions">

@@ -33,9 +33,9 @@
 {% import _self as s %}
 
 {% block body %}
-    <p>
+    <p class="lien-retour">
         {% if rencontre.id %}
-            <a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← Retour au match</a>
+            <a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← Match</a>
         {% else %}
             <a href="{{ path('app_rencontre_index') }}">← Matchs</a>
         {% endif %}

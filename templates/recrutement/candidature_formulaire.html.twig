@@ -4,9 +4,9 @@
 {% block title %}{{ titre }}{% endblock %}
 
 {% block body %}
-    <p>
+    <p class="lien-retour">
         {% if c.id %}
-            <a href="{{ path('app_candidature_voir', {id: c.id}) }}">← Retour à la candidature</a>
+            <a href="{{ path('app_candidature_voir', {id: c.id}) }}">← Candidature</a>
         {% else %}
             <a href="{{ path('app_candidature_index') }}">← Candidatures encadrement</a>
         {% endif %}

@@ -4,7 +4,7 @@
 {% block title %}{{ message.sujet }}{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_message_index') }}">← Messages</a></p>
+    <p class="lien-retour"><a href="{{ path('app_message_index') }}">← Messages</a></p>
 
     <div class="titre-page">
         <h1>{{ message.sujet }}{% if message.important %} <span class="pastille alerte">important</span>{% endif %}</h1>

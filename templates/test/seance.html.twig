@@ -3,7 +3,7 @@
 {% block title %}Séance de tests{% endblock %}
 
 {% block body %}
-    <p><a href="{{ path('app_tests') }}">← Catalogue des tests</a></p>
+    <p class="lien-retour"><a href="{{ path('app_tests') }}">← Catalogue des tests</a></p>
     <div class="titre-page">
         <h1>Séance de tests{% if choix %} <span class="compteur">{{ groupe }}</span>{% endif %}</h1>
     </div>

@@ -4,9 +4,9 @@
 {% block title %}{{ titre }}{% endblock %}
 
 {% block body %}
-    <p>
+    <p class="lien-retour">
         {% if d.id %}
-            <a href="{{ path('app_detection_voir', {id: d.id}) }}">← Retour à la fiche</a>
+            <a href="{{ path('app_detection_voir', {id: d.id}) }}">← Fiche</a>
         {% else %}
             <a href="{{ path('app_detection_index') }}">← Détections</a>
         {% endif %}

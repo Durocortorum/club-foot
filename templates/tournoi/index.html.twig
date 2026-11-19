@@ -1,8 +1,10 @@
 {% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
 
 {% block title %}Tournois{% endblock %}
 
 {% block body %}
+    {{ m.retour(path('app_rencontre_index'), 'Matchs') }}
     <div class="titre-page">
         <h1>Tournois <span class="compteur">{{ tournois|length }}</span></h1>
         <span class="actions">

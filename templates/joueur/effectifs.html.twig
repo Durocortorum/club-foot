@@ -7,7 +7,7 @@
 {% block body %}
     {% import _self as e %}
     <div class="impression-a4">
-    <p class="sans-impression"><a href="{{ path('app_joueur_index') }}">← Joueurs</a></p>
+    <p class="lien-retour sans-impression"><a href="{{ path('app_joueur_index') }}">← Joueurs</a></p>
     <div class="titre-page">
         <h1>Effectifs <span class="compteur">{{ total }} {{ accord(total, 'joueur') }}</span></h1>
         <span class="actions sans-impression">
