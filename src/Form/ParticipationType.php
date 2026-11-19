@@ -44,7 +44,6 @@ class ParticipationType extends AbstractType
             ]])
             ->add('carton', ChoiceType::class, [
                 'choices' => array_flip(Participation::CARTONS),
-                'choice_label' => fn (string $code) => $code . ' – ' . Participation::CARTONS[$code],
                 'required' => false,
                 'placeholder' => '—',
                 // Rouge : le temps de jeu s'arrête à la minute du carton ; « BL » (exclusion temporaire) :
