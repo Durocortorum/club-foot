@@ -557,7 +557,26 @@ input.majuscules { text-transform: uppercase; }
 .ajout-coach select { width: auto; flex: 0 1 auto; min-width: 0; }
 
 /* Archives : une ligne par équipe, une pastille par saison */
-.archives-personnes { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+/* Cartes-liens (Archives : anciens membres) : icône dans un rond teinté, nom et explication, flèche qui avance au survol. */
+.cartes-liens { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); gap: .7rem; }
+.carte-lien {
+    display: flex; align-items: center; gap: .8rem; padding: .85rem 1rem; color: var(--encre);
+    background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--rayon); box-shadow: var(--ombre, none);
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.carte-lien:hover {
+    text-decoration: none; border-color: color-mix(in srgb, var(--rouge) 40%, var(--bordure)); transform: translateY(-1px);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--rouge) 12%, transparent);
+}
+.carte-lien-icone {
+    flex: none; display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 50%;
+    font-size: 1.25rem; background: color-mix(in srgb, var(--rouge) 10%, #fff);
+}
+.carte-lien-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.carte-lien-texte strong { font-size: 1rem; }
+.carte-lien-texte span { font-size: .85rem; color: var(--gris); }
+.carte-lien-fleche { flex: none; color: var(--gris); font-size: 1.1rem; transition: transform .15s, color .15s; }
+.carte-lien:hover .carte-lien-fleche { color: var(--rouge); transform: translateX(3px); }
 .archives li { display: flex; align-items: center; gap: .4rem 1rem; flex-wrap: wrap; }
 .archives-categorie { font-weight: 700; min-width: 6rem; }
 .archives .sommaire { margin: 0; }
@@ -939,11 +958,51 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .saisie-euros input { width: 6.5rem; text-align: right; }
 .detail-cotisation > summary { list-style: none; }
 .detail-cotisation > summary::-webkit-details-marker { display: none; }
-.panneau-cotisation { margin-top: .5rem; padding: .7rem; border: 1px solid var(--bordure); border-radius: 8px; background: #fafafb; min-width: min(30rem, 80vw); }
-.panneau-cotisation .paiements { list-style: none; margin: 0 0 .6rem; padding: 0; font-size: .9rem; }
-.panneau-cotisation .paiements li { padding: .2rem 0; }
-.saisie-paiement { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed var(--bordure); }
-.saisie-paiement input[type="text"]:not([inputmode]) { flex: 1 1 10rem; }
+/* Panneau « Paiements » d'une cotisation : paiements reçus en lignes, puis deux formulaires en grille
+   (petit intitulé au-dessus de chaque champ, bouton à droite), séparés par un trait. */
+.panneau-cotisation {
+    margin-top: .5rem; padding: .9rem 1rem; border: 1px solid var(--bordure); border-radius: var(--rayon);
+    background: #fff; box-shadow: var(--ombre, none); min-width: min(32rem, 80vw); white-space: normal;
+}
+.panneau-titre { margin: 0 0 .5rem; font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #70727c; grid-column: 1 / -1; }
+.panneau-titre .discret { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.panneau-cotisation .paiements { list-style: none; margin: 0 0 .9rem; padding: 0; font-size: .9rem; }
+.panneau-cotisation .paiements li {
+    display: flex; align-items: center; gap: .3rem .7rem; flex-wrap: wrap; padding: .45rem .6rem; border-radius: 8px; background: #f8f9fb;
+}
+.panneau-cotisation .paiements li + li { margin-top: .3rem; }
+.paiement-date { color: var(--gris); font-variant-numeric: tabular-nums; }
+.paiement-montant { font-variant-numeric: tabular-nums; }
+.panneau-cotisation .paiements .pastille { margin-left: 0; }
+.paiement-note { font-size: .85rem; }
+.panneau-cotisation .paiements form { margin-left: auto; }
+/* Tableau des cotisations : cellules en haut (le nom reste en face du bouton quand le panneau est ouvert), nom et état sur une ligne. */
+.liste.cotisations td { vertical-align: top; }
+.liste.cotisations td > .pastille, .liste.cotisations td.fort { white-space: nowrap; }
+.liste.cotisations td > .pastille { display: inline-block; margin-top: .15rem; margin-left: 0; }
+/* Téléphone : une fiche par joueur (liste-fiches), montants en ligne, panneau de paiement en pleine largeur dessous. */
+@media (max-width: 600px) {
+    .liste.cotisations td { vertical-align: baseline; }
+    .liste.cotisations td.large { margin-top: .3rem; }
+    .liste.cotisations td.large .detail-cotisation > summary { display: inline-block; }
+    .liste.cotisations .panneau-cotisation { min-width: 0; padding: .8rem; }
+    .liste.cotisations .montant-negatif { font-weight: 600; color: var(--danger-fonce); }
+}
+.saisie-paiement {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem .7rem; align-items: end;
+    margin-top: .8rem; padding-top: .8rem; border-top: 1px solid var(--bordure);
+}
+.champ-mini { display: flex; flex-direction: column; gap: .2rem; min-width: 0; font-size: .78rem; font-weight: 600; color: var(--gris); }
+.champ-mini.large { grid-column: span 2; }
+.champ-mini input, .champ-mini select { font-size: .9rem; padding-top: .4rem; padding-bottom: .4rem; font-weight: 400; color: var(--encre); }
+.champ-mini .saisie-euros { color: var(--encre); font-weight: 400; }
+.champ-mini .saisie-euros input { width: 100%; }
+.panneau-actions { grid-column: -2 / -1; display: flex; justify-content: flex-end; align-items: end; }
+.saisie-paiement .panneau-actions .bouton { white-space: nowrap; padding: .45rem .8rem; }
+@media (max-width: 600px) {
+    .saisie-paiement { grid-template-columns: 1fr 1fr; }
+    .champ-mini.large, .panneau-actions { grid-column: 1 / -1; }
+}
 .rubriques .barre-cellule { width: 40%; }
 .barre-rubrique { display: block; height: .55rem; border-radius: 4px; min-width: 2px; }
 .barre-rubrique.recette { background: var(--succes); }

@@ -9,11 +9,6 @@
         {% if is_granted('ROLE_SCOLAIRE') %}<a class="bouton principal" href="{{ path('app_bulletin_nouveau') }}">+ Nouveau bulletin</a>{% endif %}
     </div>
 
-    <p class="discret petit">
-        Les bulletins repris d'Access étaient des liens vers des PDF du serveur du club (\\Srvstade), qui ne sont pas dans la base.
-        Ils sont marqués « PDF à joindre » : leur emplacement d'origine est indiqué pour retrouver le fichier.
-    </p>
-
     <form class="filtres" method="get">
         <input type="search" name="q" value="{{ filtres.q }}" placeholder="Joueur ou libellé">
         <select name="categorie">
