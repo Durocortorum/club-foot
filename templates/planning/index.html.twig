@@ -4,12 +4,14 @@
 {% block title %}Planning des entraînements{% endblock %}
 
 {% macro champs_creneau(c, jours, periode) %}
-    <select name="jour" aria-label="Jour">
+    <select name="jour" aria-label="Jour" class="creneau-jour">
         {% for n, j in jours %}<option value="{{ n }}" {{ c and c.jour == n ? 'selected' }}>{{ j }}</option>{% endfor %}
     </select>
-    <input type="time" name="heureDebut" value="{{ c ? c.heureDebut : '14:00' }}" required aria-label="Début">
-    <span>à</span>
-    <input type="time" name="heureFin" value="{{ c ? c.heureFin }}" aria-label="Fin">
+    <span class="creneau-heures">
+        <input type="time" name="heureDebut" value="{{ c ? c.heureDebut : '14:00' }}" required aria-label="Début">
+        <span class="discret">à</span>
+        <input type="time" name="heureFin" value="{{ c ? c.heureFin }}" aria-label="Fin">
+    </span>
     <input type="text" name="lieu" value="{{ c ? c.lieu }}" placeholder="Lieu (stade, gymnase…)" maxlength="120" aria-label="Lieu">
     <input type="hidden" name="_token" value="{{ csrf_token('creneau') }}"><input type="hidden" name="periode" value="{{ periode }}">
 {% endmacro %}
@@ -17,6 +19,7 @@
 
 {% block body %}
     {% set joursDate = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'] %}
+    {% set moisCourts = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'] %}
     <div class="titre-page">
         <h1>Planning des entraînements</h1>
         <span class="actions"><a class="bouton" href="{{ path('app_presence_index') }}">Grilles de présences</a></span>
@@ -37,7 +40,7 @@
             Les entraînements des {{ horizon }} prochains jours sont préparés à partir de ces créneaux. Toute l'équipe est attendue ;
             les familles signalent les absences dans leur espace, et elles sont reportées dans la grille des présences.
         </p>
-        <ul class="liste-simple">
+        <ul class="liste-simple liste-creneaux">
             {% for c in creneaux %}
                 <li class="avec-actions">
                     <form method="post" action="{{ path('app_planning_creneau', {id: c.id}) }}" class="ligne-creneau">
@@ -49,7 +52,8 @@
             {% else %}
                 <li class="discret">Aucun créneau pour cette catégorie : ajoutez le premier ci-dessous.</li>
             {% endfor %}
-            <li>
+            <li class="nouveau-creneau">
+                <span class="nouveau-creneau-titre">Nouveau créneau</span>
                 <form method="post" action="{{ path('app_planning_creneau') }}" class="ligne-creneau">
                     <input type="hidden" name="categorie" value="{{ categorie.id }}">
                     {{ s.champs_creneau(null, jours, periode) }}
@@ -64,15 +68,23 @@
         {% for e in entrainements %}
             {% set absences = e.absences %}
             <article class="carte entrainement {{ e.annule ? 'annule' }}" id="entrainement-{{ e.id }}">
-                <div class="avec-actions">
-                    <div>
-                        <strong>{{ joursDate[e.date|date('w')] }} {{ e.date|date('d/m') }}</strong> · {{ e.horaire }}{% if e.lieu %} · {{ e.lieu }}{% endif %}
+                <div class="entrainement-tete">
+                    {# Pavé date (jour, numéro, mois) façon calendrier. #}
+                    <div class="entrainement-date" role="img" aria-label="{{ joursDate[e.date|date('w')] }} {{ e.date|date('d/m') }}" title="{{ joursDate[e.date|date('w')] }} {{ e.date|date('d/m/Y') }}">
+                        <span>{{ joursDate[e.date|date('w')]|slice(0, 3) }}</span>
+                        <strong>{{ e.date|date('j') }}</strong>
+                        <span>{{ moisCourts[e.date|date('n') - 1] }}</span>
+                    </div>
+                    <div class="entrainement-infos">
+                        <strong>{{ e.horaire }}</strong>
+                        {% if e.lieu %}<span class="discret">{{ e.lieu }}</span>{% endif %}
                         {% if e.annule %}
                             <span class="pastille alerte">annulé{{ e.motifAnnulation ? ' : ' ~ e.motifAnnulation }}</span>
                         {% else %}
                             <span class="pastille {{ absences ? 'alerte' : 'succes' }}">{{ absences|length }} absent{{ absences|length > 1 ? 's' }} signalé{{ absences|length > 1 ? 's' }}</span>
                         {% endif %}
                     </div>
+                    <div class="entrainement-actions">
                     <form method="post" action="{{ path('app_planning_annulation', {id: e.id}) }}" class="reponse-convoque">
                         <input type="hidden" name="_token" value="{{ csrf_token('annulation' ~ e.id) }}"><input type="hidden" name="periode" value="{{ periode }}">
                         {% if e.annule %}
@@ -87,6 +99,7 @@
                     {{ m.supprimer(path('app_planning_supprimer', {id: e.id}), 'supprimer-entrainement' ~ e.id,
                         'Supprimer l\'entraînement du ' ~ e.date|date('d/m') ~ ' ? Il disparaîtra du planning et de l\'espace des familles, sans les prévenir (pour les prévenir, utilisez plutôt « Annuler l\'entraînement »).'
                         ~ (absences ? ' Les ' ~ absences|length ~ ' absence(s) signalée(s) seront retirées.' : ''), 'Supprimer') }}
+                    </div>
                 </div>
 
                 {# Séance préparée (menu Entraînements) à cette date pour cette catégorie. #}

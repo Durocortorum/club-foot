@@ -128,7 +128,7 @@ h2.titre-leger { font-weight: 400; }
 .connexion-titre p { color: var(--gris); margin: .2rem 0 0; }
 .connexion label { display: block; font-size: .9rem; margin: .8rem 0 .3rem; }
 
-input[type=text], input[type=password], input[type=search], input[type=email], input[type=tel], input[type=date], input[type=number], input[type=file], select, textarea {
+input[type=text], input[type=password], input[type=search], input[type=email], input[type=tel], input[type=date], input[type=time], input[type=datetime-local], input[type=number], input[type=file], select, textarea {
     width: 100%; padding: .5rem .6rem; border: 1px solid var(--bordure); border-radius: 6px; font: inherit; background: #fff;
 }
 input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb, var(--rouge) 35%, transparent); border-color: var(--rouge); }
@@ -1224,10 +1224,51 @@ select.creneau.absence { background: #fff4e0; border-color: #f0d29a; }
 .match-joue { margin-top: .9rem; }
 
 /* Planning des entraînements */
-.ligne-creneau { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
-.ligne-creneau input[type="text"] { flex: 1 1 12rem; }
+/* Créneaux de la semaine : une ligne par créneau (jour, heures, lieu, Enregistrer), × à droite ;
+   la ligne « Nouveau créneau » sur fond teinté, bordure en pointillés. */
+.liste-creneaux li.avec-actions { align-items: center; flex-wrap: nowrap; }
+.liste-creneaux li.avec-actions > form.ligne-creneau { flex: 1; min-width: 0; }
+.ligne-creneau { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.ligne-creneau .creneau-jour { flex: 0 0 9.5rem; width: 9.5rem; font-weight: 600; }
+.creneau-heures { display: inline-flex; align-items: center; gap: .4rem; }
+.ligne-creneau input[type="time"] { width: 7.2rem; font-variant-numeric: tabular-nums; }
+.ligne-creneau input[type="text"] { flex: 1 1 12rem; width: auto; }
+.liste-creneaux .bouton.danger { padding: .3rem .65rem; line-height: 1.2; }
+.liste-creneaux li.nouveau-creneau {
+    margin: .5rem; padding: .7rem .8rem; border: 1px dashed color-mix(in srgb, var(--rouge) 40%, var(--bordure));
+    border-radius: var(--rayon); background: color-mix(in srgb, var(--rouge) 5%, #fff);
+}
+.nouveau-creneau-titre { display: block; margin-bottom: .45rem; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--rouge); }
+@media (max-width: 600px) {
+    .liste-creneaux li.avec-actions { align-items: flex-start; gap: .6rem; }
+    .ligne-creneau .creneau-jour { flex: 1 1 100%; width: 100%; }
+}
+
+/* Entraînements à venir : pavé date à gauche, infos au milieu, actions (annuler, supprimer) à droite. */
+.entrainement { border-left: 4px solid var(--rouge); box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 4px 14px rgba(0, 0, 0, .03); }
 .entrainement + .entrainement { margin-top: .8rem; }
 .entrainement.annule { opacity: .75; border-left: 4px solid var(--danger-fonce); }
+.entrainement-tete { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.entrainement-date {
+    flex: none; width: 3.6rem; padding: .35rem 0; text-align: center; line-height: 1.1; border-radius: 10px;
+    background: color-mix(in srgb, var(--rouge) 9%, #fff); color: var(--rouge-fonce);
+    display: flex; flex-direction: column; align-items: center;
+}
+.entrainement-date span { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.entrainement-date strong { font-size: 1.45rem; font-weight: 800; color: var(--rouge); }
+.entrainement.annule .entrainement-date { background: var(--danger-clair); color: var(--danger-fonce); }
+.entrainement.annule .entrainement-date strong { color: var(--danger-fonce); text-decoration: line-through; }
+.entrainement-infos { flex: 1 1 14rem; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: .2rem; }
+.entrainement-infos strong { font-size: 1.02rem; }
+.entrainement-actions { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; justify-content: flex-end; }
+.entrainement-actions .reponse-convoque input[type="text"] { width: 12rem; padding: .3rem .55rem; font-size: .88rem; }
+.entrainement-actions .bouton { padding: .3rem .65rem; font-size: .85rem; }
+.entrainement .seance-prevue { margin-top: .8rem; padding-top: .7rem; border-top: 1px solid var(--bordure); }
+@media (max-width: 600px) {
+    .entrainement-actions { width: 100%; justify-content: flex-start; }
+    .entrainement-actions .reponse-convoque { flex: 1 1 100%; }
+    .entrainement-actions .reponse-convoque input[type="text"] { flex: 1; width: auto; }
+}
 .entrainement details { margin-top: .6rem; }
 .entrainement details summary { cursor: pointer; color: var(--gris); }
 .seance-prevue { margin-top: .5rem; display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
