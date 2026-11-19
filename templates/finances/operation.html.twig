@@ -1,0 +1,89 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{# Recette ou dépense, en quatre étapes : quoi et quand, combien (avec le calcul des entrées d'un match pour une recette),
+   payé comment, justificatif et note. Les deux dernières sont facultatives. #}
+
+{% macro champ(c, classe = '') %}
+    <div class="champ {{ classe }}">
+        {{ form_label(c) }}
+        {{ form_widget(c) }}
+        {{ form_help(c) }}
+        {{ form_errors(c) }}
+    </div>
+{% endmacro %}
+{% import _self as f %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% block body %}
+    {% set recette = operation.recette %}
+    {% set nom = recette ? 'recette' : 'dépense' %}
+    {{ m.retour(retour, 'Recettes et dépenses') }}
+    <div class="titre-page">
+        <h1>{{ titre }}</h1>
+        {% if suppression is defined %}
+            {{ m.supprimer(suppression.action, suppression.jeton, suppression.question) }}
+        {% endif %}
+    </div>
+    <p class="sens-operation {{ recette ? 'recette' : 'depense' }}">
+        {{ recette ? '↓ Recette : de l\'argent qui entre dans la caisse du club.' : '↑ Dépense : de l\'argent qui sort de la caisse du club.' }}
+    </p>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire formulaire-operation'}}) }}
+        {{ form_errors(form) }}
+
+        <section class="carte etape-operation">
+            <h2><span class="etape-num">1</span> Quoi et quand ?</h2>
+            <div class="champs">
+                {{ f.champ(form.date) }}
+                {{ f.champ(form.rubrique) }}
+                {{ f.champ(form.libelle) }}
+            </div>
+            <p class="discret petit">La rubrique sert à regrouper les montants dans la synthèse : choisissez-en une dans la liste proposée, ou tapez-en une nouvelle.</p>
+        </section>
+
+        <section class="carte etape-operation">
+            <h2><span class="etape-num">2</span> Combien ?</h2>
+            <div class="champs">
+                {{ f.champ(form.montant, 'champ-montant') }}
+            </div>
+            {% if form.nbEntrees is defined %}
+                {% set entrees = operation.nbEntrees or operation.rubrique == 'Entrées des matchs' %}
+                <details class="calcul-entrees" {{ entrees ? 'open' }}>
+                    <summary>Entrées d'un match ? Calculer le montant</summary>
+                    <p class="discret petit">Laissez le montant ci-dessus vide : il sera calculé tout seul (nombre d'entrées × prix de la place).</p>
+                    <div class="champs">
+                        {{ f.champ(form.nbEntrees) }}
+                        {{ f.champ(form.prixPlace) }}
+                    </div>
+                </details>
+            {% endif %}
+        </section>
+
+        <section class="carte etape-operation">
+            <h2><span class="etape-num">3</span> Payé comment ? <span class="discret">facultatif</span></h2>
+            <div class="champs">
+                {{ f.champ(form.mode) }}
+                {{ f.champ(form.tiers) }}
+            </div>
+        </section>
+
+        <section class="carte etape-operation">
+            <h2><span class="etape-num">4</span> Justificatif et note <span class="discret">facultatif</span></h2>
+            <div class="champs">
+                {{ f.champ(form.justificatif) }}
+                {{ f.champ(form.note) }}
+            </div>
+            {% if operation.fichier and operation.id %}
+                <p class="petit"><a href="{{ path('app_finances_justificatif', {id: operation.id}) }}" target="_blank" rel="noopener">📎 Voir le justificatif joint</a></p>
+            {% endif %}
+        </section>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer la {{ nom }}</button>
+            <a class="bouton" href="{{ retour }}">Annuler</a>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

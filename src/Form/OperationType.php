@@ -28,7 +28,7 @@ class OperationType extends AbstractType
             ->add('date', DateType::class, ['widget' => 'single_text', 'input' => 'datetime_immutable'])
             ->add('rubrique', ListeOuverteType::class, ['suggestions' => $recette ? Operation::RUBRIQUES_RECETTES : Operation::RUBRIQUES_DEPENSES])
             ->add('libelle', null, ['label' => 'Libellé', 'attr' => ['placeholder' => $recette ? 'ex. : Match U19 contre Troyes' : 'ex. : 20 ballons taille 5']])
-            ->add('montant', MoneyType::class, ['currency' => 'EUR', 'required' => false, 'scale' => 2, 'help' => $recette ? 'Pour les entrées d\'un match, laissez vide et remplissez les deux cases suivantes.' : null]);
+            ->add('montant', MoneyType::class, ['currency' => 'EUR', 'required' => false, 'scale' => 2, 'attr' => ['placeholder' => '0,00']]);
         if ($recette) {
             $builder
                 ->add('nbEntrees', IntegerType::class, ['label' => 'Nombre d\'entrées payantes', 'required' => false, 'attr' => ['min' => 0]])

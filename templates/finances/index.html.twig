@@ -9,7 +9,6 @@
         <h1>Finances <span class="compteur">{{ saison }}</span></h1>
         {% if is_granted('ROLE_FINANCES') %}
             <span class="actions">
-                <a class="bouton" href="{{ path('app_finances_operation_nouvelle', {sens: 'recette', modele: 'entrees'}) }}">+ Entrées d'un match</a>
                 <a class="bouton" href="{{ path('app_finances_operation_nouvelle', {sens: 'recette'}) }}">+ Recette</a>
                 <a class="bouton principal" href="{{ path('app_finances_operation_nouvelle', {sens: 'depense'}) }}">+ Dépense</a>
             </span>

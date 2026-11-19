@@ -10,7 +10,6 @@
         <h1>Recettes et dépenses <span class="compteur">{{ saison }}</span></h1>
         {% if modif %}
             <span class="actions">
-                <a class="bouton" href="{{ path('app_finances_operation_nouvelle', {sens: 'recette', modele: 'entrees'}) }}" title="Nombre d'entrées × prix de la place">+ Entrées d'un match</a>
                 <a class="bouton" href="{{ path('app_finances_operation_nouvelle', {sens: 'recette'}) }}">+ Recette</a>
                 <a class="bouton principal" href="{{ path('app_finances_operation_nouvelle', {sens: 'depense'}) }}">+ Dépense</a>
             </span>

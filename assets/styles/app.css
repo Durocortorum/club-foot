@@ -1874,3 +1874,31 @@ input::placeholder, textarea::placeholder { color: #9a9ca5; }
 }
 .lien-retour > a:hover { text-decoration: none; background: color-mix(in srgb, var(--rouge) 9%, transparent); }
 @media print { .lien-retour { display: none; } }
+
+/* Montant (thème des formulaires, money_widget) : le symbole € dans la case, à droite. */
+.saisie-montant { position: relative; display: block; }
+.saisie-montant > input { padding-right: 2rem; text-align: right; font-variant-numeric: tabular-nums; }
+.saisie-montant-devise { position: absolute; right: .75rem; top: 50%; transform: translateY(-50%); color: var(--gris); pointer-events: none; }
+/* Choix d'un fichier : bouton au look du site au lieu du bouton gris du navigateur. */
+input[type=file] { padding: .35rem; font-size: .9rem; color: var(--gris); cursor: pointer; }
+input[type=file]::file-selector-button {
+    margin-right: .7rem; padding: .35rem .8rem; border: 1px solid var(--bordure); border-radius: 8px; background: #fff;
+    font: inherit; font-weight: 500; color: var(--encre); cursor: pointer; transition: border-color .15s, color .15s;
+}
+input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, var(--rouge) 40%, var(--bordure)); color: var(--rouge-fonce); }
+
+/* Recette ou dépense : une carte par étape, bandeau du sens (entrée verte, sortie rouge), calcul des entrées repliable. */
+.sens-operation { display: inline-block; margin: -.4rem 0 1rem; padding: .35rem .8rem; border-radius: 999px; font-size: .9rem; font-weight: 600; }
+.sens-operation.recette { background: #e5f4ea; color: var(--succes); }
+.sens-operation.depense { background: var(--danger-clair); color: var(--danger-fonce); }
+.etape-operation + .etape-operation { margin-top: .9rem; }
+.etape-operation h2 { display: flex; align-items: center; gap: .3rem; font-size: 1rem; }
+.etape-operation h2 .discret { font-size: .8rem; font-weight: 400; margin-left: .3rem; }
+.etape-operation .etape-num { background: var(--rouge); }
+.etape-operation > .discret.petit { margin: .7rem 0 0; }
+.champ-montant .saisie-montant > input { font-size: 1.15rem; font-weight: 700; }
+.calcul-entrees { margin-top: .9rem; padding: .7rem .9rem; border: 1px dashed color-mix(in srgb, var(--rouge) 35%, var(--bordure)); border-radius: var(--rayon); background: color-mix(in srgb, var(--rouge) 4%, #fff); }
+.calcul-entrees > summary { cursor: pointer; font-weight: 600; color: var(--rouge-fonce); }
+.calcul-entrees[open] > summary { margin-bottom: .4rem; }
+.calcul-entrees > .discret { margin: 0 0 .7rem; }
+.formulaire-operation .barre-actions { display: flex; gap: .6rem; }

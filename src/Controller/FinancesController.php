@@ -255,9 +255,6 @@ class FinancesController extends AbstractController
     {
         $sens = Operation::RECETTE === $request->query->getString('sens') ? Operation::RECETTE : Operation::DEPENSE;
         $operation = (new Operation())->setSens($sens)->setDate(new \DateTimeImmutable('today'));
-        if ('entrees' === $request->query->getString('modele')) {
-            $operation->setRubrique('Entrées des matchs');
-        }
 
         return $this->formulaireOperation($request, $operation, Operation::RECETTE === $sens ? 'Nouvelle recette' : 'Nouvelle dépense');
     }
@@ -419,7 +416,8 @@ class FinancesController extends AbstractController
 
             return $this->redirectToRoute('app_finances_operations', ['saison' => Rencontre::saisonDe($operation->getDate())]);
         }
-        $vue = ['form' => $form, 'titre' => $titre, 'retour' => $this->generateUrl('app_finances_operations')];
+        $saison = Rencontre::saisonDe($operation->getDate() ?? new \DateTimeImmutable());
+        $vue = ['form' => $form, 'titre' => $titre, 'operation' => $operation, 'retour' => $this->generateUrl('app_finances_operations', ['saison' => $saison])];
         if ($operation->getId()) {
             $vue['suppression'] = [
                 'action' => $this->generateUrl('app_finances_operation_supprimer', ['id' => $operation->getId()]),
@@ -428,7 +426,7 @@ class FinancesController extends AbstractController
             ];
         }
 
-        return $this->render('commun/formulaire.html.twig', $vue);
+        return $this->render('finances/operation.html.twig', $vue);
     }
 
     private function formulaireContrat(Request $request, Contrat $contrat, string $titre): Response

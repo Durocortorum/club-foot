@@ -17,7 +17,8 @@ class Contrat implements AppartientAuClub
 {
     use ClubTrait;
 
-    public const TYPES = ['Joueur', 'Éducateur', 'Salarié', 'Fournisseur', 'Location / installations', 'Assurance', 'Transport', 'Sponsoring', 'Autre'];
+    /** Pas de « Sponsoring » : les contrats de partenariat se gèrent dans la page Sponsors (PartenariatSponsor). */
+    public const TYPES = ['Joueur', 'Éducateur', 'Salarié', 'Fournisseur', 'Location / installations', 'Assurance', 'Transport', 'Autre'];
     public const PERIODICITES = ['Une fois', 'Par mois', 'Par trimestre', 'Par an'];
     /** Nombre de jours avant la fin à partir duquel le contrat est signalé. */
     public const ALERTE_JOURS = 60;

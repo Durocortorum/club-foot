@@ -1,5 +1,10 @@
 {% use 'form_div_layout.html.twig' %}
 
+{# Montant : le symbole € dans la case, à droite (au lieu du texte « € » sous le champ). Tous les montants du site sont en euros. #}
+{% block money_widget %}
+    <span class="saisie-montant">{{ block('form_widget_simple') }}<span class="saisie-montant-devise" aria-hidden="true">€</span></span>
+{% endblock %}
+
 {# Champ texte + suggestions (voir App\Form\ListeOuverteType) #}
 {% block liste_ouverte_widget %}
     {{ block('form_widget_simple') }}

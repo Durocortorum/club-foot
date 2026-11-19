@@ -11,6 +11,11 @@
         <h1>Contrats <span class="compteur">{{ contrats|length }}</span></h1>
         {% if modif %}<a class="bouton principal" href="{{ path('app_finances_contrat_nouveau') }}">+ Nouveau contrat</a>{% endif %}
     </div>
+    <p class="discret">
+        Les engagements du club à suivre et à renouveler : assurance, location d'installations, salariés, fournisseurs, transport…
+        Vous êtes prévenu {{ constant('App\\Entity\\Contrat::ALERTE_JOURS') }} jours avant la fin.
+        {% if is_granted('ROLE_ADMIN') %}Les contrats des partenaires se gèrent dans <a href="{{ path('app_sponsor_index') }}">Sponsors</a>.{% else %}Les contrats des partenaires se gèrent dans la page Sponsors.{% endif %}
+    </p>
 
     <form class="filtres" method="get">
         <select name="etat" onchange="this.form.requestSubmit()" aria-label="Contrats affichés">
