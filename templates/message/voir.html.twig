@@ -14,7 +14,7 @@
     </div>
     <p class="discret">
         {{ message.creeLe|date('d/m/Y à H:i') }} · de {{ message.auteurNom }} · pour {{ message.cibleLibelle }}
-        {% if message.rencontre %} · <a href="{{ path('app_convocation', {id: message.rencontre.id}) }}">convocation du match</a>{% endif %}
+        {% if message.rencontre and is_granted('MATCH_MODIFIER', message.rencontre) %} · <a href="{{ path('app_convocation', {id: message.rencontre.id}) }}">convocation du match</a>{% endif %}
     </p>
 
     <section class="carte message-corps" data-fil-message="{{ message.id }}" data-fil-signature="{{ message.reponses|length }}">{{ message.corps|nl2br }}</section>

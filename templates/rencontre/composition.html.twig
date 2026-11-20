@@ -9,10 +9,14 @@
             <h1>Composition</h1>
             <p class="discret">{{ rencontre.equipeAffichee }} · {{ rencontre.date|date('d/m/Y') }} · {{ rencontre }}</p>
         </div>
-        <a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Feuille de match</a>
+        {% if modifiable %}<a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}">Feuille de match</a>{% endif %}
     </div>
 
-    {% if not compo.titulaires %}
+    {% if not modifiable %}
+        {# Encadrement du secteur sans être responsable ni désigné : composition en lecture seule. #}
+        <p class="discret petit"><span class="pastille">lecture seule</span> Seuls l'éducateur responsable de l'équipe et les personnes qu'il a désignées peuvent changer la composition.</p>
+        {% if compo.titulaires %}{% include 'rencontre/_terrain_compo.html.twig' with {modifiable: false} %}{% else %}<p class="vide">Aucun titulaire sur la feuille de match.</p>{% endif %}
+    {% elseif not compo.titulaires %}
         <p class="vide">Aucun titulaire sur la feuille de match. Ajoutez les joueurs dans « Feuille de match » et cochez « Titulaire » pour ceux qui commencent le match (d'office pour les numéros 1 à 11), puis revenez ici pour les placer.</p>
     {% else %}
         <form method="post" class="composition" data-controller="composition">

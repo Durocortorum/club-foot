@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Mes coordonnées{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_mon_compte'), 'Mon compte') }}
+    <h1>Mes coordonnées</h1>
+    <p class="discret">Votre fiche dans l'Encadrement du club : ce que vous changez ici est visible par l'encadrement (listes, numéros utiles). Les équipes, la fonction, le diplôme et la licence restent gérés par l'administrateur.</p>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+        <fieldset class="carte">
+            <legend>Photo</legend>
+            <div class="avec-photo">
+                {{ m.avatar(fiche, 'grand') }}
+                {{ m.groupe(form, ['photo']) }}
+            </div>
+        </fieldset>
+        <fieldset class="carte">
+            <legend>Téléphones et e-mail</legend>
+            {{ m.groupe(form, ['telPortable1', 'telPortable2', 'telFixe', 'telProfessionnel', 'email']) }}
+        </fieldset>
+        <fieldset class="carte">
+            <legend>Adresse</legend>
+            {{ m.groupe(form, ['adresse', 'codePostal', 'ville']) }}
+        </fieldset>
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

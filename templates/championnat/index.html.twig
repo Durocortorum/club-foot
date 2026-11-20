@@ -156,7 +156,7 @@
                                 <td class="dom">{{ r.domicile }}</td>
                                 <td colspan="3" class="score-club">{% if r.resultat %}<span class="score resultat-{{ r.resultat }}">{{ r.butsDomicile }} – {{ r.butsExterieur }}</span>{% else %}<span class="discret">{{ r.heure ?? 'à jouer' }}</span>{% endif %}</td>
                                 <td class="ext">{{ r.exterieur }}</td>
-                                <td><a class="bouton petit" href="{{ path('app_rencontre_modifier', {id: r.id}) }}" title="Votre match : le score se note sur le match">Score</a></td>
+                                <td>{% if is_granted('MATCH_MODIFIER', r) %}<a class="bouton petit" href="{{ path('app_rencontre_modifier', {id: r.id}) }}" title="Votre match : le score se note sur le match">Score</a>{% endif %}</td>
                             </tr>
                         {% endfor %}
                         {% for r in j.matchs %}

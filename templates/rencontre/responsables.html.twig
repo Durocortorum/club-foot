@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Qui modifie les matchs {{ categorie.nom }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(retour, 'Matchs') }}
+    <div class="titre-page">
+        <div>
+            <h1>Qui modifie les matchs {{ categorie.nom }}</h1>
+            <p class="discret">Seules ces personnes (plus l'administrateur du club{{ responsables.secteur ? ' et ' ~ responsables.secteur.prenom ~ ' ' ~ responsables.secteur.nom ~ ', responsable du secteur ' ~ categorie.secteurLibelle }}) peuvent modifier les rapports de match de l'équipe : feuille de match, score, buts, composition, saisie en direct. Le reste de l'encadrement du secteur voit les matchs sans pouvoir les changer. La dernière modification de chaque match indique qui l'a faite.</p>
+        </div>
+    </div>
+
+    <form method="post" class="formulaire">
+        <input type="hidden" name="_token" value="{{ csrf_token('responsables' ~ categorie.id) }}">
+        <input type="hidden" name="retour" value="{{ retour }}">
+
+        <section class="bloc">
+            <h2 class="titre-bloc">Éducateur responsable</h2>
+            {% set auto = educateurs|map(e => e.prenom ~ ' ' ~ e.nom)|join(', ') %}
+            {% if admin %}
+                <label>Responsable des matchs de l'équipe
+                    <select name="responsable">
+                        <option value="">{{ auto ? 'Éducateur de l\'équipe : ' ~ auto : '— Aucun —' }}</option>
+                        {% for u in candidats %}
+                            <option value="{{ u.id }}" {{ categorie.responsableMatchs == u ? 'selected' }}>{{ u.prenom }} {{ u.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <p class="discret petit">Par défaut, c'est l'éducateur de l'équipe (fiche Encadrement, équipe cochée) s'il a un compte (même adresse e-mail, ou même prénom et nom). Choisissez quelqu'un d'autre seulement si besoin.</p>
+            {% else %}
+                <p>{{ responsables.comptes|map(u => u.prenom ~ ' ' ~ u.nom)|join(', ') ?: 'Aucun' }} {% if responsables.comptes|length %}<span class="pastille">{{ responsables.auto ? 'éducateur de l\'équipe' : 'choisi par l\'administrateur' }}</span>{% endif %}</p>
+            {% endif %}
+            {% if responsables.sans_compte|length %}
+                <p class="flash flash-info">{{ responsables.sans_compte|map(e => e.prenom ~ ' ' ~ e.nom)|join(', ') }} : pas de compte pour se connecter (ni avec l'adresse e-mail de la fiche Encadrement, ni au même prénom et nom). Créez-lui un compte dans Utilisateurs : il deviendra responsable des matchs. En attendant, tout l'encadrement du secteur peut les modifier.</p>
+            {% endif %}
+        </section>
+
+        <section class="bloc">
+            <h2 class="titre-bloc">Personnes désignées</h2>
+            <p class="discret petit">Elles peuvent modifier les rapports de match avec l'éducateur responsable (un adjoint, un dirigeant qui tient la feuille…).</p>
+            {% set autres = candidats|filter(u => u not in responsables.comptes) %}
+            {% if autres|length %}
+                <div class="carte">
+                    <ul class="liste-simple">
+                        {% for u in autres %}
+                            <li><label class="case-droit"><input type="checkbox" name="redacteurs[]" value="{{ u.id }}" {{ u in categorie.redacteursMatchs ? 'checked' }}> {{ u.prenom }} {{ u.nom }}</label></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% else %}
+                <p class="vide">Aucun autre compte de l'encadrement n'a accès aux matchs de cette équipe.</p>
+            {% endif %}
+        </section>
+
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer</button>
+        </div>
+    </form>
+{% endblock %}

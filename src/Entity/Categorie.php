@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\CategorieRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -62,6 +64,31 @@ class Categorie implements AppartientAuClub
     #[ORM\Column(type: 'smallint', nullable: true)]
     #[Assert\Range(min: 10, max: 120)]
     private ?int $dureeMatch = null;
+
+    /**
+     * Éducateur responsable des matchs choisi à la main par l'administrateur. Vide : le ou les éducateurs de
+     * l'équipe (fiches Encadrement) qui ont un compte, voir ResponsablesMatchs.
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?Utilisateur $responsableMatchs = null;
+
+    /**
+     * Personnes désignées par l'éducateur responsable pour tenir les rapports de match avec lui.
+     *
+     * @var Collection<int, Utilisateur>
+     */
+    #[ORM\ManyToMany(targetEntity: Utilisateur::class)]
+    #[ORM\JoinTable(name: 'categorie_redacteur_match')]
+    #[ORM\JoinColumn(onDelete: 'CASCADE')]
+    #[ORM\InverseJoinColumn(onDelete: 'CASCADE')]
+    #[ORM\OrderBy(['prenom' => 'ASC', 'nom' => 'ASC'])]
+    private Collection $redacteursMatchs;
+
+    public function __construct()
+    {
+        $this->redacteursMatchs = new ArrayCollection();
+    }
 
     /** Durée de match proposée d'après le nom (U11 : 2 × 25, U13 : 2 × 30, U15 : 2 × 40, au-delà : 2 × 45). */
     public static function dureeParDefaut(?string $nom): ?int
@@ -186,6 +213,44 @@ class Categorie implements AppartientAuClub
     public function setDureeMatch(?int $dureeMatch): static
     {
         $this->dureeMatch = $dureeMatch;
+
+        return $this;
+    }
+
+    public function getResponsableMatchs(): ?Utilisateur
+    {
+        return $this->responsableMatchs;
+    }
+
+    public function setResponsableMatchs(?Utilisateur $responsableMatchs): static
+    {
+        $this->responsableMatchs = $responsableMatchs;
+        // Le responsable n'a pas besoin d'être aussi parmi les personnes désignées.
+        if ($responsableMatchs) {
+            $this->redacteursMatchs->removeElement($responsableMatchs);
+        }
+
+        return $this;
+    }
+
+    /** @return Collection<int, Utilisateur> */
+    public function getRedacteursMatchs(): Collection
+    {
+        return $this->redacteursMatchs;
+    }
+
+    public function addRedacteurMatchs(Utilisateur $u): static
+    {
+        if (!$this->redacteursMatchs->contains($u) && $u !== $this->responsableMatchs) {
+            $this->redacteursMatchs->add($u);
+        }
+
+        return $this;
+    }
+
+    public function removeRedacteurMatchs(Utilisateur $u): static
+    {
+        $this->redacteursMatchs->removeElement($u);
 
         return $this;
     }

@@ -10,6 +10,8 @@ use App\Entity\Dirigeant;
 use App\Entity\Educateur;
 use App\Entity\Intervenant;
 use App\Entity\Joueur;
+use App\Entity\ResponsableSecteur;
+use App\Repository\ResponsableSecteurRepository;
 use App\Form\IntervenantType;
 use App\Service\Photos;
 use Doctrine\ORM\EntityManagerInterface;
@@ -58,8 +60,13 @@ class IntervenantController extends AbstractController
         return $this->render('intervenant/index.html.twig', [
             'type' => $type,
             'libelles' => self::TYPES[$type],
-            'intervenants' => $qb->getQuery()->getResult(),
+            'intervenants' => $intervenants = $qb->getQuery()->getResult(),
             'filtres' => ['q' => $texte, 'statut' => $statut],
+            // Secteurs dont chaque personne est responsable (id de la fiche => libellés).
+            'responsables_secteur' => array_combine(
+                array_map(fn (Intervenant $i) => $i->getId(), $intervenants),
+                array_map(fn (Intervenant $i) => $this->secteursResponsable($i), $intervenants),
+            ),
         ]);
     }
 
@@ -91,6 +98,7 @@ class IntervenantController extends AbstractController
             'libelles' => self::TYPES[$type],
             'intervenant' => $intervenant,
             'conducteur' => $conducteur,
+            'secteurs_responsable' => $this->secteursResponsable($intervenant),
             // Joueurs suivis : seul l'éducateur est rattaché aux fiches joueurs dans Access.
             'joueurs' => $intervenant instanceof Educateur
                 ? $this->em->getRepository(Joueur::class)->findBy(['educateur' => $intervenant, 'ancien' => false], ['nom' => 'ASC'])
@@ -126,6 +134,22 @@ class IntervenantController extends AbstractController
         }
 
         return $this->redirectToRoute('app_intervenant_index', ['type' => $type]);
+    }
+
+    /** @var array<string, list<string>>|null */
+    private ?array $libellesResponsables = null;
+
+    /**
+     * Secteurs dont la personne de cette fiche est responsable (page Catégories) : compte reconnu par l'adresse
+     * e-mail de la fiche, sinon par le même prénom et nom.
+     *
+     * @return list<string>
+     */
+    private function secteursResponsable(Intervenant $i): array
+    {
+        $this->libellesResponsables ??= $this->em->getRepository(ResponsableSecteur::class)->libellesParPersonne();
+
+        return ResponsableSecteurRepository::secteursDe($this->libellesResponsables, $i->getEmail(), $i->getPrenom(), $i->getNom());
     }
 
     private function formulaire(Request $request, string $type, Intervenant $intervenant, string $titre): Response

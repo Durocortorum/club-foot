@@ -35,6 +35,7 @@ class MatchDirectController extends AbstractController
     }
 
     #[Route('/matchs/{id}/direct', name: 'app_match_direct', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
     public function direct(Rencontre $rencontre): Response
     {
         $actions = $this->actions->duMatch($rencontre);
@@ -73,6 +74,7 @@ class MatchDirectController extends AbstractController
      * Une action notée par un autre compte n'est ni corrigée ni supprimée.
      */
     #[Route('/matchs/{id}/direct/enregistrer', name: 'app_match_direct_enregistrer', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
     public function enregistrer(Request $request, Rencontre $rencontre): JsonResponse
     {
         $donnees = json_decode($request->getContent(), true);
@@ -83,6 +85,7 @@ class MatchDirectController extends AbstractController
         foreach ($this->actions->duMatch($rencontre) as $a) {
             $existantes[$a->getUuid()] = $a;
         }
+        $avant = $this->etat($rencontre, $existantes);
         $joueurs = [];
         foreach ($this->direct->joueurs($rencontre, array_values($existantes)) as $j) {
             $joueurs[$j['id']] = true;
@@ -172,6 +175,11 @@ class MatchDirectController extends AbstractController
                 $this->direct->numeroter($rencontre, (int) $joueurId, null !== $n && $n >= 1 && $n <= 99 ? $n : null);
             }
         }
+        // Trace de la dernière modification : seulement quand cet envoi change vraiment quelque chose
+        // (les tablettes envoient toutes les quelques secondes, souvent sans rien de nouveau).
+        if ($avant !== $this->etat($rencontre, $existantes)) {
+            $rencontre->marquerModifie($moi);
+        }
         $this->em->flush();
         // Puis la feuille de match suit (buts, cartons, changements, score, temps de jeu).
         if ($pourLaFeuille) {
@@ -187,6 +195,21 @@ class MatchDirectController extends AbstractController
             'chrono' => $rencontre->getChronoDirect(),
             'titulaires' => $rencontre->titulairesPourLeDirect(),
             'maintenant' => self::maintenant(),
+        ]);
+    }
+
+    /**
+     * Ce que la tablette peut changer (actions, conditions, chrono, titulaires, numéros), pour savoir si un envoi
+     * a modifié le match.
+     *
+     * @param array<string, ActionMatch> $actions
+     */
+    private function etat(Rencontre $rencontre, array $actions): string
+    {
+        return serialize([
+            array_map(fn (ActionMatch $a) => $a->enTableau(), $actions),
+            $rencontre->getMeteo(), $rencontre->getTerrain(), $rencontre->getVent(), $rencontre->getTemperature(),
+            $rencontre->getChronoDirect(), $rencontre->getTitulairesDirect(), $rencontre->getNumerosDirect(),
         ]);
     }
 
@@ -293,6 +316,7 @@ class MatchDirectController extends AbstractController
             'types' => ActionMatch::ACTIONS,
             'adverses' => ActionMatch::ADVERSES,
             'buts_feuille' => \count($rencontre->getButs()),
+            'modifiable' => $this->isGranted(ActiviteVoter::MODIFIER_MATCH, $rencontre),
         ]);
     }
 
@@ -302,6 +326,7 @@ class MatchDirectController extends AbstractController
      * (SynchroFeuille) ; sert pour ce qui a été noté avant. Les cartons de l'adversaire restent dans le bilan.
      */
     #[Route('/matchs/{id}/direct/reporter', name: 'app_match_direct_reporter', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
     public function reporter(Request $request, Rencontre $rencontre): Response
     {
         if (!$this->isCsrfTokenValid('reporter' . $rencontre->getId(), $request->getPayload()->getString('_token'))) {
@@ -309,6 +334,9 @@ class MatchDirectController extends AbstractController
         }
         // Rattrapage : tout ce qui a été noté en direct, repris sur la feuille (sans doublon : même but, même changement).
         $compte = $this->synchro->toutVersFeuille($rencontre);
+        if (array_sum($compte)) {
+            $rencontre->marquerModifie($this->moi());
+        }
         $this->em->flush();
         $messages = array_filter([
             $compte['buts'] ? \sprintf('%d but%s', $compte['buts'], $compte['buts'] > 1 ? 's' : '') : null,

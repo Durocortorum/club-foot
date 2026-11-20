@@ -8,6 +8,7 @@ use App\Entity\Tournoi;
 use App\Form\TournoiType;
 use App\Repository\CategorieRepository;
 use App\Repository\TournoiRepository;
+use App\Security\ActiviteVoter;
 use App\Security\JoueurVoter;
 use App\Service\Apparence;
 use Doctrine\ORM\EntityManagerInterface;
@@ -148,6 +149,12 @@ class TournoiController extends AbstractController
             $this->addFlash('info', 'Ajoutez d\'abord un match du tournoi (même sans connaître l\'adversaire : « À définir ») : la convocation s\'y rattache.');
 
             return $this->redirectToRoute('app_tournoi_voir', ['id' => $tournoi->getId(), '_fragment' => 'matchs']);
+        }
+
+        if (!$this->isGranted(ActiviteVoter::MODIFIER_MATCH, $premier)) {
+            $this->addFlash('erreur', 'Seuls l\'éducateur responsable de l\'équipe et les personnes qu\'il a désignées peuvent faire la convocation.');
+
+            return $this->redirectToRoute('app_tournoi_voir', ['id' => $tournoi->getId()]);
         }
 
         return $this->redirectToRoute('app_convocation', ['id' => $premier->getId()]);

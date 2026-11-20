@@ -1,0 +1,14 @@
+{# Qui modifie les matchs de l'équipe : variables equipe (Categorie) et responsables (ResponsablesMatchs::de). #}
+{% set noms = responsables.comptes|map(u => u.prenom ~ ' ' ~ u.nom)|merge(equipe.redacteursMatchs|map(u => u.prenom ~ ' ' ~ u.nom)) %}
+{% if responsables.comptes|length %}
+    Matchs {{ equipe.nom }} modifiables par {{ noms|length > 1 ? noms|slice(0, -1)|join(', ') ~ ' et ' ~ noms|last : noms|first }}{{ responsables.auto ? ' (éducateur de l\'équipe)' }}.
+{% elseif responsables.sans_compte|length %}
+    {% set sans = responsables.sans_compte|map(e => e.prenom ~ ' ' ~ e.nom)|join(', ') %}
+    {% if responsables.sans_compte|length > 1 %}{{ sans }}, éducateurs de l'équipe, n'ont pas encore de compte pour se connecter (même adresse e-mail que leur fiche, ou même prénom et nom){% else %}{{ sans }}, éducateur de l'équipe, n'a pas encore de compte pour se connecter (même adresse e-mail que sa fiche, ou même prénom et nom){% endif %} : en attendant, tout l'encadrement du secteur peut modifier les matchs {{ equipe.nom }}.
+{% elseif not responsables.suspendus|default([]) %}
+    Pas d'éducateur pour {{ equipe.nom }} (fiche Encadrement) : tout l'encadrement du secteur peut modifier ses matchs.
+{% endif %}
+{% if responsables.suspendus|default([]) and not responsables.comptes %}
+    {{ responsables.suspendus|map(u => u.prenom ~ ' ' ~ u.nom)|join(', ') }} : compte suspendu, tout l'encadrement du secteur peut modifier les matchs {{ equipe.nom }} pendant la suspension.
+{% endif %}
+{% if responsables.secteur %}Responsable du secteur {{ equipe.secteurLibelle }} : {{ responsables.secteur.prenom }} {{ responsables.secteur.nom }}.{% endif %}

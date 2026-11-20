@@ -17,10 +17,10 @@
             <p class="discret">{{ nous }} {{ stats.pour }} – {{ stats.contre }} {{ rencontre.adversaire }} · {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }} · {{ notees }} action{{ notees > 1 ? 's' }} notée{{ notees > 1 ? 's' }} en direct{% if actions|length > notees %}, complétée{{ notees > 1 ? 's' }} par la feuille de match (buts, cartons, remplacements){% endif %}</p>
         </div>
         <span class="actions">
-            <a class="bouton principal bilan-saisie" href="{{ path('app_match_direct', {id: rencontre.id}) }}" data-turbo-frame="_top">Saisie en direct</a>
+            {% if modifiable %}<a class="bouton principal bilan-saisie" href="{{ path('app_match_direct', {id: rencontre.id}) }}" data-turbo-frame="_top">Saisie en direct</a>{% endif %}
             {# Notés en direct mais pas encore sur la feuille de match. #}
             {% set a_reporter = direct_a_reporter(rencontre) %}
-            {% if a_reporter.buts or a_reporter.cartons or a_reporter.changements %}
+            {% if modifiable and (a_reporter.buts or a_reporter.cartons or a_reporter.changements) %}
                 <form method="post" action="{{ path('app_match_direct_reporter', {id: rencontre.id}) }}" class="en-ligne" data-turbo-frame="_top">
                     <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ rencontre.id) }}">
                     <button type="submit" class="bouton" title="Buts (si la feuille n'en a pas), cartons et changements notés en direct">Reporter sur la feuille de match</button>
@@ -30,7 +30,7 @@
     </div>
 
     {% if not actions %}
-        <p class="vide carte">Aucune action notée pour ce match. Ouvrez la <a href="{{ path('app_match_direct', {id: rencontre.id}) }}" data-turbo-frame="_top">saisie en direct</a> au coup d'envoi.</p>
+        <p class="vide carte">Aucune action notée pour ce match.{% if modifiable %} Ouvrez la <a href="{{ path('app_match_direct', {id: rencontre.id}) }}" data-turbo-frame="_top">saisie en direct</a> au coup d'envoi.{% endif %}</p>
     {% else %}
         {% set e = stats.equipe %}
         <div class="tuiles bilan">

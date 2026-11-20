@@ -89,7 +89,8 @@ class NotificationsTelephone
         if (!$this->active()) {
             return 0;
         }
-        $abonnements = $this->abonnements->deComptes($comptes);
+        // Comptes suspendus : plus d'alertes pendant la suspension.
+        $abonnements = array_values(array_filter($this->abonnements->deComptes($comptes), fn ($a) => !$a->getUtilisateur()->isSuspendu()));
         if (!$abonnements) {
             return 0;
         }

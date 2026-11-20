@@ -53,9 +53,15 @@ class RencontreType extends AbstractType
                 'class' => Categorie::class,
                 'label' => 'Catégorie',
                 'placeholder' => '— Choisir —',
-                'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('c')
-                    ->where('c.secteur IN (:s)')->setParameter('s', $options['secteurs'])
-                    ->orderBy('c.ordre'),
+                'query_builder' => function (EntityRepository $r) use ($options) {
+                    $qb = $r->createQueryBuilder('c')->where('c.secteur IN (:s)')->setParameter('s', $options['secteurs']);
+                    // Équipes dont ce compte tient les matchs (éducateur responsable ou personne désignée).
+                    if (null !== $options['categories']) {
+                        $qb->andWhere('c.id IN (:ids)')->setParameter('ids', $options['categories'] ?: [0]);
+                    }
+
+                    return $qb->orderBy('c.ordre');
+                },
                 'group_by' => fn (Categorie $c) => $c->getSecteurLibelle(),
                 // Durée de match de la catégorie : minutes des buts et mi-temps (contrôleur « score ») ;
                 // catégories dont les joueurs peuvent être surclassés dans celle-ci (contrôleur « feuille »).
@@ -178,8 +184,11 @@ class RencontreType extends AbstractType
             'convoques' => null,
             // Durée de match de la catégorie (minutes proposées pour les buts).
             'duree' => 90,
+            // Ids des équipes proposées (celles dont le compte tient les matchs) ; null : toutes celles des secteurs.
+            'categories' => null,
         ]);
         $resolver->setAllowedTypes('duree', 'int');
+        $resolver->setAllowedTypes('categories', ['null', 'array']);
         $resolver->setAllowedTypes('secteurs', 'array');
         $resolver->setAllowedTypes('joueurs', 'array');
         $resolver->setAllowedTypes('convoques', ['null', 'array']);

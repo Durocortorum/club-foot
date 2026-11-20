@@ -208,7 +208,8 @@ fieldset { min-width: 0; }
 .champ.case { display: flex; align-items: center; gap: .5rem; flex-direction: row-reverse; justify-content: flex-end; }
 .champ.case label { margin: 0; color: var(--encre); }
 .champ ul { color: var(--danger-fonce); margin: .3rem 0 0; padding-left: 1rem; font-size: .85rem; }
-.barre-actions { position: sticky; bottom: 0; padding: 1rem 0; background: var(--fond); }
+/* z-index : passe devant les colonnes et intitulés figés des tableaux (.table-defile, jusqu'à 3) qui défilent dessous. */
+.barre-actions { position: sticky; bottom: 0; z-index: 4; padding: 1rem 0; background: var(--fond); }
 
 /* Utilitaires */
 .petit { font-size: .85rem; }
@@ -469,6 +470,12 @@ mark.a-completer { background: #fff1b8; color: #6b4410; padding: 0 .25rem; borde
 .bandeau-demo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin: 0 0 1rem; padding: .55rem .8rem;
     border: 1px dashed var(--bordure); border-radius: var(--rayon); background: #fffbea; font-size: .88rem; color: var(--encre); }
 .pastille.succes { background: #e5f4ea; color: var(--succes); }
+/* Mon compte, « Mes équipes » : une carte par équipe. */
+.mon-equipe h3 { margin-top: 0; }
+.mon-equipe h3 .discret { font-weight: 400; }
+.mon-equipe .pastille:first-child { margin-left: 0; }
+/* Responsable de secteur (fiches Encadrement) : à la couleur du club, bien visible. */
+.pastille.responsable { display: inline-block; margin: .3rem 0 0; background: var(--rouge); color: #fff; font-weight: 600; }
 .pastille.attention { background: #fff4d6; color: #7a5300; }
 .liste-simple li.avec-actions { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 ul.liste-simple.carte { padding: .3rem 1.2rem; }

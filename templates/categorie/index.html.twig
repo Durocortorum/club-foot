@@ -49,4 +49,31 @@
             </tbody>
         </table>
     </div>
+    <p class="discret petit">Pour mettre une équipe dans un autre secteur : « Modifier » sur sa ligne, puis « Secteur ». Les flèches ne changent que l'ordre d'affichage.</p>
+
+    <section class="bloc" id="responsables-secteur">
+        <h2 class="titre-bloc">Responsables de secteur</h2>
+        <p class="discret petit">Le responsable d'un secteur voit tout le secteur, modifie les matchs et les convocations de toutes ses équipes et choisit qui les modifie. Il peut aussi être éducateur d'une de ces équipes (fiche Encadrement). S'il n'a pas encore le droit du secteur, il le reçoit en l'enregistrant.</p>
+        <form method="post" action="{{ path('app_categorie_responsables_secteur') }}" class="formulaire">
+            <input type="hidden" name="_token" value="{{ csrf_token('responsables-secteur') }}">
+            <div class="carte">
+                <div class="champs">
+                    {% for cle, s in secteurs %}
+                        <div class="champ">
+                            <label for="responsable-{{ cle }}">{{ s.libelle }}</label>
+                            <select id="responsable-{{ cle }}" name="responsable[{{ cle }}]">
+                                <option value="">— Aucun —</option>
+                                {% for u in comptes_encadrement %}
+                                    <option value="{{ u.id }}" {{ responsables_secteur[cle] is defined and responsables_secteur[cle] == u ? 'selected' }}>{{ u.prenom }} {{ u.nom }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="actions-ligne">
+                <button type="submit" class="bouton principal">Enregistrer les responsables</button>
+            </div>
+        </form>
+    </section>
 {% endblock %}

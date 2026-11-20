@@ -7,9 +7,11 @@ use App\Entity\Intervenant;
 use App\Entity\Joueur;
 use App\Entity\ContactMedical;
 use App\Entity\Rencontre;
+use App\Entity\ResponsableSecteur;
 use App\Entity\Sponsor;
 use App\Repository\CategorieRepository;
 use App\Repository\JoueurRepository;
+use App\Repository\ResponsableSecteurRepository;
 use App\Security\JoueurVoter;
 use App\Service\AccesMedical;
 use App\Service\Encadrement;
@@ -225,6 +227,9 @@ class EffectifController extends AbstractController
         };
     }
 
+    /** @var array<string, list<string>>|null */
+    private ?array $libellesResponsables = null;
+
     /** @return array<string, mixed> ligne commune du listing */
     private function ligneJoueur(Joueur $j): array
     {
@@ -241,7 +246,12 @@ class EffectifController extends AbstractController
     /** @return array<string, mixed> ligne commune du listing */
     private function ligneEncadrement(Intervenant $i, string $type, string $role): array
     {
+        // Responsable de secteur (page Catégories) : signalé dans le listing (pastille, et en tête de la fonction dans le CSV).
+        $this->libellesResponsables ??= $this->em->getRepository(ResponsableSecteur::class)->libellesParPersonne();
+        $secteurs = ResponsableSecteurRepository::secteursDe($this->libellesResponsables, $i->getEmail(), $i->getPrenom(), $i->getNom());
+
         return [
+            'responsable' => array_map(fn (string $s) => 'Responsable secteur ' . $s, $secteurs),
             'lien' => $this->generateUrl('app_intervenant_voir', ['type' => $type, 'id' => $i->getId()]),
             'nom' => $i->getNom(), 'prenom' => $i->getPrenom(), 'groupe' => $role,
             'fonction' => implode(', ', array_filter([$i->getFonction(), $i->getFonction2()])),
@@ -262,7 +272,7 @@ class EffectifController extends AbstractController
             ...$telephones, 'E-mail', 'N° de licence'])];
         foreach ($lignes as $l) {
             $sortie[] = $ligne([
-                $l['nom'], $l['prenom'], $l['groupe'], $l['fonction'], $l['ne']?->format('d/m/Y'), $l['age'],
+                $l['nom'], $l['prenom'], $l['groupe'], implode(', ', array_filter([...($l['responsable'] ?? []), $l['fonction']])), $l['ne']?->format('d/m/Y'), $l['age'],
                 $l['adresse'], $l['cp'], $l['ville'], ...\array_slice($l['tels'], 0, \count($telephones)), $l['email'], $l['licence'],
             ]);
         }

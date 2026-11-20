@@ -66,7 +66,7 @@
                         <td class="fort"><a href="{{ l.lien }}">{{ l.nom }}</a></td>
                         <td>{{ l.prenom }}</td>
                         {% if avec_groupe %}<td>{{ l.groupe }}</td>{% endif %}
-                        {% if avec_fonction %}<td>{{ l.fonction }}</td>{% endif %}
+                        {% if avec_fonction %}<td>{% for r in l.responsable ?? [] %}<span class="pastille responsable">{{ r }}</span> {% endfor %}{{ l.fonction }}</td>{% endif %}
                         {% if not externe %}
                             <td class="sans-retour">{{ l.ne ? l.ne|date('d/m/Y') }}</td>
                             <td class="sans-retour">{{ l.age is not null ? l.age ~ ' ans' }}</td>

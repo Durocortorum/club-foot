@@ -262,12 +262,49 @@ class Rencontre implements AppartientAuClub
     #[ORM\OrderBy(['heureDepart' => 'ASC', 'id' => 'ASC'])]
     private Collection $deplacements;
 
+    /** Dernière modification du rapport de match (feuille, composition, direct) : quand et par qui. */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $modifieLe = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?Utilisateur $modifiePar = null;
+
+    /** Nom de la personne, gardé même si son compte est supprimé ensuite. */
+    #[ORM\Column(length: 170, nullable: true)]
+    private ?string $modifieParNom = null;
+
     public function __construct()
     {
         $this->participations = new ArrayCollection();
         $this->buts = new ArrayCollection();
         $this->remplacements = new ArrayCollection();
         $this->deplacements = new ArrayCollection();
+    }
+
+    /** Note qui vient de modifier le rapport de match, et quand. */
+    public function marquerModifie(Utilisateur $par): static
+    {
+        $this->modifieLe = new \DateTimeImmutable();
+        $this->modifiePar = $par;
+        $this->modifieParNom = trim($par->getPrenom() . ' ' . $par->getNom());
+
+        return $this;
+    }
+
+    public function getModifieLe(): ?\DateTimeImmutable
+    {
+        return $this->modifieLe;
+    }
+
+    public function getModifiePar(): ?Utilisateur
+    {
+        return $this->modifiePar;
+    }
+
+    public function getModifieParNom(): ?string
+    {
+        return $this->modifiePar ? trim($this->modifiePar->getPrenom() . ' ' . $this->modifiePar->getNom()) : $this->modifieParNom;
     }
 
     /** @return Collection<int, Deplacement> */

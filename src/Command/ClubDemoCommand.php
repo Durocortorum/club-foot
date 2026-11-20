@@ -243,6 +243,10 @@ class ClubDemoCommand extends Command
                 ->setDateDiplome(new \DateTimeImmutable('2019-06-15'))->setPermis('B')->setTelPortable1('06 20 30 ' . (40 + \count($educateurs)) . ' 50')
                 ->setEmail(\sprintf('%s.%s@%s', $this->ascii($prenom), $this->ascii($nom), self::DOMAINE));
             $e->addEquipe($this->categories[$cat]);
+            // Karim a un compte de démo : même adresse sur sa fiche et pour se connecter.
+            if ('U15' === $cat) {
+                $e->setEmail('educateur@' . self::DOMAINE);
+            }
             $this->em->persist($e);
             $educateurs[$cat] = $e;
             foreach ($this->joueurs[$cat] ?? [] as $j) {
@@ -252,7 +256,8 @@ class ClubDemoCommand extends Command
         $dirigeants = [];
         foreach ([['Jean', 'Morel', 'Président'], ['Nadia', 'Girard', 'Trésorière'], ['Bernard', 'Mercier', 'Secrétaire'], ['Claire', 'Vincent', 'Vice-présidente']] as [$prenom, $nom, $fonction]) {
             $d = (new Dirigeant())->setNom($nom)->setPrenom($prenom)->setFonction($fonction)->setTelPortable1('06 11 22 3' . \count($dirigeants) . ' 44')
-                ->setEmail(\sprintf('%s.%s@%s', $this->ascii($prenom), $this->ascii($nom), self::DOMAINE));
+                // Le président a un compte de démo : même adresse sur sa fiche et pour se connecter.
+                ->setEmail('Président' === $fonction ? 'president@' . self::DOMAINE : \sprintf('%s.%s@%s', $this->ascii($prenom), $this->ascii($nom), self::DOMAINE));
             $this->em->persist($d);
             $dirigeants[$fonction] = $d;
         }

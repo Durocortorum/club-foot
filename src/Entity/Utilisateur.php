@@ -83,7 +83,7 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
         'discipline' => 'Page Discipline : incidents, sanctions et amendes de tous les joueurs (mineurs et majeurs).',
         'tests_physiques' => 'Bloc Tests physiques de la fiche joueur (VMA, sprints, détente…). Modifier : pour les joueurs de ses secteurs, ou tous avec l\'Infirmerie.',
         'finances' => 'Page Finances : cotisations et paiements, recettes et dépenses (entrées des matchs, matériel…), contrats.',
-        'ROLE_RAPPORT_MATCH' => 'Rédiger les rapports de tous les matchs, quel que soit le secteur.',
+        'ROLE_RAPPORT_MATCH' => 'Voir les matchs de tous les secteurs et rédiger leurs rapports ; une équipe qui a un éducateur responsable des matchs reste réservée à lui et aux personnes qu\'il a désignées.',
     ];
 
     #[ORM\Id]
@@ -150,9 +150,61 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
     #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $visiteMedicaleJusquAu = null;
 
+    /**
+     * Compte suspendu par l'administrateur (depuis cette date) : plus de connexion, plus d'e-mails ni d'alertes,
+     * plus de responsabilité sur les équipes ; tout est gardé. Null : compte actif.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $suspenduLe = null;
+
+    /** Dernier jour de la suspension (réactivé automatiquement le lendemain) ; null : jusqu'à réactivation à la main. */
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $suspenduJusquAu = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $motifSuspension = null;
+
     public function __construct()
     {
         $this->joueurs = new ArrayCollection();
+    }
+
+    /** Compte suspendu aujourd'hui ? (La suspension prend fin d'elle-même après sa date de fin.) */
+    public function isSuspendu(): bool
+    {
+        return null !== $this->suspenduLe
+            && (null === $this->suspenduJusquAu || $this->suspenduJusquAu >= new \DateTimeImmutable('today'));
+    }
+
+    public function suspendre(?\DateTimeImmutable $jusquAu, ?string $motif): static
+    {
+        $this->suspenduLe = new \DateTimeImmutable();
+        $this->suspenduJusquAu = $jusquAu;
+        $this->motifSuspension = $motif ? mb_substr(trim($motif), 0, 255) : null;
+
+        return $this;
+    }
+
+    public function reactiver(): static
+    {
+        $this->suspenduLe = $this->suspenduJusquAu = $this->motifSuspension = null;
+
+        return $this;
+    }
+
+    public function getSuspenduLe(): ?\DateTimeImmutable
+    {
+        return $this->suspenduLe;
+    }
+
+    public function getSuspenduJusquAu(): ?\DateTimeImmutable
+    {
+        return $this->suspenduJusquAu;
+    }
+
+    public function getMotifSuspension(): ?string
+    {
+        return $this->motifSuspension;
     }
 
     public function getId(): ?int

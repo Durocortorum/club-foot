@@ -5,8 +5,10 @@ namespace App\Controller;
 use App\Entity\Categorie;
 use App\Entity\Joueur;
 use App\Entity\Rencontre;
+use App\Entity\ResponsableSecteur;
 use App\Entity\Seance;
 use App\Entity\SemainePresence;
+use App\Entity\Utilisateur;
 use App\Form\CategorieType;
 use App\Repository\CategorieRepository;
 use App\Service\ClubCourant;
@@ -45,7 +47,68 @@ class CategorieController extends AbstractController
             'categories' => $liste,
             'utilisations' => array_combine(array_map(fn (Categorie $c) => $c->getId(), $liste), array_map(fn (Categorie $c) => $this->utilisations($c), $liste)),
             'secteurs' => Categorie::SECTEURS,
+            'responsables_secteur' => $this->em->getRepository(ResponsableSecteur::class)->parSecteur(),
+            'comptes_encadrement' => $this->comptesEncadrement(),
         ]);
+    }
+
+    /**
+     * Responsable de chaque secteur : il voit tout le secteur (le droit du secteur lui est donné s'il ne l'avait pas),
+     * modifie les matchs et convocations de toutes ses équipes et choisit qui les modifie.
+     */
+    #[Route('/responsables-secteur', name: 'app_categorie_responsables_secteur', methods: ['POST'])]
+    public function responsablesSecteur(Request $request, ClubCourant $clubCourant): Response
+    {
+        $p = $request->getPayload();
+        if (!$this->isCsrfTokenValid('responsables-secteur', $p->getString('_token'))) {
+            return $this->redirectToRoute('app_categorie_index');
+        }
+        $comptes = [];
+        foreach ($this->comptesEncadrement() as $u) {
+            $comptes[$u->getId()] = $u;
+        }
+        $existants = [];
+        foreach ($this->em->getRepository(ResponsableSecteur::class)->findAll() as $r) {
+            $existants[$r->getSecteur()] = $r;
+        }
+        $choix = $p->all('responsable');
+        $droitsDonnes = [];
+        foreach (Categorie::SECTEURS as $secteur => $s) {
+            $compte = $comptes[(int) ($choix[$secteur] ?? 0)] ?? null;
+            if (!$compte) {
+                if (isset($existants[$secteur])) {
+                    $this->em->remove($existants[$secteur]);
+                }
+                continue;
+            }
+            if (isset($existants[$secteur])) {
+                $existants[$secteur]->setUtilisateur($compte);
+            } else {
+                $this->em->persist((new ResponsableSecteur($secteur, $compte))->setClub($clubCourant->club()));
+            }
+            // Il voit tout son secteur : droit du secteur donné s'il ne l'avait pas (ni par l'administration).
+            if (!\in_array($s['role'], $compte->getRolesAttribues(), true) && !\in_array('ROLE_ADMIN', $compte->getRolesAttribues(), true)) {
+                $compte->setRolesAttribues([...$compte->getRolesAttribues(), $s['role']]);
+                $droitsDonnes[] = \sprintf('%s %s (%s)', $compte->getPrenom(), $compte->getNom(), $s['libelle']);
+            }
+        }
+        $this->em->flush();
+        $this->addFlash('succes', 'Responsables de secteur enregistrés.' . ($droitsDonnes ? ' Droit du secteur donné à : ' . implode(', ', $droitsDonnes) . '.' : ''));
+
+        return $this->redirectToRoute('app_categorie_index', ['_fragment' => 'responsables-secteur']);
+    }
+
+    /**
+     * Comptes de l'encadrement du club (ni famille, ni médical seul), proposés comme responsables de secteur.
+     *
+     * @return list<Utilisateur>
+     */
+    private function comptesEncadrement(): array
+    {
+        return array_values(array_filter(
+            $this->em->getRepository(Utilisateur::class)->findBy([], ['prenom' => 'ASC', 'nom' => 'ASC']),
+            fn (Utilisateur $u) => \in_array('ROLE_ENCADREMENT', $u->getRoles(), true)
+        ));
     }
 
     #[Route('/nouvelle', name: 'app_categorie_nouvelle', methods: ['GET', 'POST'])]

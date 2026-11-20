@@ -18,6 +18,10 @@
                     <dt>Joueurs suivis</dt><dd>{{ moi.joueurs|map(j => j.prenom ~ ' ' ~ j.nom)|join(', ') ?: 'aucun' }}</dd>
                 {% else %}
                     <dt>Droits</dt><dd>{{ moi.admin ? 'Administration (tous les droits)' : (moi.libellesRoles|join(', ') ?: 'aucun') }}</dd>
+                    {% if secteurs_responsable %}
+                        <dt>Responsabilités</dt>
+                        <dd>{% for s in secteurs_responsable %}<div><span class="pastille responsable">Responsable secteur {{ s }}</span></div>{% endfor %}</dd>
+                    {% endif %}
                 {% endif %}
             </dl>
             <p class="discret petit">{{ moi.famille ? 'Pour changer d\'adresse ou supprimer votre compte, adressez-vous à l\'éducateur de l\'équipe.' : 'Pour changer vos droits, adressez-vous à un administrateur.' }}</p>
@@ -25,6 +29,28 @@
                 <p><a class="bouton" href="{{ path('app_demande_medicale') }}">🔒 Demander l'accès médical</a></p>
             {% endif %}
         </section>
+
+        {% if encadrement %}
+            {# Fiche Encadrement du compte (même adresse e-mail, ou même prénom et nom) : coordonnées mises à jour par la personne. #}
+            <section class="carte">
+                <h2>Ma fiche</h2>
+                {% for f in fiches %}
+                    <div class="identite">
+                        {{ m.avatar(f.fiche) }}
+                        <div>
+                            <strong>{{ f.fiche.prenom }} {{ f.fiche.nom }}</strong> <span class="pastille">{{ f.libelle|lower }}</span>
+                            <div class="discret petit">{{ [f.fiche.telPortable1 ?? f.fiche.telFixe, f.fiche.email]|filter(v => v)|join(' · ') ?: 'Aucune coordonnée' }}</div>
+                        </div>
+                    </div>
+                    <p class="actions-ligne">
+                        <a class="bouton principal petit" href="{{ path('app_ma_fiche', {type: f.type}) }}">Mettre à jour mes coordonnées</a>
+                        <a class="bouton petit" href="{{ path('app_intervenant_voir', {type: f.type, id: f.fiche.id}) }}">Voir ma fiche</a>
+                    </p>
+                {% else %}
+                    <p class="discret">Aucune fiche à votre nom dans l'Encadrement (ni avec votre adresse e-mail, ni à vos prénom et nom). Demandez à l'administrateur de la créer.</p>
+                {% endfor %}
+            </section>
+        {% endif %}
 
         <section class="carte">
             <h2>Changer mon mot de passe</h2>
@@ -39,4 +65,40 @@
             {{ form_end(form) }}
         </section>
     </div>
+
+    {% if mes_equipes %}
+        {# Équipes dont la personne s'occupe : raccourcis vers son travail (prochain match, convocation, présences, planning). #}
+        <section class="bloc">
+            <h2 class="titre-bloc">Mes équipes</h2>
+            <div class="grille-fiches">
+                {% for e in mes_equipes %}
+                    {% set c = e.categorie %}
+                    {% set p = e.prochain %}
+                    {% set voit_matchs = secteurs_matchs is null or c.secteur in secteurs_matchs %}
+                    <section class="carte mon-equipe">
+                        <h3>{{ c.nom }} <span class="discret petit">{{ c.secteurLibelle }}</span></h3>
+                        <p>{% for r in e.roles %}<span class="pastille {{ r starts with 'Responsable secteur' ? 'responsable' }}">{{ r }}</span> {% endfor %}</p>
+                        <p class="petit">
+                            {% if p %}
+                                Prochain match : {% if voit_matchs %}<a href="{{ path('app_rencontre_voir', {id: p.id}) }}">{% endif %}{{ p.date|date('d/m/Y') }}{{ p.heure ? ' à ' ~ p.heure }} · {{ p.aDomicile ? 'vs' : '@' }} {{ p.adversaire }}{% if voit_matchs %}</a>{% endif %}
+                            {% else %}
+                                <span class="discret">Pas de match prévu</span>
+                            {% endif %}
+                        </p>
+                        <p class="actions-ligne">
+                            {% if p and is_granted('MATCH_MODIFIER', p) %}
+                                <a class="bouton petit principal" href="{{ path('app_convocation', {id: p.id}) }}">Convocation</a>
+                                <a class="bouton petit" href="{{ path('app_rencontre_modifier', {id: p.id}) }}#feuille-de-match">Feuille de match</a>
+                            {% endif %}
+                            {% if voit_matchs %}<a class="bouton petit" href="{{ path('app_rencontre_index', {categorie: c.id}) }}">Matchs</a>{% endif %}
+                            {% if c.secteur in secteurs_vus %}
+                                <a class="bouton petit" href="{{ path('app_presence_index', {categorie: c.id}) }}">Présences</a>
+                                <a class="bouton petit" href="{{ path('app_planning', {categorie: c.id}) }}">Entraînements</a>
+                            {% endif %}
+                        </p>
+                    </section>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
 {% endblock %}

@@ -8,6 +8,7 @@ use App\Entity\Convoque;
 use App\Entity\Joueur;
 use App\Entity\Participation;
 use App\Entity\Rencontre;
+use App\Entity\Utilisateur;
 use App\Form\RencontreType;
 use App\Repository\ButRepository;
 use App\Repository\CategorieRepository;
@@ -16,11 +17,13 @@ use App\Repository\JoueurRepository;
 use App\Repository\MessageRepository;
 use App\Repository\ParticipationRepository;
 use App\Repository\RencontreRepository;
+use App\Repository\UtilisateurRepository;
 use App\Security\ActiviteVoter;
 use App\Service\Apparence;
 use App\Service\BilanEquipe;
 use App\Service\CompositionTerrain;
 use App\Service\ImportMatchs;
+use App\Service\ResponsablesMatchs;
 use App\Service\StatsActions;
 use App\Service\SynchroFeuille;
 use Symfony\Component\Form\FormError;
@@ -42,8 +45,12 @@ class RencontreController extends AbstractController
     /** Le bouton « Annuler cet import » reste proposé 24 heures. */
     private const DUREE_ANNULATION = 86400;
 
-    public function __construct(private readonly ActiviteVoter $voter, private readonly SynchroFeuille $synchro)
-    {
+    public function __construct(
+        private readonly ActiviteVoter $voter,
+        private readonly SynchroFeuille $synchro,
+        private readonly CategorieRepository $categories,
+        private readonly ResponsablesMatchs $responsables,
+    ) {
     }
 
     #[Route('/matchs', name: 'app_rencontre_index', methods: ['GET'])]
@@ -65,8 +72,10 @@ class RencontreController extends AbstractController
             'saisons' => $rencontres->saisons(),
             'categories' => $this->categoriesVisibles($categories),
             'filtres' => $filtres,
-            'peut_creer' => null === $secteurs || [] !== $secteurs,
-            'dernier_import' => ($i = $request->getSession()->get(self::DERNIER_IMPORT)) && $i['ids'] && time() - $i['le'] < self::DUREE_ANNULATION ? $i : null,
+            'peut_creer' => [] !== $this->categoriesTenables($categories),
+            'responsables_equipe' => ($equipe = $filtres['categorie'] ? $categories->find($filtres['categorie']) : null) ? $this->responsables->de($equipe) : null,
+            'peut_designer_equipe' => $equipe && $this->peutDesigner($equipe),
+            'dernier_import' => ($i =$request->getSession()->get(self::DERNIER_IMPORT)) && $i['ids'] && time() - $i['le'] < self::DUREE_ANNULATION ? $i : null,
         ]);
     }
 
@@ -144,9 +153,9 @@ class RencontreController extends AbstractController
     }
 
     #[Route('/matchs/nouveau', name: 'app_rencontre_nouveau', methods: ['GET', 'POST'])]
-    public function nouveau(Request $request, EntityManagerInterface $em, JoueurRepository $joueurs, Apparence $apparence): Response
+    public function nouveau(Request $request, EntityManagerInterface $em, JoueurRepository $joueurs, Apparence $apparence, CategorieRepository $categories): Response
     {
-        if ([] === $this->voter->secteursMatchs()) {
+        if ([] === $this->categoriesTenables($categories)) {
             throw $this->createAccessDeniedException();
         }
         $rencontre = (new Rencontre())->setDate(new \DateTimeImmutable('today'))->setDomicile(mb_strtoupper($apparence->club()->getNom()));
@@ -167,10 +176,10 @@ class RencontreController extends AbstractController
         Apparence $apparence,
         EntityManagerInterface $em,
     ): Response {
-        if ([] === $this->voter->secteursMatchs()) {
+        $visibles = $this->categoriesTenables($categories);
+        if ([] === $visibles) {
             throw $this->createAccessDeniedException();
         }
-        $visibles = $this->categoriesVisibles($categories);
         $donnees = $request->getPayload();
         $idCategorie = $request->isMethod('POST') ? $donnees->getInt('categorie') : $request->query->getInt('categorie');
         $categorie = array_values(array_filter($visibles, fn (Categorie $c) => $c->getId() === $idCategorie))[0] ?? null;
@@ -272,7 +281,7 @@ class RencontreController extends AbstractController
     public function effacerSaison(Request $request, RencontreRepository $rencontres, CategorieRepository $categories, ConvocationRepository $convocations, EntityManagerInterface $em): Response
     {
         $donnees = $request->getPayload();
-        $categorie = array_values(array_filter($this->categoriesVisibles($categories), fn (Categorie $c) => $c->getId() === $donnees->getInt('categorie')))[0] ?? null;
+        $categorie = array_values(array_filter($this->categoriesTenables($categories), fn (Categorie $c) => $c->getId() === $donnees->getInt('categorie')))[0] ?? null;
         $saison = $donnees->getString('saison');
         if (!$categorie || !preg_match('#^(\d{4})/\d{4}$#', $saison, $m) || !$this->isCsrfTokenValid('effacer-matchs', $donnees->getString('_token'))) {
             return $this->redirectToRoute('app_rencontre_index');
@@ -299,7 +308,7 @@ class RencontreController extends AbstractController
     {
         $supprimes = $gardes = 0;
         foreach ($liste as $r) {
-            if (!$this->isGranted(ActiviteVoter::GERER, $r)) {
+            if (!$this->isGranted(ActiviteVoter::MODIFIER_MATCH, $r)) {
                 continue;
             }
             if (!$r->getParticipations()->isEmpty() || !$r->getButs()->isEmpty() || !$r->getRemplacements()->isEmpty() || $convocations->pour($r)) {
@@ -324,6 +333,9 @@ class RencontreController extends AbstractController
             'convocation' => $convocations->pour($rencontre),
             'compo' => $terrain->placer($rencontre),
             'comptes_rendus' => $messages->comptesRendus($rencontre),
+            'modifiable' => $this->isGranted(ActiviteVoter::MODIFIER_MATCH, $rencontre),
+            'peut_designer' => $rencontre->getCategorie() && $this->peutDesigner($rencontre->getCategorie()),
+            'responsables' => $rencontre->getCategorie() ? $this->responsables->de($rencontre->getCategorie()) : null,
         ]);
     }
 
@@ -336,6 +348,11 @@ class RencontreController extends AbstractController
     public function composition(Request $request, Rencontre $rencontre, CompositionTerrain $terrain, EntityManagerInterface $em): Response
     {
         $donnees = $request->getPayload();
+        // Tout l'encadrement du secteur voit la composition ; seuls ceux qui tiennent les matchs de l'équipe la changent.
+        $modifiable = $this->isGranted(ActiviteVoter::MODIFIER_MATCH, $rencontre);
+        if ($request->isMethod('POST') && !$modifiable) {
+            throw $this->createAccessDeniedException();
+        }
         if ($request->isMethod('POST') && $this->isCsrfTokenValid('composition' . $rencontre->getId(), $donnees->getString('_token'))) {
             $systeme = $donnees->getString('systeme');
             if (\in_array($systeme, [Rencontre::SYSTEME_EDUCATEUR, ...array_merge(...array_values(Rencontre::SYSTEMES))], true)) {
@@ -353,6 +370,7 @@ class RencontreController extends AbstractController
                 }
                 $this->addFlash('succes', 'Composition enregistrée.');
             }
+            $this->tracer($rencontre);
             $em->flush();
 
             return $this->redirectToRoute('app_rencontre_composition', ['id' => $rencontre->getId()]);
@@ -362,11 +380,12 @@ class RencontreController extends AbstractController
             'rencontre' => $rencontre,
             'compo' => $terrain->placer($rencontre),
             'systemes' => Rencontre::SYSTEMES,
+            'modifiable' => $modifiable,
         ]);
     }
 
     #[Route('/matchs/{id}/modifier', name: 'app_rencontre_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
-    #[IsGranted(ActiviteVoter::GERER, 'rencontre')]
+    #[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
     public function modifier(Request $request, Rencontre $rencontre, EntityManagerInterface $em, JoueurRepository $joueurs, ConvocationRepository $convocations): Response
     {
         // Feuille de match encore vide : on part des joueurs qui ont répondu présent à la convocation.
@@ -390,7 +409,7 @@ class RencontreController extends AbstractController
     }
 
     #[Route('/matchs/{id}/supprimer', name: 'app_rencontre_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
-    #[IsGranted(ActiviteVoter::GERER, 'rencontre')]
+    #[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
     public function supprimer(Request $request, Rencontre $rencontre, EntityManagerInterface $em): Response
     {
         if ($this->isCsrfTokenValid('supprimer-match' . $rencontre->getId(), $request->getPayload()->getString('_token'))) {
@@ -406,8 +425,14 @@ class RencontreController extends AbstractController
     private function formulaire(Request $request, Rencontre $rencontre, EntityManagerInterface $em, JoueurRepository $joueurs, string $titre, ?array $convoques = null): Response
     {
         $secteurs = $this->voter->secteursMatchs() ?? array_keys(Categorie::SECTEURS);
+        // Équipes proposées : celles dont ce compte tient les matchs (plus celle du match, déjà vérifiée).
+        $tenables = array_map(fn (Categorie $c) => $c->getId(), $this->categoriesTenables($this->categories));
+        if ($rencontre->getCategorie()) {
+            $tenables[] = $rencontre->getCategorie()->getId();
+        }
         $form = $this->createForm(RencontreType::class, $rencontre, [
             'secteurs' => $secteurs,
+            'categories' => array_values(array_unique($tenables)),
             'joueurs' => $this->joueursSelectionnables($rencontre, $secteurs, $joueurs),
             'duree' => $rencontre->getCategorie()?->getDureeMatch() ?? 90,
             'convoques' => $convoques,
@@ -447,6 +472,7 @@ class RencontreController extends AbstractController
             if ($replaces) {
                 $rencontre->setPlacements([]);
             }
+            $this->tracer($rencontre);
             $em->persist($rencontre);
             // Match suivi en direct : ce qui a changé sur la feuille l'est aussi dans le direct (tablettes, bilan).
             if ($photo) {
@@ -526,6 +552,120 @@ class RencontreController extends AbstractController
             // La catégorie mémorisée depuis un autre onglet peut ne pas être proposée ici.
             'categorie' => \in_array($categorie, array_map(fn (Categorie $c) => $c->getId(), $this->categoriesVisibles($categories)), true) ? $categorie : null,
         ];
+    }
+
+    /**
+     * Qui tient les matchs de l'équipe : l'administrateur choisit l'éducateur responsable ; le responsable
+     * (ou l'administrateur) désigne les personnes qui peuvent aussi modifier les rapports de match.
+     */
+    #[Route('/matchs/equipe/{id}/responsables', name: 'app_rencontre_responsables', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    public function responsables(Request $request, Categorie $categorie, UtilisateurRepository $utilisateurs, EntityManagerInterface $em): Response
+    {
+        if (!$this->peutDesigner($categorie)) {
+            throw $this->createAccessDeniedException();
+        }
+        $candidats = $this->candidats($categorie, $utilisateurs);
+        $parId = [];
+        foreach ($candidats as $u) {
+            $parId[$u->getId()] = $u;
+        }
+        // L'administrateur et le responsable du secteur choisissent aussi l'éducateur responsable de l'équipe.
+        $admin = $this->isGranted('ROLE_ADMIN') || $this->responsables->estResponsableSecteur($categorie, $this->getUser() instanceof Utilisateur ? $this->getUser() : null);
+        $p = $request->getPayload();
+        if ($request->isMethod('POST') && $this->isCsrfTokenValid('responsables' . $categorie->getId(), $p->getString('_token'))) {
+            if ($admin) {
+                $categorie->setResponsableMatchs($parId[$p->getInt('responsable')] ?? null);
+            }
+            $choisis = array_map('intval', $p->all('redacteurs'));
+            foreach ($categorie->getRedacteursMatchs()->toArray() as $u) {
+                if (!\in_array($u->getId(), $choisis, true)) {
+                    $categorie->removeRedacteurMatchs($u);
+                }
+            }
+            foreach ($choisis as $id) {
+                if (isset($parId[$id])) {
+                    $categorie->addRedacteurMatchs($parId[$id]);
+                }
+            }
+            $em->flush();
+            $this->responsables->reset();
+            $comptes = $this->responsables->de($categorie)['comptes'];
+            $this->addFlash('succes', $comptes
+                ? \sprintf('%s : seuls %s (et l\'administrateur) peuvent maintenant modifier les matchs et les convocations.', $categorie, $this->noms($categorie))
+                : \sprintf('%s : pas d\'éducateur responsable avec un compte, tout l\'encadrement du secteur peut modifier les matchs.', $categorie));
+
+            return $this->redirect($this->retourLocal($p->getString('retour'), $categorie));
+        }
+
+        return $this->render('rencontre/responsables.html.twig', [
+            'categorie' => $categorie,
+            'candidats' => $candidats,
+            'admin' => $admin,
+            'responsables' => $this->responsables->de($categorie),
+            'educateurs' => $this->responsables->educateursDe($categorie),
+            'retour' => $this->retourLocal($request->query->getString('retour'), $categorie),
+        ]);
+    }
+
+    /** Page où revenir : une adresse du site seulement (jamais un autre site), sinon la liste des matchs de l'équipe. */
+    private function retourLocal(string $retour, Categorie $categorie): string
+    {
+        return str_starts_with($retour, '/') && !str_starts_with($retour, '//') && !str_contains($retour, '\\')
+            ? $retour
+            : $this->generateUrl('app_rencontre_index', ['categorie' => $categorie->getId()]);
+    }
+
+    /** Trace de la dernière modification du rapport de match : qui et quand. */
+    private function tracer(Rencontre $rencontre): void
+    {
+        if (($moi = $this->getUser()) instanceof Utilisateur) {
+            $rencontre->marquerModifie($moi);
+        }
+    }
+
+    /** Peut choisir qui tient les matchs de l'équipe : l'administrateur, ou l'éducateur responsable lui-même. */
+    private function peutDesigner(Categorie $categorie): bool
+    {
+        $moi = $this->getUser();
+
+        return $this->isGranted('ROLE_ADMIN') || ($moi instanceof Utilisateur
+            && ($this->responsables->estResponsable($categorie, $moi) || $this->responsables->estResponsableSecteur($categorie, $moi)));
+    }
+
+    /** Prénoms et noms des responsables et des personnes désignées, pour le message de confirmation. */
+    private function noms(Categorie $categorie): string
+    {
+        $noms = array_map(fn (Utilisateur $u) => trim($u->getPrenom() . ' ' . $u->getNom()), [...$this->responsables->de($categorie)['comptes'], ...$categorie->getRedacteursMatchs()->toArray()]);
+
+        return 1 === \count($noms) ? $noms[0] : implode(', ', \array_slice($noms, 0, -1)) . ' et ' . end($noms);
+    }
+
+    /**
+     * Comptes de l'encadrement qui voient les matchs de l'équipe (droit du secteur, « Rapports de match »
+     * ou administrateur) : on choisit parmi eux le responsable et les personnes désignées.
+     *
+     * @return list<Utilisateur>
+     */
+    private function candidats(Categorie $categorie, UtilisateurRepository $utilisateurs): array
+    {
+        $role = Categorie::SECTEURS[$categorie->getSecteur()]['role'] ?? null;
+
+        return array_values(array_filter(
+            $utilisateurs->findBy([], ['prenom' => 'ASC', 'nom' => 'ASC']),
+            fn (Utilisateur $u) => \in_array('ROLE_ENCADREMENT', $u->getRoles(), true)
+                && [] !== array_intersect(array_filter([$role, 'ROLE_RAPPORT_MATCH', 'ROLE_ADMIN']), $u->getRoles())
+        ));
+    }
+
+    /**
+     * Équipes dont ce compte peut créer, importer et modifier les matchs : celles de ses secteurs (ou toutes avec
+     * « Rapports de match »), sauf celles qui ont un éducateur responsable dont il n'est pas, ni désigné.
+     *
+     * @return list<Categorie>
+     */
+    private function categoriesTenables(CategorieRepository $categories): array
+    {
+        return array_values(array_filter($this->categoriesVisibles($categories), fn (Categorie $c) => $this->isGranted(ActiviteVoter::MODIFIER_MATCH, $c)));
     }
 
     /** @return list<Categorie> */

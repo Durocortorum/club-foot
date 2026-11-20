@@ -16,6 +16,7 @@
                     {% if intervenant.fonction %} · {{ intervenant.fonction }}{% endif %}
                     {% if intervenant.ancien %} <span class="pastille">a quitté le club</span>{% endif %}
                 </p>
+                {% for s in secteurs_responsable %}<p><span class="pastille responsable">Responsable secteur {{ s }}</span></p>{% endfor %}
             </div>
         </div>
         {% if is_granted('ROLE_ADMIN') %}

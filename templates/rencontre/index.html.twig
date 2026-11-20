@@ -34,8 +34,16 @@
 
     {% include 'rencontre/_bilan.html.twig' %}
 
-    {% if peut_creer and filtres.categorie and filtres.saison and total > 0 %}
-        {% set equipe = (categories|filter(c => c.id == filtres.categorie)|first) %}
+    {# Équipe choisie : qui peut modifier ses rapports de match (l'administrateur ou l'éducateur responsable le change). #}
+    {% set equipe = filtres.categorie ? (categories|filter(c => c.id == filtres.categorie)|first) : null %}
+    {% if equipe and responsables_equipe %}
+        <p class="discret petit">
+            {% include 'rencontre/_responsables.html.twig' with {responsables: responsables_equipe} %}
+            {% if peut_designer_equipe %}<a href="{{ path('app_rencontre_responsables', {id: equipe.id, retour: app.request.requestUri}) }}">Choisir qui modifie les matchs</a>{% endif %}
+        </p>
+    {% endif %}
+
+    {% if peut_creer and equipe and filtres.saison and total > 0 and is_granted('MATCH_MODIFIER', equipe) %}
         <form method="post" action="{{ path('app_rencontre_effacer') }}" class="effacer-saison"
               data-confirmation="Effacer les {{ total }} match{{ total > 1 ? 's' }} {{ equipe.nom }} de la saison {{ filtres.saison }} ? Les matchs déjà complétés (feuille de match, buts, convocation) sont gardés."
               data-confirmation-bouton="Effacer">

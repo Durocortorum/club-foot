@@ -33,6 +33,8 @@
                 <div>
                     <strong>{{ i.prenom }} {{ i.nom }}</strong>
                     {% if i.ancien %}<span class="pastille">ancien</span>{% endif %}
+                    {# Responsable de secteur (page Catégories) : compte reconnu par l'e-mail de la fiche, ou le prénom et le nom. #}
+                    {% for s in responsables_secteur[i.id] ?? [] %}<div><span class="pastille responsable">Responsable secteur {{ s }}</span></div>{% endfor %}
                     <div class="discret">{{ [type == 'arbitres' ? i.niveau : null, i.equipes is defined ? i.equipes|map(c => c.nom)|join(', ') : null, i.fonction, i.fonction2]|filter(v => v)|join(' · ') ?: '—' }}</div>
                     <div class="discret petit">{{ i.telPortable1 ?? i.telFixe }}</div>
                 </div>

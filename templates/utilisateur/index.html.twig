@@ -34,7 +34,9 @@
                         <td class="nowrap">{{ u.email }}</td>
                         <td class="petit large">{{ u.admin ? 'Administration (tous les droits)' : (u.libellesRoles|join(', ') ?: '—') }}</td>
                         <td class="nowrap">
-                            {% if u.password %}
+                            {% if u.suspendu %}
+                                <span class="pastille alerte" title="{{ u.motifSuspension }}">suspendu{{ u.suspenduJusquAu ? ' jusqu\'au ' ~ u.suspenduJusquAu|date('d/m') }}</span>
+                            {% elseif u.password %}
                                 <span class="pastille succes">mot de passe défini</span>
                             {% else %}
                                 <span class="pastille alerte">pas de mot de passe</span>

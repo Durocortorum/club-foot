@@ -2,12 +2,20 @@
 
 namespace App\Controller;
 
+use App\Entity\Categorie;
+use App\Entity\ResponsableSecteur;
 use App\Entity\Utilisateur;
 use App\Form\ChangementMotDePasseType;
 use App\Form\UtilisateurType;
 use App\Repository\DemandeAccesMedicalRepository;
 use App\Repository\UtilisateurRepository;
 use App\Service\InvitationCompte;
+use App\Form\MaFicheType;
+use App\Security\ActiviteVoter;
+use App\Security\JoueurVoter;
+use App\Service\FicheDuCompte;
+use App\Service\MesEquipes;
+use App\Service\Photos;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -30,6 +38,8 @@ class UtilisateurController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly UserPasswordHasherInterface $hasher,
+        private readonly JoueurVoter $joueurVoter,
+        private readonly ActiviteVoter $activiteVoter,
     ) {
     }
 
@@ -232,6 +242,45 @@ class UtilisateurController extends AbstractController
         return $this->formulaire($request, $utilisateur, 'Compte de ' . $utilisateur);
     }
 
+    /**
+     * Suspend un compte : plus de connexion, d'e-mails ni d'alertes, plus de responsabilité sur les équipes ;
+     * tout est gardé. Date de fin facultative (réactivé tout seul le lendemain), motif facultatif.
+     */
+    #[Route('/utilisateurs/{id}/suspendre', name: 'app_utilisateur_suspendre', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function suspendre(Request $request, Utilisateur $utilisateur): Response
+    {
+        $p = $request->getPayload();
+        if ($utilisateur === $this->getUser()) {
+            $this->addFlash('erreur', 'Vous ne pouvez pas suspendre votre propre compte.');
+        } elseif ($this->isCsrfTokenValid('suspendre-utilisateur' . $utilisateur->getId(), $p->getString('_token'))) {
+            $fin = \DateTimeImmutable::createFromFormat('!Y-m-d', $p->getString('jusqu_au')) ?: null;
+            if ($fin && $fin < new \DateTimeImmutable('today')) {
+                $this->addFlash('erreur', 'La date de fin est déjà passée : choisissez aujourd\'hui ou plus tard, ou laissez vide.');
+            } else {
+                $utilisateur->suspendre($fin, $p->getString('motif') ?: null);
+                $this->em->flush();
+                $this->addFlash('succes', \sprintf('Compte de %s suspendu%s : il ne peut plus se connecter et ne reçoit plus les e-mails du site.',
+                    $utilisateur, $fin ? ' jusqu\'au ' . $fin->format('d/m/Y') . ' inclus' : ' jusqu\'à sa réactivation'));
+            }
+        }
+
+        return $this->redirectToRoute('app_utilisateur_modifier', ['id' => $utilisateur->getId(), '_fragment' => 'suspension']);
+    }
+
+    #[Route('/utilisateurs/{id}/reactiver', name: 'app_utilisateur_reactiver', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function reactiver(Request $request, Utilisateur $utilisateur): Response
+    {
+        if ($this->isCsrfTokenValid('reactiver-utilisateur' . $utilisateur->getId(), $request->getPayload()->getString('_token'))) {
+            $utilisateur->reactiver();
+            $this->em->flush();
+            $this->addFlash('succes', \sprintf('Compte de %s réactivé : tout est comme avant la suspension.', $utilisateur));
+        }
+
+        return $this->redirectToRoute('app_utilisateur_modifier', ['id' => $utilisateur->getId(), '_fragment' => 'suspension']);
+    }
+
     #[Route('/utilisateurs/{id}/supprimer', name: 'app_utilisateur_supprimer', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')]
     public function supprimer(Request $request, Utilisateur $utilisateur): Response
@@ -248,7 +297,7 @@ class UtilisateurController extends AbstractController
     }
 
     #[Route('/mon-compte', name: 'app_mon_compte', methods: ['GET', 'POST'])]
-    public function monCompte(Request $request): Response
+    public function monCompte(Request $request, FicheDuCompte $fiches, MesEquipes $mesEquipes): Response
     {
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
@@ -263,7 +312,54 @@ class UtilisateurController extends AbstractController
             return $this->redirectToRoute('app_mon_compte');
         }
 
-        return $this->render('utilisateur/mon_compte.html.twig', ['form' => $form, 'moi' => $moi]);
+        // Encadrement : secteurs dont il est responsable (page Catégories), sa fiche Encadrement, ses équipes.
+        $secteurs = [];
+        if (!$moi->isFamille()) {
+            foreach ($this->em->getRepository(ResponsableSecteur::class)->findBy(['utilisateur' => $moi]) as $r) {
+                $secteurs[] = Categorie::SECTEURS[$r->getSecteur()]['libelle'] ?? $r->getSecteur();
+            }
+        }
+        $encadrement = !$moi->isFamille() && \in_array('ROLE_ENCADREMENT', $moi->getRoles(), true);
+
+        return $this->render('utilisateur/mon_compte.html.twig', [
+            'form' => $form,
+            'moi' => $moi,
+            'secteurs_responsable' => $secteurs,
+            'encadrement' => $encadrement,
+            'fiches' => $encadrement ? $fiches->fiches($moi) : [],
+            'mes_equipes' => $encadrement ? $mesEquipes->de($moi) : [],
+            // Pages d'une équipe ouvertes à ce compte : présences et planning (droit du secteur), matchs.
+            'secteurs_vus' => $this->joueurVoter->secteursModifiables(),
+            'secteurs_matchs' => $this->activiteVoter->secteursMatchs(),
+        ]);
+    }
+
+    /**
+     * Mise à jour par chacun de sa propre fiche Encadrement : photo et coordonnées seulement
+     * (équipes, fonction, diplôme… restent à l'administrateur).
+     */
+    #[Route('/mon-compte/fiche/{type}', name: 'app_ma_fiche', requirements: ['type' => 'educateurs|dirigeants|administratifs|benevoles|arbitres'], methods: ['GET', 'POST'])]
+    public function maFiche(Request $request, string $type, FicheDuCompte $fiches, Photos $photos): Response
+    {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        $fiche = $moi->isFamille() ? null : $fiches->fiche($moi, $type);
+        if (!$fiche) {
+            throw $this->createAccessDeniedException();
+        }
+        $form = $this->createForm(MaFicheType::class, $fiche, ['data_class' => $fiche::class]);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            if ($fichier = $form->get('photo')->getData()) {
+                $fiche->setPhoto($photos->enregistrer($fichier, rtrim($type, 's'), $fiche->getPhoto()));
+            }
+            $this->em->flush();
+            $this->addFlash('succes', 'Vos coordonnées sont enregistrées.');
+
+            return $this->redirectToRoute('app_mon_compte');
+        }
+
+        return $this->render('utilisateur/ma_fiche.html.twig', ['form' => $form, 'fiche' => $fiche]);
     }
 
     private function formulaire(Request $request, Utilisateur $utilisateur, string $titre): Response

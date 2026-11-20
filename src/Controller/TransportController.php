@@ -337,7 +337,7 @@ class TransportController extends AbstractController
             $this->verifierConducteur($deplacement);
 
             // Déplacement d'un match : retour à sa convocation, où il est affiché aux familles.
-            if ($deplacement->getRencontre() && $this->isGranted(ActiviteVoter::GERER, $deplacement->getRencontre())) {
+            if ($deplacement->getRencontre() && $this->isGranted(ActiviteVoter::MODIFIER_MATCH, $deplacement->getRencontre())) {
                 return $this->redirectToRoute('app_convocation', ['id' => $deplacement->getRencontre()->getId(), '_fragment' => 'deplacement']);
             }
 

@@ -51,4 +51,39 @@
             <button type="submit" class="bouton principal">Enregistrer</button>
         </div>
     {{ form_end(form) }}
+
+    {# Suspension du compte : formulaire à part (on ne met pas un formulaire dans un autre). #}
+    {% if utilisateur.id and utilisateur != app.user %}
+        <section class="carte bloc" id="suspension">
+            <h2>Suspendre le compte</h2>
+            {% if utilisateur.suspendu %}
+                <p class="flash flash-erreur">
+                    Compte suspendu depuis le {{ utilisateur.suspenduLe|date('d/m/Y', 'Europe/Paris') }}{{ utilisateur.suspenduJusquAu ? ', jusqu\'au ' ~ utilisateur.suspenduJusquAu|date('d/m/Y') ~ ' inclus (réactivé tout seul le lendemain)' : ', jusqu\'à sa réactivation' }}.
+                    {% if utilisateur.motifSuspension %}<br>Motif : {{ utilisateur.motifSuspension }}{% endif %}
+                </p>
+                <form method="post" action="{{ path('app_utilisateur_reactiver', {id: utilisateur.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('reactiver-utilisateur' ~ utilisateur.id) }}">
+                    <button class="bouton principal">Réactiver le compte</button>
+                </form>
+            {% else %}
+                <p class="discret petit">La personne ne peut plus se connecter (elle est déconnectée si elle l'était), ne reçoit plus les e-mails ni les alertes du site, et ne tient plus ses équipes (matchs rouverts au secteur). Son compte, ses droits et son historique sont gardés : « Réactiver » rend tout comme avant.</p>
+                <form method="post" action="{{ path('app_utilisateur_suspendre', {id: utilisateur.id}) }}" class="formulaire"
+                      data-confirmation="Suspendre le compte de {{ utilisateur }} ?" data-confirmation-bouton="Suspendre">
+                    <input type="hidden" name="_token" value="{{ csrf_token('suspendre-utilisateur' ~ utilisateur.id) }}">
+                    <div class="champs">
+                        <div class="champ">
+                            <label for="jusqu_au">Jusqu'au (inclus)</label>
+                            <input type="date" id="jusqu_au" name="jusqu_au" min="{{ 'now'|date('Y-m-d', 'Europe/Paris') }}">
+                            <p class="discret petit">Vide : jusqu'à réactivation à la main.</p>
+                        </div>
+                        <div class="champ">
+                            <label for="motif">Motif (facultatif)</label>
+                            <input type="text" id="motif" name="motif" maxlength="255" placeholder="ex. : sanction, arrêt maladie">
+                        </div>
+                    </div>
+                    <div class="actions-ligne"><button class="bouton danger">Suspendre le compte</button></div>
+                </form>
+            {% endif %}
+        </section>
+    {% endif %}
 {% endblock %}

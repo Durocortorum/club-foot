@@ -51,7 +51,7 @@
 
 <h1>Cahier des charges</h1>
 <p class="sous-titre">Application de gestion complète d'un club – football d'abord, multisport ensuite</p>
-<p class="meta">Michel Descotes · version 2 du 9 novembre 2026, mise à jour le 14 novembre 2026 (remplace la version 1 du 5 novembre 2026)</p>
+<p class="meta">Michel Descotes · version 2 du 9 novembre 2026, mise à jour le 20 novembre 2026 (remplace la version 1 du 5 novembre 2026)</p>
 
 <h2>1. Le projet</h2>
 <p>Une application en ligne qui gère tout le club, comme un club professionnel : membres, équipes, matchs, convocations, statistiques, infirmerie, scolarité, recrutement, sponsors, finances, transport… Elle prolonge une application conçue sous Access pour un grand club de football, très appréciée de ses utilisateurs. La version web reprend ce savoir-faire et fonctionne sur ordinateur, tablette et téléphone, pour plusieurs clubs à la fois.</p>
@@ -137,7 +137,7 @@
     <tr><td>Scolaire</td><td>Bulletins, niveau, sanctions scolaires</td><td class="etat"><span class="f">Fait</span></td></tr>
     <tr><td>Médical</td><td>Médecin, hôpital, kiné, podologue ; comptes médicaux et accès confidentiel</td><td class="etat"><span class="f">Fait</span></td></tr>
     <tr><td>Archives</td><td>Anciens joueurs, dirigeants, bénévoles, éducateurs, arbitres, administratifs, médical, sponsors</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
-    <tr><td>Admin</td><td>Tableau des droits d'accès (un clic par case), couleurs et logo du club, e-mails à l'image du club</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Admin</td><td>Tableau des droits d'accès (un clic par case), couleurs et logo du club, e-mails à l'image du club ; responsable de chaque secteur (voit tout le secteur, tient les matchs et convocations de ses équipes) ; suspension d'un compte, avec date de fin et motif facultatifs (plus de connexion ni d'e-mails, tout est gardé) ; « Mon compte » : sa fiche (coordonnées et photo mises à jour par la personne) et ses équipes avec le prochain match</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Contact</td><td>Numéros utiles : coordonnées du club ; président, vice-président et tout le bureau repris de l'organigramme avec les téléphones des fiches ; numéros saisis par rubrique (stade, district, mairie, comptable, transport…) ; numéros d'urgence (15, 17, 18, 112, 114) affichés d'office en tête, avec ceux du club (hôpital, médecin de garde…) ; appel d'un clic sur téléphone ; imprimable.</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Organigramme</td><td>Organigramme du club</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Famille</td><td>Convocation (lieu, horaire), réponses, matchs et statistiques dans l'espace famille ; compte rendu du match envoyé aux familles depuis la fiche du match (score, mi-temps, buteurs et passeurs repris, mot de l'éducateur, sans le rapport interne), lu dans l'espace famille et reçu par e-mail</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
@@ -163,21 +163,21 @@
     <tr><td>Éducateurs</td><td>Nom, âge, catégories et équipes, adresse, diplômes avec date, permis de conduire (relié au contrôle des conducteurs du module Transport), équipes cochées parmi les catégories du club.</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Dirigeants</td><td>Nom, âge, adresse, permis de conduire, diplômes avec date, équipes (comme les éducateurs)</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Entraînement</td><td>Fiche, créer une séance, terrain, date, heure, catégorie ; planning, appel, bibliothèque d'exercices animés</td><td class="etat"><span class="f">Fait</span></td></tr>
-    <tr><td>Rapport de match</td><td>Météo, terrain, score mi-temps et final, titulaires, entrées, sorties (carton blanc compris), lieu, horaire, niveau, buteurs et façon de marquer, passeurs, cartons, appréciation, note sur 10 ; chaque but placé sur un terrain (départ du ballon, entrée dans le but), schémas des buts marqués et encaissés sur la page du match</td><td class="etat"><span class="f">Fait</span></td></tr>
+    <tr><td>Rapport de match</td><td>Météo, terrain, score mi-temps et final, titulaires, entrées, sorties (carton blanc compris), lieu, horaire, niveau, buteurs et façon de marquer, passeurs, cartons, appréciation, note sur 10 ; chaque but placé sur un terrain (départ du ballon, entrée dans le but), schémas des buts marqués et encaissés sur la page du match ; modifiable seulement par l'éducateur de l'équipe, les personnes qu'il désigne, le responsable du secteur et l'administrateur (les autres le voient), avec la trace de la dernière modification (qui, quand)</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Statistiques</td><td>Titulaire, entré, sorti, buts, passes, pas entré, non convoqué ou repos, buts marqués et encaissés par quart d'heure, arrêts de jeu, cartons, moyenne des notes</td><td class="etat"><span class="f">Fait</span></td></tr>
     <tr><td>Composition</td><td>Tactique, placement des joueurs sur le terrain (schéma déplaçable)</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Infirmerie</td><td>Liste et nombre de blessés, diagnostic, lieu, contexte, durée, reprise sportive (entraînement), reprise match, statistiques.</td><td class="etat"><span class="f">Fait</span></td></tr>
     <tr><td>Discipline</td><td>Foot, hors foot, amende : montant, date de paiement, reste à payer, recettes des finances ; droit « Discipline » (voir / modifier) donné aussi aux éducateurs de secteur ; amendes affichées dans l'espace du joueur.</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Tests</td><td>VMA, etc.</td><td class="etat"><span class="f">Fait</span></td></tr>
     <tr><td>Listing</td><td>Joueurs (tous ou par catégorie), éducateurs, dirigeants, administratifs, bénévoles, arbitres, tout l'encadrement ou tout le club, et les extérieurs (contacts médicaux de l'infirmerie, partenaires) : nom, prénom, catégorie ou fonction, âge, adresse, téléphones, n° de licence. Imprimable sur A4, et export Excel (avec l'e-mail).</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
-    <tr><td>Convocation</td><td>Date, lieu, match, catégorie, message aux parents si mineur, réponse présent/absent ; compte rendu du match aux familles. Déplacement (car, conducteurs, heure et lieu de départ) affiché dans la convocation ; composition dans la convocation : à venir.</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
+    <tr><td>Convocation</td><td>Date, lieu, match, catégorie, message aux parents si mineur, réponse présent/absent ; compte rendu du match aux familles. Déplacement (car, conducteurs, heure et lieu de départ) affiché dans la convocation ; composition dans la convocation : à venir. Réservée, comme le rapport de match, à l'éducateur de l'équipe et aux personnes qu'il désigne.</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Messagerie</td><td>Tous, par catégorie, par match</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Championnat</td><td>Calendrier, date, lieu, classement, matchs, forme sur les 5 derniers</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
     <tr><td>Tâches</td><td>Personne (encadrement ou joueur), catégorie, objet, échéance, suivi, tâche privée</td><td class="etat"><span class="f">Fait</span><span class="nouveau">NOUVEAU</span></td></tr>
   </tbody>
 </table>
 
-<h2 class="saut">6. Fait depuis la version 1 (5 – 14 novembre 2026)</h2>
+<h2 class="saut">6. Fait depuis la version 1 (5 – 20 novembre 2026)</h2>
 <div class="faits">
   <div>
     <h3>Joueurs et familles</h3>
@@ -274,6 +274,15 @@
       <li>Option « paiement en ligne » : compte HelloAsso du club relié en quelques minutes (guide, vérification immédiate) ; l'argent va directement au club, gratuit pour lui.</li>
       <li>Cotisations et licences payées depuis l'espace famille, en une ou plusieurs fois ; stages payants réglés en ligne ; tout est enregistré dans les Finances.</li>
       <li>Boutique du club : articles avec photo, tailles et stock, panier, commande réglée en ligne ou au club, famille prévenue quand c'est prêt.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Responsabilités et comptes (20 novembre)</h3>
+    <ul>
+      <li>Rapports de match et convocations réservés à l'éducateur de l'équipe (reconnu d'après sa fiche Encadrement) et aux personnes qu'il désigne ; les autres membres du secteur les voient sans les modifier ; « dernière modification le … par … » sur chaque match.</li>
+      <li>Responsable de secteur choisi dans les Catégories : il voit tout son secteur, tient les matchs de toutes ses équipes et choisit qui les modifie ; pastille bien visible sur les fiches, listes et listings.</li>
+      <li>« Mon compte » : sa fiche (coordonnées et photo mises à jour par la personne), ses équipes avec le prochain match et les raccourcis (convocation, feuille de match, présences, entraînements).</li>
+      <li>Suspension d'un compte par l'administrateur, jusqu'à une date ou jusqu'à réactivation : plus de connexion, d'e-mails ni d'alertes, équipes rouvertes au secteur ; « Réactiver » rend tout comme avant.</li>
     </ul>
   </div>
 </div>

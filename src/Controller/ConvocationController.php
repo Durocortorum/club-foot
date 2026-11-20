@@ -32,7 +32,9 @@ use Symfony\Component\Validator\Constraints\Length;
  * suivi des réponses (et saisie d'une réponse reçue autrement : téléphone, au bord du terrain...).
  */
 #[Route('/matchs/{id}/convocation', requirements: ['id' => '\d+'])]
-#[IsGranted(ActiviteVoter::GERER, 'rencontre')]
+// Comme le rapport de match : réservée à l'éducateur responsable de l'équipe et aux personnes qu'il a désignées
+// (plus l'administrateur) ; sans responsable, tout l'encadrement du secteur.
+#[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
 class ConvocationController extends AbstractController
 {
     public function __construct(
