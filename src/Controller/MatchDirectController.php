@@ -38,33 +38,67 @@ class MatchDirectController extends AbstractController
     #[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
     public function direct(Rencontre $rencontre): Response
     {
-        $actions = $this->actions->duMatch($rencontre);
-
         return $this->render('match_direct/direct.html.twig', [
             'rencontre' => $rencontre,
-            'config' => [
-                'match' => $rencontre->getId(),
-                'joueurs' => $this->direct->joueurs($rencontre, $actions),
-                'actions' => array_map(fn (ActionMatch $a) => $a->enTableau(), $actions),
-                'types' => array_map(fn (array $a) => $a[0], ActionMatch::ACTIONS),
-                'adverses' => ActionMatch::ADVERSES,
-                'duree' => $this->direct->duree($rencontre),
-                'url' => $this->generateUrl('app_match_direct_enregistrer', ['id' => $rencontre->getId()]),
-                'jeton' => $this->container->get('security.csrf.token_manager')->getToken('direct' . $rencontre->getId())->getValue(),
-                'nous' => $rencontre->isADomicile() ? $rencontre->getDomicile() : $rencontre->getExterieur(),
-                'adversaire' => $rencontre->getAdversaire(),
-                'groupes' => ActionMatch::GROUPES,
-                'moi' => $this->moi()->getId(),
-                'chrono' => $rencontre->getChronoDirect(),
-                'titulaires' => $rencontre->titulairesPourLeDirect(),
-                'maxTitulaires' => $rencontre->joueursSurLeTerrain(),
-                'maintenant' => self::maintenant(),
-            ],
+            'config' => $this->config($rencontre),
             'meteos' => Rencontre::METEOS,
             'terrains' => Rencontre::TERRAINS,
             'vents' => Rencontre::VENTS,
             'temperatures' => array_map('strval', range(-15, 40)),
         ]);
+    }
+
+    /**
+     * « Match Live » : version simple du direct, pour le téléphone (gros score, boutons But, Carton, Remplacement,
+     * Mi-temps, Fin ; événements, statistiques, composition) et création des visuels à partager sur les réseaux
+     * sociaux. Mêmes données que la tablette détaillée (même chrono, mêmes actions, même enregistrement).
+     */
+    #[Route('/matchs/{id}/live', name: 'app_match_live', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
+    public function live(Rencontre $rencontre): Response
+    {
+        $club = $rencontre->getClub();
+
+        return $this->render('match_direct/live.html.twig', [
+            'rencontre' => $rencontre,
+            'config' => $this->config($rencontre) + [
+                'equipe' => (string) $rencontre->getCategorie(),
+                'competition' => $rencontre->isPlateau() ? 'Plateau' : $rencontre->getCompetition(),
+                'date' => $rencontre->getDate()?->format('Y-m-d'),
+                'heure' => $rencontre->getHeure(),
+                'lieu' => $rencontre->getLieu(),
+                'domicile' => $rencontre->isADomicile(),
+                'logo' => $club?->getLogo() ? $this->generateUrl('app_club_logo', ['version' => $club->getVersion()]) : null,
+                // Couleurs du club, pour les visuels à partager.
+                'couleur' => $club?->getCouleur(),
+                'couleurFoncee' => $club?->getCouleurFoncee(),
+            ],
+        ]);
+    }
+
+    /** Ce dont la page du direct a besoin (tablette détaillée ou Match Live). */
+    private function config(Rencontre $rencontre): array
+    {
+        $actions = $this->actions->duMatch($rencontre);
+
+        return [
+            'match' => $rencontre->getId(),
+            'joueurs' => $this->direct->joueurs($rencontre, $actions),
+            'actions' => array_map(fn (ActionMatch $a) => $a->enTableau(), $actions),
+            'types' => array_map(fn (array $a) => $a[0], ActionMatch::ACTIONS),
+            'adverses' => ActionMatch::ADVERSES,
+            'duree' => $this->direct->duree($rencontre),
+            'url' => $this->generateUrl('app_match_direct_enregistrer', ['id' => $rencontre->getId()]),
+            'jeton' => $this->container->get('security.csrf.token_manager')->getToken('direct' . $rencontre->getId())->getValue(),
+            'nous' => $rencontre->isADomicile() ? $rencontre->getDomicile() : $rencontre->getExterieur(),
+            'adversaire' => $rencontre->getAdversaire(),
+            'groupes' => ActionMatch::GROUPES,
+            'moi' => $this->moi()->getId(),
+            'chrono' => $rencontre->getChronoDirect(),
+            'titulaires' => $rencontre->titulairesPourLeDirect(),
+            'maxTitulaires' => $rencontre->joueursSurLeTerrain(),
+            'maintenant' => self::maintenant(),
+        ];
     }
 
     /**

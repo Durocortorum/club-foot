@@ -1,0 +1,108 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Match Live · {{ rencontre.domicile }} – {{ rencontre.exterieur }}{% endblock %}
+
+{% block body %}
+    {#
+       Match Live (live_controller.js) : version simple du direct, pour le téléphone. Mêmes données que la tablette
+       détaillée (« ⏱ En direct ») : même chrono, mêmes buts, cartons et changements, enregistrés au même endroit.
+       Les équipes sont dans l'ordre du match : celle qui reçoit à gauche.
+    #}
+    {% set logo = config.logo ?: asset('images/logo.svg') %}
+    <div class="live" data-controller="live" data-live-config-value="{{ config|json_encode }}" data-onglet="live">
+        <header class="live-entete">
+            <div class="live-barre">
+                <a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}" class="live-retour" aria-label="Retour au match">‹</a>
+                <h1>Match Live <span class="live-onde" aria-hidden="true"></span></h1>
+                <a href="{{ path('app_match_direct', {id: rencontre.id}) }}" class="live-detail" title="Saisie détaillée (tablette) : passes, duels, zones du terrain…" aria-label="Saisie détaillée">⚙</a>
+            </div>
+            <div class="live-tableau">
+                {% for cote in ['gauche', 'droite'] %}
+                    {% set nous = (cote == 'gauche') == config.domicile %}
+                    <div class="live-equipe">
+                        {% if nous %}
+                            <img class="live-blason" src="{{ logo }}" alt="">
+                        {% else %}
+                            <span class="live-blason adverse" aria-hidden="true">{{ config.adversaire|default('?')|slice(0, 1)|upper }}</span>
+                        {% endif %}
+                        <span class="live-nom">{{ nous ? config.nous : config.adversaire }}</span>
+                    </div>
+                    {% if cote == 'gauche' %}
+                        <div class="live-score-bloc">
+                            <span class="live-score" data-live-target="score">0 – 0</span>
+                            <span class="live-minute" data-live-target="minute">–</span>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="live-chrono">
+                <span data-live-target="periode">Avant le match</span>
+                <span class="live-temps" data-live-target="chrono">00:00</span>
+                <span class="live-reglages">
+                    <button type="button" class="bouton petit" data-action="live#moins" title="Retirer une minute" aria-label="Retirer une minute">−1</button>
+                    <button type="button" class="bouton petit" data-live-target="pause" data-action="live#pause" title="Arrêter ou relancer le chrono">⏸</button>
+                    <button type="button" class="bouton petit" data-action="live#plus" title="Ajouter une minute" aria-label="Ajouter une minute">+1</button>
+                </span>
+            </div>
+            <p class="live-etat" data-live-target="etat" aria-live="polite"></p>
+        </header>
+
+        <div class="live-boutons">
+            <button type="button" class="live-bouton but" data-action="live#but"><span class="icone" aria-hidden="true">⚽</span>But</button>
+            <button type="button" class="live-bouton" data-action="live#carton"><span class="icone carton-icone" aria-hidden="true"></span>Carton</button>
+            <button type="button" class="live-bouton" data-action="live#remplacement"><span class="icone" aria-hidden="true">⇄</span>Rempl.</button>
+            <button type="button" class="live-bouton" data-live-target="boutonPeriode" data-action="live#periode"><span class="icone" aria-hidden="true">▶</span>Coup d'envoi</button>
+            <button type="button" class="live-bouton" data-live-target="boutonFin" data-action="live#fin"><span class="icone" aria-hidden="true">🏁</span>Fin</button>
+        </div>
+
+        <section class="live-panneau" data-panneau="live">
+            <h2>Événements du match</h2>
+            <ol class="live-evenements" data-live-target="evenements"></ol>
+        </section>
+
+        <section class="live-panneau" data-panneau="stats">
+            <h2>Statistiques</h2>
+            <div class="live-stats" data-live-target="stats"></div>
+            <div class="live-ajouts">
+                {% for camp, nom in {nous: config.nous, eux: config.adversaire} %}
+                    <div>
+                        <span class="discret petit">{{ nom }}</span>
+                        <button type="button" class="bouton petit" data-action="live#tir" data-camp="{{ camp }}">+ Tir</button>
+                        <button type="button" class="bouton petit" data-action="live#corner" data-camp="{{ camp }}">+ Corner</button>
+                    </div>
+                {% endfor %}
+            </div>
+            <p class="discret petit">Les passes, duels et contrôles se notent sur la <a href="{{ path('app_match_direct', {id: rencontre.id}) }}">saisie détaillée</a> ; le bilan complet est dans les <a href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">statistiques du direct</a>.</p>
+        </section>
+
+        <section class="live-panneau" data-panneau="compo">
+            <h2>Composition <button type="button" class="lien-bouton petit" data-live-target="boutonTitulaires" data-action="live#editerTitulaires">Choisir les titulaires</button></h2>
+            <div data-live-target="compo"></div>
+        </section>
+
+        <section class="live-panneau" data-panneau="visuels">
+            <h2>Visuels pour les réseaux sociaux</h2>
+            <div class="live-choix-visuel" data-live-target="choixVisuel" role="radiogroup" aria-label="Visuel"></div>
+            <div class="live-format">
+                <label class="choix-carte"><input type="radio" name="format-visuel" value="post" checked data-action="live#dessinerVisuel"> Publication</label>
+                <label class="choix-carte"><input type="radio" name="format-visuel" value="story" data-action="live#dessinerVisuel"> Story</label>
+            </div>
+            <label class="live-nom-complet"><input type="checkbox" data-live-target="nomComplet" data-action="live#dessinerVisuel"> <span>Nom complet des joueurs <small class="discret">(sinon prénom et initiale)</small></span></label>
+            <canvas class="live-apercu" data-live-target="canevas" width="1080" height="1350" role="img" aria-label="Aperçu du visuel"></canvas>
+            <div class="live-partage">
+                <button type="button" class="bouton principal" data-live-target="boutonPartager" data-action="live#partager" hidden>Partager (Instagram, Facebook…)</button>
+                <button type="button" class="bouton" data-action="live#telecharger">Télécharger l'image</button>
+            </div>
+            <p class="discret petit">Sur téléphone, « Partager » ouvre Instagram, Facebook ou WhatsApp avec l'image. Pensez au droit à l'image : aucune photo de joueur n'est utilisée.</p>
+        </section>
+
+        <nav class="live-onglets" aria-label="Sections du Match Live">
+            <button type="button" data-onglet="live" data-action="live#onglet" class="actif"><span aria-hidden="true">((•))</span>Live</button>
+            <button type="button" data-onglet="stats" data-action="live#onglet"><span aria-hidden="true">▮▮</span>Stats</button>
+            <button type="button" data-onglet="compo" data-action="live#onglet"><span aria-hidden="true">👥</span>Compo</button>
+            <button type="button" data-onglet="visuels" data-action="live#onglet"><span aria-hidden="true">🖼</span>Visuels</button>
+        </nav>
+
+        <dialog class="dialogue live-dialogue" data-live-target="dialogue"></dialog>
+    </div>
+{% endblock %}

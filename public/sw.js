@@ -2,12 +2,12 @@
  * Service worker de l'application : affiche les notifications envoyées par le club (convocations, messages,
  * entraînements annulés…), même quand l'application est fermée, et ouvre la bonne page quand on les touche.
  *
- * Une seule exception à « rien en cache » : la saisie du match en direct (/matchs/<n>/direct) et ses fichiers
+ * Une seule exception à « rien en cache » : la saisie du match en direct (/matchs/<n>/direct, et sa version simple /matchs/<n>/live) et ses fichiers
  * (/assets/…), pour l'ouvrir au stade sans réseau. Elle est toujours lue sur le réseau quand il y en a ; la copie
  * gardée ne sert qu'en cas d'échec. Le cache est vidé à la déconnexion (app.js).
  */
 const CACHE_DIRECT = 'club-direct-v1';
-const PAGE_DIRECT = /^\/matchs\/\d+\/direct$/;
+const PAGE_DIRECT = /^\/matchs\/\d+\/(direct|live)$/;
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));

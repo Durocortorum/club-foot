@@ -7,7 +7,7 @@
     <div class="direct" data-controller="direct" data-direct-config-value="{{ config|json_encode }}" data-etape="joueur">
         <div class="direct-entete">
             <div class="direct-match">
-                <a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}" class="discret petit">← Match</a>
+                <span class="petit"><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}" class="discret">← Match</a> · <a href="{{ path('app_match_live', {id: rencontre.id}) }}" class="discret" title="Version simple pour le téléphone, et visuels à partager">📱 Match Live</a></span>
                 <strong>{{ config.nous }} <span class="direct-score" data-direct-target="score">0 – 0</span> {{ config.adversaire }}</strong>
                 <span class="discret petit">
                     {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }}{% if rencontre.heure %} à {{ rencontre.heure }}{% endif %}{% if rencontre.lieu %} · {{ rencontre.lieu }}{% endif %}{% if rencontre.competition %} · {{ rencontre.competition }}{% endif %}

@@ -1,0 +1,1009 @@
+import { Controller } from '@hotwired/stimulus';
+import { confirmer } from '../confirmation.js';
+
+/*
+ * Match Live : version simple du direct, pour le téléphone. Gros score et chrono, cinq boutons (But, Carton,
+ * Remplacement, Mi-temps, Fin), événements du match, statistiques, composition et visuels à partager.
+ *
+ * Mêmes données que la saisie détaillée (direct_controller.js) : même sauvegarde sur l'appareil (clé « direct-<match> »),
+ * même adresse d'enregistrement, même chrono commun. Les deux pages peuvent servir en même temps sur deux appareils.
+ * Ce qui est noté ici n'a pas de zone du terrain : marqué « hors carte » (compté, pas dessiné sur la carte du bilan).
+ *
+ * Un but noté ici ajoute aussi la frappe (ou la tête) cadrée qui va avec, comme sur la tablette, pour que les tirs
+ * cadrés le comptent ; elle porte un identifiant dérivé de celui du but, et part avec lui s'il est supprimé.
+ */
+const EVENEMENTS = ['B', 'BA', 'CJ', 'CR', 'JA', 'RA', 'RP', 'EX'];
+const HORS_CARTE = { horsCarte: true };
+
+export default class extends Controller {
+    static values = { config: Object };
+    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'evenements', 'stats',
+        'compo', 'boutonTitulaires', 'choixVisuel', 'nomComplet', 'canevas', 'boutonPartager', 'dialogue'];
+
+    connect() {
+        this.cfg = this.configValue;
+        this.cle = `direct-${this.cfg.match}`;
+        this.decalage = this.cfg.maintenant ? this.cfg.maintenant - Date.now() : 0;
+        const sauve = this.lire();
+        const vide = { periode: 1, enCours: false, debut: null, cumul: 0, fini: false, sens: 1, maj: 0 };
+        this.chrono = { ...vide, ...(sauve.chrono ?? {}) };
+        if (this.cfg.chrono && this.cfg.chrono.maj > (this.chrono.maj ?? 0)) this.chrono = { ...vide, ...this.cfg.chrono };
+        this.chronoAEnvoyer = !!sauve.chronoAEnvoyer;
+        this.enAttente = sauve.enAttente ?? {};
+        this.supprimes = sauve.supprimes ?? [];
+        this.titulairesAEnvoyer = sauve.titulairesAEnvoyer ?? null;
+        if (this.titulairesAEnvoyer) this.cfg.titulaires = this.titulairesAEnvoyer;
+        this.fusionner(this.cfg.actions);
+        // Logo du club pour les visuels (même adresse que sur la page : pas de souci de dessin sur le canevas).
+        this.logo = new Image();
+        this.logo.onload = () => this.dessinerVisuel();
+        this.logo.src = this.element.querySelector('img.live-blason')?.src ?? '';
+        this.surReseau = () => this.envoyer();
+        window.addEventListener('online', this.surReseau);
+        this.minuteur = setInterval(() => this.tic(), 1000);
+        this.relance = setInterval(() => this.envoyer(), 8000);
+        this.boutonPartagerTarget.hidden = !this.partagePossible();
+        this.afficher();
+        this.tic();
+        this.envoyer();
+        this.preparerHorsLigne();
+    }
+
+    disconnect() {
+        clearInterval(this.minuteur);
+        clearInterval(this.relance);
+        window.removeEventListener('online', this.surReseau);
+        this.verrou?.release?.();
+    }
+
+    // ———————— Sauvegarde sur l'appareil (partagée avec la saisie détaillée) ————————
+
+    lire() {
+        try {
+            return JSON.parse(localStorage.getItem(this.cle) || '{}');
+        } catch (e) {
+            return {};
+        }
+    }
+
+    /** Garde ce que gère cette page, sans effacer le reste (météo, numéros… notés sur la saisie détaillée). */
+    garder() {
+        try {
+            localStorage.setItem(this.cle, JSON.stringify({ ...this.lire(), chrono: this.chrono, chronoAEnvoyer: this.chronoAEnvoyer, enAttente: this.enAttente, supprimes: this.supprimes, titulairesAEnvoyer: this.titulairesAEnvoyer }));
+        } catch (e) { /* stockage plein ou interdit : l'envoi au serveur reste tenté */ }
+    }
+
+    fusionner(duServeur) {
+        this.actions = new Map(duServeur.map((a) => [a.uuid, a]));
+        Object.values(this.enAttente).forEach((a) => this.actions.set(a.uuid, { ...a, auteur: this.cfg.moi }));
+        this.supprimes.forEach((u) => this.actions.delete(u));
+    }
+
+    async preparerHorsLigne() {
+        if (!('serviceWorker' in navigator) || !('caches' in window)) return;
+        try {
+            await navigator.serviceWorker.register('/sw.js');
+            const pret = await navigator.serviceWorker.ready;
+            const fichiers = performance.getEntriesByType('resource').map((e) => e.name).filter((u) => new URL(u).pathname.startsWith('/assets/'));
+            pret.active?.postMessage({ type: 'garder', urls: [window.location.pathname, ...fichiers] });
+        } catch (e) { /* pas de service worker : la page demande le réseau */ }
+    }
+
+    // ———————— Chrono (commun à tous les appareils) ————————
+
+    maintenant() {
+        return Date.now() + this.decalage;
+    }
+
+    secondes() {
+        const c = this.chrono;
+        return Math.max(0, c.cumul + (c.enCours && c.debut ? (this.maintenant() - c.debut) / 1000 : 0));
+    }
+
+    mi() {
+        return Math.floor(this.cfg.duree / 2);
+    }
+
+    minuteCourante() {
+        return (this.chrono.periode - 1) * this.mi() + Math.floor(this.secondes() / 60) + 1;
+    }
+
+    /** Période commencée : chrono lancé au moins une fois. */
+    commencee() {
+        return this.chrono.enCours || this.chrono.cumul > 0;
+    }
+
+    tic() {
+        const c = this.chrono;
+        const s = Math.floor(this.secondes());
+        this.chronoTarget.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+        const avant = c.periode === 1 && !this.commencee();
+        const pause = c.periode === 2 && !this.commencee();
+        this.minuteTarget.textContent = c.fini ? 'Terminé' : (avant ? 'À venir' : (pause ? 'Mi-temps' : `${this.minuteCourante()}'`));
+        this.minuteTarget.classList.toggle('arrete', !c.enCours);
+        this.periodeTarget.textContent = c.fini ? 'Match terminé' : (avant ? 'Avant le match' : (pause ? 'Mi-temps' : (c.periode === 1 ? '1re période' : '2e période')));
+        this.pauseTarget.textContent = c.enCours ? '⏸' : '▶';
+        this.pauseTarget.disabled = !!c.fini || avant || pause;
+        // Bouton de période : coup d'envoi → mi-temps → 2e période ; « Fin » pendant la 2e période.
+        const [icone, texte, actif] = c.fini ? ['✓', 'Terminé', false]
+            : (avant ? ['▶', 'Coup d\'envoi', true] : (c.periode === 1 ? ['⏸', 'Mi-temps', true] : (pause ? ['▶', '2e période', true] : ['✓', 'Mi-temps', false])));
+        this.boutonPeriodeTarget.innerHTML = `<span class="icone" aria-hidden="true">${icone}</span>${texte}`;
+        this.boutonPeriodeTarget.disabled = !actif;
+        this.boutonPeriodeTarget.classList.toggle('a-faire', actif && (avant || pause));
+        this.boutonFinTarget.disabled = !!c.fini || c.periode !== 2 || pause;
+    }
+
+    chronoChange() {
+        this.chrono.maj = Math.max(this.maintenant(), (this.chrono.maj ?? 0) + 1);
+        this.chronoAEnvoyer = true;
+        this.garder();
+        this.tic();
+        this.afficher();
+        this.envoyer();
+    }
+
+    demarrer() {
+        this.chrono.enCours = true;
+        this.chrono.debut = this.maintenant();
+        this.garderEcranAllume();
+    }
+
+    arreter() {
+        this.chrono.cumul = this.secondes();
+        this.chrono.enCours = false;
+        this.chrono.debut = null;
+        this.verrou?.release?.();
+    }
+
+    pause() {
+        if (this.chrono.fini) return;
+        if (this.chrono.enCours) this.arreter(); else this.demarrer();
+        this.chronoChange();
+    }
+
+    moins() {
+        this.ajuster(-60);
+    }
+
+    plus() {
+        this.ajuster(60);
+    }
+
+    ajuster(secondes) {
+        this.chrono.cumul = Math.max(0, this.secondes() + secondes);
+        if (this.chrono.enCours) this.chrono.debut = this.maintenant();
+        this.chronoChange();
+    }
+
+    /** Coup d'envoi, mi-temps (après confirmation) ou reprise de la 2e période. */
+    async periode() {
+        const c = this.chrono;
+        if (c.fini) return;
+        if (!this.commencee()) {
+            this.demarrer();
+            this.chronoChange();
+            return;
+        }
+        if (c.periode !== 1) return;
+        const m = this.minuteCourante();
+        if (!await confirmer('Score à la pause', {
+            titre: '⏸ Mi-temps ?', bouton: 'Siffler la mi-temps', style: 'principal', classe: 'dialogue-periode', score: this.scoreTableau(),
+            detail: `Fin de la 1re période à la ${m}${m === 1 ? 're' : 'e'} minute. « ▶ 2e période » relancera le chrono.`,
+        })) return;
+        this.chrono = { periode: 2, enCours: false, debut: null, cumul: 0, fini: false, sens: -c.sens, maj: c.maj };
+        this.chronoChange();
+    }
+
+    async fin() {
+        const c = this.chrono;
+        if (c.fini || c.periode !== 2) return;
+        const m = this.minuteCourante();
+        if (!await confirmer('Score final', {
+            titre: '🏁 Fin du match ?', bouton: 'Siffler la fin du match', style: 'principal', classe: 'dialogue-periode', score: this.scoreTableau(),
+            detail: `Fin du match à la ${m}e minute. La feuille de match est mise à jour (buts, cartons, changements).`,
+        })) return;
+        this.arreter();
+        c.fini = true;
+        this.choixVisuel = 'final';
+        this.chronoChange();
+    }
+
+    async garderEcranAllume() {
+        try {
+            this.verrou = await navigator.wakeLock?.request('screen');
+        } catch (e) { /* pas de verrou d'écran sur ce navigateur */ }
+    }
+
+    // ———————— Équipes, joueurs, score ————————
+
+    /** Score [nous, eux] après les buts de la liste (tous par défaut). */
+    compter(liste = [...this.actions.values()]) {
+        return [liste.filter((a) => a.type === 'B').length, liste.filter((a) => a.type === 'BA').length];
+    }
+
+    /** Dans l'ordre du match : l'équipe qui reçoit d'abord. */
+    ordre(nous, eux) {
+        return this.cfg.domicile ? [nous, eux] : [eux, nous];
+    }
+
+    texteScore(score = this.compter()) {
+        return this.ordre(...score).join(' – ');
+    }
+
+    /** [équipe, score, équipe] pour la fenêtre de fin de période. */
+    scoreTableau() {
+        const [gauche, droite] = this.ordre(this.cfg.nous, this.cfg.adversaire);
+        return [gauche, this.texteScore(), droite];
+    }
+
+    joueur(id) {
+        return this.cfg.joueurs.find((j) => j.id === id);
+    }
+
+    /** « Prénom NOM », ou « Prénom N. » sauf si un coéquipier s'écrit pareil (deux « Robin D. »). */
+    nom(j, complet = true) {
+        if (!j) return '?';
+        const court = (x) => `${x.prenom} ${(x.nom || '').slice(0, 1)}.`;
+        const ambigu = this.cfg.joueurs.some((x) => x.id !== j.id && court(x) === court(j));
+        return complet || ambigu ? `${j.prenom} ${j.nom}` : court(j);
+    }
+
+    /** Titulaires : ceux choisis sur un appareil, sinon les numéros 1 à 11 (règle de la feuille de match). */
+    titulaires() {
+        if (Array.isArray(this.cfg.titulaires)) return this.cfg.titulaires;
+        return this.cfg.joueurs.filter((j) => j.numero >= 1 && j.numero <= 11).map((j) => j.id);
+    }
+
+    /**
+     * Qui est sur le terrain maintenant : les titulaires, puis les changements dans l'ordre ; un joueur exclu (rouge)
+     * ne revient pas, un carton blanc sort 10 minutes. Sans titulaires connus, rien n'est sûr (connu : false).
+     */
+    terrain(sauf = null) {
+        const titulaires = this.titulaires();
+        const etat = new Map(this.cfg.joueurs.map((j) => [j.id, titulaires.includes(j.id)]));
+        const exclus = new Set();
+        const maintenant = { periode: this.chrono.periode, minute: this.minuteCourante() };
+        [...this.actions.values()].filter((a) => ['RP', 'CR', 'EX'].includes(a.type) && a.joueur && a.uuid !== sauf)
+            .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute))
+            .forEach((a) => {
+                if (a.type === 'EX') {
+                    if (a.periode === maintenant.periode && maintenant.minute < a.minute + 10) exclus.add(a.joueur);
+                    return;
+                }
+                etat.set(a.joueur, false);
+                if (a.type === 'CR') exclus.add(a.joueur);
+                else if (a.details?.entrant) etat.set(a.details.entrant, true);
+            });
+        return { etat, exclus, connu: titulaires.length > 0 };
+    }
+
+    // ———————— Saisie : fenêtre commune (but, carton, tir, remplacement) ————————
+
+    but() {
+        this.ouvrir('but');
+    }
+
+    carton() {
+        this.ouvrir('carton');
+    }
+
+    tir(event) {
+        this.ouvrir('tir', event.currentTarget.dataset.camp);
+    }
+
+    remplacement() {
+        this.ouvrir('rempl', 'nous');
+    }
+
+    /** Corner : noté d'un coup, sans fenêtre. */
+    corner(event) {
+        const nous = event.currentTarget.dataset.camp === 'nous';
+        this.noter([{ uuid: this.nouvelUuid(), type: nous ? 'CO' : 'CA', joueur: null, details: HORS_CARTE }]);
+        this.annoncer(`Corner ${nous ? this.cfg.nous : this.cfg.adversaire} noté (${this.minuteCourante()}').`);
+    }
+
+    ouvrir(type, camp = null) {
+        this.saisie = { type, camp };
+        const titres = { but: '⚽ But', carton: 'Carton', tir: 'Tir', rempl: '⇄ Remplacement' };
+        const camps = camp ? '' : `<div class="live-camps" data-action="change->live#changerCamp">
+            ${[['nous', this.cfg.nous], ['eux', this.cfg.adversaire]].map(([v, n]) => `<label class="choix-carte"><input type="radio" name="camp" value="${v}" ${v === 'nous' ? 'checked' : ''}> ${this.echapper(n)}</label>`).join('')}
+        </div>`;
+        this.dialogueTarget.innerHTML = `<form method="dialog" class="live-form">
+            <h2 class="dialogue-titre">${titres[type]}</h2>
+            ${camps}
+            <div data-zone="details"></div>
+            <div class="live-minute-saisie">
+                <span>Minute</span>
+                <button type="button" class="bouton petit" data-action="live#minuteMoins" aria-label="Une minute de moins">−1</button>
+                <input type="number" name="minute" min="0" max="130" inputmode="numeric" value="${this.minuteCourante()}" aria-label="Minute">
+                <button type="button" class="bouton petit" data-action="live#minutePlus" aria-label="Une minute de plus">+1</button>
+            </div>
+            <p class="flash flash-erreur petit" data-erreur hidden></p>
+            <div class="dialogue-actions">
+                <button value="annuler" class="bouton" formnovalidate>Annuler</button>
+                <button type="button" class="bouton principal" data-action="live#valider">Enregistrer</button>
+            </div>
+        </form>`;
+        this.dessinerDetails();
+        this.dialogueTarget.showModal();
+    }
+
+    changerCamp() {
+        this.dessinerDetails();
+    }
+
+    camp() {
+        return this.saisie.camp ?? this.dialogueTarget.querySelector('input[name=camp]:checked')?.value ?? 'nous';
+    }
+
+    /** Choix d'un groupe de cases (radio) : [valeur, libellé]. */
+    choix(nom, options) {
+        return `<div class="live-options">${options.map(([v, l], i) => `<label class="choix-carte"><input type="radio" name="${nom}" value="${v}" ${i === 0 ? 'checked' : ''}> ${l}</label>`).join('')}</div>`;
+    }
+
+    /** Joueurs à toucher (sur le terrain d'abord quand on le sait). */
+    grilleJoueurs(nom, ids, titre) {
+        const tuile = (j) => `<label class="live-joueur"><input type="radio" name="${nom}" value="${j.id}"><span class="num">${j.numero ?? ''}</span><span class="qui">${this.echapper(j.prenom)} <b>${this.echapper(j.nom)}</b></span></label>`;
+        const liste = ids.map((id) => this.joueur(id)).filter(Boolean);
+        return `<p class="live-libelle">${titre}</p><div class="live-joueurs">${liste.map(tuile).join('') || '<p class="discret petit">Aucun joueur.</p>'}</div>`;
+    }
+
+    /** Tous les joueurs du match : ceux sur le terrain d'abord, puis les autres. */
+    joueursTries() {
+        const { etat, connu } = this.terrain();
+        const ids = this.cfg.joueurs.map((j) => j.id);
+        return connu ? [...ids.filter((id) => etat.get(id)), ...ids.filter((id) => !etat.get(id))] : ids;
+    }
+
+    dessinerDetails() {
+        const { type } = this.saisie;
+        const nous = this.camp() === 'nous';
+        let html = '';
+        if (type === 'but' && nous) {
+            html = this.choix('geste', [['tir', 'Tir'], ['tete', 'Tête'], ['csc', 'Contre son camp (adversaire)']])
+                + `<div class="si-joueur">${this.grilleJoueurs('joueur', this.joueursTries(), 'Buteur')}
+                    <label class="live-libelle">Passeur décisif <select name="passeur"><option value="">Aucun</option>${this.joueursTries().map((id) => this.joueur(id)).map((j) => `<option value="${j.id}">${j.numero ? `${j.numero} · ` : ''}${this.echapper(this.nom(j))}</option>`).join('')}</select></label></div>`;
+        } else if (type === 'but') {
+            html = `<p class="discret">But de ${this.echapper(this.cfg.adversaire)}.</p>`;
+        } else if (type === 'carton') {
+            html = this.choix('couleur', nous ? [['J', '🟨 Jaune'], ['R', '🟥 Rouge'], ['B', '⬜ Blanc (10 min)']] : [['J', '🟨 Jaune'], ['R', '🟥 Rouge']])
+                + (nous ? this.grilleJoueurs('joueur', this.joueursTries(), 'Joueur') : '');
+        } else if (type === 'tir') {
+            html = this.choix('cadre', [['oui', 'Cadré'], ['non', 'Non cadré']]) + this.choix('geste', [['tir', 'Frappe'], ['tete', 'Tête']])
+                + (nous ? this.grilleJoueurs('joueur', this.joueursTries(), 'Tireur') : `<p class="discret petit">Tir de ${this.echapper(this.cfg.adversaire)}.</p>`);
+        } else if (type === 'rempl') {
+            const { etat, exclus, connu } = this.terrain();
+            const ids = this.cfg.joueurs.map((j) => j.id).filter((id) => !exclus.has(id));
+            const sur = connu ? ids.filter((id) => etat.get(id)) : ids;
+            const banc = connu ? ids.filter((id) => !etat.get(id)) : ids;
+            // « Personne » : le joueur sort sans être remplacé (plus de remplaçant, blessure…).
+            html = this.grilleJoueurs('sortant', sur, '↓ Sort')
+                + this.grilleJoueurs('entrant', banc, '↑ Entre').replace(/(<p class="discret petit">Aucun joueur\.<\/p>)?<\/div>$/, '<label class="live-joueur personne"><input type="radio" name="entrant" value="0"><span class="num">–</span><span class="qui">Personne (sans remplaçant)</span></label></div>')
+                + this.choix('motif', [['Choix', 'Choix de l\'entraîneur'], ['Blessure', 'Blessure']])
+                + (connu ? '' : '<p class="discret petit">Astuce : choisissez les titulaires (onglet « Compo ») pour ne voir que les joueurs sur le terrain.</p>');
+        }
+        this.dialogueTarget.querySelector('[data-zone=details]').innerHTML = html;
+    }
+
+    minuteMoins() {
+        this.decalerMinute(-1);
+    }
+
+    minutePlus() {
+        this.decalerMinute(1);
+    }
+
+    decalerMinute(n) {
+        const champ = this.dialogueTarget.querySelector('input[name=minute]');
+        champ.value = Math.max(0, Math.min(130, (parseInt(champ.value, 10) || 0) + n));
+    }
+
+    valeur(nom) {
+        return this.dialogueTarget.querySelector(`[name=${nom}]:checked, select[name=${nom}]`)?.value ?? '';
+    }
+
+    erreur(texte) {
+        const p = this.dialogueTarget.querySelector('[data-erreur]');
+        p.textContent = texte;
+        p.hidden = false;
+    }
+
+    valider() {
+        const { type } = this.saisie;
+        const nous = this.camp() === 'nous';
+        const minute = Math.max(0, Math.min(130, parseInt(this.dialogueTarget.querySelector('input[name=minute]').value, 10) || 0));
+        const joueur = Number(this.valeur('joueur')) || null;
+        const uuid = this.nouvelUuid();
+        let actions = [];
+        if (type === 'but') {
+            const geste = nous ? this.valeur('geste') : 'tir';
+            if (nous && geste !== 'csc' && !joueur) return this.erreur('Touchez le buteur.');
+            const passeur = Number(this.valeur('passeur'));
+            const details = { geste, ...HORS_CARTE, ...(nous && passeur && passeur !== joueur && geste !== 'csc' ? { passeur } : {}) };
+            actions = [{ uuid, type: nous ? 'B' : 'BA', joueur: nous && geste !== 'csc' ? joueur : null, details }];
+            // La frappe cadrée qui va avec (pas pour un contre son camp, ni pour l'adversaire : il n'a pas de tireur).
+            if (nous && geste !== 'csc') actions.push({ uuid: this.uuidTir(uuid), type: geste === 'tete' ? 'TC' : 'FC', joueur, details: HORS_CARTE });
+            if (!nous) actions.push({ uuid: this.uuidTir(uuid), type: 'AC', joueur: null, details: HORS_CARTE });
+        } else if (type === 'carton') {
+            const couleur = this.valeur('couleur');
+            if (nous && !joueur) return this.erreur('Touchez le joueur.');
+            const code = nous ? { J: 'CJ', R: 'CR', B: 'EX' }[couleur] : { J: 'JA', R: 'RA' }[couleur];
+            actions = [{ uuid, type: code, joueur: nous ? joueur : null, details: code === 'EX' ? null : HORS_CARTE }];
+        } else if (type === 'tir') {
+            if (nous && !joueur) return this.erreur('Touchez le tireur.');
+            const cadre = this.valeur('cadre') === 'oui';
+            const tete = this.valeur('geste') === 'tete';
+            const code = nous ? (tete ? (cadre ? 'TC' : 'TH') : (cadre ? 'FC' : 'FH')) : (tete ? (cadre ? 'ATC' : 'ATH') : (cadre ? 'AC' : 'AH'));
+            actions = [{ uuid, type: code, joueur: nous ? joueur : null, details: HORS_CARTE }];
+        } else if (type === 'rempl') {
+            const sortant = Number(this.valeur('sortant'));
+            const entrant = Number(this.valeur('entrant'));
+            if (!sortant) return this.erreur('Touchez le joueur qui sort.');
+            if (this.valeur('entrant') === '') return this.erreur('Touchez le joueur qui entre (ou « Personne »).');
+            if (sortant === entrant) return this.erreur('Le joueur qui entre doit être différent de celui qui sort.');
+            actions = [{ uuid, type: 'RP', joueur: sortant, details: { ...(entrant ? { entrant } : {}), motif: this.valeur('motif') || 'Choix' } }];
+        }
+        // Notre but : son visuel est choisi d'avance dans l'onglet « Visuels ».
+        if (type === 'but' && nous) this.choixVisuel = `but-${uuid}`;
+        this.noter(actions, minute);
+        this.dialogueTarget.close();
+        navigator.vibrate?.(type === 'but' ? [30, 60, 30] : 25);
+        if (type === 'but' && nous) this.annoncer('But enregistré ! Son visuel est prêt dans l\'onglet « Visuels ».');
+    }
+
+    /** Enregistre des actions (période et minute du chrono, sauf minute donnée), puis envoi. */
+    noter(actions, minute = this.minuteCourante()) {
+        actions.forEach((a) => {
+            const action = { zx: a.type === 'RP' || a.type === 'EX' ? 0 : 2, zy: 1, periode: this.chrono.periode, minute, ...a };
+            this.actions.set(action.uuid, { ...action, auteur: this.cfg.moi });
+            this.enAttente[action.uuid] = action;
+        });
+        this.garder();
+        this.afficher();
+        this.envoyer();
+    }
+
+    /** Identifiant de la frappe cadrée qui accompagne un but noté ici. */
+    uuidTir(uuid) {
+        return `ffffffff${uuid.slice(8)}`;
+    }
+
+    aMoi(a) {
+        return !a.auteur || a.auteur === this.cfg.moi;
+    }
+
+    async supprimer(event) {
+        const a = this.actions.get(event.currentTarget.dataset.uuid);
+        if (!a || !this.aMoi(a) || !await confirmer(`${a.minute}' · ${this.libelle(a)}`, { titre: 'Supprimer cet événement ?', bouton: 'Supprimer' })) return;
+        [a.uuid, ...(['B', 'BA'].includes(a.type) ? [this.uuidTir(a.uuid)] : [])].forEach((u) => {
+            const x = this.actions.get(u);
+            if (!x || !this.aMoi(x)) return;
+            this.actions.delete(u);
+            delete this.enAttente[u];
+            this.supprimes.push(u);
+        });
+        this.garder();
+        this.afficher();
+        this.envoyer();
+    }
+
+    annoncer(texte) {
+        this.annonce = texte;
+        clearTimeout(this.finAnnonce);
+        this.finAnnonce = setTimeout(() => { this.annonce = null; this.etatEnvoi(); }, 4000);
+        this.etatEnvoi();
+    }
+
+    // ———————— Onglets ————————
+
+    onglet(event) {
+        const nom = event.currentTarget.dataset.onglet;
+        this.element.dataset.onglet = nom;
+        this.element.querySelectorAll('.live-onglets button').forEach((b) => b.classList.toggle('actif', b.dataset.onglet === nom));
+        if (nom === 'visuels') this.dessinerVisuel();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ———————— Affichage ————————
+
+    libelle(a) {
+        const j = this.joueur(a.joueur);
+        const adv = this.cfg.adversaire;
+        switch (a.type) {
+        case 'B': return `But – ${a.details?.geste === 'csc' ? `contre son camp (${adv})` : this.nom(j)}${a.details?.geste === 'tete' ? ' (tête)' : ''}`;
+        case 'BA': return `But – ${adv}`;
+        case 'CJ': return `Carton jaune – ${this.nom(j)}`;
+        case 'CR': return `Carton rouge – ${this.nom(j)}`;
+        case 'JA': return `Carton jaune – ${adv}`;
+        case 'RA': return `Carton rouge – ${adv}`;
+        case 'EX': return `Carton blanc – ${this.nom(j)} (10 min)`;
+        case 'RP': return `Remplacement – ↓ ${this.nom(j)}${a.details?.entrant ? ` ↑ ${this.nom(this.joueur(a.details.entrant))}` : ' (sans remplaçant)'}${a.details?.motif === 'Blessure' ? ' (blessure)' : ''}`;
+        default: return a.type;
+        }
+    }
+
+    icone(type) {
+        return {
+            B: '⚽', BA: '⚽', RP: '⇄',
+            CJ: '<i class="carte-jeu jaune"></i>', JA: '<i class="carte-jeu jaune"></i>', CR: '<i class="carte-jeu rouge"></i>', RA: '<i class="carte-jeu rouge"></i>', EX: '<i class="carte-jeu blanc"></i>',
+        }[type] ?? '';
+    }
+
+    afficher() {
+        const liste = [...this.actions.values()];
+        this.scoreTarget.textContent = this.texteScore();
+        this.dessinerEvenements(liste);
+        this.dessinerStats(liste);
+        this.dessinerCompo(liste);
+        this.dessinerChoixVisuels(liste);
+        this.etatEnvoi();
+    }
+
+    /** Événements, du plus récent au plus ancien, avec le score après chaque but et les repères de période. */
+    dessinerEvenements(liste) {
+        const tries = liste.filter((a) => EVENEMENTS.includes(a.type)).sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute));
+        const score = [0, 0];
+        const lignes = tries.map((a) => {
+            if (a.type === 'B') score[0]++;
+            if (a.type === 'BA') score[1]++;
+            const sc = ['B', 'BA'].includes(a.type) ? ` <span class="sc">(${this.texteScore(score)})</span>` : '';
+            const passeur = a.type === 'B' && a.details?.passeur ? ` <span class="discret petit">passe de ${this.echapper(this.nom(this.joueur(a.details.passeur)))}</span>` : '';
+            const html = `<li class="${a.type === 'B' ? 'but-nous' : ''}${this.enAttente[a.uuid] ? ' en-attente' : ''}">
+                <span class="min">${a.minute}'</span><span class="ico">${this.icone(a.type)}</span>
+                <span class="quoi">${this.echapper(this.libelle(a))}${sc}${passeur}</span>
+                ${this.aMoi(a) ? `<button type="button" class="lien-bouton danger" data-uuid="${a.uuid}" data-action="live#supprimer" title="Supprimer" aria-label="Supprimer">✕</button>` : ''}</li>`;
+            return { a, html };
+        });
+        const c = this.chrono;
+        const repere = (texte) => `<li class="repere">${texte}</li>`;
+        const miTemps = repere(`Mi-temps · ${this.texteScore(this.compter(liste.filter((x) => x.periode === 1)))}`);
+        // Dans l'ordre du match, puis retourné (le plus récent en haut).
+        const html = [];
+        if (this.commencee() || c.periode === 2) html.push(repere('Coup d\'envoi'));
+        let miTempsPlacee = c.periode !== 2;
+        lignes.forEach(({ a, html: h }) => {
+            if (!miTempsPlacee && a.periode === 2) {
+                html.push(miTemps);
+                miTempsPlacee = true;
+            }
+            html.push(h);
+        });
+        if (!miTempsPlacee) html.push(miTemps);
+        if (c.fini) html.push(repere(`🏁 Fin du match · ${this.texteScore()}`));
+        this.evenementsTarget.innerHTML = html.reverse().join('') || '<li class="vide discret">Aucun événement pour l\'instant. Touchez « Coup d\'envoi » au début du match.</li>';
+    }
+
+    /** Barres « nous / eux » dans l'ordre du match (l'équipe qui reçoit à gauche). */
+    dessinerStats(liste) {
+        const n = (...types) => liste.filter((a) => types.includes(a.type)).length;
+        const lignes = [
+            ['Tirs', n('FC', 'FH', 'TC', 'TH'), n('AC', 'AH', 'ATC', 'ATH')],
+            ['Tirs cadrés', n('FC', 'TC'), n('AC', 'ATC')],
+            ['Corners', n('CO'), n('CA')],
+            ['Cartons jaunes', n('CJ'), n('JA')],
+            ['Cartons rouges', n('CR'), n('RA')],
+        ].filter(([, a, b], i) => i < 3 || a + b > 0);
+        this.statsTarget.innerHTML = lignes.map(([titre, nous, eux]) => {
+            const [g, d] = this.ordre(nous, eux);
+            const total = g + d;
+            const part = total ? Math.round(100 * g / total) : 50;
+            const nousAGauche = this.cfg.domicile;
+            return `<div class="live-stat${total ? '' : ' vide'}"><span class="titre">${titre}</span>
+                <span class="val">${g}</span>
+                <span class="barre ${nousAGauche ? 'nous-gauche' : 'nous-droite'}" role="img" aria-label="${titre} : ${this.echapper(this.cfg.nous)} ${nous}, ${this.echapper(this.cfg.adversaire)} ${eux}"><i style="width:${part}%"></i></span>
+                <span class="val">${d}</span></div>`;
+        }).join('');
+    }
+
+    dessinerCompo(liste) {
+        const { etat, exclus, connu } = this.terrain();
+        const marques = (id) => {
+            const buts = liste.filter((a) => a.type === 'B' && a.joueur === id).length;
+            const j = liste.filter((a) => a.type === 'CJ' && a.joueur === id).length;
+            const r = liste.some((a) => a.type === 'CR' && a.joueur === id);
+            return `${'⚽'.repeat(buts)}${j ? '<i class="carte-jeu jaune"></i>'.repeat(j) : ''}${r ? '<i class="carte-jeu rouge"></i>' : ''}`;
+        };
+        const ligne = (j) => `<li${this.editionTitulaires ? ` class="modifiable${this.titulaires().includes(j.id) ? ' titulaire' : ''}" data-joueur="${j.id}" data-action="click->live#basculerTitulaire" role="button" tabindex="0"` : ''}>
+            <span class="num">${j.numero ?? ''}</span><span class="qui">${this.echapper(j.prenom)} <b>${this.echapper(j.nom)}</b></span>
+            <span class="marques">${marques(j.id)}${exclus.has(j.id) ? ' <span class="discret petit">exclu</span>' : ''}</span></li>`;
+        if (this.editionTitulaires) {
+            const t = this.titulaires();
+            this.compoTarget.innerHTML = `<p class="discret petit">Touchez les joueurs sur le terrain au coup d'envoi : <b>${t.length} / ${this.cfg.maxTitulaires || 11}</b>.${this.messageTitulaires ? ` <span class="alerte-titulaires">${this.echapper(this.messageTitulaires)}</span>` : ''}</p>
+                <ul class="live-compo">${this.cfg.joueurs.map(ligne).join('')}</ul>`;
+            return;
+        }
+        if (!this.cfg.joueurs.length) {
+            this.compoTarget.innerHTML = '<p class="discret">Aucun joueur : remplissez la feuille de match ou la convocation.</p>';
+            return;
+        }
+        if (!connu) {
+            this.compoTarget.innerHTML = `<p class="discret petit">Titulaires pas encore choisis : touchez « Choisir les titulaires ».</p><ul class="live-compo">${this.cfg.joueurs.map(ligne).join('')}</ul>`;
+            return;
+        }
+        const sur = this.cfg.joueurs.filter((j) => etat.get(j.id) && !exclus.has(j.id));
+        const banc = this.cfg.joueurs.filter((j) => !etat.get(j.id) || exclus.has(j.id));
+        this.compoTarget.innerHTML = `<h3>Sur le terrain <span class="compteur">${sur.length}</span></h3><ul class="live-compo">${sur.map(ligne).join('')}</ul>
+            <h3>Remplaçants et sortis <span class="compteur">${banc.length}</span></h3><ul class="live-compo banc">${banc.map(ligne).join('') || '<li class="discret">Personne.</li>'}</ul>`;
+    }
+
+    editerTitulaires() {
+        this.editionTitulaires = !this.editionTitulaires;
+        this.messageTitulaires = null;
+        this.boutonTitulairesTarget.textContent = this.editionTitulaires ? '✓ Terminé' : 'Choisir les titulaires';
+        this.dessinerCompo([...this.actions.values()]);
+    }
+
+    basculerTitulaire(event) {
+        const id = Number(event.currentTarget.dataset.joueur);
+        const liste = new Set(this.titulaires());
+        const max = this.cfg.maxTitulaires || 11;
+        if (!liste.has(id) && liste.size >= max) {
+            this.messageTitulaires = `Déjà ${max} titulaires : touchez d'abord un titulaire pour le mettre sur le banc.`;
+        } else {
+            this.messageTitulaires = null;
+            if (liste.has(id)) liste.delete(id); else liste.add(id);
+            this.cfg.titulaires = [...liste];
+            this.titulairesAEnvoyer = this.cfg.titulaires;
+            this.garder();
+            this.envoyer();
+        }
+        this.dessinerCompo([...this.actions.values()]);
+    }
+
+    etatEnvoi(erreur) {
+        const n = Object.keys(this.enAttente).length + this.supprimes.length;
+        this.etatTarget.textContent = erreur || this.annonce || (n ? `${n} à envoyer…` : '✓ Tout est enregistré');
+        this.etatTarget.classList.toggle('alerte', !!erreur || (n > 0 && !this.annonce));
+        this.etatTarget.classList.toggle('succes', !!this.annonce && !erreur);
+    }
+
+    // ———————— Visuels pour les réseaux sociaux ————————
+
+    /** Visuels proposés : score final, mi-temps, chacun de nos buts, score en direct, jour de match. */
+    visuels(liste) {
+        const c = this.chrono;
+        const tries = liste.filter((a) => ['B', 'BA'].includes(a.type)).sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute));
+        const v = [];
+        if (c.fini) v.push({ id: 'final', libelle: 'Score final' });
+        if (c.periode === 2) v.push({ id: 'mi-temps', libelle: 'Mi-temps' });
+        tries.map((a, i) => ({ a, score: this.compter(tries.slice(0, i + 1)) })).filter(({ a }) => a.type === 'B').reverse()
+            .forEach(({ a, score }) => v.push({ id: `but-${a.uuid}`, libelle: `But ${a.minute}'`, but: a, score }));
+        if (!c.fini && this.commencee()) v.push({ id: 'direct', libelle: 'Score en direct' });
+        v.push({ id: 'avant', libelle: 'Jour de match' });
+        return v;
+    }
+
+    dessinerChoixVisuels(liste) {
+        this.listeVisuels = this.visuels(liste);
+        if (!this.listeVisuels.some((v) => v.id === this.choixVisuel)) this.choixVisuel = this.listeVisuels[0].id;
+        const empreinte = this.listeVisuels.map((v) => v.id + v.libelle).join('|') + this.choixVisuel;
+        if (empreinte !== this.empreinteVisuels) {
+            this.empreinteVisuels = empreinte;
+            this.choixVisuelTarget.innerHTML = this.listeVisuels.map((v) => `<button type="button" role="radio" aria-checked="${v.id === this.choixVisuel}" class="${v.id === this.choixVisuel ? 'actif' : ''}" data-visuel="${v.id}" data-action="live#choisirVisuel">${this.echapper(v.libelle)}</button>`).join('');
+        }
+        if (this.element.dataset.onglet === 'visuels') this.dessinerVisuel();
+    }
+
+    choisirVisuel(event) {
+        this.choixVisuel = event.currentTarget.dataset.visuel;
+        this.empreinteVisuels = null;
+        this.dessinerChoixVisuels([...this.actions.values()]);
+        this.dessinerVisuel();
+    }
+
+    /** Ce qu'affiche le visuel choisi : grand titre, bandeau, score. */
+    contenuVisuel() {
+        const v = (this.listeVisuels ?? []).find((x) => x.id === this.choixVisuel) ?? { id: 'avant' };
+        const complet = this.nomCompletTarget.checked;
+        const liste = [...this.actions.values()];
+        const score = this.compter();
+        if (v.id === 'avant') {
+            const quand = [this.dateLongue(), this.cfg.heure ? this.cfg.heure.replace(':', 'h') : null].filter(Boolean).join(' · ');
+            return { titre: 'JOUR DE MATCH', bandeau: quand || `Allez ${this.cfg.nous} !`, score: null };
+        }
+        if (v.id === 'direct') return { titre: 'EN DIRECT', bandeau: `${this.minuteCourante()}' · ${this.chrono.periode === 1 ? '1re période' : '2e période'}`, score };
+        if (v.id === 'mi-temps') return { titre: 'MI-TEMPS', bandeau: 'Score à la pause', score: this.compter(liste.filter((a) => a.periode === 1)) };
+        if (v.id === 'final') {
+            const [n, e] = score;
+            // Buteurs dans l'ordre des buts, comptés par joueur.
+            const buteurs = new Map();
+            liste.filter((a) => a.type === 'B').sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute)).forEach((a) => {
+                const cle = a.details?.geste === 'csc' ? 'csc' : a.joueur;
+                const qui = cle === 'csc' ? 'CSC' : this.nom(this.joueur(a.joueur), complet);
+                buteurs.set(cle, { qui, k: (buteurs.get(cle)?.k ?? 0) + 1 });
+            });
+            const noms = [...buteurs.values()].map(({ qui, k }) => (k > 1 ? `${qui} (${k})` : qui)).join(', ');
+            return { titre: n > e ? 'VICTOIRE !' : (n === e ? 'MATCH NUL' : 'SCORE FINAL'), bandeau: noms ? `⚽ ${noms}` : 'Score final', score };
+        }
+        const a = v.but;
+        const qui = a.details?.geste === 'csc' ? 'Contre son camp' : this.nom(this.joueur(a.joueur), complet);
+        return { titre: 'BUUUT !', bandeau: `${qui} – ${a.minute}'`, score: v.score };
+    }
+
+    dateLongue() {
+        if (!this.cfg.date) return '';
+        const d = new Date(`${this.cfg.date}T12:00:00`);
+        const texte = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+        return texte.charAt(0).toUpperCase() + texte.slice(1);
+    }
+
+    dessinerVisuel() {
+        if (!this.hasCanevasTarget) return;
+        const story = this.element.querySelector('input[name=format-visuel]:checked')?.value === 'story';
+        const W = 1080;
+        const H = story ? 1920 : 1350;
+        const cv = this.canevasTarget;
+        if (cv.height !== H) cv.height = H;
+        const g = cv.getContext('2d');
+        const couleur = this.cfg.couleur || getComputedStyle(document.documentElement).getPropertyValue('--rouge').trim() || '#1f6fd1';
+        const fonce = this.cfg.couleurFoncee || '#0b2a5b';
+        const police = (taille, graisse = 800, italique = false) => `${italique ? 'italic ' : ''}${graisse} ${taille}px "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
+        const { titre, bandeau, score } = this.contenuVisuel();
+        const y = (p) => Math.round(H * p);
+
+        // Fond : couleur du club vers la nuit, bandes de pelouse et lignes du terrain.
+        const fond = g.createLinearGradient(0, 0, 0, H);
+        fond.addColorStop(0, couleur);
+        fond.addColorStop(0.55, fonce);
+        fond.addColorStop(1, '#070b14');
+        g.fillStyle = fond;
+        g.fillRect(0, 0, W, H);
+        g.save();
+        g.globalAlpha = 0.05;
+        g.fillStyle = '#fff';
+        for (let i = -H; i < W + H; i += 180) {
+            g.beginPath();
+            g.moveTo(i, 0);
+            g.lineTo(i + 90, 0);
+            g.lineTo(i + 90 - H * 0.4, H);
+            g.lineTo(i - H * 0.4, H);
+            g.fill();
+        }
+        g.globalAlpha = 0.1;
+        g.strokeStyle = '#fff';
+        g.lineWidth = 6;
+        g.beginPath();
+        g.arc(W / 2, y(0.98), W * 0.32, Math.PI, 2 * Math.PI);
+        g.moveTo(0, y(0.98));
+        g.lineTo(W, y(0.98));
+        g.stroke();
+        g.restore();
+
+        // En-tête : logo, club, équipe et compétition.
+        const tailleLogo = 120;
+        this.dessinerLogo(g, 70, 64, tailleLogo);
+        g.fillStyle = '#fff';
+        g.textBaseline = 'middle';
+        g.textAlign = 'left';
+        g.font = police(46, 800);
+        this.texteAjuste(g, this.cfg.nous, 70 + tailleLogo + 30, 64 + tailleLogo * 0.36, W - 70 - tailleLogo - 100);
+        g.globalAlpha = 0.8;
+        g.font = police(32, 600);
+        this.texteAjuste(g, [this.cfg.equipe, this.cfg.competition].filter(Boolean).join(' · '), 70 + tailleLogo + 30, 64 + tailleLogo * 0.74, W - 70 - tailleLogo - 100);
+        g.globalAlpha = 1;
+
+        // Grand titre penché.
+        g.save();
+        g.translate(W / 2, y(story ? 0.33 : 0.36));
+        g.rotate(-0.08);
+        g.textAlign = 'center';
+        g.font = police(200, 900, true);
+        const largeur = g.measureText(titre).width;
+        const echelle = Math.min(1, (W - 120) / largeur);
+        g.scale(echelle, echelle);
+        g.shadowColor = 'rgba(0, 0, 0, .45)';
+        g.shadowOffsetY = 12;
+        g.shadowBlur = 24;
+        g.lineWidth = 14;
+        g.strokeStyle = fonce;
+        g.strokeText(titre, 0, 0);
+        g.shadowColor = 'transparent';
+        g.fillStyle = '#fff';
+        g.fillText(titre, 0, 0);
+        g.restore();
+
+        // Bandeau.
+        g.save();
+        g.translate(W / 2, y(story ? 0.43 : 0.5));
+        g.rotate(-0.04);
+        g.font = police(54, 800, true);
+        const lb = Math.min(W - 140, g.measureText(bandeau).width + 90);
+        g.fillStyle = '#fff';
+        g.shadowColor = 'rgba(0, 0, 0, .3)';
+        g.shadowOffsetY = 8;
+        g.shadowBlur = 18;
+        this.rectArrondi(g, -lb / 2, -48, lb, 96, 18);
+        g.fill();
+        g.shadowColor = 'transparent';
+        g.fillStyle = fonce;
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        this.texteAjuste(g, bandeau, 0, 2, lb - 60);
+        g.restore();
+
+        // Score : l'équipe qui reçoit à gauche.
+        const ys = y(story ? 0.62 : 0.72);
+        const [gauche, droite] = this.ordre('nous', 'eux');
+        const blason = 170;
+        [[gauche, W * 0.2], [droite, W * 0.8]].forEach(([qui, x]) => {
+            if (qui === 'nous') this.dessinerLogo(g, x - blason / 2, ys - blason / 2 - 30, blason);
+            else this.dessinerInitiale(g, x, ys - 30, blason / 2, this.cfg.adversaire, fonce);
+            g.fillStyle = '#fff';
+            g.font = police(34, 700);
+            g.textAlign = 'center';
+            this.texteAjuste(g, qui === 'nous' ? this.cfg.nous : this.cfg.adversaire, x, ys + blason / 2 + 10, 320);
+        });
+        g.fillStyle = '#fff';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.font = police(score ? 180 : 110, 900);
+        g.shadowColor = 'rgba(0, 0, 0, .35)';
+        g.shadowBlur = 20;
+        g.fillText(score ? this.ordre(...score).join(' - ') : 'VS', W / 2, ys - 30);
+        g.shadowColor = 'transparent';
+
+        // Pied : date et lieu.
+        g.globalAlpha = 0.75;
+        g.font = police(30, 600);
+        this.texteAjuste(g, [this.dateLongue(), this.cfg.lieu].filter(Boolean).join(' · '), W / 2, H - 70, W - 140);
+        g.globalAlpha = 1;
+    }
+
+    dessinerLogo(g, x, y, taille) {
+        if (this.logo?.complete && this.logo.naturalWidth) {
+            const r = Math.min(taille / this.logo.naturalWidth, taille / this.logo.naturalHeight);
+            const w = this.logo.naturalWidth * r;
+            const h = this.logo.naturalHeight * r;
+            g.save();
+            g.shadowColor = 'rgba(0, 0, 0, .35)';
+            g.shadowBlur = 16;
+            g.drawImage(this.logo, x + (taille - w) / 2, y + (taille - h) / 2, w, h);
+            g.restore();
+        } else {
+            this.dessinerInitiale(g, x + taille / 2, y + taille / 2, taille / 2, this.cfg.nous, '#fff');
+        }
+    }
+
+    /** Adversaire (pas de logo) : un écusson rond avec son initiale. */
+    dessinerInitiale(g, cx, cy, r, nom, couleur) {
+        g.save();
+        g.fillStyle = 'rgba(255, 255, 255, .95)';
+        g.beginPath();
+        g.arc(cx, cy, r, 0, 2 * Math.PI);
+        g.fill();
+        g.lineWidth = 8;
+        g.strokeStyle = 'rgba(255, 255, 255, .35)';
+        g.beginPath();
+        g.arc(cx, cy, r + 10, 0, 2 * Math.PI);
+        g.stroke();
+        g.fillStyle = couleur === '#fff' ? '#1d1d1f' : couleur;
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.font = `900 ${Math.round(r)}px "Segoe UI", Roboto, Arial, sans-serif`;
+        g.fillText((nom || '?').trim().charAt(0).toUpperCase(), cx, cy + r * 0.05);
+        g.restore();
+    }
+
+    /** Texte réduit s'il dépasse la largeur donnée. */
+    texteAjuste(g, texte, x, y, max) {
+        const w = g.measureText(texte).width;
+        if (w <= max) {
+            g.fillText(texte, x, y);
+            return;
+        }
+        g.save();
+        g.translate(x, y);
+        g.scale(max / w, max / w);
+        g.fillText(texte, 0, 0);
+        g.restore();
+    }
+
+    rectArrondi(g, x, y, w, h, r) {
+        g.beginPath();
+        g.moveTo(x + r, y);
+        g.arcTo(x + w, y, x + w, y + h, r);
+        g.arcTo(x + w, y + h, x, y + h, r);
+        g.arcTo(x, y + h, x, y, r);
+        g.arcTo(x, y, x + w, y, r);
+        g.closePath();
+    }
+
+    nomFichier() {
+        return `${this.cfg.nous}-${this.cfg.adversaire}-${this.choixVisuel.startsWith('but-') ? 'but' : this.choixVisuel}`
+            .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase() + '.png';
+    }
+
+    partagePossible() {
+        try {
+            return !!navigator.canShare?.({ files: [new File([''], 'visuel.png', { type: 'image/png' })] });
+        } catch (e) {
+            return false;
+        }
+    }
+
+    image() {
+        this.dessinerVisuel();
+        return new Promise((resoudre) => this.canevasTarget.toBlob(resoudre, 'image/png'));
+    }
+
+    async partager() {
+        const blob = await this.image();
+        if (!blob) return;
+        try {
+            await navigator.share({ files: [new File([blob], this.nomFichier(), { type: 'image/png' })], title: `${this.cfg.nous} – ${this.cfg.adversaire}` });
+        } catch (e) { /* partage annulé */ }
+    }
+
+    async telecharger() {
+        const blob = await this.image();
+        if (!blob) return;
+        const lien = document.createElement('a');
+        lien.href = URL.createObjectURL(blob);
+        lien.download = this.nomFichier();
+        document.body.append(lien);
+        lien.click();
+        lien.remove();
+        setTimeout(() => URL.revokeObjectURL(lien.href), 2000);
+    }
+
+    // ———————— Échange avec le serveur (le même que la saisie détaillée) ————————
+
+    async envoyer() {
+        if (this.envoiEnCours) return;
+        const actions = Object.values(this.enAttente);
+        const supprimes = [...this.supprimes];
+        const chrono = this.chronoAEnvoyer ? { ...this.chrono } : null;
+        const titulaires = this.titulairesAEnvoyer;
+        this.envoiEnCours = true;
+        try {
+            const avant = Date.now();
+            const reponse = await fetch(this.cfg.url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({ jeton: this.cfg.jeton, actions, supprimes, chrono, numeros: {}, ...(titulaires ? { titulaires } : {}), infos: {} }),
+            });
+            if (reponse.status === 404) {
+                clearInterval(this.relance);
+                this.etatEnvoi('Ce match a été supprimé : plus rien n\'est enregistré.');
+                return;
+            }
+            if (!reponse.ok) {
+                const corps = await reponse.json().catch(() => ({}));
+                throw new Error(corps.erreur || `Erreur ${reponse.status}`);
+            }
+            const donnees = await reponse.json();
+            this.decalage = donnees.maintenant - (avant + Date.now()) / 2;
+            actions.forEach((a) => { if (this.enAttente[a.uuid] === a) delete this.enAttente[a.uuid]; });
+            this.supprimes = this.supprimes.filter((u) => !supprimes.includes(u));
+            if (chrono && this.chrono.maj === chrono.maj) this.chronoAEnvoyer = false;
+            if (donnees.chrono && donnees.chrono.maj > (this.chrono.maj ?? 0) && !this.chronoAEnvoyer) {
+                this.chrono = { ...this.chrono, ...donnees.chrono };
+                if (this.chrono.enCours) this.garderEcranAllume();
+                this.tic();
+            }
+            if (Array.isArray(donnees.joueurs)) this.cfg.joueurs = donnees.joueurs;
+            if (titulaires && this.titulairesAEnvoyer === titulaires) this.titulairesAEnvoyer = null;
+            if (!this.titulairesAEnvoyer) this.cfg.titulaires = donnees.titulaires ?? null;
+            this.fusionner(donnees.actions ?? []);
+            this.garder();
+            this.afficher();
+        } catch (e) {
+            this.afficher();
+            this.etatEnvoi(navigator.onLine === false || e instanceof TypeError ? 'Pas de réseau : gardé sur le téléphone' : `Non envoyé (${e.message}) : nouvel essai bientôt`);
+        } finally {
+            this.envoiEnCours = false;
+        }
+    }
+
+    nouvelUuid() {
+        if (window.crypto?.randomUUID) return crypto.randomUUID();
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+        });
+    }
+
+    echapper(texte) {
+        return String(texte ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+}
