@@ -29,7 +29,7 @@
                                 {% endif %}
                             {% endfor %}
                         </td>
-                        <td class="principal"><strong>{{ c.nom }}</strong>{% if c.feminine %}<span class="pastille feminine" title="Équipe féminine">F</span>{% endif %}</td>
+                        <td class="principal"><strong>{{ c.nom }}</strong>{% if c.feminine %}<span class="pastille feminine" title="Équipe féminine">F</span>{% endif %}{% if c.plateaux %} <span class="pastille" title="Joue des plateaux (petits matchs sans classement) au lieu de matchs">plateaux</span>{% endif %}</td>
                         <td>{{ c.secteurLibelle }}</td>
                         <td class="nowrap" data-label="match :">{{ c.dureeMatch ? c.dureeMatch ~ ' min (2 × ' ~ (c.dureeMatch / 2)|round(1)|replace({'.': ','}) ~ ')' : '—' }}</td>
                         <td class="discret" data-label="utilisée par">{{ utilisations[c.id]|join(', ') ?: '—' }}</td>
@@ -49,7 +49,7 @@
             </tbody>
         </table>
     </div>
-    <p class="discret petit">Pour mettre une équipe dans un autre secteur : « Modifier » sur sa ligne, puis « Secteur ». Les flèches ne changent que l'ordre d'affichage.</p>
+    <p class="discret petit">Pour mettre une équipe dans un autre secteur : « Modifier » sur sa ligne, puis « Secteur ». Les flèches ne changent que l'ordre d'affichage. Pastille « plateaux » : l'équipe joue des plateaux (petits matchs sans classement) au lieu de matchs ; à changer avec « Modifier ».</p>
 
     <section class="bloc" id="responsables-secteur">
         <h2 class="titre-bloc">Responsables de secteur</h2>

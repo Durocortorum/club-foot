@@ -26,7 +26,7 @@
                             {% set details = a.details ?? null %}
                             <{{ balise }} class="cal-activite cal-match{{ details and details.convoque ? ' convoque' }}" {% if not famille %}href="{{ path('app_rencontre_voir', {id: o.id}) }}"{% endif %} title="{{ o }}{{ o.lieu ? ' – ' ~ o.lieu }}">
                                 <span class="cal-heure">{{ a.heure ? a.heure|replace({':': 'h'}) : 'heure ?' }}{% if avec_equipe %} · {{ o.equipeAffichee }}{% endif %}</span>
-                                <span class="cal-titre">{{ o.adversaire }} <small>({{ o.aDomicile ? 'dom.' : 'ext.' }})</small></span>
+                                <span class="cal-titre">{{ o.adversaire }}{% if not o.plateau %} <small>({{ o.aDomicile ? 'dom.' : 'ext.' }})</small>{% endif %}</span>
                                 {% if o.butsDomicile is not null %}<span class="cal-score">{{ o.butsDomicile }} – {{ o.butsExterieur }}</span>{% endif %}
                                 {% if details and details.convoque %}<span class="cal-convoque">convoqué{{ details.qui ? ' : ' ~ details.qui }}</span>{% endif %}
                             </{{ balise }}>

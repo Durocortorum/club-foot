@@ -7,9 +7,10 @@
 
 {% block corps %}
     <p style="margin: 0 0 12px;">Bonjour,</p>
-    {% if definitive|default(false) %}<p style="margin: 0 0 12px;"><strong>Convocation définitive :</strong> le groupe pour ce match est fixé. En cas d'empêchement, prévenez-nous au plus vite.</p>
+    {% set quoi = r.plateau ? 'plateau' : 'match' %}
+    {% if definitive|default(false) %}<p style="margin: 0 0 12px;"><strong>Convocation définitive :</strong> le groupe pour ce {{ quoi }} est fixé. En cas d'empêchement, prévenez-nous au plus vite.</p>
     {% elseif relance %}<p style="margin: 0 0 12px;"><strong>Petit rappel :</strong> nous attendons toujours votre réponse.</p>{% endif %}
-    <p style="margin: 0 0 12px;"><strong>{{ convoque.joueur.prenom }} {{ convoque.joueur.nom }}</strong> est convoqué(e) pour le match :</p>
+    <p style="margin: 0 0 12px;"><strong>{{ convoque.joueur.prenom }} {{ convoque.joueur.nom }}</strong> est convoqué(e) pour le {{ quoi }} :</p>
 
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin: 14px 0; border-left: 4px solid {{ club.couleur }}; background: #f8f8fa; border-radius: 0 8px 8px 0;">
         <tr><td colspan="2" style="padding: 10px 12px 4px; font-size: 17px; font-weight: bold;">{{ r.equipeAffichee }} – {{ r.adversaire }}</td></tr>
@@ -17,11 +18,11 @@
             <td style="padding: 4px 12px; color: #6b6b72; font-size: 13px; white-space: nowrap;">Date</td>
             <td style="padding: 4px 12px; font-size: 14px;">{{ jours[r.date|date('w')]|capitalize }} {{ r.date|date('d/m/Y') }}{% if r.heure %} à {{ r.heure }}{% endif %}</td>
         </tr>
-        {% if r.competition %}
+        {% if r.competition and not r.plateau %}
             <tr><td style="padding: 4px 12px; color: #6b6b72; font-size: 13px;">Compétition</td><td style="padding: 4px 12px; font-size: 14px;">{{ r.competition }}</td></tr>
         {% endif %}
         {% if r.lieu %}
-            <tr><td style="padding: 4px 12px; color: #6b6b72; font-size: 13px;">Lieu du match</td><td style="padding: 4px 12px; font-size: 14px;">{{ r.lieu }}</td></tr>
+            <tr><td style="padding: 4px 12px; color: #6b6b72; font-size: 13px;">Lieu du {{ quoi }}</td><td style="padding: 4px 12px; font-size: 14px;">{{ r.lieu }}</td></tr>
         {% endif %}
         {% if convocation.rdvHeure or convocation.rdvLieu %}
             <tr>

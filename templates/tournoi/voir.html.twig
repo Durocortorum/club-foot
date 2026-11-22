@@ -66,7 +66,7 @@
                             <tr>
                                 <td class="nowrap">{{ r.date|date('d/m') }}</td>
                                 <td>{{ r.heure ?? '—' }}</td>
-                                <td><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a></td>
+                                <td><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.intitule }}</a></td>
                                 <td>{{ m.score(r) }}</td>
                                 <td class="a-cote">{% if peut_modifier and is_granted('MATCH_MODIFIER', r) %}<a href="{{ path('app_rencontre_modifier', {id: r.id}) }}">{{ r.resultat ? 'Modifier' : 'Score' }}</a>{% endif %}</td>
                             </tr>

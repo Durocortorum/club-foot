@@ -90,6 +90,7 @@
                         {% for j in liste %}
                             <div class="meilleur">
                                 <a href="{{ path('app_joueur_voir', {id: j.id}) }}">{{ j.prenom }} {{ j.nom }}</a>
+                                {% if filtres.categorie is null and j.categorie %}<span class="discret petit equipe-joueur">{{ j.categorie }}</span>{% endif %}
                                 <strong>{{ titre == 'Buteurs' ? j.buts : j.passes }}</strong>
                             </div>
                         {% else %}

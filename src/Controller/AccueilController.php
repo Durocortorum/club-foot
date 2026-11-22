@@ -50,6 +50,7 @@ class AccueilController extends AbstractController
                 'id' => $c->getId(),
                 'nom' => $c->getNom(),
                 'feminine' => $c->isFeminine(),
+                'plateaux' => $c->isPlateaux(),
                 'total' => (int) ($effectifs[$c->getId()] ?? 0),
                 'prochain' => $donnees['prochains'][$c->getId()] ?? null,
             ];

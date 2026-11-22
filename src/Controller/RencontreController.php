@@ -9,6 +9,7 @@ use App\Entity\Joueur;
 use App\Entity\Participation;
 use App\Entity\Rencontre;
 use App\Entity\Utilisateur;
+use App\Form\PlateauType;
 use App\Form\RencontreType;
 use App\Repository\ButRepository;
 use App\Repository\CategorieRepository;
@@ -72,7 +73,9 @@ class RencontreController extends AbstractController
             'saisons' => $rencontres->saisons(),
             'categories' => $this->categoriesVisibles($categories),
             'filtres' => $filtres,
-            'peut_creer' => [] !== $this->categoriesTenables($categories),
+            'peut_creer' => [] !== ($tenables = $this->categoriesTenables($categories)),
+            'peut_creer_match' => [] !== array_filter($tenables, fn (Categorie $c) => !$c->isPlateaux()),
+            'peut_creer_plateau' => [] !== array_filter($tenables, fn (Categorie $c) => $c->isPlateaux()),
             'responsables_equipe' => ($equipe = $filtres['categorie'] ? $categories->find($filtres['categorie']) : null) ? $this->responsables->de($equipe) : null,
             'peut_designer_equipe' => $equipe && $this->peutDesigner($equipe),
             'dernier_import' => ($i =$request->getSession()->get(self::DERNIER_IMPORT)) && $i['ids'] && time() - $i['le'] < self::DUREE_ANNULATION ? $i : null,
@@ -155,12 +158,63 @@ class RencontreController extends AbstractController
     #[Route('/matchs/nouveau', name: 'app_rencontre_nouveau', methods: ['GET', 'POST'])]
     public function nouveau(Request $request, EntityManagerInterface $em, JoueurRepository $joueurs, Apparence $apparence, CategorieRepository $categories): Response
     {
-        if ([] === $this->categoriesTenables($categories)) {
+        if ([] === ($tenables = $this->categoriesTenables($categories))) {
             throw $this->createAccessDeniedException();
+        }
+        // Seulement des équipes à plateaux (éducateur de l'école de foot) : c'est un plateau qu'il crée.
+        if ([] === array_filter($tenables, fn (Categorie $c) => !$c->isPlateaux())) {
+            return $this->redirectToRoute('app_plateau_nouveau');
         }
         $rencontre = (new Rencontre())->setDate(new \DateTimeImmutable('today'))->setDomicile(mb_strtoupper($apparence->club()->getNom()));
 
         return $this->formulaire($request, $rencontre, $em, $joueurs, 'Nouveau match');
+    }
+
+    /** Plateau de l'école de foot (équipes « à plateaux ») : rassemblement de plusieurs clubs, petits matchs sans classement. */
+    #[Route('/matchs/plateau/nouveau', name: 'app_plateau_nouveau', methods: ['GET', 'POST'])]
+    public function nouveauPlateau(Request $request, EntityManagerInterface $em, Apparence $apparence, CategorieRepository $categories): Response
+    {
+        $equipes = array_values(array_filter($this->categoriesTenables($categories), fn (Categorie $c) => $c->isPlateaux()));
+        if ([] === $equipes) {
+            throw $this->createAccessDeniedException();
+        }
+        // Équipe choisie dans la liste des matchs (ou la seule possible) : déjà sélectionnée.
+        $choisie = array_values(array_filter($equipes, fn (Categorie $c) => $c->getId() === $request->query->getInt('categorie')))[0] ?? (1 === \count($equipes) ? $equipes[0] : null);
+        $plateau = (new Rencontre())->setDate(new \DateTimeImmutable('next saturday'))->setCategorie($choisie)->setCompetition(Rencontre::PLATEAU)
+            ->setDomicile(mb_strtoupper($apparence->club()->getNom()))->setExterieur(mb_strtoupper($apparence->club()->getNom()));
+
+        return $this->formulairePlateau($request, $plateau, $em, $apparence, 'Nouveau plateau');
+    }
+
+    private function formulairePlateau(Request $request, Rencontre $plateau, EntityManagerInterface $em, Apparence $apparence, string $titre): Response
+    {
+        $ids = array_map(fn (Categorie $c) => $c->getId(), array_filter($this->categoriesTenables($this->categories), fn (Categorie $c) => $c->isPlateaux()));
+        if ($plateau->getCategorie()) {
+            $ids[] = $plateau->getCategorie()->getId();
+        }
+        $form = $this->createForm(PlateauType::class, $plateau, ['categories' => array_values(array_unique($ids)), 'club' => $apparence->club()->getNom()]);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $nouveau = null === $plateau->getId();
+            $this->tracer($plateau);
+            $em->persist($plateau);
+            $em->flush();
+            if ($nouveau && 'convocation' === $request->getPayload()->getString('suite')) {
+                $this->addFlash('succes', 'Plateau enregistré. Choisissez maintenant les enfants convoqués.');
+
+                return $this->redirectToRoute('app_convocation', ['id' => $plateau->getId()]);
+            }
+            $this->addFlash('succes', 'Plateau enregistré.');
+
+            return $this->redirectToRoute('app_rencontre_voir', ['id' => $plateau->getId()]);
+        }
+
+        return $this->render('rencontre/plateau_formulaire.html.twig', [
+            'nouveau' => null === $plateau->getId(),
+            'plateau' => $plateau,
+            'form' => $form,
+            'titre' => $titre,
+        ]);
     }
 
     /**
@@ -328,6 +382,16 @@ class RencontreController extends AbstractController
     #[IsGranted(ActiviteVoter::GERER, 'rencontre')]
     public function voir(Rencontre $rencontre, ConvocationRepository $convocations, CompositionTerrain $terrain, MessageRepository $messages): Response
     {
+        if ($rencontre->isPlateau()) {
+            return $this->render('rencontre/plateau.html.twig', [
+                'plateau' => $rencontre,
+                'convocation' => $convocations->pour($rencontre),
+                'modifiable' => $this->isGranted(ActiviteVoter::MODIFIER_MATCH, $rencontre),
+                'peut_designer' => $rencontre->getCategorie() && $this->peutDesigner($rencontre->getCategorie()),
+                'responsables' => $rencontre->getCategorie() ? $this->responsables->de($rencontre->getCategorie()) : null,
+            ]);
+        }
+
         return $this->render('rencontre/voir.html.twig', [
             'rencontre' => $rencontre,
             'convocation' => $convocations->pour($rencontre),
@@ -386,8 +450,11 @@ class RencontreController extends AbstractController
 
     #[Route('/matchs/{id}/modifier', name: 'app_rencontre_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     #[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
-    public function modifier(Request $request, Rencontre $rencontre, EntityManagerInterface $em, JoueurRepository $joueurs, ConvocationRepository $convocations): Response
+    public function modifier(Request $request, Rencontre $rencontre, EntityManagerInterface $em, JoueurRepository $joueurs, ConvocationRepository $convocations, Apparence $apparence): Response
     {
+        if ($rencontre->isPlateau()) {
+            return $this->formulairePlateau($request, $rencontre, $em, $apparence, 'Modifier le plateau');
+        }
         // Feuille de match encore vide : on part des joueurs qui ont répondu présent à la convocation.
         $prerempli = 0;
         if ($request->isMethod('GET') && $rencontre->getParticipations()->isEmpty() && ($convocation = $convocations->pour($rencontre))) {
@@ -425,8 +492,9 @@ class RencontreController extends AbstractController
     private function formulaire(Request $request, Rencontre $rencontre, EntityManagerInterface $em, JoueurRepository $joueurs, string $titre, ?array $convoques = null): Response
     {
         $secteurs = $this->voter->secteursMatchs() ?? array_keys(Categorie::SECTEURS);
-        // Équipes proposées : celles dont ce compte tient les matchs (plus celle du match, déjà vérifiée).
-        $tenables = array_map(fn (Categorie $c) => $c->getId(), $this->categoriesTenables($this->categories));
+        // Équipes proposées : celles dont ce compte tient les matchs (plus celle du match, déjà vérifiée),
+        // sauf les équipes à plateaux (elles ont leur propre formulaire).
+        $tenables = array_map(fn (Categorie $c) => $c->getId(), array_filter($this->categoriesTenables($this->categories), fn (Categorie $c) => !$c->isPlateaux()));
         if ($rencontre->getCategorie()) {
             $tenables[] = $rencontre->getCategorie()->getId();
         }

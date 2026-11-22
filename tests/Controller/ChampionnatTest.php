@@ -45,7 +45,8 @@ class ChampionnatTest extends WebTestCase
         static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
         $this->clubId = $club->getId();
         $em = static::getContainer()->get(EntityManagerInterface::class);
-        $equipe = $em->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+        // Première équipe qui joue des matchs (l'école de foot joue des plateaux).
+        $equipe = $em->getRepository(Categorie::class)->findOneBy(['club' => $club, 'plateaux' => false], ['ordre' => 'ASC']);
         $nous = mb_strtoupper("Stade Test $id");
         $saison = Rencontre::saisonDe(new \DateTimeImmutable('today'));
         [$debutSaison] = Rencontre::bornesSaison($saison);

@@ -38,7 +38,11 @@
 
 {# Score « 3 – 1 » d'un match, coloré selon le résultat du club. #}
 {% macro score(r) %}
-    {% if r.butsDomicile is not null and r.butsExterieur is not null %}
+    {# Plateau : pas de score d'ensemble, seulement le nombre de petits matchs (pour mémoire). #}
+    {% if r.plateau %}
+        {% set n = r.matchsPlateau|length %}
+        <span class="score score-plateau" title="Plateau : petits matchs sans classement">{{ n ? n ~ ' match' ~ (n > 1 ? 's') : 'plateau' }}</span>
+    {% elseif r.butsDomicile is not null and r.butsExterieur is not null %}
         <span class="score resultat-{{ r.resultat }}">{{ r.butsDomicile }} – {{ r.butsExterieur }}</span>
     {% else %}
         <span class="score">–</span>

@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{# Ligne d'un petit match (adversaire, nos buts, leurs buts) ; sur téléphone, une carte par ligne. #}
+{% macro ligne(entree) %}
+    <tr data-collection-target="ligne">
+        <td data-label="Adversaire">{{ form_widget(entree.adversaire) }}{{ form_errors(entree.adversaire) }}</td>
+        <td data-label="Nos buts">{{ form_widget(entree.pour) }}</td>
+        <td data-label="Leurs buts">{{ form_widget(entree.contre) }}</td>
+        <td class="retirer-ligne"><button type="button" class="bouton danger petit" data-action="collection#retirer" title="Retirer ce match">×</button></td>
+    </tr>
+{% endmacro %}
+{% import _self as s %}
+
+{% block body %}
+    {% if plateau.id %}
+        {{ m.retour(path('app_rencontre_voir', {id: plateau.id}), 'Plateau') }}
+    {% else %}
+        {{ m.retour(path('app_rencontre_index'), 'Matchs') }}
+    {% endif %}
+    <h1>{{ titre }}</h1>
+    <p class="discret">Un plateau rassemble plusieurs clubs pour de petits matchs, sans classement (école de foot). Les scores notés restent pour mémoire : ils ne comptent ni dans le bilan, ni dans les statistiques.</p>
+
+    {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}
+        {{ form_errors(form) }}
+
+        <fieldset class="carte">
+            <legend>Plateau</legend>
+            {{ m.groupe(form, ['date', 'heure', 'categorie']) }}
+            <div class="champs equipes-match plateau-lieu">
+                <div class="champ">
+                    {{ form_label(form.chez) }}
+                    <div class="choix-cote">{{ form_widget(form.chez) }}</div>
+                </div>
+                <div class="champ champ-organisateur">{{ form_label(form.organisateur) }}{{ form_widget(form.organisateur) }}{{ form_errors(form.organisateur) }}</div>
+                <div class="champ">{{ form_label(form.lieu) }}{{ form_widget(form.lieu) }}{{ form_errors(form.lieu) }}</div>
+            </div>
+            {{ m.groupe(form, ['clubs']) }}
+        </fieldset>
+
+        {# Nouveau plateau : d'abord quand, où et la convocation ; les petits matchs et le bilan se notent après. #}
+        <div {{ nouveau ? 'hidden' }}>
+            <fieldset class="carte">
+                <legend>Petits matchs</legend>
+                <p class="discret petit">Les matchs joués par l'équipe ce jour-là. Score facultatif, pour mémoire : pas de classement.</p>
+                <div data-controller="collection" data-collection-prototype-value="{{ s.ligne(form.matchsPlateau.vars.prototype)|e('html_attr') }}" data-collection-index-value="{{ form.matchsPlateau|length > 0 ? form.matchsPlateau|keys|last + 1 : 0 }}">
+                    <div class="table-defile">
+                        <table class="liste saisie">
+                            <thead><tr><th>Adversaire</th><th>Nos buts</th><th>Leurs buts</th><th></th></tr></thead>
+                            <tbody data-collection-target="corps">
+                                {% for entree in form.matchsPlateau %}{{ s.ligne(entree) }}{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="bouton" data-action="collection#ajouter">+ Ajouter un match</button>
+                </div>
+                {% do form.matchsPlateau.setRendered %}
+            </fieldset>
+
+            <fieldset class="carte">
+                <legend>Bilan</legend>
+                {{ m.groupe(form, ['rapport']) }}
+            </fieldset>
+        </div>
+
+        {{ form_rest(form) }}
+        <div class="barre-actions">
+            {% if nouveau %}
+                <button type="submit" class="bouton principal" name="suite" value="convocation">Enregistrer et convoquer</button>
+                <button type="submit" class="bouton">Enregistrer sans convoquer</button>
+                <p class="discret petit">Les petits matchs et le bilan se notent ensuite, avec « Modifier » sur la page du plateau.</p>
+            {% else %}
+                <button type="submit" class="bouton principal">Enregistrer le plateau</button>
+            {% endif %}
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

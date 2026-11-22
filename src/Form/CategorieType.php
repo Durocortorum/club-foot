@@ -41,6 +41,12 @@ class CategorieType extends AbstractType
                 'label' => 'Équipe féminine',
                 'required' => false,
                 'help' => 'Cochée d\'office pour un nom comme « Féminines », « U15 F » ou « U13 Filles ».',
+            ])
+            ->add('plateaux', CheckboxType::class, [
+                'label' => 'Joue des plateaux (pas de matchs à classement)',
+                'required' => false,
+                'help' => 'Rassemblements de plusieurs clubs avec de petits matchs, sans classement : le site propose alors des plateaux au lieu de matchs. '
+                    . 'Cochée d\'office pour l\'école de foot (U7, U9, U11) ; à cocher pour les U13 si votre district fait de même.',
             ]);
 
         // Durée laissée vide : celle d'usage pour ce nom de catégorie. Nouvelle catégorie au nom féminin : cochée.

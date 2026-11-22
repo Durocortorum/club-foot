@@ -10,6 +10,7 @@ use App\Entity\Benevole;
 use App\Entity\Blessure;
 use App\Entity\But;
 use App\Entity\Categorie;
+use App\Entity\ResultatPoule;
 use App\Entity\Club;
 use App\Entity\CommandeBoutique;
 use App\Entity\Conducteur;
@@ -387,9 +388,112 @@ class ClubDemoCommand extends Command
                 }
             }
         }
+        $this->saisonComplete();
+        $this->plateaux();
         $this->em->flush();
 
         return $joues;
+    }
+
+    /**
+     * École de foot (U9, U11) : un plateau tous les quinze jours, chez nous ou chez un autre club, avec 3 ou 4 petits
+     * matchs notés pour mémoire (pas de classement) ; prochain plateau des U11 : convocation envoyée, réponses en cours.
+     */
+    private function plateaux(): void
+    {
+        $aujourdhui = new \DateTimeImmutable('today');
+        $debut = (new \DateTimeImmutable(substr($this->saison, 0, 4) . '-09-11'))->modify('next saturday');
+        foreach (['U9' => 0, 'U11' => 1] as $cat => $decalage) {
+            $convoque = false;
+            for ($n = 0; $n < 16; ++$n) {
+                // Tous les quinze jours, trêve de Noël comprise (pas de plateau fin décembre).
+                $date = $debut->modify(\sprintf('+%d weeks', 2 * $n + $decalage + ($n >= 7 ? 3 : 0)));
+                $chezNous = 0 === $n % 3;
+                $organisateur = $chezNous ? self::NOM_EQUIPE : self::ADVERSAIRES[($n * 5 + $decalage) % \count(self::ADVERSAIRES)];
+                $invites = array_values(array_filter(array_map(fn (int $k) => self::ADVERSAIRES[($n * 5 + $decalage + $k) % \count(self::ADVERSAIRES)], [1, 2, 3]), fn (string $c) => $c !== $organisateur));
+                $p = (new Rencontre())->setCategorie($this->categories[$cat])->setDate($date)->setHeure('U9' === $cat ? '10h00' : '14h00')
+                    ->setCompetition(Rencontre::PLATEAU)->setDomicile($organisateur)->setExterieur(self::NOM_EQUIPE)
+                    ->setLieu($chezNous ? 'Stade des Coteaux' : 'Stade de ' . ucwords(mb_strtolower(explode(' ', $organisateur, 2)[1])))
+                    ->setClubsPlateau($chezNous ? $invites : \array_slice($invites, 0, 2));
+                if ($date < $aujourdhui) {
+                    $adversaires = array_merge($chezNous ? [] : [$organisateur], $p->getClubsPlateau());
+                    $p->setMatchsPlateau(array_map(fn (string $a) => ['adversaire' => $a, 'pour' => mt_rand(0, 4), 'contre' => mt_rand(0, 3)], $adversaires));
+                    if (0 === $n % 2) {
+                        $p->setRapport('Bon plateau : beaucoup d\'envie et de belles combinaisons. À travailler : les replacements après la perte du ballon.');
+                    }
+                }
+                $this->em->persist($p);
+                if ('U11' === $cat && !$convoque && $date > $aujourdhui) {
+                    $convoque = true;
+                    $convocation = (new Convocation($p))->setJoueurs(\array_slice($this->joueurs[$cat], 0, 10))->setRdvHeure('13h15')->setRdvLieu('Parking du stade des Coteaux')
+                        ->setMessage('Prévoir la tenue, une gourde et le goûter.');
+                    foreach ($convocation->getConvoques() as $k => $c) {
+                        if ($k < 6) {
+                            $c->repondre(Convoque::PRESENT, null, 'Parent');
+                        } elseif (6 === $k) {
+                            $c->repondre(Convoque::ABSENT, 'Malade', 'Parent');
+                        }
+                    }
+                    $convocation->marquerEnvoyee();
+                    $this->em->persist($convocation);
+                }
+            }
+        }
+    }
+
+    /**
+     * U19 : toute la saison au calendrier, pour montrer une saison entière enregistrée.
+     * Championnat aller-retour contre 11 adversaires (22 journées, de septembre à avril, trêves de la Toussaint,
+     * de Noël, de février et de Pâques) et 2 tours de coupe ; les matchs passés ont leur score et leur feuille de match.
+     */
+    private function saisonComplete(): void
+    {
+        $categorie = $this->categories['U19'];
+        $effectif = $this->joueurs['U19'];
+        $aujourdhui = new \DateTimeImmutable('today');
+        // Premier samedi à partir du 5 septembre de l'année où commence la saison.
+        $debut = new \DateTimeImmutable(substr($this->saison, 0, 4) . '-09-04');
+        $debut = $debut->modify('next saturday');
+        $adversaires = \array_slice(self::ADVERSAIRES, 1, 11);
+        // Semaines après la 1re journée : aller (pas de match la 8e semaine, Toussaint), coupe, trêve de Noël, retour.
+        $semainesAller = [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11];
+        $semainesRetour = [19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 31];
+        $matchs = [];
+        foreach ($adversaires as $n => $adversaire) {
+            $matchs[] = [$semainesAller[$n], $adversaire, 0 === $n % 2, 'Championnat'];
+            $matchs[] = [$semainesRetour[$n], $adversaire, 1 === $n % 2, 'Championnat'];
+        }
+        // Le reste de la poule (12 équipes) : à la journée n, le club reçoit ou va chez le n-ième adversaire
+        // et les 10 autres se rencontrent deux à deux (méthode du tourniquet : chaque paire une fois à l'aller,
+        // une fois au retour, terrain inversé). Scores pour les journées passées : le classement se calcule seul.
+        foreach ([$semainesAller, $semainesRetour] as $phase => $semaines) {
+            foreach ($semaines as $n => $semaine) {
+                $date = $debut->modify("+$semaine weeks");
+                for ($k = 1; $k <= 5; ++$k) {
+                    [$a, $b] = [$adversaires[($n + $k) % 11], $adversaires[($n - $k + 11) % 11]];
+                    [$dom, $ext] = (0 === $k % 2) === (0 === $phase) ? [$a, $b] : [$b, $a];
+                    $joue = $date < $aujourdhui;
+                    $this->em->persist((new ResultatPoule($categorie, $this->saison, $date, $dom, $ext, $joue ? mt_rand(0, 4) : null, $joue ? mt_rand(0, 3) : null))
+                        ->setJournee($n + 1 + 11 * $phase));
+                }
+            }
+        }
+        $matchs[] = [13, 'FC SAINT-LAURENT', false, 'Coupe Gambardella'];
+        $matchs[] = [18, 'US VALLÉE VERTE', true, 'Coupe Gambardella'];
+        foreach ($matchs as [$semaine, $adversaire, $domicile, $competition]) {
+            $date = $debut->modify("+$semaine weeks");
+            $r = (new Rencontre())->setCategorie($categorie)->setDate($date)->setHeure('15h30')->setCompetition($competition)
+                ->setDomicile($domicile ? self::NOM_EQUIPE : $adversaire)->setExterieur($domicile ? $adversaire : self::NOM_EQUIPE)
+                ->setLieu($domicile ? 'Stade des Coteaux' : 'Stade de ' . ucwords(mb_strtolower(explode(' ', $adversaire, 2)[1])));
+            if ($date < $aujourdhui) {
+                [$pour, $contre] = [mt_rand(0, 4), mt_rand(0, 3)];
+                $r->setButsDomicile($domicile ? $pour : $contre)->setButsExterieur($domicile ? $contre : $pour)
+                    ->setButsDomicileMiTemps(intdiv($domicile ? $pour : $contre, 2))->setButsExterieurMiTemps(intdiv($domicile ? $contre : $pour, 2))
+                    ->setTerrain(0 === $semaine % 3 ? 'Synthétique' : 'Herbe')->setMeteo(['Ensoleillé', 'Nuageux', 'Pluie'][$semaine % 3])->setSysteme('4 3 3');
+                $this->feuille($r, $effectif, $pour, $contre);
+            }
+            $this->em->persist($r);
+        }
     }
 
     /**

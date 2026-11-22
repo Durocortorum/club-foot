@@ -7,16 +7,16 @@
     {# Étapes numérotées dans l'ordre de la convocation (déplacement, rendez-vous, joueurs, réponses…). #}
     {% set etape = 0 %}
     {% set jours = constant('App\\Service\\EnvoiConvocations::JOURS') %}
-    <p class="lien-retour"><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← Match</a></p>
+    <p class="lien-retour"><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}">← {{ rencontre.plateau ? 'Plateau' : 'Match' }}</a></p>
 
     <div class="titre-page">
         <div>
             <p class="discret">{{ rencontre.equipeAffichee }} · {{ jours[rencontre.date|date('w')] }} {{ rencontre.date|date('d/m/Y') }}{% if rencontre.heure %} à {{ rencontre.heure }}{% endif %}</p>
-            <h1>Convocation · {{ rencontre.domicile }} – {{ rencontre.exterieur }}</h1>
+            <h1>Convocation · {{ rencontre.intitule }}</h1>
         </div>
         <div class="actions">
-            {# Feuille de match : préremplie avec les joueurs présents à la convocation. #}
-            {% if is_granted('MATCH_MODIFIER', rencontre) %}<a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}#feuille-de-match" title="Feuille de match : numéros, titulaires, postes (préremplie avec les joueurs présents)">Feuille de match</a>{% endif %}
+            {# Feuille de match : préremplie avec les joueurs présents à la convocation (pas de feuille pour un plateau). #}
+            {% if is_granted('MATCH_MODIFIER', rencontre) and not rencontre.plateau %}<a class="bouton" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}#feuille-de-match" title="Feuille de match : numéros, titulaires, postes (préremplie avec les joueurs présents)">Feuille de match</a>{% endif %}
             {% if convocation %}
                 <a class="bouton" href="{{ path('app_message_nouveau', {rencontre: rencontre.id}) }}" title="Message aux familles des convoqués (tous, présents, sans réponse...)">Écrire aux convoqués</a>
                 {{ m.supprimer(path('app_convocation_supprimer', {id: rencontre.id}), 'supprimer-convocation' ~ convocation.id, 'Supprimer la convocation et les réponses des familles ? Les convoqués encore vierges sur la feuille de match (sans numéro, poste, note…) en seront aussi retirés. Les familles ne sont pas prévenues.') }}
@@ -46,7 +46,7 @@
                 </ul>
                 <p class="discret petit">Affiché aux familles dans la convocation (e-mail, message du groupe, espace famille).</p>
             {% else %}
-                <p class="discret">Aucun déplacement noté pour ce match à l'extérieur.</p>
+                <p class="discret">Aucun déplacement noté pour ce {{ rencontre.plateau ? 'plateau' : 'match' }} à l'extérieur.</p>
             {% endif %}
             <a class="bouton petit" href="{{ path('app_transport_nouveau', {match: rencontre.id}) }}">+ {{ rencontre.deplacements is empty ? 'Noter le déplacement' : 'Ajouter un véhicule' }}</a>
         </section>

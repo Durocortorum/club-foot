@@ -79,7 +79,7 @@ class TransportController extends AbstractController
         $d = (new Deplacement())->setDate(new \DateTimeImmutable('today'));
         // Depuis un match ou un tournoi : date, équipe et objet déjà remplis.
         if (ctype_digit($id = $request->query->getString('match')) && $m = $rencontres->find((int) $id)) {
-            $d->setDate($m->getDate())->setCategorie($m->getCategorie())->setRencontre($m)->setObjet('Match ' . $m->getEquipeAffichee() . ' : ' . $m->getDomicile() . ' – ' . $m->getExterieur());
+            $d->setDate($m->getDate())->setCategorie($m->getCategorie())->setRencontre($m)->setObjet(($m->isPlateau() ? 'Plateau ' : 'Match ') . $m->getEquipeAffichee() . ' : ' . $m->getIntitule());
         } elseif (ctype_digit($id = $request->query->getString('tournoi')) && $t = $tournois->find((int) $id)) {
             $d->setDate($t->getDebut())->setCategorie($t->getCategorie())->setObjet('Tournoi : ' . $t->getNom() . ($t->getLieu() ? ' (' . $t->getLieu() . ')' : ''));
         }

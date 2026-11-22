@@ -383,7 +383,8 @@ class ConvocationTest extends WebTestCase
         $club = (new Club())->setNom("Club Test $id");
         static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
         $this->clubId = $club->getId();
-        $categorie = $this->em()->getRepository(Categorie::class)->findOneBy(['club' => $club], ['ordre' => 'ASC']);
+        // Première équipe qui joue des matchs (l'école de foot joue des plateaux).
+        $categorie = $this->em()->getRepository(Categorie::class)->findOneBy(['club' => $club, 'plateaux' => false], ['ordre' => 'ASC']);
 
         $this->client->loginUser($admin);
         $crawler = $this->client->request('GET', '/matchs/nouveau');

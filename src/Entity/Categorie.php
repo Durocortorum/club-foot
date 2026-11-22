@@ -60,6 +60,25 @@ class Categorie implements AppartientAuClub
     #[ORM\Column(options: ['default' => false])]
     private bool $feminine = false;
 
+    /**
+     * Équipe qui joue des plateaux (rassemblements de plusieurs clubs, petits matchs sans classement) et non
+     * des matchs : cochée d'office pour l'école de foot (U7, U9, U11), à cocher pour les U13 selon le district.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $plateaux = false;
+
+    public function isPlateaux(): bool
+    {
+        return $this->plateaux;
+    }
+
+    public function setPlateaux(bool $plateaux): static
+    {
+        $this->plateaux = $plateaux;
+
+        return $this;
+    }
+
     /** Durée d'un match en minutes (deux mi-temps), null si la catégorie ne joue pas de matchs à feuille. */
     #[ORM\Column(type: 'smallint', nullable: true)]
     #[Assert\Range(min: 10, max: 120)]

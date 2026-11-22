@@ -412,7 +412,7 @@ class MessageController extends AbstractController
     {
         $r = $c->getRencontre();
 
-        return \sprintf('%s contre %s, %s', $r->getEquipeAffichee(), $r->getAdversaire(), $r->getDate()?->format('d/m'));
+        return \sprintf('%s, %s', $r->getAfficheContre(), $r->getDate()?->format('d/m'));
     }
 
     private function verifier(Message $message): void

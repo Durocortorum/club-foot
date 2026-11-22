@@ -1,0 +1,98 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ plateau.equipeAffichee }} · {{ plateau.intitule }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_rencontre_index', plateau.categorie ? {categorie: plateau.categorie.id} : {}), plateau.categorie and plateau.categorie.plateaux ? 'Plateaux' : 'Matchs') }}
+
+    <div class="titre-page">
+        <div>
+            <p class="discret">
+                {{ plateau.equipeAffichee }} · Plateau
+                · {{ plateau.date ? plateau.date|date('d/m/Y') : 'date inconnue' }}{% if plateau.heure %} à {{ plateau.heure }}{% endif %}
+                {% if plateau.lieu %}· {{ plateau.lieu }}{% endif %}
+            </p>
+            <h1>{{ plateau.intitule }}</h1>
+        </div>
+        <div class="actions">
+            {% if modifiable %}
+                <a class="bouton" href="{{ path('app_convocation', {id: plateau.id}) }}">{{ convocation ? 'Convocation' : 'Convoquer' }}</a>
+                <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: plateau.id}) }}" title="Lieu, clubs présents, petits matchs et bilan">Modifier</a>
+            {% endif %}
+            {% if not plateau.aDomicile %}<a class="bouton" href="{{ path('app_transport_nouveau', {match: plateau.id}) }}" title="Noter le déplacement : car, minibus, voitures et frais kilométriques">Transport</a>{% endif %}
+            {% if modifiable %}{{ m.supprimer(path('app_rencontre_supprimer', {id: plateau.id}), 'supprimer-match' ~ plateau.id, 'Supprimer ce plateau ?') }}{% endif %}
+        </div>
+    </div>
+
+    {# Qui tient les plateaux de l'équipe, et trace de la dernière modification. #}
+    {% set equipe = plateau.categorie %}
+    <p class="discret petit trace-modif">
+        {% if plateau.modifieLe %}
+            Dernière modification le {{ plateau.modifieLe|date('d/m/Y à H:i', 'Europe/Paris') }} par <strong>{{ plateau.modifieParNom ?? 'un compte supprimé' }}</strong>.
+        {% endif %}
+        {% if equipe %}{% include 'rencontre/_responsables.html.twig' %}{% endif %}
+        {% if not modifiable %}<span class="pastille">lecture seule</span>{% endif %}
+        {% if peut_designer %}<a href="{{ path('app_rencontre_responsables', {id: equipe.id, retour: path('app_rencontre_voir', {id: plateau.id})}) }}">Choisir qui modifie les matchs</a>{% endif %}
+    </p>
+
+    <div class="grille-fiches">
+        {% if convocation %}
+            {% set presents = convocation.parReponse('present')|length %}
+            {% set absents = convocation.parReponse('absent')|length %}
+            {% set attente = convocation.parReponse(null)|length %}
+            <section class="carte">
+                <h2>Convocation</h2>
+                <p>
+                    {{ convocation.convoques|length }} convoqué{{ convocation.convoques|length > 1 ? 's' }}
+                    {% if not convocation.envoyeeLe %}<span class="pastille alerte">pas encore envoyée</span>{% endif %}
+                </p>
+                <p>
+                    <span class="pastille succes">{{ presents }} présent{{ presents > 1 ? 's' }}</span>
+                    <span class="pastille alerte">{{ absents }} absent{{ absents > 1 ? 's' }}</span>
+                    <span class="pastille">{{ attente }} sans réponse</span>
+                </p>
+                {% if modifiable %}<a href="{{ path('app_convocation', {id: plateau.id}) }}">Voir les réponses</a>{% endif %}
+            </section>
+        {% endif %}
+
+        <section class="carte">
+            <h2>Clubs présents</h2>
+            <ul class="liste-simple">
+                <li><strong>{{ plateau.exterieur }}</strong>{% if plateau.aDomicile %} <span class="pastille">organisateur</span>{% endif %}</li>
+                {% if not plateau.aDomicile %}<li>{{ plateau.organisateur }} <span class="pastille">organisateur</span></li>{% endif %}
+                {% for club in plateau.clubsPlateau|filter(c => c != plateau.organisateur and c != plateau.exterieur) %}
+                    <li>{{ club }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section class="carte">
+            <h2>Petits matchs</h2>
+            {% if plateau.matchsPlateau|length %}
+                {% set b = plateau.bilanPlateau %}
+                <ul class="liste-simple">
+                    {% for pm in plateau.matchsPlateau %}
+                        {% set res = pm.pour is not null and pm.contre is not null ? (pm.pour > pm.contre ? 'V' : (pm.pour < pm.contre ? 'D' : 'N')) : null %}
+                        <li class="petit-match">
+                            <span>contre {{ pm.adversaire }}</span>
+                            {% if res %}<span class="score resultat-{{ res }}">{{ pm.pour }} – {{ pm.contre }}</span>{% else %}<span class="score">–</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% if b.V + b.N + b.D %}
+                    <p class="discret petit">Pour mémoire : {{ b.V }} gagné{{ b.V > 1 ? 's' }}, {{ b.N }} nul{{ b.N > 1 ? 's' }}, {{ b.D }} perdu{{ b.D > 1 ? 's' }}. Pas de classement.</p>
+                {% endif %}
+            {% else %}
+                <p class="discret">Pas encore de match noté{{ modifiable ? ' : « Modifier » pour les ajouter après le plateau' }}.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    {% if plateau.rapport %}
+        <section class="carte bloc">
+            <h2>Bilan de l'éducateur</h2>
+            <p class="memo">{{ plateau.rapport }}</p>
+        </section>
+    {% endif %}
+{% endblock %}

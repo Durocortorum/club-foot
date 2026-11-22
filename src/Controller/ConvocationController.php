@@ -250,9 +250,9 @@ class ConvocationController extends AbstractController
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
         $message = (new Message())->setAuteur($moi)
-            ->setSujet(mb_substr(\sprintf('Changement de convocation – %s contre %s, %s', $r->getEquipeAffichee(), $r->getAdversaire(), $quand), 0, 120))
-            ->setCorps(\sprintf("Changement : le joueur n'est finalement plus convoqué pour le match %s – %s du %s.\n\nPour toute question, répondez à ce message.", $r->getDomicile(), $r->getExterieur(), $quand))
-            ->setCible('retrait')->setCibleLibelle(\sprintf('Retirés de la convocation – %s contre %s, %s', $r->getEquipeAffichee(), $r->getAdversaire(), $r->getDate()->format('d/m')))
+            ->setSujet(mb_substr(\sprintf('Changement de convocation – %s, %s', $r->getAfficheContre(), $quand), 0, 120))
+            ->setCorps(\sprintf("Changement : le joueur n'est finalement plus convoqué pour le %s %s du %s.\n\nPour toute question, répondez à ce message.", $r->isPlateau() ? 'plateau' : 'match', $r->isPlateau() ? $r->getAfficheContre() : $r->getIntitule(), $quand))
+            ->setCible('retrait')->setCibleLibelle(\sprintf('Retirés de la convocation – %s, %s', $r->getAfficheContre(), $r->getDate()->format('d/m')))
             ->setCategorie($r->getCategorie())->setRencontre($r);
         $resultat = $messagerie->envoyer($message, $retires, true);
         $this->addFlash('info', \sprintf('Famille%s prévenue%1$s du retrait (e-mail et messagerie).', \count($retires) > 1 ? 's' : ''));

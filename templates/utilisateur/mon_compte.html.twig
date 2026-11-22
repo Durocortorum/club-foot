@@ -80,7 +80,7 @@
                         <p>{% for r in e.roles %}<span class="pastille {{ r starts with 'Responsable secteur' ? 'responsable' }}">{{ r }}</span> {% endfor %}</p>
                         <p class="petit">
                             {% if p %}
-                                Prochain match : {% if voit_matchs %}<a href="{{ path('app_rencontre_voir', {id: p.id}) }}">{% endif %}{{ p.date|date('d/m/Y') }}{{ p.heure ? ' à ' ~ p.heure }} · {{ p.aDomicile ? 'vs' : '@' }} {{ p.adversaire }}{% if voit_matchs %}</a>{% endif %}
+                                {{ p.plateau ? 'Prochain plateau' : 'Prochain match' }} : {% if voit_matchs %}<a href="{{ path('app_rencontre_voir', {id: p.id}) }}">{% endif %}{{ p.date|date('d/m/Y') }}{{ p.heure ? ' à ' ~ p.heure }} · {% if not p.plateau %}{{ p.aDomicile ? 'vs' : '@' }} {% endif %}{{ p.adversaire }}{% if voit_matchs %}</a>{% endif %}
                             {% else %}
                                 <span class="discret">Pas de match prévu</span>
                             {% endif %}

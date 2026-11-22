@@ -28,7 +28,7 @@ class CreationClub
         foreach (Categorie::MODELES as $secteur => $noms) {
             foreach ($noms as $nom) {
                 $this->em->persist((new Categorie())->setNom($nom)->setSecteur($secteur)->setOrdre(++$ordre)->setClub($club)
-                    ->setDureeMatch(Categorie::dureeParDefaut($nom)));
+                    ->setDureeMatch(Categorie::dureeParDefaut($nom))->setPlateaux(Categorie::SECTEUR_ECOLE_FOOT === $secteur));
             }
         }
 

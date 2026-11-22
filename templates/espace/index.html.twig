@@ -175,7 +175,7 @@
                     <form method="post" action="{{ path('app_espace_ressenti', {joueur: j.id}) }}" class="ressenti-saisie">
                         <input type="hidden" name="_token" value="{{ csrf_token('ressenti' ~ j.id) }}">
                         <input type="hidden" name="seance" value="{{ cle }}">
-                        <p><strong>{{ est_match ? 'Match contre ' ~ s.adversaire : 'Entraînement' }}</strong> <span class="discret">du {{ ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][s.date|date('w')] }} {{ s.date|date('d/m') }}</span> : comment {{ j.prenom }} a-t-il (elle) ressenti l'effort ?</p>
+                        <p><strong>{{ est_match ? (s.plateau ? s.adversaire : 'Match contre ' ~ s.adversaire) : 'Entraînement' }}</strong> <span class="discret">du {{ ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][s.date|date('w')] }} {{ s.date|date('d/m') }}</span> : comment {{ j.prenom }} a-t-il (elle) ressenti l'effort ?</p>
                         <div class="echelle-rpe" role="radiogroup" aria-label="Effort ressenti, de 1 (très facile) à 10 (maximum)">
                             {% for n, libelle in echelle_rpe %}
                                 <label class="rpe-{{ n }}" title="{{ libelle }}"><input type="radio" name="rpe" value="{{ n }}" required><span>{{ n }}</span></label>
@@ -203,7 +203,7 @@
                     {% set r = cv.rencontre %}
                     <div class="convocation-famille">
                         <strong>{{ ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][r.date|date('w')] }} {{ r.date|date('d/m/Y') }}</strong>{% if r.heure %} à {{ r.heure }}{% endif %}
-                        <div>{{ r.domicile }} – {{ r.exterieur }} <span class="discret">· {{ r.competition ?? 'Match' }}</span></div>
+                        <div>{{ r.intitule }}{% if not r.plateau %} <span class="discret">· {{ r.competition ?? 'Match' }}</span>{% endif %}</div>
                         {% if cv.rdvHeure or cv.rdvLieu %}
                             <div>Rendez-vous{% if cv.rdvHeure %} à <strong>{{ cv.rdvHeure }}</strong>{% endif %}{% if cv.rdvLieu %}, {{ cv.rdvLieu }}{% endif %}</div>
                         {% endif %}
@@ -278,7 +278,7 @@
                     {% for r in e.matchs %}
                         <li>
                             <strong class="nowrap">{{ ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][r.date|date('w')] }} {{ r.date|date('d/m/Y') }}</strong>{% if r.heure %} à {{ r.heure }}{% endif %}
-                            <div>{{ r.domicile }} – {{ r.exterieur }} <span class="discret">· {{ r.competition ?? 'Match' }}</span></div>
+                            <div>{{ r.intitule }}{% if not r.plateau %} <span class="discret">· {{ r.competition ?? 'Match' }}</span>{% endif %}</div>
                             {% if r.lieu %}<div class="discret petit">{{ r.lieu }}</div>{% endif %}
                         </li>
                     {% endfor %}
@@ -322,7 +322,7 @@
                                         {% set bp = e.stats.buts[r.id] ?? {buts: 0, passes: 0} %}
                                         <tr data-periode-target="ligne" data-saison="{{ r.saison }}">
                                             <td class="nowrap">{{ r.date ? r.date|date('d/m/Y') }}</td>
-                                            <td class="principal etroit">{{ r.domicile }} – {{ r.exterieur }} <span class="discret">{{ r.equipeAffichee }}</span></td>
+                                            <td class="principal etroit">{{ r.intitule }} <span class="discret">{{ r.equipeAffichee }}</span></td>
                                             <td class="a-cote">{{ m.score(r) }}</td>
                                             <td>{{ p.poste }}</td>
                                             <td data-label="min.">{{ p.tempsJeu }}</td>

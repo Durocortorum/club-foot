@@ -69,7 +69,7 @@
     {# Le fil du club : défile en continu, s'arrête au survol. #}
     {% set fil = [] %}
     {% for r in semaine %}
-        {% set fil = fil|merge([{genre: 'match', icone: '⚽', lien: path('app_rencontre_voir', {id: r.id}), texte: a.jour(r.date) ~ (r.heure ? ' ' ~ r.heure|replace({':': 'h'})) ~ ' · ' ~ r.equipeAffichee ~ ' – ' ~ r.adversaire ~ (r.aDomicile ? ' (dom.)' : ' (ext.)')}]) %}
+        {% set fil = fil|merge([{genre: 'match', icone: '⚽', lien: path('app_rencontre_voir', {id: r.id}), texte: a.jour(r.date) ~ (r.heure ? ' ' ~ r.heure|replace({':': 'h'})) ~ ' · ' ~ r.equipeAffichee ~ ' – ' ~ r.adversaire ~ (r.plateau ? '' : (r.aDomicile ? ' (dom.)' : ' (ext.)'))}]) %}
     {% endfor %}
     {% for r in resultats %}
         {% set fil = fil|merge([{genre: 'resultat resultat-' ~ r.resultat, icone: {V: '🏆', N: '🤝', D: '📉'}[r.resultat], lien: path('app_rencontre_voir', {id: r.id}), texte: r.equipeAffichee ~ ' ' ~ r.butsPour ~ ' – ' ~ r.butsContre ~ ' ' ~ r.adversaire}]) %}
@@ -127,7 +127,7 @@
                         <li>
                             <a href="{{ path('app_rencontre_voir', {id: r.id}) }}">
                                 <span class="accueil-quand"><strong>{{ a.jour(r.date) }}</strong>{% if r.heure %}<br>{{ r.heure|replace({':': 'h'}) }}{% endif %}</span>
-                                <span class="accueil-quoi"><strong>{{ r.equipeAffichee }}</strong> – {{ r.adversaire }}<br><span class="discret petit">{{ r.aDomicile ? 'à domicile' : 'à l\'extérieur' }}{% if r.competition %} · {{ r.competition }}{% endif %}</span></span>
+                                <span class="accueil-quoi"><strong>{{ r.equipeAffichee }}</strong> – {{ r.adversaire }}<br><span class="discret petit">{% if r.plateau %}{{ r.lieu ?: 'Plateau' }}{% else %}{{ r.aDomicile ? 'à domicile' : 'à l\'extérieur' }}{% if r.competition %} · {{ r.competition }}{% endif %}{% endif %}</span></span>
                             </a>
                         </li>
                     {% endfor %}
@@ -225,9 +225,9 @@
                         <span class="equipe-effectif">{{ c.total }} joueur{{ c.total > 1 ? 's' }}</span>
                         <span class="equipe-prochain">
                             {% if c.prochain %}
-                                ⚽ {{ a.jour(c.prochain.date) }} · {{ c.prochain.aDomicile ? 'vs' : '@' }} {{ c.prochain.adversaire }}
+                                ⚽ {{ a.jour(c.prochain.date) }} · {% if not c.prochain.plateau %}{{ c.prochain.aDomicile ? 'vs' : '@' }} {% endif %}{{ c.prochain.adversaire }}
                             {% else %}
-                                <span class="discret">Pas de match prévu</span>
+                                <span class="discret">{{ c.plateaux ? 'Pas de plateau prévu' : 'Pas de match prévu' }}</span>
                             {% endif %}
                         </span>
                     </a>

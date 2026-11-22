@@ -2,10 +2,11 @@
 {% set jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] %}
 Bonjour,
 
-{% if definitive|default(false) %}Convocation définitive : le groupe pour ce match est fixé. En cas d'empêchement, prévenez-nous au plus vite.
+{% set quoi = r.plateau ? 'plateau' : 'match' %}
+{% if definitive|default(false) %}Convocation définitive : le groupe pour ce {{ quoi }} est fixé. En cas d'empêchement, prévenez-nous au plus vite.
 {% elseif relance %}Petit rappel : nous attendons toujours votre réponse.
 {% endif %}
-{{ convoque.joueur.prenom }} {{ convoque.joueur.nom }} est convoqué(e) pour le match {{ r.equipeAffichee }} – {{ r.adversaire }} le {{ jours[r.date|date('w')] }} {{ r.date|date('d/m/Y') }}{% if r.heure %} à {{ r.heure }}{% endif %}.
+{{ convoque.joueur.prenom }} {{ convoque.joueur.nom }} est convoqué(e) pour le {{ quoi }} {{ r.equipeAffichee }} – {{ r.adversaire }} le {{ jours[r.date|date('w')] }} {{ r.date|date('d/m/Y') }}{% if r.heure %} à {{ r.heure }}{% endif %}.
 {% if convocation.rdvHeure or convocation.rdvLieu %}
 Rendez-vous{% if convocation.rdvHeure %} à {{ convocation.rdvHeure }}{% endif %}{% if convocation.rdvLieu %}, {{ convocation.rdvLieu }}{% endif %}.
 {% endif %}

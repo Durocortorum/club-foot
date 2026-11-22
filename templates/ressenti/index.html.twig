@@ -36,7 +36,7 @@
                         <th>Joueur</th>
                         {% for s in tableau.seances %}
                             {% set o = s.objet %}
-                            <th class="centre" title="{{ o.adversaire is defined ? 'Match contre ' ~ o.adversaire : 'Entraînement' }}">{{ o.adversaire is defined ? '⚽' : '🏃' }}<br>{{ jours[o.date|date('w')] }} {{ o.date|date('d/m') }}</th>
+                            <th class="centre" title="{{ o.adversaire is defined ? (o.plateau ? o.adversaire : 'Match contre ' ~ o.adversaire) : 'Entraînement' }}">{{ o.adversaire is defined ? '⚽' : '🏃' }}<br>{{ jours[o.date|date('w')] }} {{ o.date|date('d/m') }}</th>
                         {% endfor %}
                         <th class="a-droite" title="Somme des RPE × minutes de la semaine">Charge</th>
                         <th class="a-droite" title="Moyenne des 4 semaines précédentes">Moy. 4 sem.</th>

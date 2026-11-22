@@ -21,6 +21,12 @@ class Rencontre implements AppartientAuClub
     use ClubTrait;
 
     public const COMPETITIONS = ['Championnat', 'Coupe', 'Amical', 'Tournoi'];
+    /**
+     * Compétition des plateaux de l'école de foot (équipes « à plateaux », voir Categorie::isPlateaux) : rassemblement
+     * de plusieurs clubs chez l'un d'eux (« domicile » = club organisateur, « extérieur » = le club), petits matchs
+     * notés pour mémoire, sans score d'ensemble : ils ne comptent ni dans le bilan, ni dans un classement.
+     */
+    public const PLATEAU = 'Plateau';
     public const TERRAINS = ['Synthétique', 'Herbe Souple', 'Herbe Gras', 'Herbe Bosselé', 'Herbe Sec', 'Stabilisé'];
     public const METEOS = ['Soleil', 'Nuageux', 'Couvert', 'Pluie', 'Forte pluie', 'Orage', 'Brouillard', 'Neige', 'Gel', 'Forte chaleur'];
     public const VENTS = ['Néant', 'Faible', 'Modéré', 'Fort', 'Rafale', 'Violent'];
@@ -120,6 +126,108 @@ class Rencontre implements AppartientAuClub
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $rapport = null;
+
+    /**
+     * Plateau : petits matchs joués ce jour-là, du point de vue du club (pour mémoire, sans classement).
+     *
+     * @var list<array{adversaire: string, pour: ?int, contre: ?int}>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $matchsPlateau = null;
+
+    /**
+     * Plateau : autres clubs présents (en plus du club).
+     *
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $clubsPlateau = null;
+
+    public function isPlateau(): bool
+    {
+        return self::PLATEAU === $this->competition;
+    }
+
+    /** Plateau : club qui l'organise (rangé dans « domicile »). */
+    public function getOrganisateur(): ?string
+    {
+        return $this->domicile;
+    }
+
+    /** @return list<array{adversaire: string, pour: ?int, contre: ?int}> */
+    public function getMatchsPlateau(): array
+    {
+        return $this->matchsPlateau ?? [];
+    }
+
+    /** @param iterable<array<string, mixed>> $matchs lignes sans adversaire ignorées ; scores vides ou négatifs : inconnus */
+    public function setMatchsPlateau(iterable $matchs): static
+    {
+        $propres = [];
+        foreach ($matchs as $m) {
+            $adversaire = mb_strtoupper(trim((string) ($m['adversaire'] ?? '')));
+            if ('' === $adversaire) {
+                continue;
+            }
+            $score = fn ($v) => is_numeric($v) && (int) $v >= 0 ? min(99, (int) $v) : null;
+            $propres[] = ['adversaire' => mb_substr($adversaire, 0, 80), 'pour' => $score($m['pour'] ?? null), 'contre' => $score($m['contre'] ?? null)];
+        }
+        $this->matchsPlateau = $propres ?: null;
+
+        return $this;
+    }
+
+    /** @return list<string> */
+    public function getClubsPlateau(): array
+    {
+        return $this->clubsPlateau ?? [];
+    }
+
+    /** @param list<string> $clubs */
+    public function setClubsPlateau(array $clubs): static
+    {
+        $clubs = array_values(array_unique(array_filter(array_map(fn ($c) => mb_substr(mb_strtoupper(trim((string) $c)), 0, 80), $clubs))));
+        $this->clubsPlateau = $clubs ?: null;
+
+        return $this;
+    }
+
+    /**
+     * Plateau : petits matchs gagnés, nuls et perdus (ceux dont le score est noté), pour mémoire.
+     *
+     * @return array{V: int, N: int, D: int}
+     */
+    public function getBilanPlateau(): array
+    {
+        $bilan = ['V' => 0, 'N' => 0, 'D' => 0];
+        foreach ($this->getMatchsPlateau() as $m) {
+            if (null !== $m['pour'] && null !== $m['contre']) {
+                ++$bilan[$m['pour'] <=> $m['contre'] ? ($m['pour'] > $m['contre'] ? 'V' : 'D') : 'N'];
+            }
+        }
+
+        return $bilan;
+    }
+
+    /** Intitulé du plateau : « Plateau à domicile » ou « Plateau chez US VALLÉE VERTE ». */
+    private function intitulePlateau(): string
+    {
+        return $this->isADomicile() ? 'Plateau à domicile' : 'Plateau chez ' . $this->domicile;
+    }
+
+    /** Intitulé à afficher : « DOMICILE – EXTÉRIEUR » pour un match, « Plateau chez … » pour un plateau. */
+    public function getIntitule(): string
+    {
+        return $this->isPlateau() ? $this->intitulePlateau() : trim(\sprintf('%s – %s', $this->domicile, $this->exterieur));
+    }
+
+    /** « U15 contre US VALLÉE VERTE » ; pour un plateau : « U9, plateau chez US VALLÉE VERTE ». */
+    public function getAfficheContre(): string
+    {
+        return $this->isPlateau()
+            ? $this->getEquipeAffichee() . ', ' . lcfirst($this->intitulePlateau())
+            : $this->getEquipeAffichee() . ' contre ' . $this->getAdversaire();
+    }
 
     /**
      * Chrono du match en direct, commun à toutes les tablettes : période, en cours ou non, début (ms, heure du serveur),
@@ -734,8 +842,13 @@ class Rencontre implements AppartientAuClub
         return false;
     }
 
+    /** Adversaire du match ; pour un plateau (pas d'adversaire unique) : « Plateau chez … » ou « Plateau à domicile ». */
     public function getAdversaire(): ?string
     {
+        if ($this->isPlateau()) {
+            return $this->intitulePlateau();
+        }
+
         return $this->isADomicile() ? $this->exterieur : $this->domicile;
     }
 
@@ -1139,6 +1252,6 @@ class Rencontre implements AppartientAuClub
 
     public function __toString(): string
     {
-        return trim(sprintf('%s – %s', $this->domicile, $this->exterieur));
+        return $this->getIntitule();
     }
 }

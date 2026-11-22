@@ -170,7 +170,7 @@ class EnvoiConvocations
         // Pas d'émoji : certaines versions de WhatsApp les affichent en « � » dans un message prérempli.
         $lignes = [
             \sprintf('CONVOCATION %s – %s', $r->getEquipeAffichee(), $r->getAdversaire()),
-            \sprintf('Match : %s %s%s%s', self::JOURS[(int) $r->getDate()->format('w')], $r->getDate()->format('d/m'), $r->getHeure() ? ' à ' . $r->getHeure() : '', $r->getLieu() ? ', ' . $r->getLieu() : ''),
+            \sprintf('%s : %s %s%s%s', $r->isPlateau() ? 'Plateau' : 'Match', self::JOURS[(int) $r->getDate()->format('w')], $r->getDate()->format('d/m'), $r->getHeure() ? ' à ' . $r->getHeure() : '', $r->getLieu() ? ', ' . $r->getLieu() : ''),
         ];
         if ($convocation->getRdvHeure() || $convocation->getRdvLieu()) {
             $lignes[] = 'Rendez-vous : ' . trim(($convocation->getRdvHeure() ? $convocation->getRdvHeure() : '') . ($convocation->getRdvLieu() ? ', ' . $convocation->getRdvLieu() : ''), ' ,');
@@ -243,7 +243,7 @@ class EnvoiConvocations
         $r = $convocation->getRencontre();
         $quand = \sprintf('%s %s%s', self::JOURS[(int) $r->getDate()->format('w')], $r->getDate()->format('d/m'), $r->getHeure() ? ' à ' . $r->getHeure() : '');
         $lignes = [
-            \sprintf('Match : %s – %s, %s%s.', $r->getDomicile(), $r->getExterieur(), mb_strtolower($quand), $r->getLieu() ? ', ' . $r->getLieu() : ''),
+            \sprintf('%s : %s, %s%s.', $r->isPlateau() ? 'Plateau' : 'Match', $r->getIntitule(), mb_strtolower($quand), $r->getLieu() ? ', ' . $r->getLieu() : ''),
         ];
         if ($convocation->getRdvHeure() || $convocation->getRdvLieu()) {
             $lignes[] = 'Rendez-vous : ' . trim(($convocation->getRdvHeure() ?? '') . ($convocation->getRdvLieu() ? ', ' . $convocation->getRdvLieu() : ''), ' ,') . '.';
@@ -254,15 +254,15 @@ class EnvoiConvocations
         }
         $lignes[] = '';
         $lignes[] = match (true) {
-            $definitive => 'Convocation définitive : le joueur fait partie du groupe retenu pour ce match. En cas d\'empêchement, prévenez-nous au plus vite (réponse « absent » dans « Mon espace »).',
+            $definitive => 'Convocation définitive : le joueur fait partie du groupe retenu pour ce ' . ($r->isPlateau() ? 'plateau' : 'match') . '. En cas d\'empêchement, prévenez-nous au plus vite (réponse « absent » dans « Mon espace »).',
             $relance => 'Nous n\'avons pas encore votre réponse : merci d\'indiquer présent ou absent dans « Mon espace ».',
             default => 'Merci de répondre présent ou absent dans « Mon espace ».',
         };
 
         return [
-            'sujet' => mb_substr(\sprintf('%sConvocation %s contre %s, %s', $definitive ? 'Définitive – ' : ($relance ? 'Rappel – ' : ''), $r->getEquipeAffichee(), $r->getAdversaire(), mb_strtolower($quand)), 0, 120),
+            'sujet' => mb_substr(\sprintf('%sConvocation %s, %s', $definitive ? 'Définitive – ' : ($relance ? 'Rappel – ' : ''), $r->getAfficheContre(), mb_strtolower($quand)), 0, 120),
             'corps' => implode("\n", $lignes),
-            'cible' => \sprintf('%s – %s contre %s, %s', $relance ? 'Convoqués sans réponse' : 'Convoqués', $r->getEquipeAffichee(), $r->getAdversaire(), $r->getDate()->format('d/m')),
+            'cible' => \sprintf('%s – %s, %s', $relance ? 'Convoqués sans réponse' : 'Convoqués', $r->getAfficheContre(), $r->getDate()->format('d/m')),
         ];
     }
 

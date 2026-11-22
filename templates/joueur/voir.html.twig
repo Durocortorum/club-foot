@@ -230,7 +230,7 @@
                                 {% set bp = buts_par_match[r.id] ?? {buts: 0, passes: 0} %}
                                 <tr data-periode-target="ligne" data-saison="{{ r.saison }}" {{ r.saison != saisons_matchs|first ? 'hidden' }}>
                                     <td class="nowrap">{{ r.date ? r.date|date('d/m/Y') }}</td>
-                                    <td class="principal etroit"><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.domicile }} – {{ r.exterieur }}</a> <span class="discret">{{ r.equipeAffichee }}</span></td>
+                                    <td class="principal etroit"><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.intitule }}</a> <span class="discret">{{ r.equipeAffichee }}</span></td>
                                     <td class="a-cote">{{ m.score(r) }}</td>
                                     <td>{{ p.poste }}</td>
                                     <td data-label="min.">{{ p.tempsJeu }}</td>
