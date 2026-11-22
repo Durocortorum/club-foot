@@ -1,0 +1,173 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Performances de {{ joueur.nomComplet }}{% endblock %}
+
+{% macro note(v) %}{{ v is not null ? v|number_format(1, ',') : '–' }}{% endmacro %}
+{% macro taux(v) %}{{ v is not null ? v|number_format(1, ',') ~ ' %' : '–' }}{% endmacro %}
+{% import _self as f %}
+
+{% block body %}
+    {{ m.retour(path('app_joueur_voir', {id: joueur.id}) ~ '#matchs', 'Fiche de ' ~ joueur.prenom) }}
+
+    {% set p = perf.poste %}
+
+    {# ---------- En-tête : photo, nom, postes, saison ---------- #}
+    <section class="carte perf-entete">
+        {{ m.avatar(joueur, 'grand') }}
+        <div class="perf-identite">
+            <h1>{{ joueur.prenom }} <strong>{{ joueur.nom }}</strong></h1>
+            <p class="perf-postes-joues">
+                {% if perf.postes %}{{ perf.postes|slice(0, 2)|map(l => l.nom)|join(' / ') }}{% else %}{{ joueur.poste ?? 'Poste non renseigné' }}{% endif %}
+            </p>
+            <p class="discret">{{ joueur.categorie ?? 'Sans catégorie' }}{% if joueur.age %} · {{ joueur.age }} ans{% endif %}</p>
+            <span class="pastille">Performances par poste</span>
+        </div>
+        <div class="perf-saison">
+            <img class="perf-blason" src="{{ apparence.club.logo ? path('app_club_logo', {version: apparence.club.version}) : asset('images/logo.svg') }}" alt="">
+            {% if perf.saisons|length > 1 %}
+                <form method="get">
+                    <select name="saison" onchange="this.form.requestSubmit()" aria-label="Saison">
+                        {% for s in perf.saisons %}<option value="{{ s }}" {{ s == perf.saison ? 'selected' }}>Saison {{ s|replace({'/': ' – '}) }}</option>{% endfor %}
+                    </select>
+                </form>
+            {% elseif perf.saison %}
+                <p class="perf-saison-texte">Saison<br><strong>{{ perf.saison|replace({'/': ' – '}) }}</strong></p>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if not p %}
+        <p class="carte discret">Aucun match joué avec un poste indiqué sur la feuille de match{{ perf.saison ? ' cette saison' }}.</p>
+    {% else %}
+        {# ---------- Choix du poste et chiffres clés ---------- #}
+        <section class="carte perf-corps">
+            <h2 class="perf-sous-titre">Choisir le poste à analyser</h2>
+            <nav class="onglets segments" aria-label="Poste">
+                {% for nom, l in perf.postes %}
+                    <a href="{{ path('app_joueur_performances', {id: joueur.id, saison: perf.saison, poste: nom}) }}" class="{{ nom == p.nom ? 'actif' }}" {{ nom == p.nom ? 'aria-current="page"' }}>{{ nom }} <small>{{ l.matchs }}</small></a>
+                {% endfor %}
+            </nav>
+
+            <div class="tuiles bilan">
+                <div class="tuile"><div class="tuile-valeur">{{ p.matchs }}</div><div class="tuile-libelle">{{ p.matchs > 1 ? 'Matchs joués' : 'Match joué' }}{% if p.titularisations %}<br><span class="discret petit">dont {{ p.titularisations }} comme titulaire</span>{% endif %}</div></div>
+                <div class="tuile"><div class="tuile-valeur">{{ p.minutes|number_format(0, ',', ' ') }}</div><div class="tuile-libelle">Minutes</div></div>
+                <div class="tuile"><div class="tuile-valeur">{{ f.note(p.note) }}<small class="perf-sur">/10</small></div><div class="tuile-libelle">Note moyenne</div></div>
+                <div class="tuile">
+                    <div class="tuile-valeur"><span class="pct {{ p.taux is null ? '' : (p.taux >= 50 ? 'bon' : (p.taux < 25 ? 'faible')) }}">{{ f.taux(p.taux) }}</span></div>
+                    <div class="tuile-libelle">Taux de victoire{% if p.avecResultat %}<br><span class="discret petit">{{ p.V }} {{ accord(p.V, 'victoire') }} / {{ p.avecResultat }} {{ accord(p.avecResultat, 'match') }}</span>{% endif %}</div>
+                </div>
+            </div>
+
+            <div class="perf-grille">
+                {# ---------- Comparaison des postes ---------- #}
+                <section class="perf-panneau">
+                    <h2 class="titre-bloc">Comparaison selon le poste</h2>
+                    <div class="table-defile">
+                        <table class="liste chiffres perf-comparaison">
+                            <thead><tr><th>Poste</th><th>Matchs</th><th>Minutes</th><th>Note</th><th>Victoires</th><th title="Buts / passes décisives">Buts / P.D.</th></tr></thead>
+                            <tbody>
+                                {% for nom, l in perf.postes %}
+                                    <tr class="{{ nom == p.nom ? 'choisi' }}">
+                                        <td class="principal"><a href="{{ path('app_joueur_performances', {id: joueur.id, saison: perf.saison, poste: nom}) }}">{{ nom }}</a></td>
+                                        <td data-label="matchs">{{ l.matchs }}</td>
+                                        <td data-label="minutes">{{ l.minutes }}</td>
+                                        <td data-label="note">{{ f.note(l.note) }}</td>
+                                        <td data-label="victoires">{{ f.taux(l.taux) }}</td>
+                                        <td data-label="buts / P.D.">{{ l.buts or l.passes ? l.buts ~ ' / ' ~ l.passes }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if perf.postes|length > 1 %}
+                                <tfoot>
+                                    <tr>
+                                        <td class="principal">Tous les postes</td>
+                                        <td data-label="matchs">{{ perf.tous.matchs }}</td>
+                                        <td data-label="minutes">{{ perf.tous.minutes }}</td>
+                                        <td data-label="note">{{ f.note(perf.tous.note) }}</td>
+                                        <td data-label="victoires">{{ f.taux(perf.tous.taux) }}</td>
+                                        <td data-label="buts / P.D.">{{ perf.tous.buts or perf.tous.passes ? perf.tous.buts ~ ' / ' ~ perf.tous.passes }}</td>
+                                    </tr>
+                                </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                </section>
+
+                {# ---------- Profil (radar des actions notées en direct) ---------- #}
+                <section class="perf-panneau">
+                    <h2 class="titre-bloc">Profil du joueur <span class="discret petit">({{ p.nom|lower }})</span></h2>
+                    {% set r = p.radar %}
+                    {% if r %}
+                        <svg class="perf-radar" viewBox="0 0 {{ r.largeur }} {{ r.hauteur }}" role="img" aria-label="Réussite au poste de {{ p.nom|lower }} : {{ r.axes|map(a => a.libelle ~ ' ' ~ a.valeur ~ ' %')|join(', ') }}">
+                            {% for g in r.grilles %}<polygon points="{{ g }}" class="grille"/>{% endfor %}
+                            {% for a in r.axes %}
+                                <line x1="{{ r.cx }}" y1="{{ r.cy }}" x2="{{ a.x }}" y2="{{ a.y }}" class="grille"/>
+                                <text x="{{ a.lx }}" y="{{ a.ly }}" text-anchor="{{ a.ancre }}" dominant-baseline="middle" class="axe">{{ a.libelle }}</text>
+                            {% endfor %}
+                            {% if perf.postes|length > 1 %}<polygon points="{{ r.tous }}" class="serie-tous"/>{% endif %}
+                            <polygon points="{{ r.poste }}" class="serie-poste"/>
+                            {% for a in r.axes %}
+                                <g class="point">
+                                    <circle cx="{{ a.px }}" cy="{{ a.py }}" r="11" class="zone"/>
+                                    <circle cx="{{ a.px }}" cy="{{ a.py }}" r="4" class="marque"/>
+                                    <title>{{ a.libelle }} : {{ a.valeur }} % de réussite{{ perf.postes|length > 1 ? ' (tous postes : ' ~ a.tous ~ ' %)' }}</title>
+                                </g>
+                            {% endfor %}
+                        </svg>
+                        <p class="perf-legende">
+                            <span><span class="perf-cle serie-poste"></span>{{ p.nom }}</span>
+                            {% if perf.postes|length > 1 %}<span><span class="perf-cle serie-tous"></span>Tous ses postes</span>{% endif %}
+                        </p>
+                        <p class="discret petit">Pourcentage de réussite des actions notées en direct (tablette « ⏱ En direct ») dans ses matchs à ce poste. Passez la souris sur un point pour le chiffre.</p>
+                    {% else %}
+                        <p class="discret">Le profil apparaît quand au moins un match à ce poste a été suivi en direct (tablette « ⏱ En direct ») : passes, duels, contrôles, frappes et têtes réussis.</p>
+                    {% endif %}
+                </section>
+
+                {# ---------- Évolution de la note ---------- #}
+                <section class="perf-panneau">
+                    <h2 class="titre-bloc">Évolution de la note moyenne</h2>
+                    {% set c = p.courbe %}
+                    {% if c %}
+                        {% set dernier = c.points|last %}
+                        <svg class="perf-courbe" viewBox="0 0 {{ c.largeur }} {{ c.hauteur }}" role="img" aria-label="Note moyenne au poste de {{ p.nom|lower }}, de {{ (c.points|first).mois }} ({{ f.note((c.points|first).note) }}) à {{ dernier.mois }} ({{ f.note(dernier.note) }})">
+                            {% for g in c.graduations %}
+                                <line x1="{{ c.gauche }}" x2="{{ c.droite }}" y1="{{ g.y }}" y2="{{ g.y }}" class="repere"/>
+                                <text x="{{ c.gauche - 6 }}" y="{{ g.y }}" text-anchor="end" dominant-baseline="middle" class="repere-texte">{{ g.valeur|number_format(1, ',') }}</text>
+                            {% endfor %}
+                            <polygon points="{{ c.aire }}" class="aire"/>
+                            <polyline points="{{ c.trace }}" class="trace"/>
+                            {% for pt in c.points %}
+                                <text x="{{ pt.x }}" y="{{ c.hauteur - 8 }}" text-anchor="middle" class="repere-texte">{{ pt.mois }}</text>
+                                <g class="point">
+                                    <circle cx="{{ pt.x }}" cy="{{ pt.y }}" r="12" class="zone"/>
+                                    <circle cx="{{ pt.x }}" cy="{{ pt.y }}" r="4.5" class="marque"/>
+                                    <title>{{ pt.mois }} : {{ f.note(pt.note) }} /10 ({{ pt.matchs }} {{ accord(pt.matchs, 'match') }})</title>
+                                </g>
+                            {% endfor %}
+                            <g class="etiquette">
+                                <rect x="{{ dernier.x - 20 }}" y="{{ dernier.y - 30 }}" width="40" height="20" rx="5"/>
+                                <text x="{{ dernier.x }}" y="{{ dernier.y - 20 }}" text-anchor="middle" dominant-baseline="middle">{{ f.note(dernier.note) }}</text>
+                            </g>
+                        </svg>
+                        <p class="discret petit">Moyenne des notes de chaque mois à ce poste. Passez la souris sur un point pour le détail.</p>
+                    {% else %}
+                        <p class="discret">La courbe apparaît quand il a été noté à ce poste sur au moins deux mois différents.</p>
+                    {% endif %}
+                </section>
+
+                {# ---------- En bref ---------- #}
+                <section class="perf-panneau perf-bref">
+                    <h2 class="titre-bloc">En bref</h2>
+                    {% if p.bref %}
+                        <ul>{% for phrase in p.bref %}<li>{{ phrase }}</li>{% endfor %}</ul>
+                    {% else %}
+                        <p class="discret">Pas encore assez de matchs à ce poste pour en tirer des conclusions.</p>
+                    {% endif %}
+                </section>
+            </div>
+        </section>
+        <p class="discret petit">Matchs de la saison {{ perf.saison }} où il a joué, d'après le poste et la note de la feuille de match (hors plateaux de l'école de foot). Taux de victoire : sur les matchs dont le score est connu.</p>
+    {% endif %}
+{% endblock %}

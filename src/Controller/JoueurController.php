@@ -22,6 +22,7 @@ use App\Service\AccesFamille;
 use App\Service\AccesMedical;
 use App\Service\ProchesJoueur;
 use App\Service\BilanJoueur;
+use App\Service\PerformancesPoste;
 use App\Service\StatsActions;
 use App\Service\CatalogueTests;
 use App\Service\Progression;
@@ -166,6 +167,22 @@ class JoueurController extends AbstractController
             // Joueur majeur : personnes à contacter (les parents de la fiche y sont repris la première fois).
             'proches' => $joueur->isMineur() ? null : $proches->avecAcces($joueur),
             'proches_modifiables' => $proches->peutGerer($joueur),
+        ]);
+    }
+
+    /** Performances selon le poste occupé, sur une saison (matchs, minutes, note, victoires, profil, évolution). */
+    #[Route('/{id}/performances', name: 'app_joueur_performances', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted(JoueurVoter::VOIR, 'joueur')]
+    public function performances(Request $request, Joueur $joueur, ParticipationRepository $participations, PerformancesPoste $performances): Response
+    {
+        return $this->render('joueur/performances.html.twig', [
+            'joueur' => $joueur,
+            'perf' => $performances->calculer(
+                $joueur,
+                $participations->parJoueur($joueur),
+                $request->query->getString('saison') ?: null,
+                $request->query->getString('poste') ?: null,
+            ),
         ]);
     }
 
