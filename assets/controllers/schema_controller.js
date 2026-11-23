@@ -53,8 +53,11 @@ export default class extends Controller {
     static targets = [
         'svg', 'champ', 'terrain', 'selection', 'nom', 'couleurs', 'texte', 'libelleTexte', 'style', 'tourner', 'annuler',
         'etapes', 'supprimerEtape', 'ajouterEtape', 'lecture', 'aideEtape', 'trace', 'redresser', 'aidePliage',
+        'styleZone', 'formation', 'campFormation',
     ];
-    static values = { lecture: Boolean, schema: Object };
+    // formations : places des joueurs de chaque système (« 4 3 3 » → [[x, y], …] en %, x de gauche à droite,
+    // y de notre but vers le but adverse ; le gardien d'abord), pour le tableau tactique.
+    static values = { lecture: Boolean, schema: Object, formations: Object };
 
     connect() {
         this.id = `schema${++instances}`;
@@ -195,6 +198,53 @@ export default class extends Controller {
     style() {
         this.memoriser();
         this.objetChoisi().s = this.styleTarget.value;
+        this.modifie();
+    }
+
+    /** Zone simple, ou zone de pressing (hachures rouges). */
+    styleZone() {
+        this.memoriser();
+        const objet = this.objetChoisi();
+        if (this.styleZoneTarget.value === 'pressing') objet.s = 'pressing';
+        else delete objet.s;
+        this.modifie();
+    }
+
+    /**
+     * Tableau tactique : place les joueurs d'une équipe selon la formation choisie, sur le terrain entier (nous en
+     * rouge, attaque vers la droite ; l'adversaire en bleu, en miroir). Les joueurs de cette couleur sont remplacés.
+     */
+    placerFormation() {
+        const places = this.formationsValue?.[this.formationTarget.value];
+        if (!Array.isArray(places)) return;
+        const adverse = this.hasCampFormationTarget && this.campFormationTarget.value === 'eux';
+        const couleur = adverse ? 'bleu' : 'rouge';
+        this.arreterAnimation();
+        this.memoriser();
+        if (this.terrain !== 'entier') {
+            this.terrain = 'entier';
+            if (this.hasTerrainTarget) this.terrainTarget.value = 'entier';
+        }
+        const { largeur, hauteur } = TERRAINS.entier;
+        // Les anciens joueurs de cette couleur partent, avec leurs déplacements dans les étapes.
+        for (let i = this.objets.length - 1; i >= 0; i--) {
+            if (this.objets[i].t === 'joueur' && this.objets[i].c === couleur) {
+                this.objets.splice(i, 1);
+                this.etapes.forEach((e) => e.splice(i, 1));
+            }
+        }
+        places.forEach(([px, py], k) => {
+            // Notre but à gauche : la profondeur (y) devient l'abscisse, la gauche (x) passe en haut.
+            let x = MARGE + 105 * (0.03 + 0.85 * py / 100);
+            let y = MARGE + 68 * (px / 100);
+            if (adverse) {
+                x = largeur - x;
+                y = hauteur - y;
+            }
+            this.objets.push({ t: 'joueur', x: arrondi(x), y: arrondi(y), c: couleur, n: String(k + 1) });
+        });
+        this.etape = 0;
+        this.choisi = null;
         this.modifie();
     }
 
@@ -422,7 +472,7 @@ export default class extends Controller {
         this.lectureTarget.disabled = !this.etapes.length;
         this.lectureTarget.textContent = this.animation ? '■ Arrêter' : '▶ Lire l\'animation';
         this.aideEtapeTarget.textContent = !this.etapes.length
-            ? 'Pour animer l\'exercice : placez les objets au départ, ajoutez une étape, puis déplacez joueurs et ballons à leur nouvelle place.'
+            ? 'Pour animer : placez les objets au départ, ajoutez une étape, puis déplacez joueurs et ballons à leur nouvelle place.'
             : this.etape === 0
                 ? 'Départ : place de tous les objets au début de l\'exercice.'
                 : `Étape ${this.etape + 1} : déplacez les joueurs et les ballons vers leur nouvelle place (la trace en pointillés part de l'étape précédente). Les autres objets restent fixes.`;
@@ -600,6 +650,10 @@ export default class extends Controller {
             this.texteTarget.maxLength = objet.t === 'joueur' ? 3 : 60;
         }
         this.styleTarget.hidden = objet.t !== 'fleche';
+        if (this.hasStyleZoneTarget) {
+            this.styleZoneTarget.hidden = objet.t !== 'zone';
+            if (objet.t === 'zone') this.styleZoneTarget.value = objet.s === 'pressing' ? 'pressing' : 'zone';
+        }
         if (objet.t === 'fleche') {
             this.styleTarget.value = objet.s || 'passe';
         }
@@ -657,6 +711,12 @@ export default class extends Controller {
             }, defs);
             this.el('path', { d: 'M0,0 L4,2 L0,4 z', fill: valeur }, marqueur);
         });
+        // Zone de pressing : hachures rouges.
+        const hachures = this.el('pattern', {
+            id: `${this.id}-hachures`, width: 1.6, height: 1.6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)',
+        }, defs);
+        this.el('rect', { width: 1.6, height: 1.6, fill: COULEURS.rouge, 'fill-opacity': 0.12 }, hachures);
+        this.el('line', { x1: 0, y1: 0, x2: 0, y2: 1.6, stroke: COULEURS.rouge, 'stroke-width': 0.7, 'stroke-opacity': 0.75 }, hachures);
 
         this.dessinerTerrain(svg, largeur, hauteur);
         if (!this.lectureValue && !affiches && this.etape > 0) {
@@ -763,6 +823,13 @@ export default class extends Controller {
         }
         if (o.t === 'zone') {
             const g = this.el('g', { 'data-indice': i, class: 'schema-objet' }, calque);
+            if (o.s === 'pressing') {
+                this.el('rect', {
+                    x: o.x, y: o.y, width: o.w, height: o.h, rx: 0.6, fill: `url(#${this.id}-hachures)`,
+                    stroke: COULEURS.rouge, 'stroke-width': 0.3,
+                }, g);
+                return;
+            }
             this.el('rect', {
                 x: o.x, y: o.y, width: o.w, height: o.h, fill: couleur, 'fill-opacity': 0.22,
                 stroke: couleur, 'stroke-width': 0.25, 'stroke-dasharray': '0.8 0.5',
@@ -770,7 +837,9 @@ export default class extends Controller {
             return;
         }
 
-        const g = this.el('g', { 'data-indice': i, class: 'schema-objet', transform: `translate(${o.x} ${o.y}) rotate(${o.r || 0})` }, calque);
+        // Terrain entier (tableau tactique, grand jeu) : joueurs et ballon plus gros, pour rester lisibles.
+        const echelle = this.terrain === 'entier' && MOBILES.includes(o.t) ? 1.4 : 1;
+        const g = this.el('g', { 'data-indice': i, class: 'schema-objet', transform: `translate(${o.x} ${o.y}) rotate(${o.r || 0}) scale(${echelle})` }, calque);
         switch (o.t) {
             case 'joueur': {
                 this.el('circle', { r: 2.2, fill: 'transparent' }, g);

@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Plan de jeu – {{ rencontre.afficheContre }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_espace'), 'Mon espace') }}
+    <p class="discret">{{ rencontre.afficheContre }} · {{ rencontre.date ? rencontre.date|date('d/m/Y') }}{{ rencontre.heure ? ' à ' ~ rencontre.heure }}</p>
+    <h1>Plan de jeu du coach</h1>
+
+    {% for t in tableaux %}
+        <section class="carte bloc tableau-tactique">
+            <h2>{{ loop.index }}. {{ t.titre }}</h2>
+            <div class="tableau-tactique-corps">
+                <svg class="schema-terrain" data-controller="schema" data-schema-lecture-value="true" data-schema-schema-value="{{ t.schema|json_encode }}" data-schema-target="svg" role="img" aria-label="Tableau : {{ t.titre }}"></svg>
+                {% if t.consignes %}<div class="tableau-consignes"><strong>Consignes</strong><p class="memo">{{ t.consignes }}</p></div>{% endif %}
+            </div>
+        </section>
+    {% endfor %}
+    <p class="discret petit">Touchez un terrain pour voir l'animation.</p>
+{% endblock %}

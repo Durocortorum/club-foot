@@ -38,6 +38,7 @@ use App\Entity\ResultatTest;
 use App\Entity\Sanction;
 use App\Entity\Sponsor;
 use App\Entity\Stage;
+use App\Entity\TableauTactique;
 use App\Entity\TarifCotisation;
 use App\Entity\Tache;
 use App\Entity\Tournoi;
@@ -500,6 +501,7 @@ class ClubDemoCommand extends Command
                 $this->feuille($r, $effectif, $pour, $contre);
             } elseif (!$prochain && 'Championnat' === $competition) {
                 $prochain = $adversaire;
+                $this->tableauxTactiques($r);
             }
             $this->em->persist($r);
         }
@@ -511,6 +513,45 @@ class ClubDemoCommand extends Command
                 ->setARetenir('Forte intensité en début de match : rester compacts les 20 premières minutes.')
                 ->setPreparation("4 2 3 1 : deux milieux devant la défense pour couper les ailiers.\nJouer vite dans leur dos dès la récupération.\nPresser leur gardien sur les relances courtes."));
         }
+    }
+
+    /**
+     * Tableaux tactiques du match retour des U19 (causerie) : pressing sur la relance adverse, animé en deux étapes
+     * et montré aux joueurs convoqués ; corners offensifs.
+     */
+    private function tableauxTactiques(Rencontre $r): void
+    {
+        $j = fn (float $x, float $y, string $n, string $c = 'rouge') => ['t' => 'joueur', 'x' => $x, 'y' => $y, 'c' => $c, 'n' => $n];
+        $f = fn (float $x1, float $y1, float $x2, float $y2, string $s = 'course', string $c = 'blanc') => ['t' => 'fleche', 'x1' => $x1, 'y1' => $y1, 'x2' => $x2, 'y2' => $y2, 's' => $s, 'c' => $c];
+        // Nous en 4 2 3 1 (attaque vers la droite), l'adversaire en 4 4 2 qui relance depuis son gardien.
+        $objets = [
+            $j(7, 37, '1'), $j(42, 62, '2'), $j(40, 45, '4'), $j(40, 29, '5'), $j(42, 12, '3'), $j(55, 44, '6'), $j(55, 30, '8'),
+            $j(72, 62, '7'), $j(70, 37, '10'), $j(72, 12, '11'), $j(85, 37, '9'),
+            $j(104, 37, '1', 'bleu'), $j(92, 14, '2', 'bleu'), $j(95, 30, '4', 'bleu'), $j(95, 44, '5', 'bleu'), $j(92, 60, '3', 'bleu'),
+            $j(80, 12, '7', 'bleu'), $j(82, 30, '6', 'bleu'), $j(82, 44, '8', 'bleu'), $j(80, 62, '11', 'bleu'), $j(66, 30, '9', 'bleu'), $j(66, 44, '10', 'bleu'),
+            ['t' => 'ballon', 'x' => 101.5, 'y' => 39],
+            ['t' => 'zone', 'x' => 86, 'y' => 8, 'w' => 21, 'h' => 58, 'c' => 'rouge', 's' => 'pressing'],
+            $f(86, 37, 99, 38.5), $f(73, 61, 89, 59), $f(73, 13, 89, 15), $f(71, 38, 90, 42),
+            ['t' => 'texte', 'x' => 96, 'y' => 70, 'v' => 'Pressing !', 'c' => 'blanc'],
+        ];
+        $etape = fn (array $places) => array_map(fn ($i) => $places[$i] ?? null, array_keys($objets));
+        $pressing = (new TableauTactique($r))->setOrdre(1)->setPartage(true)->setTitre('Pressing sur leur relance')
+            ->setConsignes("Leur gardien relance court : on déclenche ensemble.\nLe 9 va sur le gardien en coupant le côté gauche.\nLe 10 ferme leur défenseur central, 7 et 11 sautent sur les latéraux.\nLes milieux 6 et 8 remontent : bloc compact, pas d'espace entre les lignes.")
+            ->setSchema(['terrain' => 'entier', 'objets' => $objets, 'etapes' => [
+                $etape([10 => [99, 38.5], 8 => [90, 42], 7 => [89, 59], 9 => [89, 15], 5 => [66, 44], 6 => [66, 30]]),
+                $etape([22 => [93.5, 17], 9 => [91, 18], 6 => [80, 22]]),
+            ]]);
+        $corner = (new TableauTactique($r))->setOrdre(2)->setTitre('Corners offensifs')
+            ->setConsignes("Tireur : 11, ballon rentrant au deuxième poteau.\n4 et 5 attaquent le premier poteau et le point de penalty, 9 le deuxième poteau.\n6 reste à l'entrée de la surface pour les seconds ballons.")
+            ->setSchema(['terrain' => 'demi', 'objets' => [
+                ['t' => 'ballon', 'x' => 4, 'y' => 4], $j(3, 6, '11'),
+                $j(30, 22, '4'), $j(38, 20, '5'), $j(45, 22, '9'), $j(37, 30, '6'),
+                $j(37, 4.5, '1', 'bleu'), $j(31, 8, '2', 'bleu'), $j(39, 10, '4', 'bleu'), $j(44, 9, '5', 'bleu'),
+                $f(30, 22, 32, 8), $f(38, 20, 37.5, 13), $f(45, 22, 43, 8),
+                ['t' => 'fleche', 'x1' => 5, 'y1' => 4, 'x2' => 42, 'y2' => 9, 's' => 'passe', 'c' => 'jaune', 'p' => [[24, 1.5]]],
+            ]]);
+        $this->em->persist($pressing);
+        $this->em->persist($corner);
     }
 
     /**

@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Causerie – {{ rencontre.afficheContre }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_tactique', {id: rencontre.id}), 'Tableau tactique') }}
+
+    {# Causerie : un tableau à la fois, en grand ; flèches du clavier, boutons, plein écran (télé, vidéoprojecteur, tablette). #}
+    <div class="presentation-tactique" data-controller="presentation" data-action="keydown@window->presentation#clavier">
+        <div class="presentation-barre">
+            <strong>{{ rencontre.afficheContre }}</strong>
+            <span class="presentation-compteur" data-presentation-target="compteur"></span>
+            <button type="button" class="bouton petit" data-action="presentation#pleinEcran" data-presentation-target="boutonPleinEcran">⛶ Plein écran</button>
+        </div>
+        {% for t in tableaux %}
+            <section class="presentation-diapo" data-presentation-target="diapo" {{ not loop.first ? 'hidden' }}>
+                <h2>{{ t.titre }}</h2>
+                <div class="presentation-corps">
+                    <svg class="schema-terrain" data-controller="schema" data-schema-lecture-value="true" data-schema-schema-value="{{ t.schema|json_encode }}" data-schema-target="svg" role="img" aria-label="Tableau : {{ t.titre }}"></svg>
+                    {% if t.consignes %}<div class="tableau-consignes"><p class="memo">{{ t.consignes }}</p></div>{% endif %}
+                </div>
+            </section>
+        {% endfor %}
+        <div class="presentation-navigation">
+            <button type="button" class="bouton" data-action="presentation#precedent" data-presentation-target="precedent">◀ Précédent</button>
+            <span class="discret petit">Touchez le terrain pour lancer l'animation</span>
+            <button type="button" class="bouton principal" data-action="presentation#suivant" data-presentation-target="suivant">Suivant ▶</button>
+        </div>
+    </div>
+{% endblock %}

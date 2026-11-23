@@ -165,6 +165,7 @@
         {% endif %}
         {% if prochain and modifiable %}
             <div class="actions-ligne">
+                <a class="bouton principal" href="{{ path('app_tactique', {id: prochain.id}) }}">📋 Tableau tactique</a>
                 <a class="bouton" href="{{ path('app_rencontre_composition', {id: prochain.id}) }}">Composition du prochain match</a>
                 <a class="bouton" href="{{ path('app_convocation', {id: prochain.id}) }}">Convocation</a>
             </div>

@@ -30,6 +30,7 @@ use App\Service\PaiementsEnLigne;
 use App\Repository\JoueurRepository;
 use App\Service\PlanningEntrainements;
 use App\Repository\RencontreRepository;
+use App\Repository\TableauTactiqueRepository;
 use App\Repository\UtilisateurRepository;
 use App\Service\ClubCourant;
 use Doctrine\ORM\EntityManagerInterface;
@@ -69,6 +70,7 @@ class EspaceController extends AbstractController
         SuiviRessenti $suiviRessenti,
         SanctionRepository $sanctions,
         PaiementsEnLigne $paiementsEnLigne,
+        TableauTactiqueRepository $tactiques,
     ): Response
     {
         /** @var Utilisateur $moi */
@@ -139,7 +141,16 @@ class EspaceController extends AbstractController
             ];
         }
 
+        // Matchs où un enfant est convoqué et dont l'éducateur montre le plan de jeu (tableaux tactiques partagés).
+        $matchsConvoques = [];
+        foreach ($convocations as $liste) {
+            foreach ($liste as $c) {
+                $matchsConvoques[$c->getConvocation()->getRencontre()->getId()] = $c->getConvocation()->getRencontre();
+            }
+        }
+
         return $this->render('espace/index.html.twig', [
+            'plans_de_jeu' => $tactiques->partagesPar(array_values($matchsConvoques)),
             // Événements des 2 prochains mois pour les équipes de ses enfants ou tout le club (hors réunions internes).
             'evenements' => $evenements->entre(new \DateTimeImmutable('today'), new \DateTimeImmutable('today +60 days'), array_values($categories), true),
             'enfants' => $enfants,

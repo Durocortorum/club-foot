@@ -40,6 +40,7 @@
             {% endif %}
             <a class="bouton" href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}" title="Passes, duels, frappes… par joueur, carte du terrain, quarts d'heure">Statistiques du direct</a>
             <a class="bouton" href="{{ path('app_adversaire', {id: rencontre.id}) }}" title="Confrontations passées, dernière rencontre et sa vidéo, notes de l'éducateur, préparation du prochain match contre {{ rencontre.adversaire }}">🔎 Adversaire</a>
+            <a class="bouton" href="{{ path('app_tactique', {id: rencontre.id}) }}" title="Causerie et préparation : formation, déplacements, passes, pressing, étapes animées, consignes ; présentation en grand et partage avec les joueurs convoqués">📋 Tactique</a>
             {% if rencontre.butsPour is not null %}<a class="bouton" href="{{ path('app_message_nouveau', {compte_rendu: rencontre.id}) }}" title="Envoyer le score et les buteurs aux familles de l'équipe, avec votre mot">Compte rendu aux familles</a>{% endif %}
             {% if not rencontre.aDomicile %}<a class="bouton" href="{{ path('app_transport_nouveau', {match: rencontre.id}) }}" title="Noter le déplacement : car, minibus, voitures et frais kilométriques">Transport</a>{% endif %}
             {% if modifiable %}{{ m.supprimer(path('app_rencontre_supprimer', {id: rencontre.id}), 'supprimer-match' ~ rencontre.id, 'Supprimer ce match et sa feuille de match ?') }}{% endif %}

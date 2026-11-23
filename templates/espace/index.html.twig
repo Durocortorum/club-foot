@@ -211,6 +211,7 @@
                             <div>🚌 {{ d.resumeFamilles }}</div>
                         {% endfor %}
                         {% if cv.message %}<p class="memo petit">{{ cv.message }}</p>{% endif %}
+                        {% if plans_de_jeu[r.id] is defined %}<p><a class="bouton petit" href="{{ path('app_espace_tactique', {id: r.id}) }}">📋 Plan de jeu du coach</a></p>{% endif %}
 
                         <p>
                             {% if c.reponse == 'present' %}<span class="pastille succes">présent</span>

@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Tableau tactique – {{ rencontre.afficheContre }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_rencontre_voir', {id: rencontre.id}), rencontre.intitule) }}
+
+    <div class="titre-page">
+        <div>
+            <p class="discret">{{ rencontre.afficheContre }} · {{ rencontre.date ? rencontre.date|date('d/m/Y') }}{{ rencontre.heure ? ' à ' ~ rencontre.heure }}</p>
+            <h1>Tableau tactique</h1>
+        </div>
+        <div class="actions">
+            {% if tableaux %}<a class="bouton principal" href="{{ path('app_tactique_presenter', {id: rencontre.id}) }}">▶ Présenter (causerie)</a>{% endif %}
+            {% if modifiable %}<a class="bouton {{ tableaux ? '' : 'principal' }}" href="{{ path('app_tactique_nouveau', {id: rencontre.id}) }}">+ Nouveau tableau</a>{% endif %}
+            {% if not rencontre.plateau %}<a class="bouton" href="{{ path('app_adversaire', {id: rencontre.id}) }}">🔎 Adversaire</a>{% endif %}
+        </div>
+    </div>
+
+    {# Les quatre temps, comme sur la fiche adversaire. #}
+    <ol class="parcours-adv">
+        <li><a href="{{ modifiable ? path('app_tactique_nouveau', {id: rencontre.id}) : '#tableaux' }}"><span class="parcours-num">1</span> Créer votre tactique</a></li>
+        <li><a href="#tableaux"><span class="parcours-num">2</span> Animer la situation</a></li>
+        <li><a href="{{ tableaux ? path('app_tactique_presenter', {id: rencontre.id}) : '#tableaux' }}"><span class="parcours-num">3</span> Présenter à l'équipe</a></li>
+        <li><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}"><span class="parcours-num">4</span> Préparer le match</a></li>
+    </ol>
+
+    <div id="tableaux">
+        {% for t in tableaux %}
+            <section class="carte bloc tableau-tactique">
+                <div class="titre-page">
+                    <h2>{{ loop.index }}. {{ t.titre }}
+                        {% if t.partage %}<span class="pastille succes" title="Visible dans l'espace famille des joueurs convoqués">montré aux joueurs</span>{% endif %}
+                        {% if t.schema.etapes is defined and t.schema.etapes|length %}<span class="pastille">{{ t.schema.etapes|length + 1 }} étapes</span>{% endif %}
+                    </h2>
+                    {% if modifiable %}
+                        <div class="actions">
+                            <a class="bouton petit principal" href="{{ path('app_tactique_modifier', {id: t.id}) }}">Modifier</a>
+                            {% for sens, libelle in {monter: '↑', descendre: '↓'} %}
+                                {% if (sens == 'monter' and not loop.parent.loop.first) or (sens == 'descendre' and not loop.parent.loop.last) %}
+                                    <form method="post" action="{{ path('app_tactique_deplacer', {id: t.id}) }}" class="en-ligne">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('tactique' ~ t.id) }}">
+                                        <button class="bouton petit" name="sens" value="{{ sens }}" title="{{ sens == 'monter' ? 'Présenter plus tôt' : 'Présenter plus tard' }}">{{ libelle }}</button>
+                                    </form>
+                                {% endif %}
+                            {% endfor %}
+                            <form method="post" action="{{ path('app_tactique_dupliquer', {id: t.id}) }}" class="en-ligne">
+                                <input type="hidden" name="_token" value="{{ csrf_token('tactique' ~ t.id) }}">
+                                <button class="bouton petit" title="Partir de ce tableau pour en faire un autre">Dupliquer</button>
+                            </form>
+                            {{ m.supprimer(path('app_tactique_supprimer', {id: t.id}), 'supprimer-tactique' ~ t.id, 'Supprimer le tableau « ' ~ t.titre ~ ' » ?') }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="tableau-tactique-corps">
+                    <svg class="schema-terrain" data-controller="schema" data-schema-lecture-value="true" data-schema-schema-value="{{ t.schema|json_encode }}" data-schema-target="svg" role="img" aria-label="Tableau : {{ t.titre }}"></svg>
+                    {% if t.consignes %}<div class="tableau-consignes"><strong>Consignes</strong><p class="memo">{{ t.consignes }}</p></div>{% endif %}
+                </div>
+                {% if t.modifieLe %}<p class="discret petit">Modifié le {{ t.modifieLe|date('d/m/Y à H:i', 'Europe/Paris') }}{{ t.modifieParNom ? ' par ' ~ t.modifieParNom }}.</p>{% endif %}
+            </section>
+        {% else %}
+            <div class="carte">
+                <p>Pas encore de tableau pour ce match.{% if modifiable %} Le premier part de votre composition (ou de votre organisation de jeu) : ajoutez ensuite l'adversaire, les déplacements, les passes, la zone de pressing et des étapes pour animer la situation.{% endif %}</p>
+                {% if modifiable %}<a class="bouton principal" href="{{ path('app_tactique_nouveau', {id: rencontre.id}) }}">+ Créer le premier tableau</a>{% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    {% if tableaux %}<p class="discret petit">Touchez un terrain pour lancer son animation. « Présenter » affiche les tableaux un par un en grand, pour la causerie.</p>{% endif %}
+{% endblock %}

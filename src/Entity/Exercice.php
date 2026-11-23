@@ -124,24 +124,8 @@ class Exercice implements AppartientAuClub
     /** @param array<string, mixed> $schema */
     public function setSchema(array $schema): static
     {
-        $objets = (array) ($schema['objets'] ?? []);
-        $gardes = array_keys(array_filter($objets, 'is_array'));
-        $this->schema = [
-            'terrain' => isset(self::TERRAINS[$schema['terrain'] ?? null]) ? $schema['terrain'] : 'demi',
-            'objets' => array_values(array_filter($objets, 'is_array')),
-        ];
-        // Animation : par étape, nouvelle place [x, y] de chaque objet (null s'il ne bouge pas), alignée sur les objets.
-        $etapes = [];
-        foreach (\array_slice(array_values(array_filter((array) ($schema['etapes'] ?? []), 'is_array')), 0, self::MAX_ETAPES) as $etape) {
-            $etapes[] = array_map(
-                fn ($i) => isset($etape[$i]) && \is_array($etape[$i]) && 2 === \count($etape[$i]) && is_numeric($etape[$i][0] ?? null) && is_numeric($etape[$i][1] ?? null)
-                    ? [round((float) $etape[$i][0], 1), round((float) $etape[$i][1], 1)] : null,
-                $gardes,
-            );
-        }
-        if ($etapes) {
-            $this->schema['etapes'] = $etapes;
-        }
+        // Animation comprise : par étape, nouvelle place de chaque objet, avec son trajet courbé s'il en a un.
+        $this->schema = SchemaTerrain::nettoyer($schema);
 
         return $this;
     }
