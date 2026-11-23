@@ -85,7 +85,7 @@ class ClubDemoCommand extends Command
     private const VILLES = ['Les Coteaux', 'Saint-Pierre', 'Montvert', 'La Croix', 'Les Moulins'];
 
     /** Effectif par catégorie. */
-    private const EFFECTIFS = ['U7' => 8, 'U9' => 10, 'U11' => 12, 'U13' => 14, 'U15' => 16, 'U17' => 15, 'U19' => 12, 'SENIORS' => 18, 'VÉTÉRANS' => 12];
+    private const EFFECTIFS = ['U7' => 8, 'U9' => 10, 'U11' => 12, 'U13' => 14, 'U15' => 16, 'U17' => 15, 'U19' => 15, 'SENIORS' => 18, 'VÉTÉRANS' => 12];
     /** Catégories avec matchs et feuilles de match. */
     private const AVEC_MATCHS = ['U13', 'U15', 'U17', 'SENIORS'];
 
@@ -570,13 +570,16 @@ class ClubDemoCommand extends Command
     /** @param list<Joueur> $effectif */
     private function feuille(Rencontre $r, array $effectif, int $pour, int $contre): void
     {
-        $postes = ['Gardien', 'Latéral droit', 'Défenseur central droit', 'Défenseur central gauche', 'Latéral gauche', 'Milieu défensif axe', 'Milieu relayeur droit',
-            'Milieu relayeur gauche', 'Milieu offensif droit', 'Attaquant', 'Milieu offensif gauche'];
+        // Chaque joueur joue à son poste (celui de sa fiche, voir joueurs()) : le 1er de l'effectif au but, etc.
+        // Les 11 titulaires (11 joueurs consécutifs de l'effectif) couvrent ainsi les 11 postes une fois chacun.
+        $postes = ['Gardien', 'Défenseur central droit', 'Défenseur central gauche', 'Latéral droit', 'Latéral gauche', 'Milieu défensif axe',
+            'Milieu relayeur gauche', 'Milieu offensif droit', 'Milieu offensif gauche', 'Attaquant', 'Attaquant'];
         $decalage = mt_rand(0, 3);
         $retenus = \array_slice(array_merge(\array_slice($effectif, $decalage), \array_slice($effectif, 0, $decalage)), 0, 14);
         $presents = [];
         foreach ($retenus as $n => $j) {
-            $p = (new Participation())->setJoueur($j)->setNumero($n + 1)->setPoste($postes[$n] ?? 'Non utilisé')
+            $poste = $n < 13 ? $postes[array_search($j, $effectif, true) % \count($postes)] : 'Non utilisé';
+            $p = (new Participation())->setJoueur($j)->setNumero($n + 1)->setPoste($poste)
                 ->setTempsJeu($n < 11 ? (8 === $n ? 70 : 90) : (11 === $n ? 20 : (12 === $n ? 10 : null)))->setNote($n < 13 ? round(mt_rand(45, 80) / 10, 1) : null);
             if (0 === mt_rand(0, 9) && $n < 11) {
                 $p->setCarton('JJ')->setMinuteCarton((string) mt_rand(20, 85));

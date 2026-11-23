@@ -101,6 +101,64 @@ export default class extends Controller {
         this.afficher();
     }
 
+    /**
+     * Valeur d'un joueur à une place : sa note moyenne à ce poste (un peu plus s'il y a joué souvent), sinon sa
+     * note aux postes de la même ligne, sinon sa note générale (moins s'il n'est pas de la ligne). Un gardien ne
+     * va pas dans le champ, un joueur de champ ne va pas au but (sauf s'il n'y a personne d'autre).
+     */
+    valeur(j, poste) {
+        const ligne = this.ligneDe(poste);
+        const general = j.note ?? 5.5;
+        const exact = j.notesPostes?.[poste];
+        let v;
+        if (exact?.note != null) v = exact.note + Math.min(exact.matchs, 5) * 0.06;
+        else {
+            const memeLigne = Object.entries(j.notesPostes || {}).filter(([p, n]) => this.ligneDe(p) === ligne && n.note != null);
+            if (memeLigne.length) v = memeLigne.reduce((s, [, n]) => s + n.note, 0) / memeLigne.length - 0.3;
+            else if (j.poste === poste) v = general - 0.2;
+            else {
+                // Hors de sa ligne : moins on s'en éloigne, mieux c'est (un milieu offensif est presque un attaquant).
+                const joues = Object.keys(j.notesPostes || {});
+                const sien = j.poste || joues[0];
+                const ecart = sien ? Math.abs(this.niveau(sien) - this.niveau(poste)) : 1.5;
+                v = general - 0.4 - 0.8 * ecart;
+            }
+        }
+        const gardien = j.ligne === 'G' || Object.keys(j.notesPostes || {}).some((p) => p === 'Gardien');
+        if ((ligne === 'G') !== gardien) v -= 6;
+        return v;
+    }
+
+    /** Remplit le terrain avec les meilleurs joueurs disponibles pour chaque place, puis le banc. */
+    async meilleurOnze() {
+        const deja = this.places.some((p) => p.joueur !== null) || this.banc.length;
+        if (deja && !(await confirmer('Les joueurs déjà placés et le banc seront remplacés par la meilleure composition pour cette formation.', { titre: 'Proposer le meilleur onze ?', bouton: 'Proposer', style: 'principal' }))) return;
+        // Joueurs qui peuvent jouer : convoqués (ou l'effectif), ni blessés, ni suspendus, ni absents.
+        const dispo = this.d.joueurs.filter((j) => (j.convoque || !this.d.avecConvocation) && !['absent', 'blesse', 'suspendu'].includes(j.etat));
+        this.places.forEach((p) => { p.joueur = null; });
+        // Meilleures associations joueur – place d'abord ; le gardien en premier pour ne pas le perdre.
+        const couples = [];
+        dispo.forEach((j) => this.places.forEach((p, i) => couples.push([this.valeur(j, p.poste), j.id, i])));
+        couples.sort((a, b) => b[0] - a[0]);
+        const pris = new Set();
+        couples.forEach(([, id, i]) => {
+            if (pris.has(id) || this.places[i].joueur !== null) return;
+            this.places[i].joueur = id;
+            pris.add(id);
+        });
+        // Banc : les meilleurs des autres (7 au plus), un gardien remplaçant d'abord s'il y en a un.
+        const reste = dispo.filter((j) => !pris.has(j.id)).sort((a, b) => (b.note ?? 0) - (a.note ?? 0));
+        const gardien = reste.find((j) => j.ligne === 'G');
+        this.banc = [...(gardien ? [gardien] : []), ...reste.filter((j) => j !== gardien)].slice(0, 7).map((j) => j.id);
+        this.choixPlace = null;
+        this.choixJoueur = null;
+        this.afficher();
+        const vides = this.places.filter((p) => p.joueur === null).length;
+        this.consigneTarget.textContent = vides
+            ? `Proposition faite, mais ${vides} place${vides > 1 ? 's restent vides' : ' reste vide'} : pas assez de joueurs disponibles.`
+            : 'Proposition : les meilleurs joueurs disponibles à chaque poste (note de la saison au poste). Ajustez si besoin, puis validez.';
+    }
+
     vider() {
         this.places.forEach((p) => { p.joueur = null; });
         this.banc = [];
@@ -388,6 +446,12 @@ export default class extends Controller {
         if (poste.startsWith('Latéral') || poste.startsWith('Défenseur')) return 'D';
         if (poste.startsWith('Milieu')) return 'M';
         return poste.startsWith('Attaquant') ? 'A' : null;
+    }
+
+    /** Profondeur du poste, du but adverse au nôtre : gardien 0, défense 1, milieu 2, milieu offensif 2,5, attaque 3. */
+    niveau(poste) {
+        if (/^Milieu (offensif|excentré)/.test(poste)) return 2.5;
+        return { G: 0, D: 1, M: 2, A: 3 }[this.ligneDe(poste)] ?? 2;
     }
 
     nomCourt(j) {
