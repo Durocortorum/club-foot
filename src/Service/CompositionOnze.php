@@ -115,15 +115,18 @@ class CompositionOnze
                 $reponses[$c->getJoueur()->getId()] = $c;
             }
         }
-        $effectif = $rencontre->getCategorie() ? $this->joueurs->findBy(['categorie' => $rencontre->getCategorie(), 'ancien' => false], ['nom' => 'ASC', 'prenom' => 'ASC']) : [];
+        $effectif = !$candidats && $rencontre->getCategorie() ? $this->joueurs->findBy(['categorie' => $rencontre->getCategorie(), 'ancien' => false], ['nom' => 'ASC', 'prenom' => 'ASC']) : [];
         $avecConvocation = (bool) $candidats;
         foreach ($rencontre->getParticipations() as $p) {
             if ($p->getJoueur()) {
                 $candidats[$p->getJoueur()->getId()] = $p->getJoueur();
             }
         }
-        foreach ($effectif as $j) {
-            $candidats[$j->getId()] ??= $j;
+        // Avec une convocation : seulement les convoqués (et ceux déjà sur la feuille) ; sinon, toute l'équipe.
+        if (!$avecConvocation) {
+            foreach ($effectif as $j) {
+                $candidats[$j->getId()] ??= $j;
+            }
         }
         $joueurs = array_values($candidats);
 

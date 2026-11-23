@@ -37,7 +37,6 @@ export default class extends Controller {
         this.abr = c.abreviations || {};
         this.joueurs = new Map(this.d.joueurs.map((j) => [j.id, j]));
         this.onglet = 'joueurs';
-        this.tousJoueurs = !this.d.avecConvocation;
         this.choixPlace = null;
         this.choixJoueur = null;
 
@@ -237,11 +236,6 @@ export default class extends Controller {
         this.afficher();
     }
 
-    voirTous() {
-        this.tousJoueurs = !this.tousJoueurs;
-        this.afficher();
-    }
-
     basculerComparaison(event) {
         event?.preventDefault();
         this.comparaisonTarget.hidden = !this.comparaisonTarget.hidden;
@@ -318,7 +312,8 @@ export default class extends Controller {
     }
 
     joueursVisibles() {
-        return this.d.joueurs.filter((j) => this.tousJoueurs || j.convoque || this.estTitulaire(j.id) || this.banc.includes(j.id));
+        // Avec une convocation, le serveur n'envoie que les convoqués (et ceux déjà sur la feuille de match).
+        return this.d.joueurs;
     }
 
     dessinerJoueurs() {
@@ -338,8 +333,7 @@ export default class extends Controller {
         });
         this.filtreTarget.innerHTML = (place
             ? `<p class="onze-pour">Pour la place <strong>${this.echapper(place.poste)}</strong> : ${LIGNES[ligne] ? `${LIGNES[ligne].toLowerCase()} d'abord, ` : ''}triés par note au poste.</p>`
-            : '')
-            + (this.d.avecConvocation ? `<label class="onze-tous"><input type="checkbox" ${this.tousJoueurs ? 'checked' : ''} data-action="onze#voirTous"> Voir aussi les joueurs non convoqués</label>` : '');
+            : '');
         this.listeTarget.innerHTML = `<ul class="onze-joueurs">${liste.map((j) => {
             const titulaire = this.estTitulaire(j.id);
             const auBanc = this.banc.includes(j.id);

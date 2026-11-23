@@ -33,6 +33,14 @@
             <li><a href="#onze-valider"><span class="parcours-num">5</span> Valider le onze de départ</a></li>
         </ol>
 
+        {# Le onze se compose avec les joueurs convoqués ; sans convocation, toute l'équipe est proposée en attendant. #}
+        {% if donnees.avecConvocation %}
+            <p class="discret petit">Joueurs proposés : les convoqués de ce match{{ donnees.joueurs|filter(j => j.reponse == 'absent')|length ? ' (les absents sont signalés)' }}.</p>
+        {% else %}
+            <p class="flash flash-info">Pas encore de convocation pour ce match : en attendant, tous les joueurs de l'équipe sont proposés.
+                {% if modifiable %}<a href="{{ path('app_convocation', {id: rencontre.id}) }}">Convoquer les joueurs</a> : ensuite, seuls les convoqués seront proposés.{% endif %}</p>
+        {% endif %}
+
         <div class="onze-grille">
             <section class="carte onze-terrain-carte">
                 <div class="onze-barre">

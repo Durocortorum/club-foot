@@ -5,6 +5,7 @@ namespace App\Tests\Controller;
 use App\Entity\Blessure;
 use App\Entity\Categorie;
 use App\Entity\Club;
+use App\Entity\Convocation;
 use App\Entity\Joueur;
 use App\Entity\Participation;
 use App\Entity\Rencontre;
@@ -115,6 +116,21 @@ class OnzeTest extends WebTestCase
         }
         self::assertSame(['Gaby' => [true, 'Gardien'], 'Léo' => [true, 'Latéral droit'], 'Tom' => [false, null]], $feuille);
         self::assertEquals([$ld['x'], $ld['y']], $match->getPlacements()[$joueurs['Léo']->getId()]);
+
+        // Convocation envoyée à Gaby, Léo et Noé : seuls eux (et Tom, déjà sur la feuille) sont proposés.
+        $club = $em->find(Club::class, $this->clubId);
+        $convocation = (new Convocation($match))->setClub($club)->setJoueurs(array_map(fn (string $p) => $em->find(Joueur::class, $joueurs[$p]->getId()), ['Gaby', 'Léo', 'Noé']))->marquerEnvoyee();
+        foreach ($convocation->getConvoques() as $cq) {
+            $cq->setClub($club);
+        }
+        $em->persist($convocation);
+        $em->flush();
+        $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/onze');
+        $config = json_decode($crawler->filter('[data-controller="onze"]')->attr('data-onze-config-value'), true);
+        $prenoms = array_column($config['donnees']['joueurs'], 'prenom');
+        sort($prenoms);
+        self::assertSame(['Gaby', 'Léo', 'Noé', 'Tom'], $prenoms);
+        self::assertTrue($config['donnees']['avecConvocation']);
 
         // Mauvais jeton : refusé.
         $this->client->request('POST', '/matchs/' . $match->getId() . '/onze', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['_token' => 'x', 'systeme' => '4 4 2']));
