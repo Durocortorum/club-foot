@@ -5,7 +5,7 @@
 {% block body %}
     {#
        Match Live (live_controller.js) : le direct du match (bouton « ⏱ En direct »), pensé pour le téléphone : score,
-       événements, actions des joueurs, statistiques, composition, visuels. Mêmes données que la saisie détaillée avec
+       événements, actions des joueurs, statistiques, composition. Mêmes données que la saisie détaillée avec
        zones (roue ⚙, tablette) : même chrono, mêmes actions, enregistrées au même endroit.
        Les équipes sont dans l'ordre du match : celle qui reçoit à gauche.
     #}
@@ -49,7 +49,25 @@
         </header>
 
         <div class="live-boutons">
-            <button type="button" class="live-bouton but" data-action="live#but"><span class="icone" aria-hidden="true">⚽</span>But</button>
+            <button type="button" class="live-bouton but" data-action="live#but"><span class="icone" aria-hidden="true">
+                {# Ballon blanc à pentagones noirs (l'émoji ⚽ sort bleuté sur certains téléphones). #}
+                <svg class="ballon-icone" viewBox="0 0 24 24">
+                    <defs><clipPath id="ballon-bord"><circle cx="12" cy="12" r="10.6"/></clipPath></defs>
+                    <circle cx="12" cy="12" r="10.6" fill="#fff"/>
+                    <g fill="#1d1d1f" clip-path="url(#ballon-bord)">
+                        <path d="M12 7.6l4.2 3-1.6 4.9H9.4L7.8 10.6z"/>
+                        <path d="M12 -1.4l3.4 2.5-1.3 4H9.9l-1.3-4z"/>
+                        <path d="M24.6 7.3l1.3 4-3.4 2.5-3.4-2.5 1.3-4z"/>
+                        <path d="M20.3 18.5l1.3 4-3.4 2.5-3.4-2.5 1.3-4z"/>
+                        <path d="M6.1 18.5l1.3 4-3.4 2.5-3.4-2.5 1.3-4z"/>
+                        <path d="M3.5 7.3l1.3 4-3.4 2.5-3.4-2.5 1.3-4z"/>
+                    </g>
+                    <g stroke="#1d1d1f" stroke-width="1" fill="none" clip-path="url(#ballon-bord)">
+                        <path d="M12 7.6V4.5M16.2 10.6l3.2-1M14.6 15.5l1.9 2.7M9.4 15.5l-1.9 2.7M7.8 10.6l-3.2-1"/>
+                    </g>
+                    <circle cx="12" cy="12" r="10.6" fill="none" stroke="#1d1d1f" stroke-width="1"/>
+                </svg>
+            </span>But</button>
             <button type="button" class="live-bouton" data-action="live#carton"><span class="icone carton-icone" aria-hidden="true"></span>Carton</button>
             <button type="button" class="live-bouton" data-action="live#remplacement"><span class="icone" aria-hidden="true">⇄</span>Rempl.</button>
             <button type="button" class="live-bouton" data-live-target="boutonPeriode" data-action="live#periode"><span class="icone" aria-hidden="true">▶</span>Coup d'envoi</button>
@@ -122,29 +140,11 @@
             <div data-live-target="compo"></div>
         </section>
 
-        <section class="live-panneau" data-panneau="visuels">
-            <h2>Visuels pour les réseaux sociaux</h2>
-            <div class="live-choix-visuel" data-live-target="choixVisuel" role="radiogroup" aria-label="Visuel"></div>
-            <div class="live-format">
-                <label class="choix-carte"><input type="radio" name="format-visuel" value="post" checked data-action="live#dessinerVisuel"> Publication</label>
-                <label class="choix-carte"><input type="radio" name="format-visuel" value="story" data-action="live#dessinerVisuel"> Story</label>
-            </div>
-            <label class="live-nom-complet"><input type="checkbox" data-live-target="nomComplet" data-action="live#dessinerVisuel"> <span>Nom complet des joueurs <small class="discret">(sinon prénom et initiale)</small></span></label>
-            <canvas class="live-apercu" data-live-target="canevas" width="1080" height="1350" role="img" aria-label="Aperçu du visuel"></canvas>
-            <div class="live-partage">
-                <button type="button" class="bouton principal" data-live-target="boutonPartager" data-action="live#partager" hidden>Partager (Instagram, Facebook…)</button>
-                <button type="button" class="bouton" data-action="live#telecharger">Télécharger l'image</button>
-            </div>
-            <p class="discret petit">Sur téléphone, « Partager » ouvre Instagram, Facebook ou WhatsApp avec l'image. Pensez au droit à l'image : aucune photo de joueur n'est utilisée.</p>
-        </section>
-
         <nav class="live-onglets" aria-label="Sections du Match Live">
             <button type="button" data-onglet="live" data-action="live#onglet" class="actif"><span aria-hidden="true">((•))</span>Live</button>
             <button type="button" data-onglet="actions" data-action="live#onglet"><span aria-hidden="true">👟</span>Actions</button>
             <button type="button" data-onglet="stats" data-action="live#onglet"><span aria-hidden="true">▮▮</span>Stats</button>
-            <button type="button" data-onglet="compo" data-action="live#onglet"><span aria-hidden="true">👥</span>Compo</button>
-            <button type="button" data-onglet="visuels" data-action="live#onglet"><span aria-hidden="true">🖼</span>Visuels</button>
-        </nav>
+            <button type="button" data-onglet="compo" data-action="live#onglet"><span aria-hidden="true">👥</span>Compo</button>        </nav>
 
         <dialog class="dialogue live-dialogue" data-live-target="dialogue"></dialog>
     </div>

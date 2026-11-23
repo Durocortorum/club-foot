@@ -50,8 +50,8 @@ class MatchDirectController extends AbstractController
 
     /**
      * « Match Live » : version simple du direct, pour le téléphone (gros score, boutons But, Carton, Remplacement,
-     * Mi-temps, Fin ; événements, statistiques, composition) et création des visuels à partager sur les réseaux
-     * sociaux. Mêmes données que la tablette détaillée (même chrono, mêmes actions, même enregistrement).
+     * Mi-temps, Fin ; événements, statistiques, composition).
+     * Mêmes données que la tablette détaillée (même chrono, mêmes actions, même enregistrement).
      */
     #[Route('/matchs/{id}/live', name: 'app_match_live', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
@@ -68,11 +68,7 @@ class MatchDirectController extends AbstractController
                 'heure' => $rencontre->getHeure(),
                 'lieu' => $rencontre->getLieu(),
                 'domicile' => $rencontre->isADomicile(),
-                'logo' => $club?->getLogo() ? $this->generateUrl('app_club_logo', ['version' => $club->getVersion()]) : null,
-                // Couleurs du club, pour les visuels à partager.
-                'couleur' => $club?->getCouleur(),
-                'couleurFoncee' => $club?->getCouleurFoncee(),
-            ],
+                'logo' => $club?->getLogo() ? $this->generateUrl('app_club_logo', ['version' => $club->getVersion()]) : null,            ],
         ]);
     }
 

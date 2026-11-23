@@ -36,7 +36,7 @@
             {% if modifiable %}
                 <a class="bouton" href="{{ path('app_convocation', {id: rencontre.id}) }}">{{ convocation ? 'Convocation' : 'Convoquer' }}</a>
                 <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}" title="Modifier le match : feuille de match (joueurs, numéros, postes), score, buts, remplacements, conditions, rapport">Feuille de match</a>
-                <a class="bouton" href="{{ path('app_match_live', {id: rencontre.id}) }}" title="Pendant le match : score, buts, cartons, remplacements, actions des joueurs (passes, duels…) et visuels à partager sur les réseaux sociaux">⏱ En direct</a>
+                <a class="bouton" href="{{ path('app_match_live', {id: rencontre.id}) }}" title="Pendant le match : score, buts, cartons, remplacements, actions des joueurs (passes, duels…)">⏱ En direct</a>
             {% endif %}
             <a class="bouton" href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}" title="Passes, duels, frappes… par joueur, carte du terrain, quarts d'heure">Statistiques du direct</a>
             <a class="bouton" href="{{ path('app_adversaire', {id: rencontre.id}) }}" title="Confrontations passées, dernière rencontre et sa vidéo, notes de l'éducateur, préparation du prochain match contre {{ rencontre.adversaire }}">🔎 Adversaire</a>

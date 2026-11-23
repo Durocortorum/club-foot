@@ -2069,7 +2069,10 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 .live-bouton:disabled { opacity: .45; cursor: default; box-shadow: none; }
 .live-bouton.but { background: var(--succes); color: #fff; border-color: var(--succes); font-size: .9rem; }
 .live-bouton.a-faire { border-color: var(--rouge); box-shadow: 0 0 0 2px var(--rouge) inset; color: var(--rouge-fonce); }
-.carton-icone { display: inline-block; width: .95rem; height: 1.3rem; border-radius: 3px; background: #f5c400; transform: rotate(8deg); box-shadow: -.35rem .1rem 0 -.05rem #e03131; }
+.carton-icone { display: inline-block; width: .95rem; height: 1.3rem; margin-left: .8rem; border-radius: 3px; background: #f5c400; transform: rotate(10deg);
+    /* Trois cartons en éventail : rouge derrière, blanc au milieu, jaune devant ; liseré pour voir le blanc sur fond blanc. */
+    box-shadow: -.42rem .08rem 0 0 #fff, -.84rem .18rem 0 0 #e03131; filter: drop-shadow(0 0 .6px rgb(0 0 0 / .55)); }
+.ballon-icone { width: 1.5rem; height: 1.5rem; display: block; margin: 0 auto; filter: drop-shadow(0 1px 1px rgb(0 0 0 / .25)); }
 .carte-jeu { display: inline-block; width: .6rem; height: .85rem; border-radius: 2px; vertical-align: -.1rem; margin-right: .1rem; border: 1px solid rgb(0 0 0 / .15); }
 .carte-jeu.jaune { background: #f5c400; }
 .carte-jeu.rouge { background: #e03131; }
@@ -2077,7 +2080,7 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 
 .live-panneau { display: none; background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: .9rem 1rem; box-shadow: var(--ombre); }
 .live[data-onglet="live"] [data-panneau="live"], .live[data-onglet="stats"] [data-panneau="stats"],
-.live[data-onglet="compo"] [data-panneau="compo"], .live[data-onglet="visuels"] [data-panneau="visuels"], .live[data-onglet="actions"] [data-panneau="actions"] { display: block; }
+.live[data-onglet="compo"] [data-panneau="compo"], .live[data-onglet="actions"] [data-panneau="actions"] { display: block; }
 .live-panneau > h2 { font-size: 1rem; margin: 0 0 .7rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
 .live-panneau h3 { font-size: .9rem; margin: .8rem 0 .4rem; color: var(--gris); }
 .live-evenements { list-style: none; margin: 0; padding: 0; }
@@ -2130,19 +2133,10 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 .live-minute-saisie { display: flex; align-items: center; gap: .4rem; margin: .8rem 0 .4rem; font-weight: 600; }
 .live-minute-saisie input { width: 4.5rem; text-align: center; font-weight: 700; }
 
-.live-choix-visuel { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .7rem; }
-.live-choix-visuel button { border: 1px solid var(--bordure); background: #fff; border-radius: 99px; padding: .35rem .8rem; font: inherit; font-size: .85rem; cursor: pointer; }
-.live-choix-visuel button.actif { background: var(--rouge); border-color: var(--rouge); color: #fff; font-weight: 600; }
-.live-format { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; margin-bottom: .5rem; }
-.live-format small { color: var(--gris); }
-.live-nom-complet { display: flex; align-items: center; gap: .4rem; margin: .3rem 0 .7rem; font-size: .9rem; }
-.live-nom-complet input { width: auto; }
-.live-apercu { display: block; width: 100%; max-width: 380px; height: auto; margin: 0 auto; border-radius: 14px; box-shadow: var(--ombre-forte); background: #0a1020; }
-.live-partage { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin: .9rem 0 .4rem; }
 
 .live-onglets {
     position: fixed; z-index: 20; left: 50%; bottom: max(.6rem, env(safe-area-inset-bottom)); transform: translateX(-50%);
-    width: min(560px, calc(100vw - 1.2rem)); display: grid; grid-template-columns: repeat(5, 1fr); gap: .2rem; padding: .3rem;
+    width: min(560px, calc(100vw - 1.2rem)); display: grid; grid-template-columns: repeat(4, 1fr); gap: .2rem; padding: .3rem;
     background: #0f1626; border-radius: 18px; box-shadow: 0 8px 24px rgb(0 0 0 / .25);
 }
 .live-onglets button { display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .4rem .2rem; border: 0; border-radius: 14px; background: transparent; color: #c9cdd6; font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; }
