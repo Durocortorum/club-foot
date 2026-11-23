@@ -407,6 +407,21 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .compte-titulaires { margin: .3rem 0 .6rem; font-size: .9rem; }
 .tuile-joueur .num-saisie { grid-row: 1 / 3; width: 3.1rem; padding: .3rem .2rem; text-align: center; font-weight: 800; font-size: 1.1rem; color: var(--rouge); }
 .edition-numeros .panneau-action, .edition-numeros .panneau-zone { opacity: .35; pointer-events: none; }
+/* Saisie rapide : annuler la dernière action, avec ou sans zones, message « ✓ noté ». */
+.direct-outils { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; margin: -.2rem 0 .6rem; }
+.direct-annonce { font-size: .88rem; font-weight: 600; color: var(--succes, #1e7b3a); }
+.panneau-zone h2 [data-direct-target="passerZone"] { margin-left: auto; }
+.panneau-zone h2 [hidden] { display: none; }
+/* Zone attendue (facultative) juste après une action : terrain entouré. */
+.terrain-direct.a-placer { box-shadow: 0 0 0 4px #f5c400; }
+/* Sans zones : terrain caché, joueurs et actions en gros boutons. */
+.direct.sans-zones .panneau-zone { display: none; }
+.direct.sans-zones .direct-saisie { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+.direct.sans-zones .direct-joueurs { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); }
+.direct.sans-zones .tuile-joueur { min-height: 3.6rem; }
+.direct.sans-zones .tuile-joueur .num { font-size: 1.4rem; }
+.direct.sans-zones .tuile-joueur .nom { font-size: .95rem; }
+.direct.sans-zones .direct-types .tuile-action { min-height: 3.6rem; font-size: 1rem; }
 /* Téléphone : une étape à la fois (joueur, puis action, puis zone), le fil en haut permet de revenir en arrière. */
 @media (max-width: 700px) {
     .direct-entete { padding: .4rem .55rem; gap: .3rem; }
@@ -423,11 +438,13 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
     .direct[data-etape="zone"] .panneau-joueur, .direct[data-etape="zone"] .panneau-action { display: none; }
     .direct-joueurs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .tuile-action { min-height: 3.2rem; font-size: .9rem; }
+    .direct.sans-zones .direct-saisie { grid-template-columns: 1fr; }
+    .direct.sans-zones .direct-joueurs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* Assistant d'aide (aide_controller.js) : bouton « ? » en bas à droite et fenêtre de discussion. */
 .aide { position: fixed; right: 1rem; bottom: 1rem; z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: .6rem; }
-body:has(.direct) .aide { display: none; }
+body:has(.direct) .aide, body:has(.live) .aide { display: none; }
 .aide-bouton { width: 3.2rem; height: 3.2rem; border-radius: 50%; border: 0; background: var(--rouge); color: var(--sur-rouge); font-size: 1.5rem; font-weight: 700;
     cursor: pointer; box-shadow: 0 6px 18px rgb(0 0 0 / .22); order: 2; }
 .aide.ouverte .aide-bouton { background: var(--encre); color: #fff; }
@@ -2060,7 +2077,7 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 
 .live-panneau { display: none; background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: .9rem 1rem; box-shadow: var(--ombre); }
 .live[data-onglet="live"] [data-panneau="live"], .live[data-onglet="stats"] [data-panneau="stats"],
-.live[data-onglet="compo"] [data-panneau="compo"], .live[data-onglet="visuels"] [data-panneau="visuels"] { display: block; }
+.live[data-onglet="compo"] [data-panneau="compo"], .live[data-onglet="visuels"] [data-panneau="visuels"], .live[data-onglet="actions"] [data-panneau="actions"] { display: block; }
 .live-panneau > h2 { font-size: 1rem; margin: 0 0 .7rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
 .live-panneau h3 { font-size: .9rem; margin: .8rem 0 .4rem; color: var(--gris); }
 .live-evenements { list-style: none; margin: 0; padding: 0; }
@@ -2125,12 +2142,46 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 
 .live-onglets {
     position: fixed; z-index: 20; left: 50%; bottom: max(.6rem, env(safe-area-inset-bottom)); transform: translateX(-50%);
-    width: min(560px, calc(100vw - 1.2rem)); display: grid; grid-template-columns: repeat(4, 1fr); gap: .2rem; padding: .3rem;
+    width: min(560px, calc(100vw - 1.2rem)); display: grid; grid-template-columns: repeat(5, 1fr); gap: .2rem; padding: .3rem;
     background: #0f1626; border-radius: 18px; box-shadow: 0 8px 24px rgb(0 0 0 / .25);
 }
 .live-onglets button { display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .4rem .2rem; border: 0; border-radius: 14px; background: transparent; color: #c9cdd6; font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; }
 .live-onglets button span { font-size: 1rem; line-height: 1.1; letter-spacing: -.05em; }
 .live-onglets button.actif { background: var(--rouge); color: #fff; }
+/* Onglet « Actions » : le joueur (gardé) puis l'action, en gros boutons. */
+.live-consigne { margin: 0 0 .6rem; min-height: 1.3em; font-size: .92rem; }
+.live-consigne.succes { color: var(--succes, #1e7b3a); font-weight: 600; }
+.live-consigne.alerte { color: var(--danger-fonce, #a3161c); font-weight: 600; }
+/* Trois joueurs et trois actions par ligne : joueurs et actions tiennent ensemble sur l'écran du téléphone. */
+.live-tuiles-joueurs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; }
+.live-tuile-joueur { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .3rem; min-height: 2.8rem; padding: .3rem .4rem; text-align: left;
+    border: 1px solid var(--bordure); border-radius: 12px; background: #fff; color: var(--encre); font: inherit; font-size: .85rem; line-height: 1.2; cursor: pointer; touch-action: manipulation; }
+.live-tuile-joueur .num { font-weight: 800; font-size: 1.15rem; color: var(--rouge); min-width: 1.3rem; text-align: center; }
+.live-tuile-joueur .num:empty { display: none; }
+.live-tuile-joueur .qui { display: flex; flex-direction: column; min-width: 0; }
+.live-tuile-joueur .qui b { font-size: .8rem; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-tuile-joueur .qui small { font-size: .72rem; color: var(--gris); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-tuile-joueur .nb-actions { position: absolute; top: -.35rem; right: -.25rem; min-width: 1.25rem; padding: 0 .3rem; border-radius: 99px; background: var(--rouge); color: #fff; font-size: .7rem; font-weight: 700; text-align: center; line-height: 1.25rem; }
+.live-tuile-joueur.choisi { border-color: var(--rouge); background: color-mix(in srgb, var(--rouge) 12%, #fff); box-shadow: 0 0 0 2px var(--rouge) inset; }
+.live-tuile-joueur.banc { opacity: .6; }
+.live-tous { grid-column: 1 / -1; justify-self: start; }
+.live-tuiles-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; margin: .7rem 0 .4rem; }
+.live-tuiles-actions .tuile-action { min-height: 3rem; padding: .3rem .4rem; font-size: .82rem; font-weight: 600; line-height: 1.15; touch-action: manipulation; }
+.live-tuiles-actions.adverse { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: .2rem; }
+.live-tuiles-actions.adverse .tuile-action { min-height: 2.6rem; font-size: .85rem; }
+.live-tuiles-actions .tuile-action.touchee { background: color-mix(in srgb, var(--rouge) 18%, #fff); }
+.live-panneau > h2 .live-outils-actions { display: flex; gap: .3rem; flex-wrap: wrap; }
+/* Zone facultative : le terrain prend la place des actions juste après l'action notée. */
+.live-zone { margin: .7rem 0 .4rem; }
+.live-zone[hidden], [data-live-target="choixActions"][hidden] { display: none; }
+.live-zone-barre { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem .7rem; margin: 0 0 .4rem; font-size: .85rem; color: var(--gris); }
+.live-zone-barre .bouton { margin-left: auto; }
+.live-zone .terrain-direct { box-shadow: 0 0 0 3px #f5c400; }
+.live-dernieres { list-style: none; margin: 0; padding: 0; font-size: .85rem; }
+.live-dernieres li { display: flex; align-items: center; gap: .4rem; padding: .3rem 0; border-bottom: 1px solid var(--bordure); }
+.live-dernieres li:last-child { border-bottom: 0; }
+.live-dernieres .min { min-width: 2rem; font-weight: 700; }
+.live-dernieres .en-attente { opacity: .65; }
 @media (max-width: 420px) {
     .live-score { font-size: 2.5rem; }
     .live-bouton { min-height: 4.1rem; font-size: .72rem; border-radius: 12px; }

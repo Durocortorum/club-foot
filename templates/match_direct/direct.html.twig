@@ -3,11 +3,11 @@
 {% block title %}En direct · {{ rencontre.domicile }} – {{ rencontre.exterieur }}{% endblock %}
 
 {% block body %}
-    {# Table de statistiques du match (direct_controller.js) : joueur → action → zone, minute prise au chrono. #}
+    {# Table de statistiques du match (direct_controller.js) : joueur → action (enregistrée aussitôt) → zone facultative, minute prise au chrono. #}
     <div class="direct" data-controller="direct" data-direct-config-value="{{ config|json_encode }}" data-etape="joueur">
         <div class="direct-entete">
             <div class="direct-match">
-                <span class="petit"><a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}" class="discret">← Match</a> · <a href="{{ path('app_match_live', {id: rencontre.id}) }}" class="discret" title="Version simple pour le téléphone, et visuels à partager">📱 Match Live</a></span>
+                <span class="petit"><a href="{{ path('app_match_live', {id: rencontre.id}) }}" class="discret" title="Retour au direct (score, événements, actions, visuels)">← Direct</a> · saisie détaillée avec zones</span>
                 <strong>{{ config.nous }} <span class="direct-score" data-direct-target="score">0 – 0</span> {{ config.adversaire }}</strong>
                 <span class="discret petit">
                     {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }}{% if rencontre.heure %} à {{ rencontre.heure }}{% endif %}{% if rencontre.lieu %} · {{ rencontre.lieu }}{% endif %}{% if rencontre.competition %} · {{ rencontre.competition }}{% endif %}
@@ -36,6 +36,12 @@
         </details>
 
         <p class="direct-consigne" data-direct-target="consigne"></p>
+        {# Saisie rapide : annuler sa dernière action d'un geste ; zones du terrain notées ou non (réglage gardé sur l'appareil). #}
+        <div class="direct-outils">
+            <button type="button" class="bouton petit" data-direct-target="boutonAnnulerDerniere" data-action="direct#annulerDerniere" disabled>↶ Annuler la dernière action</button>
+            <button type="button" class="bouton petit" data-direct-target="boutonZones" data-action="direct#basculerZones" title="Noter ou non l'endroit du terrain de chaque action">📍 Avec zones</button>
+            <span class="direct-annonce" data-direct-target="annonce" aria-live="polite"></span>
+        </div>
         {# Après une frappe ou une tête cadrée : proposer d'en faire un but (fenêtre « But ! »). #}
         <p class="propose-but" data-direct-target="proposeBut" hidden>
             <span data-direct-target="texteProposeBut"></span>
@@ -102,8 +108,9 @@
                 <div class="direct-types" data-direct-target="types"></div>
             </section>
             <section class="direct-panneau panneau-zone">
-                <h2>3. Zone <span class="discret petit" data-direct-target="sens"></span>
-                    <button type="button" class="lien-bouton petit" data-action="direct#changerCote" title="Inverser le sens du terrain">⇄ Changer de côté</button></h2>
+                <h2>3. Zone <span class="discret petit">(facultatif)</span> <span class="discret petit" data-direct-target="sens"></span>
+                    <button type="button" class="lien-bouton petit" data-action="direct#changerCote" title="Inverser le sens du terrain">⇄ Changer de côté</button>
+                    <button type="button" class="bouton petit" data-direct-target="passerZone" data-action="direct#passerZone" hidden>Sans zone ⏭</button></h2>
                 <div class="terrain-direct horizontal" data-direct-target="terrain">
                     <span class="marque mediane"></span><span class="marque rond"></span>
                     <span class="marque surface nous"></span><span class="marque surface eux"></span>

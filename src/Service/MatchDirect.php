@@ -145,8 +145,11 @@ class MatchDirect
             }
             ++$equipe[$type];
             $zones[$type] ??= $vide;
-            ++$zones[$type][$a->getZx()][$a->getZy()];
-            ++$zones['tout'][$a->getZx()][$a->getZy()];
+            // Notée sans zone (saisie rapide, feuille de match) : comptée, mais pas sur la carte.
+            if (!$a->isHorsCarte() && !str_starts_with($a->getUuid(), self::SANS_ZONE)) {
+                ++$zones[$type][$a->getZx()][$a->getZy()];
+                ++$zones['tout'][$a->getZx()][$a->getZy()];
+            }
             $q = min(\count($quarts) - 1, intdiv(max(0, $a->getMinute() - 1), 15));
             $quarts[$q]['actions'][$type] = ($quarts[$q]['actions'][$type] ?? 0) + 1;
             if ($j = $a->getJoueur()) {

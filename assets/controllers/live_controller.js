@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { confirmer } from '../confirmation.js';
+import { preparerBut, dessinerBut, ecouterBut, arrondir } from '../terrain_but.js';
 
 /*
  * Match Live : version simple du direct, pour le téléphone. Gros score et chrono, cinq boutons (But, Carton,
@@ -9,16 +10,27 @@ import { confirmer } from '../confirmation.js';
  * même adresse d'enregistrement, même chrono commun. Les deux pages peuvent servir en même temps sur deux appareils.
  * Ce qui est noté ici n'a pas de zone du terrain : marqué « hors carte » (compté, pas dessiné sur la carte du bilan).
  *
+ * Onglet « Actions » : le joueur puis l'action (passe, duel, contrôle, frappe…), enregistrée aussitôt ; le joueur reste
+ * choisi pour sa prochaine action (relâché après une action adverse) ; « Annuler la dernière » d'un geste.
+ *
  * Un but noté ici ajoute aussi la frappe (ou la tête) cadrée qui va avec, comme sur la tablette, pour que les tirs
  * cadrés le comptent ; elle porte un identifiant dérivé de celui du but, et part avec lui s'il est supprimé.
  */
 const EVENEMENTS = ['B', 'BA', 'CJ', 'CR', 'JA', 'RA', 'RP', 'EX'];
 const HORS_CARTE = { horsCarte: true };
+/** Notés par les gros boutons (But, Carton, Rempl.) : pas dans l'onglet « Actions ». */
+const HORS_ACTIONS = ['B', 'CJ', 'CR', 'RP', 'EX'];
+/** Réglage « avec ou sans zones », commun avec la saisie détaillée (gardé sur l'appareil). */
+const CLE_ZONES = 'direct-zones';
+/** Temps laissé pour toucher la zone après l'action (ensuite l'action reste sans zone). */
+const DELAI_ZONE = 8000;
 
 export default class extends Controller {
     static values = { config: Object };
     static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'evenements', 'stats',
-        'compo', 'boutonTitulaires', 'choixVisuel', 'nomComplet', 'canevas', 'boutonPartager', 'dialogue'];
+        'compo', 'boutonTitulaires', 'choixVisuel', 'nomComplet', 'canevas', 'boutonPartager', 'dialogue',
+        'boutonAnnulerAction', 'consigneAction', 'joueursAction', 'typesAction', 'dernieresActions',
+        'boutonZones', 'zoneAction', 'sensAction', 'terrainAction', 'choixActions'];
 
     connect() {
         this.cfg = this.configValue;
@@ -34,6 +46,14 @@ export default class extends Controller {
         this.titulairesAEnvoyer = sauve.titulairesAEnvoyer ?? null;
         if (this.titulairesAEnvoyer) this.cfg.titulaires = this.titulairesAEnvoyer;
         this.fusionner(this.cfg.actions);
+        // Onglet « Actions » : joueur choisi, actions notées ici (la plus récente à la fin, pour « Annuler la dernière »).
+        this.joueurAction = null;
+        this.mesActions = [];
+        try {
+            this.avecZones = localStorage.getItem(CLE_ZONES) !== 'sans';
+        } catch (e) {
+            this.avecZones = true;
+        }
         // Logo du club pour les visuels (même adresse que sur la page : pas de souci de dessin sur le canevas).
         this.logo = new Image();
         this.logo.onload = () => this.dessinerVisuel();
@@ -52,6 +72,8 @@ export default class extends Controller {
     disconnect() {
         clearInterval(this.minuteur);
         clearInterval(this.relance);
+        clearTimeout(this.finMessageAction);
+        clearTimeout(this.minuteurZone);
         window.removeEventListener('online', this.surReseau);
         this.verrou?.release?.();
     }
@@ -364,7 +386,12 @@ export default class extends Controller {
                 + `<div class="si-joueur">${this.grilleJoueurs('joueur', this.joueursTries(), 'Buteur')}
                     <label class="live-libelle">Passeur décisif <select name="passeur"><option value="">Aucun</option>${this.joueursTries().map((id) => this.joueur(id)).map((j) => `<option value="${j.id}">${j.numero ? `${j.numero} · ` : ''}${this.echapper(this.nom(j))}</option>`).join('')}</select></label></div>`;
         } else if (type === 'but') {
-            html = `<p class="discret">But de ${this.echapper(this.cfg.adversaire)}.</p>`;
+            html = `<p class="discret">But de ${this.echapper(this.cfg.adversaire)}.</p>` + this.choix('geste', [['tir', 'Tir'], ['tete', 'Tête']]);
+        }
+        if (type === 'but') {
+            // Facultatif : ballon au départ du tir et flèche jusqu'à l'entrée dans le but (comme sur la saisie détaillée).
+            html += `<p class="live-libelle">Où ? <small class="discret">(facultatif) déplacez le ballon là où part le tir, puis la pointe de la flèche là où il entre dans le but</small></p>
+                <svg class="terrain-but" data-but-terrain role="img" aria-label="Demi-terrain avec le but"></svg>`;
         } else if (type === 'carton') {
             html = this.choix('couleur', nous ? [['J', '🟨 Jaune'], ['R', '🟥 Rouge'], ['B', '⬜ Blanc (10 min)']] : [['J', '🟨 Jaune'], ['R', '🟥 Rouge']])
                 + (nous ? this.grilleJoueurs('joueur', this.joueursTries(), 'Joueur') : '');
@@ -383,6 +410,17 @@ export default class extends Controller {
                 + (connu ? '' : '<p class="discret petit">Astuce : choisissez les titulaires (onglet « Compo ») pour ne voir que les joueurs sur le terrain.</p>');
         }
         this.dialogueTarget.querySelector('[data-zone=details]').innerHTML = html;
+        const svg = this.dialogueTarget.querySelector('[data-but-terrain]');
+        this.trace = null;
+        if (svg) {
+            // Nos buts vers le but adverse (à droite), ceux de l'adversaire vers le nôtre (à gauche).
+            this.trace = preparerBut(nous);
+            this.traceTouchee = false;
+            // Ballon ou flèche déplacé : le but est placé ; sinon il reste « hors carte » (pas de place inventée).
+            svg.addEventListener('pointerdown', (e) => { if (e.target.closest('[data-poignee]')) this.traceTouchee = true; });
+            ecouterBut(svg, () => this.trace);
+            dessinerBut(svg, this.trace);
+        }
     }
 
     minuteMoins() {
@@ -416,14 +454,21 @@ export default class extends Controller {
         const uuid = this.nouvelUuid();
         let actions = [];
         if (type === 'but') {
-            const geste = nous ? this.valeur('geste') : 'tir';
+            const geste = this.valeur('geste') || 'tir';
             if (nous && geste !== 'csc' && !joueur) return this.erreur('Touchez le buteur.');
             const passeur = Number(this.valeur('passeur'));
-            const details = { geste, ...HORS_CARTE, ...(nous && passeur && passeur !== joueur && geste !== 'csc' ? { passeur } : {}) };
-            actions = [{ uuid, type: nous ? 'B' : 'BA', joueur: nous && geste !== 'csc' ? joueur : null, details }];
-            // La frappe cadrée qui va avec (pas pour un contre son camp, ni pour l'adversaire : il n'a pas de tireur).
-            if (nous && geste !== 'csc') actions.push({ uuid: this.uuidTir(uuid), type: geste === 'tete' ? 'TC' : 'FC', joueur, details: HORS_CARTE });
-            if (!nous) actions.push({ uuid: this.uuidTir(uuid), type: 'AC', joueur: null, details: HORS_CARTE });
+            // Placé sur le terrain : départ et arrivée du ballon, zone du direct d'après le départ (en mètres).
+            const t = this.trace && this.traceTouchee ? this.trace : null;
+            const place = t
+                ? { zx: Math.max(0, Math.min(5, Math.floor(t.depart[0] / 17.5))), zy: Math.max(0, Math.min(2, Math.floor(t.depart[1] / (68 / 3)))) }
+                : {};
+            const ou = t ? { depart: arrondir(t.depart), arrivee: arrondir(t.arrivee) } : HORS_CARTE;
+            const details = { geste, ...ou, ...(nous && passeur && passeur !== joueur && geste !== 'csc' ? { passeur } : {}) };
+            actions = [{ uuid, type: nous ? 'B' : 'BA', joueur: nous && geste !== 'csc' ? joueur : null, details, ...place }];
+            // La frappe cadrée qui va avec (pas pour un contre son camp), à la même place que le but si elle est connue.
+            const tir = t ? { ...place } : { details: HORS_CARTE };
+            if (nous && geste !== 'csc') actions.push({ uuid: this.uuidTir(uuid), type: geste === 'tete' ? 'TC' : 'FC', joueur, ...tir });
+            if (!nous) actions.push({ uuid: this.uuidTir(uuid), type: geste === 'tete' ? 'ATC' : 'AC', joueur: null, ...tir });
         } else if (type === 'carton') {
             const couleur = this.valeur('couleur');
             if (nous && !joueur) return this.erreur('Touchez le joueur.');
@@ -518,8 +563,176 @@ export default class extends Controller {
         case 'RA': return `Carton rouge – ${adv}`;
         case 'EX': return `Carton blanc – ${this.nom(j)} (10 min)`;
         case 'RP': return `Remplacement – ↓ ${this.nom(j)}${a.details?.entrant ? ` ↑ ${this.nom(this.joueur(a.details.entrant))}` : ' (sans remplaçant)'}${a.details?.motif === 'Blessure' ? ' (blessure)' : ''}`;
-        default: return a.type;
+        default: {
+            const quoi = this.cfg.types[a.type] ?? this.cfg.adverses[a.type] ?? a.type;
+            return j ? `${this.nom(j)} – ${quoi}` : quoi;
         }
+        }
+    }
+
+    // ———————— Onglet « Actions » : joueur puis action, enregistrée aussitôt ————————
+
+    choisirJoueurAction(event) {
+        const id = Number(event.currentTarget.dataset.joueur);
+        // Le joueur déjà choisi, touché à nouveau : relâché.
+        this.joueurAction = this.joueurAction === id ? null : id;
+        this.messageAction = null;
+        // Joueur suivant touché sans zone : l'action précédente reste sans zone.
+        this.finirZone();
+        this.dessinerActions();
+    }
+
+    voirTousJoueurs() {
+        this.tousJoueurs = !this.tousJoueurs;
+        this.dessinerActions();
+    }
+
+    choisirAction(event) {
+        const type = event.currentTarget.dataset.type;
+        const adverse = type in this.cfg.adverses;
+        // Corner : pas de joueur à choisir (comme le « + Corner » des statistiques).
+        if (!adverse && type !== 'CO' && !this.joueurAction) {
+            this.direAction('Touchez d\'abord le joueur, puis son action.', true);
+            return;
+        }
+        const action = { uuid: this.nouvelUuid(), type, joueur: adverse || type === 'CO' ? null : this.joueurAction, details: HORS_CARTE };
+        this.mesActions.push(action.uuid);
+        // Action adverse : le ballon a changé de camp, le joueur est relâché.
+        if (adverse) this.joueurAction = null;
+        const bouton = event.currentTarget;
+        bouton.classList.add('touchee');
+        setTimeout(() => bouton.classList.remove('touchee'), 300);
+        navigator.vibrate?.(25);
+        this.direAction(`✓ ${this.minuteCourante()}' · ${this.libelle(action)}${adverse ? ` (${this.cfg.adversaire})` : ''}${this.avecZones ? ' · touchez la zone (facultatif)' : ''}`);
+        if (this.avecZones) this.attendreZone(action.uuid);
+        this.noter([action]);
+    }
+
+    // ———————— Zone du terrain, facultative, juste après l'action ————————
+
+    attendreZone(uuid) {
+        clearTimeout(this.minuteurZone);
+        this.aPlacer = uuid;
+        this.minuteurZone = setTimeout(() => this.passerZone(), DELAI_ZONE);
+    }
+
+    finirZone() {
+        clearTimeout(this.minuteurZone);
+        this.aPlacer = null;
+    }
+
+    passerZone() {
+        this.finirZone();
+        this.messageAction = null;
+        this.dessinerActions();
+    }
+
+    choisirZoneAction(event) {
+        const a = this.actions.get(this.aPlacer);
+        this.finirZone();
+        if (!a) return;
+        const zone = event.currentTarget;
+        zone.classList.add('touchee');
+        navigator.vibrate?.(25);
+        // Placée : plus « hors carte », dessinée sur la carte du bilan.
+        const action = { uuid: a.uuid, type: a.type, joueur: a.joueur, periode: a.periode, minute: a.minute, zx: Number(zone.dataset.zx), zy: Number(zone.dataset.zy) };
+        this.direAction(`✓ Zone notée · ${this.libelle(action)}`);
+        this.noter([action], a.minute);
+    }
+
+    /** Côté du terrain : commun à tous les appareils (comme sur la saisie détaillée), inversé à la mi-temps. */
+    changerCote() {
+        this.chrono.sens = -(this.chrono.sens || 1);
+        if (this.aPlacer) this.attendreZone(this.aPlacer);
+        this.chronoChange();
+    }
+
+    basculerZones() {
+        this.avecZones = !this.avecZones;
+        try {
+            localStorage.setItem(CLE_ZONES, this.avecZones ? 'avec' : 'sans');
+        } catch (e) { /* le réglage vaut pour cette page */ }
+        this.finirZone();
+        this.dessinerActions();
+    }
+
+    /** Terrain horizontal, 6 bandes × 3 couloirs, zones enregistrées dans le sens de notre attaque. */
+    dessinerTerrainAction() {
+        const sens = (this.chrono.sens ?? 1) > 0 ? 1 : -1;
+        const zones = [];
+        for (let zx = 0; zx < 6; zx++) {
+            for (let zy = 0; zy < 3; zy++) {
+                const colonne = sens > 0 ? zx + 1 : 6 - zx;
+                const ligne = sens > 0 ? zy + 1 : 3 - zy;
+                zones.push(`<button type="button" class="zone" style="grid-row:${ligne};grid-column:${colonne}" data-zx="${zx}" data-zy="${zy}" data-action="live#choisirZoneAction" aria-label="Zone ${zx + 1}-${zy + 1}"></button>`);
+            }
+        }
+        this.terrainActionTarget.querySelector('.zones').innerHTML = zones.join('');
+        this.terrainActionTarget.dataset.sens = sens > 0 ? 'avant' : 'arriere';
+        this.sensActionTarget.textContent = `Nous attaquons ${sens > 0 ? '→' : '←'}`;
+    }
+
+    annulerAction() {
+        while (this.mesActions.length) {
+            const uuid = this.mesActions.pop();
+            const a = this.actions.get(uuid);
+            if (!a || !this.aMoi(a)) continue;
+            this.actions.delete(uuid);
+            delete this.enAttente[uuid];
+            this.supprimes.push(uuid);
+            if (this.aPlacer === uuid) this.finirZone();
+            this.garder();
+            navigator.vibrate?.([20, 40, 20]);
+            this.direAction(`↶ Annulé : ${a.minute}' · ${this.libelle(a)}`);
+            this.afficher();
+            this.envoyer();
+            return;
+        }
+        this.dessinerActions();
+    }
+
+    direAction(texte, alerte = false) {
+        this.messageAction = { texte, alerte };
+        clearTimeout(this.finMessageAction);
+        this.finMessageAction = setTimeout(() => { this.messageAction = null; this.dessinerActions(); }, 4000);
+        this.dessinerActions();
+    }
+
+    dessinerActions(liste = [...this.actions.values()]) {
+        if (!this.hasJoueursActionTarget) return;
+        // Joueurs sur le terrain (quand on le sait), les autres sur demande.
+        const { etat, exclus, connu } = this.terrain();
+        const surLeTerrain = (j) => !connu || (etat.get(j.id) && !exclus.has(j.id));
+        const visibles = this.cfg.joueurs.filter((j) => this.tousJoueurs || surLeTerrain(j) || j.id === this.joueurAction);
+        const compte = (id) => liste.filter((a) => a.joueur === id && !EVENEMENTS.includes(a.type)).length;
+        this.joueursActionTarget.innerHTML = visibles.map((j) => `<button type="button" class="live-tuile-joueur${j.id === this.joueurAction ? ' choisi' : ''}${surLeTerrain(j) ? '' : ' banc'}" data-joueur="${j.id}" data-action="live#choisirJoueurAction" aria-pressed="${j.id === this.joueurAction}">
+            <span class="num">${j.numero ?? ''}</span><span class="qui"><b>${this.echapper(j.nom)}</b><small>${this.echapper(j.prenom)}</small></span>${compte(j.id) ? `<span class="nb-actions" title="Actions notées">${compte(j.id)}</span>` : ''}</button>`).join('')
+            + (connu && visibles.length < this.cfg.joueurs.length || this.tousJoueurs
+                ? `<button type="button" class="lien-bouton petit live-tous" data-action="live#voirTousJoueurs">${this.tousJoueurs ? 'Seulement ceux sur le terrain' : 'Voir aussi les remplaçants'}</button>` : '')
+            || '<p class="discret">Aucun joueur : remplissez la feuille de match ou la convocation.</p>';
+        if (!this.typesActionTarget.children.length) {
+            this.typesActionTarget.innerHTML = Object.entries(this.cfg.types).filter(([c]) => !HORS_ACTIONS.includes(c))
+                .map(([c, l]) => `<button type="button" class="tuile-action action-${c}" data-type="${c}" data-action="live#choisirAction">${this.echapper(l)}</button>`).join('');
+        }
+        // En attente de zone : le terrain à la place des boutons d'action.
+        const enAttenteZone = !!this.aPlacer && this.actions.has(this.aPlacer);
+        if (enAttenteZone) this.dessinerTerrainAction();
+        this.zoneActionTarget.hidden = !enAttenteZone;
+        this.choixActionsTarget.hidden = enAttenteZone;
+        this.boutonZonesTarget.textContent = this.avecZones ? '📍 Zones : oui' : '📍 Zones : non';
+        this.boutonZonesTarget.title = this.avecZones ? 'Après chaque action, le terrain s\'affiche pour toucher la zone (facultatif). Toucher pour ne plus le proposer.' : 'Toucher pour proposer la zone du terrain après chaque action.';
+        const j = this.joueur(this.joueurAction);
+        const m = this.messageAction;
+        this.consigneActionTarget.className = `live-consigne${m ? (m.alerte ? ' alerte' : ' succes') : ''}`;
+        this.consigneActionTarget.innerHTML = m ? this.echapper(m.texte)
+            : (j ? `<b>${this.echapper(this.nom(j))}</b> : touchez son action (il reste choisi pour la suivante).` : 'Touchez le joueur, puis son action.');
+        this.boutonAnnulerActionTarget.disabled = !this.mesActions.some((u) => this.actions.has(u));
+        // Dernières actions de jeu (tous les appareils), la plus récente en haut.
+        const dernieres = liste.filter((a) => !EVENEMENTS.includes(a.type) && a.type !== 'RP')
+            .sort((a, b) => (b.periode - a.periode) || (b.minute - a.minute)).slice(0, 6);
+        this.dernieresActionsTarget.innerHTML = dernieres.map((a) => `<li class="${this.enAttente[a.uuid] ? 'en-attente' : ''}"><span class="min">${a.minute}'</span>
+            <span class="pastille-action action-${a.type}">${a.type}</span> <span>${this.echapper(this.libelle(a))}</span></li>`).join('')
+            || '<li class="discret">Aucune action notée.</li>';
     }
 
     icone(type) {
@@ -536,6 +749,7 @@ export default class extends Controller {
         this.dessinerStats(liste);
         this.dessinerCompo(liste);
         this.dessinerChoixVisuels(liste);
+        this.dessinerActions(liste);
         this.etatEnvoi();
     }
 

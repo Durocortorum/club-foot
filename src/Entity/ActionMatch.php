@@ -131,7 +131,7 @@ class ActionMatch implements AppartientAuClub
         return $this->details;
     }
 
-    /** Venue de la feuille de match sans place sur le terrain : comptée, mais pas sur la carte. */
+    /** Sans place sur le terrain (feuille de match, saisie en direct sans zone) : comptée, mais pas sur la carte. */
     public function isHorsCarte(): bool
     {
         return true === ($this->details['horsCarte'] ?? null);

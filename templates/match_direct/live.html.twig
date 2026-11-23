@@ -4,8 +4,9 @@
 
 {% block body %}
     {#
-       Match Live (live_controller.js) : version simple du direct, pour le téléphone. Mêmes données que la tablette
-       détaillée (« ⏱ En direct ») : même chrono, mêmes buts, cartons et changements, enregistrés au même endroit.
+       Match Live (live_controller.js) : le direct du match (bouton « ⏱ En direct »), pensé pour le téléphone : score,
+       événements, actions des joueurs, statistiques, composition, visuels. Mêmes données que la saisie détaillée avec
+       zones (roue ⚙, tablette) : même chrono, mêmes actions, enregistrées au même endroit.
        Les équipes sont dans l'ordre du match : celle qui reçoit à gauche.
     #}
     {% set logo = config.logo ?: asset('images/logo.svg') %}
@@ -14,7 +15,7 @@
             <div class="live-barre">
                 <a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}" class="live-retour" aria-label="Retour au match">‹</a>
                 <h1>Match Live <span class="live-onde" aria-hidden="true"></span></h1>
-                <a href="{{ path('app_match_direct', {id: rencontre.id}) }}" class="live-detail" title="Saisie détaillée (tablette) : passes, duels, zones du terrain…" aria-label="Saisie détaillée">⚙</a>
+                <a href="{{ path('app_match_direct', {id: rencontre.id}) }}" class="live-detail" title="Saisie détaillée avec les zones du terrain (tablette)" aria-label="Saisie détaillée avec les zones du terrain">⚙</a>
             </div>
             <div class="live-tableau">
                 {% for cote in ['gauche', 'droite'] %}
@@ -72,7 +73,41 @@
                     </div>
                 {% endfor %}
             </div>
-            <p class="discret petit">Les passes, duels et contrôles se notent sur la <a href="{{ path('app_match_direct', {id: rencontre.id}) }}">saisie détaillée</a> ; le bilan complet est dans les <a href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">statistiques du direct</a>.</p>
+            <p class="discret petit">Passes, duels et contrôles : onglet « Actions ». Bilan complet par joueur dans les <a href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">statistiques du direct</a>.</p>
+        </section>
+
+        {# Actions des joueurs : le joueur puis l'action, enregistrée aussitôt (sans zone du terrain). #}
+        <section class="live-panneau" data-panneau="actions">
+            <h2>Actions des joueurs
+                <span class="live-outils-actions">
+                    <button type="button" class="bouton petit" data-live-target="boutonZones" data-action="live#basculerZones"></button>
+                    <button type="button" class="bouton petit" data-live-target="boutonAnnulerAction" data-action="live#annulerAction" disabled>↶ Annuler la dernière</button>
+                </span></h2>
+            <p class="live-consigne" data-live-target="consigneAction" aria-live="polite"></p>
+            <div class="live-tuiles-joueurs" data-live-target="joueursAction"></div>
+            {# Après l'action (réglage « Zones ») : le terrain prend la place des actions, toucher la zone est facultatif. #}
+            <div class="live-zone" data-live-target="zoneAction" hidden>
+                <p class="live-zone-barre"><span data-live-target="sensAction"></span>
+                    <button type="button" class="lien-bouton petit" data-action="live#changerCote">⇄ Changer de côté</button>
+                    <button type="button" class="bouton petit" data-action="live#passerZone">Sans zone ⏭</button></p>
+                <div class="terrain-direct horizontal" data-live-target="terrainAction">
+                    <span class="marque mediane"></span><span class="marque rond"></span>
+                    <span class="marque surface nous"></span><span class="marque surface eux"></span>
+                    <div class="zones"></div>
+                </div>
+            </div>
+            <div data-live-target="choixActions">
+                <div class="live-tuiles-actions" data-live-target="typesAction"></div>
+                <p class="live-libelle">{{ config.adversaire }}</p>
+                <div class="live-tuiles-actions adverse">
+                    {% for code, libelle in {AC: 'Frappe cadrée', AH: 'Frappe hors cadre', CA: 'Corner', ATC: 'Tête cadrée', ATH: 'Tête hors cadre'} %}
+                        <button type="button" class="tuile-action adverse action-{{ code }}" data-type="{{ code }}" data-action="live#choisirAction">{{ libelle }}</button>
+                    {% endfor %}
+                </div>
+                <p class="discret petit">But et cartons de l'adversaire : boutons « But » et « Carton » en haut.</p>
+            </div>
+            <h3>Dernières actions</h3>
+            <ol class="live-dernieres" data-live-target="dernieresActions"></ol>
         </section>
 
         <section class="live-panneau" data-panneau="compo">
@@ -98,6 +133,7 @@
 
         <nav class="live-onglets" aria-label="Sections du Match Live">
             <button type="button" data-onglet="live" data-action="live#onglet" class="actif"><span aria-hidden="true">((•))</span>Live</button>
+            <button type="button" data-onglet="actions" data-action="live#onglet"><span aria-hidden="true">👟</span>Actions</button>
             <button type="button" data-onglet="stats" data-action="live#onglet"><span aria-hidden="true">▮▮</span>Stats</button>
             <button type="button" data-onglet="compo" data-action="live#onglet"><span aria-hidden="true">👥</span>Compo</button>
             <button type="button" data-onglet="visuels" data-action="live#onglet"><span aria-hidden="true">🖼</span>Visuels</button>
