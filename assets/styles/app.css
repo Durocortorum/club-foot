@@ -2323,3 +2323,5 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .onze-vues { display: flex; gap: .3rem; margin-bottom: .5rem; }
 .onze-vues button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: .35rem; padding: .4rem .6rem; border: 1px solid var(--bordure); border-radius: 8px; background: #fff; font: inherit; font-weight: 600; cursor: pointer; color: var(--gris); }
 .onze-vues button.actif { border-color: var(--rouge); color: var(--rouge-fonce); background: var(--rouge-clair); }
+.case-joueur-nom { display: flex; flex-direction: column; line-height: 1.2; }
+.case-joueur .poste-joueur { color: var(--gris); font-size: .74rem; }

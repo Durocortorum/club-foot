@@ -82,7 +82,8 @@
                             {% for c in choix.choices %}
                                 {% set ailleurs = c.attr['data-ailleurs'] ?? null %}
                                 <label class="case-joueur {{ ailleurs and c.attr.disabled is defined ? 'indisponible' }}" {% if ailleurs %}title="Déjà convoqué(e) avec {{ ailleurs }}"{% endif %}>
-                                    {{ form_widget(form.joueurs[c.value]) }} {{ c.label }}
+                                    {{ form_widget(form.joueurs[c.value]) }}
+                                    <span class="case-joueur-nom">{{ c.label }}{% if c.data.poste is defined and c.data.poste %}<small class="poste-joueur" title="Poste habituel">{{ c.data.poste }}</small>{% endif %}</span>
                                     {% if ailleurs %}<span class="pastille alerte petit">avec {{ ailleurs }}</span>{% endif %}
                                 </label>
                             {% endfor %}
