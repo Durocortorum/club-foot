@@ -23,6 +23,7 @@ use App\Entity\CreneauEntrainement;
 use App\Entity\Deplacement;
 use App\Entity\Dirigeant;
 use App\Entity\Educateur;
+use App\Entity\EtatForme;
 use App\Entity\Evenement;
 use App\Entity\FicheAdversaire;
 use App\Entity\Joueur;
@@ -174,6 +175,7 @@ class ClubDemoCommand extends Command
         $this->suiviSportif($matchs);
         $this->objectifsIndividuels();
         $this->semainesEntrainement();
+        $this->etatsDeForme();
         $this->actionsEnDirect($matchs);
         $this->organisation($comptes);
         $this->em->flush();
@@ -774,6 +776,33 @@ class ClubDemoCommand extends Command
     }
 
     /** @param array<string, list<Rencontre>> $matchs */
+    /**
+     * État de forme des 7 derniers jours (U15 et U19), un jour sur deux environ, et aujourd'hui pour presque tous :
+     * en forme, à surveiller, fatigués. L'enfant U15 du compte parent n'a pas encore répondu aujourd'hui.
+     */
+    private function etatsDeForme(): void
+    {
+        $aujourdhui = new \DateTimeImmutable('today');
+        // fatigue, sommeil, douleurs, motivation
+        $profils = [[2, 8, 1, 9], [3, 7, 0, 8], [5, 6, 2, 7], [3, 8, 1, 6], [7, 4, 3, 6], [2, 9, 0, 9], [4, 7, 6, 8], [5, 5, 1, 5], [1, 8, 0, 10], [6, 6, 4, 7]];
+        foreach (['U15', 'U19'] as $cat) {
+            foreach ($this->joueurs[$cat] as $i => $j) {
+                for ($k = 6; $k >= 0; --$k) {
+                    $parent = 'U15' === $cat && 2 === $i;
+                    if ((0 === $k && ($parent || 0 === $i % 6)) || (0 !== $k && 0 !== ($i + $k) % 2)) {
+                        continue;
+                    }
+                    $p = $profils[($i * 3 + $k) % \count($profils)];
+                    $this->em->persist((new EtatForme($j, $aujourdhui->modify("-$k days")))->renseigner(
+                        ['fatigue' => $p[0], 'sommeil' => $p[1], 'douleurs' => $p[2], 'motivation' => $p[3]],
+                        6 === $p[2] ? 'Douleur à la cheville après le match' : null,
+                        'Joueur',
+                    ));
+                }
+            }
+        }
+    }
+
     /**
      * Présences de la semaine d'entraînement en cours (U15 et U19), avec la note et la forme de chaque joueur :
      * visibles dans la convocation et dans « Composer le onze » des matchs du week-end.

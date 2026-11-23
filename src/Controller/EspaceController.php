@@ -29,6 +29,7 @@ use App\Service\CalendrierMois;
 use App\Service\PaiementsEnLigne;
 use App\Repository\JoueurRepository;
 use App\Service\PlanningEntrainements;
+use App\Repository\EtatFormeRepository;
 use App\Repository\ObjectifJoueurRepository;
 use App\Repository\RencontreRepository;
 use App\Repository\TableauTactiqueRepository;
@@ -73,6 +74,7 @@ class EspaceController extends AbstractController
         PaiementsEnLigne $paiementsEnLigne,
         TableauTactiqueRepository $tactiques,
         ObjectifJoueurRepository $objectifs,
+        EtatFormeRepository $etatsForme,
     ): Response
     {
         /** @var Utilisateur $moi */
@@ -133,6 +135,8 @@ class EspaceController extends AbstractController
                 'proches' => $acces->decideAccesParents($moi, $j) ? $proches->avecAcces($j) : null,
                 // Statistiques : joueur mineur et ses parents ; joueur majeur et les contacts qu'il autorise.
                 'stats' => $proches->voitStatistiques($moi, $j) ? self::statistiques($j, $bilan, $participations, $presences) : null,
+                // État de forme du jour (fatigue, sommeil, douleurs, motivation), déjà renseigné ou à renseigner.
+                'etat_forme' => $etatsForme->duJour($j, new \DateTimeImmutable('today')),
                 // Objectifs de progression de la saison (mêmes personnes que les statistiques).
                 'objectifs' => $proches->voitStatistiques($moi, $j) ? $objectifs->duJoueur($j, Rencontre::saisonDe(new \DateTimeImmutable('today'))) : [],
                 // Cotisation de la saison, payable en ligne si le club a l'option et un compte HelloAsso vérifié.

@@ -166,6 +166,30 @@
                 {% if a_payer %}<p class="discret petit">À régler auprès du club.</p>{% endif %}
             {% endif %}
 
+            {# État de forme du jour : fatigue, sommeil, douleurs, motivation (0 à 10), corrigeable le jour même. #}
+            {% set ef = e.etat_forme %}
+            <h3 id="etat-forme-{{ j.id }}">État de forme du jour{% if ef %} <span class="etat-forme {{ ef.etat }}">{{ ef.etatLibelle }}</span>{% endif %}</h3>
+            <details class="etat-forme-bloc" {{ ef ? '' : 'open' }}>
+                <summary class="petit">{{ ef ? 'Renseigné à ' ~ ef.saisiLe|date('H:i', 'Europe/Paris') ~ ' — modifier' : 'Comment va ' ~ j.prenom ~ ' aujourd\'hui ? (quelques secondes)' }}</summary>
+                <form method="post" action="{{ path('app_espace_etat_forme', {joueur: j.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('etat-forme' ~ j.id) }}">
+                    <div class="etat-forme-saisie">
+                        {% for c, def in constant('App\\Entity\\EtatForme::CRITERES') %}
+                            {% set v = ef ? ef.valeur(c) : (def[4] ? 7 : 2) %}
+                            <div class="etat-forme-critere">
+                                <span class="icone" aria-hidden="true">{{ def[3] }}</span>
+                                <label for="ef-{{ c }}-{{ j.id }}"><strong>{{ def[0] }}</strong></label>
+                                <output id="ef-{{ c }}-{{ j.id }}-val">{{ v }}/10</output>
+                                <input type="range" id="ef-{{ c }}-{{ j.id }}" name="{{ c }}" min="0" max="10" step="1" value="{{ v }}" oninput="document.getElementById(this.id + '-val').textContent = this.value + '/10'">
+                                <span class="bornes"><span>{{ def[1] }}</span><span>{{ def[2] }}</span></span>
+                            </div>
+                        {% endfor %}
+                        <input type="text" name="commentaire" maxlength="200" value="{{ ef ? ef.commentaire }}" placeholder="Un mot pour l'éducateur (facultatif) : ex. douleur au genou droit" aria-label="Commentaire">
+                    </div>
+                    <button class="bouton principal">✓ Valider {{ j.prenom }}</button>
+                </form>
+            </details>
+
             {# Autoévaluation : effort ressenti après les séances des derniers jours (RPE de 1 à 10). #}
             {% if e.a_noter or e.ressentis %}
                 <h3 id="ressenti-{{ j.id }}">Effort ressenti</h3>

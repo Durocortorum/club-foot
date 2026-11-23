@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}État de forme {{ categorie }}{% endblock %}
+
+{% block body %}
+    {% set noms_jours = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'] %}
+    {% set aujourdhui = 'today'|date('Y-m-d') == jour|date('Y-m-d') %}
+    {{ m.retour(path('app_seance_index'), 'Entraînements') }}
+    <div class="titre-page">
+        <h1>État de forme <span class="compteur">{{ categorie }}</span></h1>
+        <div class="actions"><a class="bouton" href="{{ path('app_ressenti', {categorie: categorie.id}) }}">Effort ressenti</a></div>
+    </div>
+    <p class="discret petit">Chaque joueur renseigne en quelques secondes, depuis son espace, son état du jour : fatigue, sommeil, douleurs et motivation (de 0 à 10). Vous obtenez la vue de votre groupe pour adapter la séance et prévenir les blessures.</p>
+
+    <form class="filtres" method="get">
+        <select name="categorie" onchange="this.form.requestSubmit()" aria-label="Équipe">
+            {% for c in categories %}<option value="{{ c.id }}" {{ c.id == categorie.id ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
+        </select>
+        <input type="hidden" name="jour" value="{{ jour|date('Y-m-d') }}">
+        <noscript><button type="submit" class="bouton">Afficher</button></noscript>
+    </form>
+
+    <div class="calendrier-entete">
+        <a class="bouton petit" href="{{ path('app_etat_forme', {categorie: categorie.id, jour: precedent|date('Y-m-d')}) }}" aria-label="Jour précédent">←</a>
+        <h2>{{ aujourdhui ? 'Le groupe aujourd\'hui' : 'Le groupe ' ~ noms_jours[jour|date('w')] ~ ' ' ~ jour|date('d/m/Y') }}</h2>
+        {% if suivant %}<a class="bouton petit" href="{{ path('app_etat_forme', {categorie: categorie.id, jour: suivant|date('Y-m-d')}) }}" aria-label="Jour suivant">→</a>
+            <a class="bouton petit" href="{{ path('app_etat_forme', {categorie: categorie.id}) }}">Aujourd'hui</a>{% endif %}
+    </div>
+
+    <div class="tuiles bilan etat-forme-tuiles">
+        <div class="tuile"><span class="tuile-valeur">{{ lignes|length }}</span><span class="tuile-libelle">joueurs</span></div>
+        <div class="tuile"><span class="tuile-valeur"><span class="pct bon">{{ compte.forme }}</span></span><span class="tuile-libelle">✅ en forme</span></div>
+        <div class="tuile etat-orange"><span class="tuile-valeur">{{ compte.surveiller }}</span><span class="tuile-libelle">⚠️ à surveiller</span></div>
+        <div class="tuile"><span class="tuile-valeur"><span class="pct faible">{{ compte.fatigue }}</span></span><span class="tuile-libelle">❌ fatigués</span></div>
+        <div class="tuile"><span class="tuile-valeur"><span class="resultat-N">{{ compte.sans }}</span></span><span class="tuile-libelle">sans réponse</span></div>
+    </div>
+
+    <div class="table-defile">
+        <table class="liste tableau-etat-forme">
+            <thead>
+                <tr>
+                    <th>Joueur</th>
+                    {% for c, def in criteres %}<th class="centre" title="{{ def[0] }} (0 : {{ def[1]|lower }}, 10 : {{ def[2]|lower }})">{{ def[3] }}<br><span class="petit">{{ def[0] }}</span></th>{% endfor %}
+                    <th>État</th>
+                    <th>7 derniers jours</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in lignes %}
+                    {% set e = l.etat %}
+                    <tr class="{{ e ? '' : 'sans-reponse' }}">
+                        <td class="avec-vignette nowrap">{{ m.avatar(l.joueur, 'mini') }} <a href="{{ path('app_joueur_voir', {id: l.joueur.id}) }}"><strong>{{ l.joueur.nom }}</strong> {{ l.joueur.prenom }}</a></td>
+                        {% for c, def in criteres %}
+                            <td class="centre">{% if e %}<span class="point-forme {{ e.niveau(c) }}" title="{{ def[0] }} : {{ e.valeur(c) }} / 10"></span> <span class="petit discret">{{ e.valeur(c) }}</span>{% endif %}</td>
+                        {% endfor %}
+                        <td>{% if e %}<span class="etat-forme {{ e.etat }}">{{ e.etatLibelle }}</span>{% if e.commentaire %}<div class="petit discret">« {{ e.commentaire }} »</div>{% endif %}{% else %}<span class="discret petit">pas encore renseigné</span>{% endif %}</td>
+                        <td class="nowrap">
+                            {% for d in l.semaine %}
+                                <span class="mini-jour {{ d ? d.etat : 'aucun' }}" title="{{ noms_jours[jours[loop.index0]|date('w')] }} {{ jours[loop.index0]|date('d/m') }} : {{ d ? d.etatLibelle : 'pas de réponse' }}"></span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="vide">Aucun joueur dans cette équipe.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="discret petit">Vert : bon ; orange : à surveiller ; rouge : à ménager. Fatigue au rouge dès 7, douleurs dès 6, sommeil et motivation à 4 ou moins. Un seul critère au rouge suffit pour « Fatigué ».</p>
+{% endblock %}

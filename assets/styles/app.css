@@ -2362,3 +2362,24 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .grille-presence .forme-semaine { width: auto; min-width: 3.2rem; padding: .25rem .3rem; }
 .forme-sem { display: inline-flex; align-items: center; gap: .2rem; font-size: .78rem; font-weight: 700; color: var(--gris); white-space: nowrap; }
 .grille-presence .col-semaine { background: color-mix(in srgb, var(--rouge) 5%, #fff); }
+
+/* État de forme des joueurs : pastilles par critère, état d'ensemble, 7 derniers jours, curseurs de l'espace famille. */
+.etat-forme-tuiles .tuile.etat-orange { --accent: #d48a00; }
+.point-forme { display: inline-block; width: .85rem; height: .85rem; border-radius: 50%; vertical-align: middle; }
+.point-forme.vert, .mini-jour.forme { background: var(--succes); }
+.point-forme.orange, .mini-jour.surveiller { background: #f0a500; }
+.point-forme.rouge, .mini-jour.fatigue { background: var(--danger); }
+.etat-forme { display: inline-block; border-radius: 99px; padding: .15rem .65rem; font-size: .82rem; font-weight: 700; white-space: nowrap; }
+.etat-forme.forme { background: color-mix(in srgb, var(--succes) 16%, #fff); color: var(--succes); }
+.etat-forme.surveiller { background: #fff3cd; color: #8a5a00; }
+.etat-forme.fatigue { background: color-mix(in srgb, var(--danger) 14%, #fff); color: var(--danger-fonce, #a00); }
+.mini-jour { display: inline-block; width: .7rem; height: .7rem; border-radius: 3px; margin-right: 2px; }
+.mini-jour.aucun { background: var(--bordure); }
+.tableau-etat-forme tr.sans-reponse td { opacity: .7; }
+.etat-forme-saisie { display: grid; gap: .6rem; margin: .5rem 0; }
+.etat-forme-critere { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 3.2rem; align-items: center; gap: .3rem .6rem; padding: .55rem .7rem; border: 1px solid var(--bordure); border-radius: 12px; background: #fff; }
+.etat-forme-critere .icone { font-size: 1.4rem; grid-row: span 2; }
+.etat-forme-critere strong { font-size: .95rem; }
+.etat-forme-critere output { grid-row: span 2; font-weight: 800; font-size: 1.05rem; text-align: right; color: var(--rouge-fonce); }
+.etat-forme-critere input[type=range] { width: 100%; accent-color: var(--succes); padding: 0; border: 0; background: none; }
+.etat-forme-critere .bornes { grid-column: 2; display: flex; justify-content: space-between; font-size: .72rem; color: var(--gris); margin-top: -.2rem; }
