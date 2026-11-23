@@ -36,6 +36,7 @@
             {% if modifiable %}
                 <a class="bouton" href="{{ path('app_convocation', {id: rencontre.id}) }}">{{ convocation ? 'Convocation' : 'Convoquer' }}</a>
                 <a class="bouton principal" href="{{ path('app_rencontre_modifier', {id: rencontre.id}) }}" title="Modifier le match : feuille de match (joueurs, numéros, postes), score, buts, remplacements, conditions, rapport">Feuille de match</a>
+                <a class="bouton" href="{{ path('app_onze', {id: rencontre.id}) }}" title="Choisir le onze de départ et les remplaçants : joueurs disponibles, notes par poste, absences, comparaison avec les matchs précédents">👕 Composer le onze</a>
                 <a class="bouton" href="{{ path('app_match_live', {id: rencontre.id}) }}" title="Pendant le match : score, buts, cartons, remplacements, actions des joueurs (passes, duels…)">⏱ En direct</a>
             {% endif %}
             <a class="bouton" href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}" title="Passes, duels, frappes… par joueur, carte du terrain, quarts d'heure">Statistiques du direct</a>
@@ -162,7 +163,7 @@
         <section class="carte bloc">
             <div class="titre-page">
                 {# Placés à la main par l'éducateur : ce n'est plus le système type. #}
-                <h2>Composition{% if rencontre.placements is not empty or rencontre.placementEducateur %} <span class="pastille">{{ constant('App\\Entity\\Rencontre::LIBELLE_EDUCATEUR') }}</span>{% elseif rencontre.systeme %} <span class="pastille">{{ rencontre.systeme }}</span>{% endif %}</h2>
+                <h2>Composition{% if rencontre.placementEducateur %} <span class="pastille">{{ constant('App\\Entity\\Rencontre::LIBELLE_EDUCATEUR') }}</span>{% elseif rencontre.systeme %} <span class="pastille">{{ rencontre.systeme }}</span>{% endif %}</h2>
                 {% if modifiable %}<a class="bouton petit" href="{{ path('app_rencontre_composition', {id: rencontre.id}) }}">Placer les joueurs</a>{% endif %}
             </div>
             {% include 'rencontre/_terrain_compo.html.twig' with {modifiable: false} %}

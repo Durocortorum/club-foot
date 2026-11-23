@@ -127,7 +127,7 @@
     <div class="adv-colonnes">
     {% if derniere and compo.titulaires %}
             <section class="carte bloc adv-compo">
-                <h2>Notre composition{% if derniere.placements is empty and derniere.systeme and not derniere.placementEducateur %} <span class="pastille">{{ derniere.systeme }}</span>{% endif %}</h2>
+                <h2>Notre composition{% if derniere.systeme and not derniere.placementEducateur %} <span class="pastille">{{ derniere.systeme }}</span>{% endif %}</h2>
                 {% include 'rencontre/_terrain_compo.html.twig' with {rencontre: derniere, compo: compo, modifiable: false} %}
                 {% if derniere.remplacements|length %}
                     <p class="petit"><strong>Changements :</strong>

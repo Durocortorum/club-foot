@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Composer le onze – {{ rencontre.afficheContre }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_rencontre_voir', {id: rencontre.id}), rencontre.intitule) }}
+
+    <div class="onze" data-controller="onze" data-onze-config-value="{{ {
+        donnees: donnees,
+        modifiable: modifiable,
+        jeton: csrf_token('onze' ~ rencontre.id),
+        adresse: path('app_onze_valider', {id: rencontre.id}),
+        abreviations: constant('App\\Entity\\Participation::ABREVIATIONS_POSTES'),
+    }|json_encode }}">
+        <div class="titre-page">
+            <div>
+                <p class="discret">{{ rencontre.equipeAffichee }} · {{ rencontre.competition ?? 'Match' }} · {{ rencontre.date ? rencontre.date|date('d/m/Y') }}{{ rencontre.heure ? ' à ' ~ rencontre.heure }}</p>
+                <h1>Composition <span class="discret">– match contre {{ rencontre.adversaire }}</span></h1>
+            </div>
+            <div class="actions">
+                <button type="button" class="bouton" data-action="onze#basculerComparaison" data-onze-target="boutonComparer">⇄ Comparer</button>
+                <a class="bouton" href="{{ path('app_tactique', {id: rencontre.id}) }}">📋 Tactique</a>
+            </div>
+        </div>
+
+        {# Les cinq temps, comme sur la maquette. #}
+        <ol class="parcours-adv parcours-onze">
+            <li><a href="#onze-joueurs" data-action="onze#voirOnglet" data-onglet="joueurs"><span class="parcours-num">1</span> Voir les joueurs disponibles</a></li>
+            <li><a href="#onze-joueurs" data-action="onze#voirOnglet" data-onglet="stats"><span class="parcours-num">2</span> Analyser les performances par poste</a></li>
+            <li><a href="#onze-joueurs" data-action="onze#voirOnglet" data-onglet="absences"><span class="parcours-num">3</span> Tenir compte des absences</a></li>
+            <li><a href="#onze-comparer" data-action="onze#basculerComparaison"><span class="parcours-num">4</span> Comparer les compositions</a></li>
+            <li><a href="#onze-valider"><span class="parcours-num">5</span> Valider le onze de départ</a></li>
+        </ol>
+
+        <div class="onze-grille">
+            <section class="carte onze-terrain-carte">
+                <div class="onze-barre">
+                    <label>Formation
+                        <select data-onze-target="formation" data-action="onze#changerFormation">
+                            {% for format, liste in constant('App\\Entity\\Rencontre::SYSTEMES') %}
+                                <optgroup label="{{ format }}">{% for f in liste %}<option value="{{ f }}">{{ f }}</option>{% endfor %}</optgroup>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <span class="compteur-onze" data-onze-target="compteur"></span>
+                    <button type="button" class="lien-bouton petit" data-action="onze#vider">Tout retirer</button>
+                </div>
+                <p class="discret petit onze-consigne" data-onze-target="consigne"></p>
+                <div class="terrain-compo onze-terrain" data-onze-target="terrain"></div>
+                <div class="onze-banc">
+                    <strong>Remplaçants <span class="compteur" data-onze-target="nbBanc">0</span></strong>
+                    <div class="onze-banc-liste" data-onze-target="banc"></div>
+                </div>
+                {% if modifiable %}
+                    <div class="actions-ligne" id="onze-valider">
+                        <button type="button" class="bouton principal onze-valider" data-action="onze#valider" data-onze-target="boutonValider">✓ Valider le onze</button>
+                        <span class="discret petit">Le onze et les remplaçants vont sur la feuille de match (postes, places, organisation).</span>
+                    </div>
+                {% else %}
+                    <p class="discret petit">Lecture seule : seuls ceux qui tiennent les matchs de l'équipe valident le onze.</p>
+                {% endif %}
+                <p class="flash flash-erreur" data-onze-target="erreur" hidden></p>
+            </section>
+
+            <section class="carte onze-panneau" id="onze-joueurs">
+                <div class="onze-onglets" role="tablist">
+                    <button type="button" role="tab" data-onglet="joueurs" data-action="onze#voirOnglet" class="actif">Joueurs</button>
+                    <button type="button" role="tab" data-onglet="stats" data-action="onze#voirOnglet">Stats</button>
+                    <button type="button" role="tab" data-onglet="absences" data-action="onze#voirOnglet">Absences <span class="compteur" data-onze-target="nbAbsences"></span></button>
+                </div>
+                <div data-onze-target="filtre" class="onze-filtre"></div>
+                <div data-onze-target="liste"></div>
+            </section>
+        </div>
+
+        <section class="carte bloc onze-comparer" id="onze-comparer" data-onze-target="comparaison" hidden></section>
+    </div>
+{% endblock %}

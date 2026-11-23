@@ -2251,3 +2251,71 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
     .presentation-tactique:fullscreen .presentation-corps .schema-terrain, .presentation-tactique.plein-ecran .presentation-corps .schema-terrain { max-height: calc(100dvh - 6.5rem); width: 100%; }
     .presentation-tactique:fullscreen .tableau-consignes, .presentation-tactique.plein-ecran .tableau-consignes { font-size: .9rem; }
 }
+
+/* Composer le onze : terrain à gauche, joueurs à droite (l'un sous l'autre sur téléphone). */
+.parcours-onze { grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }
+.onze-grille { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+@media (max-width: 860px) { .onze-grille { grid-template-columns: 1fr; } }
+.onze-barre { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; margin-bottom: .4rem; }
+.onze-barre label { display: inline-flex; align-items: center; gap: .4rem; font-weight: 700; }
+.onze-barre select { width: auto; }
+.compteur-onze { font-weight: 700; color: var(--rouge-fonce); background: var(--rouge-clair); border-radius: 99px; padding: .15rem .6rem; font-size: .85rem; }
+.compteur-onze.complet { color: #fff; background: var(--succes); }
+.onze-consigne { margin: 0 0 .5rem; min-height: 1.2em; }
+.onze-terrain { max-width: 26rem; }
+.onze-place { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: .1rem; width: 5.2rem;
+    background: none; border: 0; padding: 0; font: inherit; cursor: pointer; color: #fff; touch-action: manipulation; }
+.onze-maillot { display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 50% 50% 45% 45%; background: var(--rouge); color: #fff; font-weight: 800; font-size: .95rem;
+    border: 2px solid #fff; box-shadow: 0 2px 6px rgb(0 0 0 / .35); }
+.onze-maillot.gardien { background: #f5c400; color: #1d1d1f; }
+.onze-maillot.petit { width: 1.6rem; height: 1.6rem; font-size: .75rem; border-width: 1px; box-shadow: none; }
+.onze-place.vide .onze-maillot { background: rgb(255 255 255 / .18); border: 2px dashed rgb(255 255 255 / .85); font-size: .7rem; box-shadow: none; }
+.onze-place.choisie .onze-maillot { outline: 3px solid #f5c400; outline-offset: 2px; }
+.onze-place.alerte .onze-maillot { background: var(--danger); }
+.onze-nom { font-size: .68rem; font-weight: 700; text-transform: uppercase; background: rgb(0 0 0 / .55); border-radius: 4px; padding: 0 .3rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.onze-place.vide .onze-nom { text-transform: none; font-weight: 600; background: rgb(0 0 0 / .35); }
+.onze-alerte { position: absolute; top: -.2rem; right: 1.05rem; width: 1rem; height: 1rem; border-radius: 50%; background: #fff; color: var(--danger); font-weight: 900; font-size: .7rem; line-height: 1rem; }
+.onze-note { display: inline-block; min-width: 2.2rem; text-align: center; border-radius: 6px; padding: .05rem .35rem; font-weight: 800; font-size: .85rem; color: #fff; background: var(--gris); }
+.onze-note.haute { background: var(--succes); }
+.onze-note.moyenne { background: #c98a00; }
+.onze-note.basse { background: var(--danger); }
+.onze-note.petite { min-width: 1.8rem; font-size: .66rem; padding: 0 .25rem; border-radius: 4px; }
+.onze-banc { margin-top: .8rem; padding: .6rem; background: #0f1626; border-radius: var(--rayon); color: #fff; }
+.onze-banc strong { display: block; margin-bottom: .4rem; }
+.onze-banc .discret { color: #c9cdd6; }
+.onze-banc-liste { display: flex; flex-wrap: wrap; gap: .35rem; }
+.onze-remplacant { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .45rem; border-radius: 8px; border: 1px solid rgb(255 255 255 / .2); background: rgb(255 255 255 / .06);
+    color: #fff; font: inherit; font-size: .8rem; cursor: pointer; }
+.onze-remplacant.choisi { outline: 2px solid #f5c400; }
+.onze-retirer { opacity: .7; padding: 0 .15rem; }
+.onze-retirer:hover { opacity: 1; }
+.onze-valider { font-size: 1.05rem; padding: .7rem 1.4rem; }
+.onze-onglets { display: flex; gap: .3rem; background: var(--fond, #f2f4f8); padding: .25rem; border-radius: 10px; margin-bottom: .6rem; }
+.onze-onglets button { flex: 1; border: 0; background: transparent; border-radius: 8px; padding: .45rem; font: inherit; font-weight: 600; cursor: pointer; color: var(--gris); }
+.onze-onglets button.actif { background: #fff; color: var(--rouge-fonce); box-shadow: var(--ombre); }
+.onze-pour { margin: 0 0 .4rem; padding: .4rem .6rem; border-radius: 8px; background: var(--rouge-clair); font-size: .9rem; }
+.onze-tous { display: flex; align-items: center; gap: .4rem; font-size: .85rem; margin-bottom: .4rem; }
+.onze-tous input { width: auto; }
+.onze-joueurs { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; max-height: 34rem; overflow: auto; }
+.onze-joueur { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: .5rem; padding: .45rem .55rem; border: 1px solid var(--bordure); border-radius: 10px; background: #fff; cursor: pointer; }
+.onze-joueur:has(.lien-bouton) { grid-template-columns: auto minmax(0, 1fr) auto auto auto auto; }
+.onze-joueur:hover { border-color: var(--rouge); }
+.onze-joueur.choisi { border-color: var(--rouge); box-shadow: 0 0 0 2px var(--rouge) inset; background: color-mix(in srgb, var(--rouge) 8%, #fff); }
+.onze-joueur.titulaire { background: color-mix(in srgb, var(--succes) 7%, #fff); }
+.onze-joueur.indispo { opacity: .65; }
+.onze-joueur .avatar.mini { width: 2.1rem; height: 2.1rem; font-size: .72rem; margin: 0; }
+.onze-qui { min-width: 0; line-height: 1.2; }
+.onze-qui b { text-transform: uppercase; font-size: .88rem; }
+.onze-qui small { display: block; color: var(--gris); font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.onze-etat { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; font-weight: 900; font-size: .8rem; color: #fff; background: var(--succes); }
+.onze-etat.attente { background: var(--gris); }
+.onze-etat.absent, .onze-etat.blesse { background: var(--danger); }
+.onze-etat.suspendu { background: #1d1d1f; }
+.onze-joueur .bouton.petit.actif { background: var(--succes); border-color: var(--succes); color: #fff; }
+.onze-stats td, .onze-stats th { white-space: nowrap; }
+.onze-comparer { margin-top: 1rem; }
+.onze-comparer tr.choisie td { background: var(--rouge-clair); }
+.onze-commun { display: inline-block; width: 5rem; height: .5rem; border-radius: 99px; background: var(--bordure); vertical-align: middle; overflow: hidden; }
+.onze-commun span { display: block; height: 100%; background: var(--rouge); }
+.onze-onglets .compteur:empty { display: none; }
+.onze-place .onze-nom { display: block; }

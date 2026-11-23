@@ -41,7 +41,7 @@
             </div>
 
             {# Joueurs déplacés à la main : la disposition n'est plus celle du système affiché. #}
-            {% if rencontre.placements is not empty %}
+            {% if rencontre.placementEducateur %}
                 <p class="placement-educateur"><span class="pastille">Placement par l'éducateur</span>
                     Les joueurs ont été placés à la main. Pour revenir à une organisation type : choisissez-la ci-dessus, puis « Replacer selon le système ».</p>
             {% endif %}

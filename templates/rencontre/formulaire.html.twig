@@ -124,7 +124,7 @@
             <legend>Conditions</legend>
             {{ m.groupe(form, ['terrain', 'meteo', 'vent', 'temperature', 'systeme', 'systemeAdverse']) }}
             {# Joueurs placés à la main sur le terrain (page « Composition ») : l'organisation n'est plus qu'un point de départ. #}
-            {% if not nouveau and rencontre.placements is not empty %}
+            {% if not nouveau and rencontre.placementEducateur %}
                 <p class="placement-educateur discret petit">Joueurs placés à la main sur le terrain. Choisir une organisation type (4 4 2, 4 3 2 1…) les replacera selon elle.
                     <a href="{{ path('app_rencontre_composition', {id: rencontre.id}) }}">Voir la composition</a></p>
             {% endif %}
