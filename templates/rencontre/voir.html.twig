@@ -39,6 +39,7 @@
                 <a class="bouton" href="{{ path('app_match_live', {id: rencontre.id}) }}" title="Pendant le match : score, buts, cartons, remplacements, actions des joueurs (passes, duels…) et visuels à partager sur les réseaux sociaux">⏱ En direct</a>
             {% endif %}
             <a class="bouton" href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}" title="Passes, duels, frappes… par joueur, carte du terrain, quarts d'heure">Statistiques du direct</a>
+            <a class="bouton" href="{{ path('app_adversaire', {id: rencontre.id}) }}" title="Confrontations passées, dernière rencontre et sa vidéo, notes de l'éducateur, préparation du prochain match contre {{ rencontre.adversaire }}">🔎 Adversaire</a>
             {% if rencontre.butsPour is not null %}<a class="bouton" href="{{ path('app_message_nouveau', {compte_rendu: rencontre.id}) }}" title="Envoyer le score et les buteurs aux familles de l'équipe, avec votre mot">Compte rendu aux familles</a>{% endif %}
             {% if not rencontre.aDomicile %}<a class="bouton" href="{{ path('app_transport_nouveau', {match: rencontre.id}) }}" title="Noter le déplacement : car, minibus, voitures et frais kilométriques">Transport</a>{% endif %}
             {% if modifiable %}{{ m.supprimer(path('app_rencontre_supprimer', {id: rencontre.id}), 'supprimer-match' ~ rencontre.id, 'Supprimer ce match et sa feuille de match ?') }}{% endif %}
@@ -83,8 +84,10 @@
                 {{ m.ligne('Vent', rencontre.vent) }}
                 {{ m.ligne('Température', rencontre.temperature ? rencontre.temperature ~ ' °C') }}
                 {{ m.ligne('Organisation', rencontre.systemeLibelle) }}
+                {{ m.ligne('Organisation de l\'adversaire', rencontre.systemeAdverse) }}
                 {{ m.ligne('Note du match', rencontre.note ? rencontre.note|number_format(1, ',') ~ ' / 10') }}
             </dl>
+            {% if rencontre.lienVideo %}<p><a class="bouton petit" href="{{ rencontre.lienVideo }}" target="_blank" rel="noopener">▶ Voir la vidéo{{ rencontre.siteVideo ? ' (' ~ rencontre.siteVideo ~ ')' }}</a></p>{% endif %}
         </section>
 
         <section class="carte">

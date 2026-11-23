@@ -24,6 +24,7 @@ use App\Entity\Deplacement;
 use App\Entity\Dirigeant;
 use App\Entity\Educateur;
 use App\Entity\Evenement;
+use App\Entity\FicheAdversaire;
 use App\Entity\Joueur;
 use App\Entity\Message;
 use App\Entity\Operation;
@@ -480,6 +481,10 @@ class ClubDemoCommand extends Command
         }
         $matchs[] = [13, 'FC SAINT-LAURENT', false, 'Coupe Gambardella'];
         $matchs[] = [18, 'US VALLÉE VERTE', true, 'Coupe Gambardella'];
+        // Analyse de l'adversaire : organisation observée chez chaque adversaire, vidéo des matchs joués à domicile.
+        $organisations = ['4 3 3', '4 4 2', '4 2 3 1', '3 5 2', '4 1 4 1'];
+        $prochain = null;
+        usort($matchs, fn (array $a, array $b) => $a[0] <=> $b[0]);
         foreach ($matchs as [$semaine, $adversaire, $domicile, $competition]) {
             $date = $debut->modify("+$semaine weeks");
             $r = (new Rencontre())->setCategorie($categorie)->setDate($date)->setHeure('15h30')->setCompetition($competition)
@@ -489,10 +494,22 @@ class ClubDemoCommand extends Command
                 [$pour, $contre] = [mt_rand(0, 4), mt_rand(0, 3)];
                 $r->setButsDomicile($domicile ? $pour : $contre)->setButsExterieur($domicile ? $contre : $pour)
                     ->setButsDomicileMiTemps(intdiv($domicile ? $pour : $contre, 2))->setButsExterieurMiTemps(intdiv($domicile ? $contre : $pour, 2))
-                    ->setTerrain(0 === $semaine % 3 ? 'Synthétique' : 'Herbe')->setMeteo(['Ensoleillé', 'Nuageux', 'Pluie'][$semaine % 3])->setSysteme('4 3 3');
+                    ->setTerrain(0 === $semaine % 3 ? 'Synthétique' : 'Herbe')->setMeteo(['Ensoleillé', 'Nuageux', 'Pluie'][$semaine % 3])->setSysteme('4 3 3')
+                    ->setSystemeAdverse($organisations[crc32($adversaire) % \count($organisations)])
+                    ->setLienVideo($domicile ? 'https://app.veo.co/' : null);
                 $this->feuille($r, $effectif, $pour, $contre);
+            } elseif (!$prochain && 'Championnat' === $competition) {
+                $prochain = $adversaire;
             }
             $this->em->persist($r);
+        }
+        // Notes de l'éducateur et préparation du match retour, sur le prochain adversaire de championnat.
+        if ($prochain) {
+            $this->em->persist((new FicheAdversaire($categorie, $prochain))
+                ->setPointsForts("Pressing haut dès la perte du ballon.\nAiliers très rapides, surtout côté droit.")
+                ->setPointsFaibles("Espace dans le dos de la défense quand les latéraux montent.\nRelance difficile sous pression.")
+                ->setARetenir('Forte intensité en début de match : rester compacts les 20 premières minutes.')
+                ->setPreparation("4 2 3 1 : deux milieux devant la défense pour couper les ailiers.\nJouer vite dans leur dos dès la récupération.\nPresser leur gardien sur les relances courtes."));
         }
     }
 

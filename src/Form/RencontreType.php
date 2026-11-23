@@ -15,6 +15,7 @@ use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
@@ -81,6 +82,7 @@ class RencontreType extends AbstractType
             ->add('butsExterieur', IntegerType::class, $score('finExt'))
             ->add('lieu', null, ['label' => 'Stade', 'required' => false])
             ->add('rapport', TextareaType::class, ['label' => 'Rapport de l\'éducateur', 'required' => false, 'attr' => ['rows' => 8]])
+            ->add('lienVideo', UrlType::class, ['label' => 'Vidéo du match (lien Veo, YouTube…)', 'required' => false, 'default_protocol' => 'https', 'attr' => ['placeholder' => 'https://app.veo.co/matches/…']])
             // Joueurs convoqués (hors absents) : seuls proposés sur la feuille, sauf « tous les joueurs » (contrôleur « feuille »).
             ->add('participations', CollectionType::class, array_merge_recursive($collection(ParticipationType::class), ['entry_options' => ['duree' => $options['duree'], 'convoques' => $options['convoques']]]))
             ->add('buts', CollectionType::class, array_merge_recursive($collection(ButType::class), ['entry_options' => ['duree' => $options['duree']]]))
@@ -92,7 +94,7 @@ class RencontreType extends AbstractType
         // (anciens matchs saisis librement, ex. : « 442 »).
         $listes = ['terrain' => ['Terrain', Rencontre::TERRAINS], 'meteo' => ['Météo', Rencontre::METEOS],
             'vent' => ['Vent', Rencontre::VENTS], 'temperature' => ['Température (°C)', array_map('strval', range(-15, 40))],
-            'systeme' => ['Organisation de jeu', Rencontre::SYSTEMES]];
+            'systeme' => ['Organisation de jeu', Rencontre::SYSTEMES], 'systemeAdverse' => ['Organisation de l\'adversaire', Rencontre::SYSTEMES]];
         $ajouterListes = function (FormInterface $form, callable $valeur) use ($listes): void {
             foreach ($listes as $nom => [$label, $valeurs]) {
                 $groupes = array_is_list($valeurs) ? $this->choix($valeurs) : array_map(fn (array $v) => $this->choix($v), $valeurs);

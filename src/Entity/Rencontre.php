@@ -120,6 +120,16 @@ class Rencontre implements AppartientAuClub
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $placements = null;
 
+    /** Organisation de jeu de l'adversaire, observée pendant le match (fiche adversaire). */
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $systemeAdverse = null;
+
+    /** Lien vers la vidéo du match (Veo, YouTube, Drive…). */
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: 'Collez l\'adresse complète de la vidéo (elle commence par https://).', protocols: ['http', 'https'])]
+    #[Assert\Length(max: 255)]
+    private ?string $lienVideo = null;
+
     #[ORM\Column(nullable: true)]
     #[Assert\Range(min: 0, max: 10)]
     private ?float $note = null;
@@ -684,6 +694,45 @@ class Rencontre implements AppartientAuClub
         $this->systeme = $systeme;
 
         return $this;
+    }
+
+    public function getSystemeAdverse(): ?string
+    {
+        return $this->systemeAdverse;
+    }
+
+    public function setSystemeAdverse(?string $systeme): static
+    {
+        $systeme = trim((string) $systeme);
+        $this->systemeAdverse = '' === $systeme ? null : mb_substr($systeme, 0, 20);
+
+        return $this;
+    }
+
+    public function getLienVideo(): ?string
+    {
+        return $this->lienVideo;
+    }
+
+    public function setLienVideo(?string $lien): static
+    {
+        $lien = trim((string) $lien);
+        $this->lienVideo = '' === $lien ? null : $lien;
+
+        return $this;
+    }
+
+    /** Site de la vidéo, pour le bouton : « Veo », « YouTube »… ; null pour un autre site. */
+    public function getSiteVideo(): ?string
+    {
+        $hote = mb_strtolower((string) parse_url((string) $this->lienVideo, \PHP_URL_HOST));
+        foreach (['veo.co' => 'Veo', 'youtube.com' => 'YouTube', 'youtu.be' => 'YouTube', 'vimeo.com' => 'Vimeo', 'drive.google.com' => 'Google Drive', 'dailymotion.com' => 'Dailymotion', 'facebook.com' => 'Facebook'] as $site => $nom) {
+            if ($hote === $site || str_ends_with($hote, '.' . $site)) {
+                return $nom;
+            }
+        }
+
+        return null;
     }
 
     public function getNote(): ?float

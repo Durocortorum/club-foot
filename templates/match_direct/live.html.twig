@@ -55,6 +55,13 @@
             <button type="button" class="live-bouton" data-live-target="boutonPeriode" data-action="live#periode"><span class="icone" aria-hidden="true">▶</span>Coup d'envoi</button>
             <button type="button" class="live-bouton" data-live-target="boutonFin" data-action="live#fin"><span class="icone" aria-hidden="true">🏁</span>Fin</button>
         </div>
+        {# Match terminé : noter tout de suite ses impressions sur l'adversaire (fiche adversaire, formulaire ouvert). #}
+        {% if not rencontre.plateau %}
+            <p class="live-analyse" data-live-target="analyse" hidden>
+                <a class="bouton principal" href="{{ path('app_adversaire', {id: rencontre.id, apres: 1}) }}#modifier">🔎 Analyser l'adversaire</a>
+                <span class="discret petit">Points forts, points faibles, organisation : à noter tant que c'est frais.</span>
+            </p>
+        {% endif %}
 
         <section class="live-panneau" data-panneau="live">
             <h2>Événements du match</h2>

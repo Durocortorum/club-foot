@@ -27,7 +27,7 @@ const DELAI_ZONE = 8000;
 
 export default class extends Controller {
     static values = { config: Object };
-    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'evenements', 'stats',
+    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'analyse','evenements', 'stats',
         'compo', 'boutonTitulaires', 'choixVisuel', 'nomComplet', 'canevas', 'boutonPartager', 'dialogue',
         'boutonAnnulerAction', 'consigneAction', 'joueursAction', 'typesAction', 'dernieresActions',
         'boutonZones', 'zoneAction', 'sensAction', 'terrainAction', 'choixActions'];
@@ -153,6 +153,7 @@ export default class extends Controller {
         this.boutonPeriodeTarget.disabled = !actif;
         this.boutonPeriodeTarget.classList.toggle('a-faire', actif && (avant || pause));
         this.boutonFinTarget.disabled = !!c.fini || c.periode !== 2 || pause;
+        if (this.hasAnalyseTarget) this.analyseTarget.hidden = !c.fini;
     }
 
     chronoChange() {
