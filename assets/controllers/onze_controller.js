@@ -197,7 +197,7 @@ export default class extends Controller {
         const vides = this.places.filter((p) => p.joueur === null).length;
         this.consigneTarget.textContent = vides
             ? `Proposition faite, mais ${vides} place${vides > 1 ? 's restent vides' : ' reste vide'} : pas assez de joueurs disponibles.`
-            : 'Proposition : les meilleurs joueurs disponibles à chaque poste (note de la saison au poste, plus un peu la forme de la semaine d'entraînement). Ajustez si besoin, puis validez.';
+            : 'Proposition : les meilleurs joueurs disponibles à chaque poste (note de la saison au poste, plus un peu la forme de la semaine d\'entraînement). Ajustez si besoin, puis validez.';
     }
 
     vider() {
