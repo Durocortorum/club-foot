@@ -2225,7 +2225,7 @@ details#modifier[open] > summary { margin-bottom: .8rem; }
 .tableau-consignes strong { display: block; margin-bottom: .3rem; }
 @media (max-width: 760px) { .tableau-tactique-corps { grid-template-columns: 1fr; } }
 .presentation-tactique { background: #0f1626; color: #fff; border-radius: 16px; padding: 1rem; display: flex; flex-direction: column; gap: .8rem; }
-.presentation-tactique:fullscreen { border-radius: 0; padding: 1.2rem 2rem; justify-content: center; overflow: auto; }
+.presentation-tactique:fullscreen, .presentation-tactique:-webkit-full-screen, .presentation-tactique.plein-ecran { border-radius: 0; padding: 1.2rem 2rem; justify-content: center; overflow: auto; }
 .presentation-barre { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
 .presentation-barre .bouton { margin-left: auto; }
 .presentation-compteur { color: #c9cdd6; font-variant-numeric: tabular-nums; }
@@ -2235,7 +2235,19 @@ details#modifier[open] > summary { margin-bottom: .8rem; }
 .presentation-corps > :only-child { grid-column: 1 / -1; }
 .presentation-corps .schema-terrain { cursor: pointer; max-height: 78vh; }
 .presentation-corps .tableau-consignes { border-left-color: #6ee7a0; font-size: 1.15rem; line-height: 1.5; }
-.presentation-tactique:fullscreen .presentation-corps .schema-terrain { max-height: 82vh; }
+.presentation-tactique:fullscreen .presentation-corps .schema-terrain, .presentation-tactique.plein-ecran .presentation-corps .schema-terrain { max-height: calc(100dvh - 10rem); width: 100%; }
+.presentation-tactique:fullscreen, .presentation-tactique.plein-ecran { height: 100dvh; justify-content: space-between; }
 @media (max-width: 760px) { .presentation-corps { grid-template-columns: 1fr; } }
 .presentation-navigation { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
 .presentation-navigation .discret { color: #c9cdd6; text-align: center; }
+/* Plein écran sans l'aide du navigateur (iPhone) : la présentation recouvre toute la page. */
+.presentation-tactique.plein-ecran { position: fixed; inset: 0; z-index: 1000; width: 100vw; height: 100dvh; padding: max(.8rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(.8rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); }
+html.sans-defilement, html.sans-defilement body { overflow: hidden; }
+/* Téléphone tourné en largeur, en plein écran : le terrain prend toute la hauteur, les consignes à côté. */
+@media (orientation: landscape) and (max-height: 500px) {
+    .presentation-tactique:fullscreen, .presentation-tactique.plein-ecran { padding: .4rem .8rem; gap: .3rem; }
+    .presentation-tactique:fullscreen .presentation-diapo h2, .presentation-tactique.plein-ecran .presentation-diapo h2 { font-size: 1.1rem; margin-bottom: .3rem; }
+    .presentation-tactique:fullscreen .presentation-corps, .presentation-tactique.plein-ecran .presentation-corps { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); }
+    .presentation-tactique:fullscreen .presentation-corps .schema-terrain, .presentation-tactique.plein-ecran .presentation-corps .schema-terrain { max-height: calc(100dvh - 6.5rem); width: 100%; }
+    .presentation-tactique:fullscreen .tableau-consignes, .presentation-tactique.plein-ecran .tableau-consignes { font-size: .9rem; }
+}
