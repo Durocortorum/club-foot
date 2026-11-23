@@ -12,6 +12,7 @@ use App\Entity\Rencontre;
 use App\Entity\Sanction;
 use App\Repository\ConvocationRepository;
 use App\Repository\JoueurRepository;
+use App\Repository\PresenceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -44,6 +45,7 @@ class CompositionOnze
         private readonly JoueurRepository $joueurs,
         private readonly EntityManagerInterface $em,
         private readonly UrlGeneratorInterface $routes,
+        private readonly PresenceRepository $presences,
     ) {
     }
 
@@ -139,6 +141,8 @@ class CompositionOnze
             }
         }
         $numeros += $rencontre->getNumerosDirect();
+        // Note et forme de la dernière semaine d'entraînement (grille des présences).
+        $formes = $this->presences->formesAvant($joueurs, $date);
 
         $liste = [];
         foreach ($joueurs as $j) {
@@ -166,6 +170,7 @@ class CompositionOnze
                 // Convoqué ou non (quand il y a une convocation), et sa réponse.
                 'convoque' => !$avecConvocation || isset($reponses[$id]),
                 'reponse' => $c?->getReponse(),
+                'semaine' => $formes[$id] ?? null,
                 'etat' => $etat['etat'] ?? 'dispo',
                 'libelleEtat' => $etat['libelle'] ?? null,
             ];

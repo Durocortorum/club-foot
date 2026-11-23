@@ -125,7 +125,26 @@ export default class extends Controller {
         }
         const gardien = j.ligne === 'G' || Object.keys(j.notesPostes || {}).some((p) => p === 'Gardien');
         if ((ligne === 'G') !== gardien) v -= 6;
-        return v;
+        return v + this.bonusSemaine(j);
+    }
+
+    /**
+     * Semaine d'entraînement : la note (sur 10) et la forme comptent un peu, sans écraser les notes de match
+     * (au plus ± 0,6 point environ).
+     */
+    bonusSemaine(j) {
+        const s = j.semaine;
+        if (!s) return 0;
+        const forme = { top: 0.3, bien: 0.1, moyen: -0.1, faible: -0.4 }[s.forme] ?? 0;
+        const note = s.note != null ? (s.note - 6) * 0.08 : 0;
+        return forme + note;
+    }
+
+    /** « 🔥 7,5 » : forme et note de la dernière semaine d'entraînement. */
+    texteSemaine(j) {
+        const s = j.semaine;
+        if (!s) return '';
+        return `${s.icone || ''}${s.note != null ? ` ${String(s.note).replace('.', ',')}` : ''}`.trim();
     }
 
     /** Remplit le terrain avec les meilleurs joueurs disponibles pour chaque place, puis le banc. */
@@ -178,7 +197,7 @@ export default class extends Controller {
         const vides = this.places.filter((p) => p.joueur === null).length;
         this.consigneTarget.textContent = vides
             ? `Proposition faite, mais ${vides} place${vides > 1 ? 's restent vides' : ' reste vide'} : pas assez de joueurs disponibles.`
-            : 'Proposition : les meilleurs joueurs disponibles à chaque poste (note de la saison au poste). Ajustez si besoin, puis validez.';
+            : 'Proposition : les meilleurs joueurs disponibles à chaque poste (note de la saison au poste, plus un peu la forme de la semaine d'entraînement). Ajustez si besoin, puis validez.';
     }
 
     vider() {
@@ -369,7 +388,7 @@ export default class extends Controller {
                 : (j.poste || 'Poste non renseigné');
             return `<li class="onze-joueur${this.choixJoueur === j.id ? ' choisi' : ''}${titulaire ? ' titulaire' : ''}${['absent', 'blesse', 'suspendu'].includes(etat) ? ' indispo' : ''}" data-joueur="${j.id}" data-action="click->onze#toucherJoueur" role="button" tabindex="0">
                 ${j.photo ? `<img class="avatar mini" src="${j.photo}" alt="" loading="lazy">` : `<span class="avatar mini">${this.echapper((j.prenom[0] || '') + (j.nom[0] || ''))}</span>`}
-                <span class="onze-qui"><b>${this.echapper(j.nom)}</b> ${this.echapper(j.prenom)}<small${placeJoueur ? ' class="place"' : ''}>${this.echapper(postes)}${!j.convoque ? ' · non convoqué' : ''}${j.libelleEtat ? ` · ${this.echapper(j.libelleEtat)}` : ''}</small></span>
+                <span class="onze-qui"><b>${this.echapper(j.nom)}</b> ${this.echapper(j.prenom)}<small${placeJoueur ? ' class="place"' : ''}>${this.echapper(postes)}${j.semaine ? ` · <span class="forme-sem" title="Semaine d'entraînement du ${this.echapper(j.semaine.lundi)} : ${this.echapper(j.semaine.libelle || 'forme non notée')}">semaine ${this.echapper(this.texteSemaine(j))}</span>` : ''}${!j.convoque ? ' · non convoqué' : ''}${j.libelleEtat ? ` · ${this.echapper(j.libelleEtat)}` : ''}</small></span>
                 ${this.pastilleNote(this.noteAuPoste(j, placeJoueur?.poste ?? place?.poste))}
                 <span class="onze-etat ${etat}" title="${this.echapper(j.libelleEtat || libelle)}">${icone}</span>
                 ${titulaire ? `<span class="pastille succes">titulaire</span><button type="button" class="lien-bouton petit" data-joueur="${j.id}" data-action="onze#retirerJoueur">Retirer</button>`
@@ -381,11 +400,11 @@ export default class extends Controller {
     dessinerStats() {
         this.filtreTarget.innerHTML = '<p class="discret petit">Saison en cours, jusqu\'à ce match. Note : moyenne des notes de l\'éducateur.</p>';
         const liste = [...this.joueursVisibles()].sort((a, b) => b.matchs - a.matchs || (b.note ?? 0) - (a.note ?? 0));
-        this.listeTarget.innerHTML = `<div class="table-defile"><table class="liste onze-stats"><thead><tr><th>Joueur</th><th>Matchs</th><th>Min.</th><th>Buts</th><th>Passes D.</th><th>Note</th><th>Meilleur poste</th></tr></thead><tbody>
+        this.listeTarget.innerHTML = `<div class="table-defile"><table class="liste onze-stats"><thead><tr><th>Joueur</th><th>Matchs</th><th>Min.</th><th>Buts</th><th>Passes D.</th><th>Note</th><th>Semaine</th><th>Meilleur poste</th></tr></thead><tbody>
             ${liste.map((j) => {
         const meilleur = Object.entries(j.notesPostes || {}).filter(([, p]) => p.note != null).sort((a, b) => b[1].note - a[1].note)[0];
         return `<tr><td class="principal">${this.echapper(this.nomCourt(j))}</td><td>${j.matchs}</td><td>${j.minutes}</td><td>${j.buts}</td><td>${j.passes}</td>
-                <td>${this.pastilleNote(this.noteAuPoste(j, null), true)}</td><td class="petit">${meilleur ? `${this.echapper(meilleur[0])} (${String(meilleur[1].note).replace('.', ',')})` : '—'}</td></tr>`;
+                <td>${this.pastilleNote(this.noteAuPoste(j, null), true)}</td><td class="nowrap" title="${this.echapper(j.semaine?.libelle || '')}">${this.echapper(this.texteSemaine(j)) || '—'}</td><td class="petit">${meilleur ? `${this.echapper(meilleur[0])} (${String(meilleur[1].note).replace('.', ',')})` : '—'}</td></tr>`;
     }).join('')}</tbody></table></div>`;
     }
 

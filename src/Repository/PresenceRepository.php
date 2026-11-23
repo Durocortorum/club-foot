@@ -21,6 +21,37 @@ class PresenceRepository extends ServiceEntityRepository
     }
 
     /**
+     * Note et forme de la semaine d'entraînement de chaque joueur avant une date (match) : la plus récente semaine
+     * notée qui commence avant cette date, dans les 15 jours qui précèdent.
+     *
+     * @param iterable<Joueur> $joueurs
+     *
+     * @return array<int, array{note: ?float, forme: ?string, icone: ?string, libelle: ?string, lundi: string}> par id de joueur
+     */
+    public function formesAvant(iterable $joueurs, \DateTimeImmutable $date): array
+    {
+        $joueurs = [...$joueurs];
+        if (!$joueurs) {
+            return [];
+        }
+        /** @var list<Presence> $presences */
+        $presences = $this->createQueryBuilder('p')->addSelect('s')->join('p.semaine', 's')
+            ->andWhere('p.joueur IN (:j)')->setParameter('j', $joueurs)
+            ->andWhere('s.lundi <= :d AND s.lundi >= :depuis')->setParameter('d', $date)->setParameter('depuis', $date->modify('-15 days'))
+            ->andWhere('p.noteSemaine IS NOT NULL OR p.forme IS NOT NULL')
+            ->orderBy('s.lundi', 'ASC')->getQuery()->getResult();
+        $formes = [];
+        foreach ($presences as $p) {
+            $formes[$p->getJoueur()->getId()] = [
+                'note' => $p->getNoteSemaine(), 'forme' => $p->getForme(), 'icone' => $p->getFormeIcone(),
+                'libelle' => $p->getFormeLibelle(), 'lundi' => $p->getSemaine()->getLundi()->format('d/m'),
+            ];
+        }
+
+        return $formes;
+    }
+
+    /**
      * Présences aux entraînements d'une équipe sur une saison, par joueur inscrit sur ses feuilles.
      *
      * @return array<int, array{id: int, nom: string, prenom: string, poste: string|null, seances: int, presences: int, taux: float|null}>

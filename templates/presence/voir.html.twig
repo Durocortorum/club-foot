@@ -19,7 +19,7 @@
 
     <p class="discret petit">
         Pour chaque demi-journée : l'équipe avec laquelle le joueur s'est entraîné, ou le motif d'absence.
-        Laissez vide s'il n'y avait pas de séance. Le bouton ✓ sous un créneau marque présents tous les joueurs encore vides ; un second clic le décoche et vide les présents de la colonne (les absences restent).
+        Laissez vide s'il n'y avait pas de séance. Notez aussi la semaine de chaque joueur (note sur 10 et forme) : elle apparaît dans la convocation et dans « Composer le onze ». Le bouton ✓ sous un créneau marque présents tous les joueurs encore vides ; un second clic le décoche et vide les présents de la colonne (les absences restent).
     </p>
 
     <form method="post" data-controller="presence" data-presence-equipe-value="{{ equipe }}">
@@ -29,6 +29,8 @@
                 <thead>
                     <tr>
                         <th>Joueur</th>
+                        <th class="col-semaine" title="Note de la semaine d'entraînement, sur 10 (avant les convocations)">Note<br><span class="discret">semaine</span></th>
+                        <th class="col-semaine" title="Forme de la semaine d'entraînement">Forme</th>
                         {% for cle, libelle in creneaux %}
                             <th title="{{ libelle }}">{{ libelle|split(' ')|first|slice(0, 3) }}<br><span class="discret">{{ 'matin' in libelle ? 'mat.' : 'a-m' }}</span></th>
                         {% endfor %}
@@ -36,7 +38,7 @@
                         <th></th>
                     </tr>
                     <tr class="remplir">
-                        <th></th>
+                        <th></th><th class="col-semaine"></th><th class="col-semaine"></th>
                         {% for cle, libelle in creneaux %}
                             <th><button type="button" class="bouton petit coche-creneau" data-action="presence#remplir" data-presence-creneau-param="{{ cle }}" data-libelle="{{ libelle }}" aria-pressed="false" title="Cocher : tous présents – {{ libelle }}">✓</button></th>
                         {% endfor %}
@@ -49,6 +51,13 @@
                         {% set present = p.creneaux|filter(v => v not in motifs|keys and v not in motifs_anciens|keys)|length %}
                         <tr>
                             <td class="avec-vignette nowrap">{{ m.avatar(j, 'mini') }} <a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a></td>
+                            <td class="col-semaine"><input type="number" class="note-semaine" name="note[{{ j.id }}]" min="0" max="10" step="0.5" value="{{ p.noteSemaine }}" aria-label="Note de la semaine de {{ j.prenom }} {{ j.nom }}" placeholder="/10"></td>
+                            <td class="col-semaine">
+                                <select name="forme[{{ j.id }}]" class="forme-semaine" aria-label="Forme de la semaine de {{ j.prenom }} {{ j.nom }}">
+                                    <option value=""></option>
+                                    {% for cle, f in formes %}<option value="{{ cle }}" {{ p.forme == cle ? 'selected' }}>{{ f[1] }} {{ f[0] }}</option>{% endfor %}
+                                </select>
+                            </td>
                             {% for cle, libelle in creneaux %}
                                 {% set valeur = p.creneau(cle) %}
                                 <td>
@@ -84,7 +93,7 @@
                             </td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="14" class="vide">Aucun joueur dans cette semaine.</td></tr>
+                        <tr><td colspan="16" class="vide">Aucun joueur dans cette semaine.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

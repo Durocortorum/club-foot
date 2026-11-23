@@ -8,8 +8,10 @@ use App\Entity\Club;
 use App\Entity\Convocation;
 use App\Entity\Joueur;
 use App\Entity\Participation;
+use App\Entity\Presence;
 use App\Entity\Rencontre;
 use App\Entity\Sanction;
+use App\Entity\SemainePresence;
 use App\Entity\Utilisateur;
 use App\Service\CreationClub;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,7 +36,7 @@ class OnzeTest extends WebTestCase
     {
         if ($this->clubId) {
             $connexion = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
-            foreach (['rencontre', 'blessure', 'sanction', 'joueur', 'club'] as $table) {
+            foreach (['semaine_presence', 'rencontre', 'blessure', 'sanction', 'joueur', 'club'] as $table) {
                 $connexion->executeStatement("DELETE FROM $table WHERE " . ('club' === $table ? 'id' : 'club_id') . ' = ?', [$this->clubId]);
             }
         }
@@ -133,6 +135,26 @@ class OnzeTest extends WebTestCase
         sort($convoques);
         self::assertSame(['Gaby', 'Léo', 'Noé'], $convoques);
         self::assertTrue($config['donnees']['avecConvocation']);
+
+        // Semaine d'entraînement notée dans la grille des présences : note et forme reprises dans « Composer le onze ».
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $club = $em->find(Club::class, $this->clubId);
+        $semaine = (new SemainePresence())->setClub($club)->setLundi(new \DateTimeImmutable('monday this week'))->setCategorie($em->find(Categorie::class, $u17->getId()));
+        $semaine->addPresence((new Presence())->setClub($club)->setJoueur($em->find(Joueur::class, $joueurs['Gaby']->getId())));
+        $em->persist($semaine);
+        $em->flush();
+        $crawler = $this->client->request('GET', '/presences/' . $semaine->getId());
+        $form = $crawler->selectButton('Enregistrer les présences')->form();
+        $form['note[' . $joueurs['Gaby']->getId() . ']'] = '7,5';
+        $form['forme[' . $joueurs['Gaby']->getId() . ']'] = 'top';
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+        $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/onze');
+        $config = json_decode($crawler->filter('[data-controller="onze"]')->attr('data-onze-config-value'), true);
+        $gaby = array_column($config['donnees']['joueurs'], null, 'prenom')['Gaby'];
+        self::assertSame(['top', 7.5], [$gaby['semaine']['forme'], (float) $gaby['semaine']['note']]);
+        $this->client->request('GET', '/matchs/' . $match->getId() . '/convocation');
+        self::assertSelectorTextContains('.forme-sem', '🔥 7,5');
 
         // Mauvais jeton : refusé.
         $this->client->request('POST', '/matchs/' . $match->getId() . '/onze', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['_token' => 'x', 'systeme' => '4 4 2']));

@@ -13,6 +13,7 @@ use App\Service\Messagerie;
 use App\Repository\ConvoqueRepository;
 use Symfony\Component\Form\FormError;
 use App\Repository\JoueurRepository;
+use App\Repository\PresenceRepository;
 use App\Security\ActiviteVoter;
 use App\Service\EnvoiConvocations;
 use Doctrine\ORM\EntityManagerInterface;
@@ -45,7 +46,7 @@ class ConvocationController extends AbstractController
     }
 
     #[Route('', name: 'app_convocation', methods: ['GET', 'POST'])]
-    public function convocation(Request $request, Rencontre $rencontre, JoueurRepository $joueurs, ConvoqueRepository $convoques, Messagerie $messagerie): Response
+    public function convocation(Request $request, Rencontre $rencontre, JoueurRepository $joueurs, ConvoqueRepository $convoques, Messagerie $messagerie, PresenceRepository $presences): Response
     {
         $convocation = $this->convocations->pour($rencontre) ?? new Convocation($rencontre);
         // Niveaux du dessous proposés : 1, 2, 3 ou tous (0), choisis au-dessus de la liste des joueurs.
@@ -125,6 +126,8 @@ class ConvocationController extends AbstractController
             'motifs' => Convoque::MOTIFS,
             'niveaux_dessous' => $this->niveauxDessous,
             'niveaux_vides' => $this->niveauxVides($rencontre, $proposes),
+            // Note et forme de la dernière semaine d'entraînement de chaque joueur proposé.
+            'formes' => $presences->formesAvant($proposes, $rencontre->getDate() ?? new \DateTimeImmutable('today')),
         ]);
     }
 

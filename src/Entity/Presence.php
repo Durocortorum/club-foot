@@ -84,4 +84,52 @@ class Presence implements AppartientAuClub
     {
         return $this->creneaux[$creneau] ?? null;
     }
+
+    /** Forme de la semaine d'entraînement, notée par l'éducateur : libellé et pictogramme. */
+    public const FORMES = [
+        'top' => ['En grande forme', '🔥'], 'bien' => ['Bien', '🙂'], 'moyen' => ['Moyen', '😐'], 'faible' => ['En difficulté', '😟'],
+    ];
+
+    /** Note de la semaine d'entraînement (sur 10, demi-points), avant les convocations du week-end. */
+    #[ORM\Column(nullable: true)]
+    private ?float $noteSemaine = null;
+
+    #[ORM\Column(length: 10, nullable: true)]
+    private ?string $forme = null;
+
+    public function getNoteSemaine(): ?float
+    {
+        return $this->noteSemaine;
+    }
+
+    /** Note de 0 à 10, arrondie au demi-point ; vide ou invalide : pas de note. */
+    public function setNoteSemaine(mixed $note): static
+    {
+        $note = str_replace(',', '.', trim((string) $note));
+        $this->noteSemaine = is_numeric($note) ? round(min(10, max(0, (float) $note)) * 2) / 2 : null;
+
+        return $this;
+    }
+
+    public function getForme(): ?string
+    {
+        return $this->forme;
+    }
+
+    public function setForme(?string $forme): static
+    {
+        $this->forme = isset(self::FORMES[$forme]) ? $forme : null;
+
+        return $this;
+    }
+
+    public function getFormeLibelle(): ?string
+    {
+        return $this->forme ? self::FORMES[$this->forme][0] : null;
+    }
+
+    public function getFormeIcone(): ?string
+    {
+        return $this->forme ? self::FORMES[$this->forme][1] : null;
+    }
 }

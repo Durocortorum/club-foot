@@ -73,6 +73,7 @@
                     <p class="discret petit">Aucun joueur actif : {{ niveaux_vides|join(' ; ') }}.</p>
                 {% endif %}
                 {{ form_errors(form.joueurs) }}
+                {% if formes %}<p class="discret petit">Sous chaque nom : 🔥 🙂 😐 😟 et note sur 10 de la dernière semaine d'entraînement (notées dans les présences).</p>{% endif %}
                 {% for groupe, choix in form.joueurs.vars.choices %}
                     {# Groupe ouvert : celui du match, ou un groupe où des joueurs sont déjà convoqués. #}
                     {% set coches = choix.choices|filter(c => form.joueurs[c.value].vars.checked)|length %}
@@ -83,7 +84,9 @@
                                 {% set ailleurs = c.attr['data-ailleurs'] ?? null %}
                                 <label class="case-joueur {{ ailleurs and c.attr.disabled is defined ? 'indisponible' }}" {% if ailleurs %}title="Déjà convoqué(e) avec {{ ailleurs }}"{% endif %}>
                                     {{ form_widget(form.joueurs[c.value]) }}
-                                    <span class="case-joueur-nom">{{ c.label }}{% if c.data.poste is defined and c.data.poste %}<small class="poste-joueur" title="Poste habituel">{{ c.data.poste }}</small>{% endif %}</span>
+                                    {% set f = formes[c.value] ?? null %}
+                                    <span class="case-joueur-nom">{{ c.label }}<small class="poste-joueur">{% if c.data.poste is defined and c.data.poste %}<span title="Poste habituel">{{ c.data.poste }}</span>{% endif %}
+                                        {%- if f %} <span class="forme-sem" title="Semaine d'entraînement du {{ f.lundi }} : {{ f.libelle ?? 'forme non notée' }}{{ f.note is not null ? ', ' ~ f.note|number_format(1, ',') ~ ' / 10' }}">{{ f.icone }}{{ f.note is not null ? ' ' ~ f.note|number_format(1, ',')|replace({',0': ''}) }}</span>{% endif %}</small></span>
                                     {% if ailleurs %}<span class="pastille alerte petit">avec {{ ailleurs }}</span>{% endif %}
                                 </label>
                             {% endfor %}

@@ -34,10 +34,12 @@ use App\Entity\Paiement;
 use App\Entity\PartenariatSponsor;
 use App\Entity\Participation;
 use App\Entity\PosteOrganigramme;
+use App\Entity\Presence;
 use App\Entity\Rencontre;
 use App\Entity\Ressenti;
 use App\Entity\ResultatTest;
 use App\Entity\Sanction;
+use App\Entity\SemainePresence;
 use App\Entity\Sponsor;
 use App\Entity\Stage;
 use App\Entity\TableauTactique;
@@ -171,6 +173,7 @@ class ClubDemoCommand extends Command
         $io->text('Infirmerie, tests, effort ressenti, discipline, tâches, messages…');
         $this->suiviSportif($matchs);
         $this->objectifsIndividuels();
+        $this->semainesEntrainement();
         $this->actionsEnDirect($matchs);
         $this->organisation($comptes);
         $this->em->flush();
@@ -771,6 +774,29 @@ class ClubDemoCommand extends Command
     }
 
     /** @param array<string, list<Rencontre>> $matchs */
+    /**
+     * Présences de la semaine d'entraînement en cours (U15 et U19), avec la note et la forme de chaque joueur :
+     * visibles dans la convocation et dans « Composer le onze » des matchs du week-end.
+     */
+    private function semainesEntrainement(): void
+    {
+        $lundi = new \DateTimeImmutable('monday this week');
+        $formes = ['top', 'bien', 'bien', 'moyen', 'bien', 'top', 'faible', 'bien', 'moyen', 'bien', 'top', 'bien', 'moyen', 'bien', 'bien', 'faible'];
+        foreach (['U15' => ['mar_a', 'jeu_a'], 'U19' => ['mar_a', 'mer_a', 'ven_a']] as $cat => $creneaux) {
+            $semaine = (new SemainePresence())->setLundi($lundi)->setCategorie($this->categories[$cat]);
+            foreach ($this->joueurs[$cat] as $i => $j) {
+                // Un joueur sur sept absent une séance (blessé ou malade) ; les autres présents à toutes.
+                $presences = array_fill_keys($creneaux, $semaine->getEquipeAffichee());
+                if (0 === $i % 7) {
+                    $presences[$creneaux[0]] = 'Malade';
+                }
+                $semaine->addPresence((new Presence())->setJoueur($j)->setCreneaux($presences)
+                    ->setForme($formes[$i % \count($formes)])->setNoteSemaine([7.5, 6.5, 7, 5.5, 6, 8, 4.5, 6.5, 5.5, 7, 8, 6, 5, 6.5, 7, 4][$i % 16]));
+            }
+            $this->em->persist($semaine);
+        }
+    }
+
     /**
      * Objectifs individuels de progression, mis à jour chaque mois depuis la rentrée, et observations de l'entraîneur :
      * pour l'enfant U15 du compte parent (visible dans l'espace famille) et deux joueurs des U19.

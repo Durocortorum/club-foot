@@ -98,8 +98,15 @@ class PresenceController extends AbstractController
                 throw $this->createAccessDeniedException();
             }
             $saisie = $request->getPayload()->all('creneaux');
+            // Note et forme de la semaine d'entraînement (avant les convocations).
+            $notes = $request->getPayload()->all('note');
+            $formes = $request->getPayload()->all('forme');
             foreach ($semaine->getPresences() as $presence) {
-                $presence->setCreneaux(array_map('strval', (array) ($saisie[$presence->getJoueur()->getId()] ?? [])));
+                $id = $presence->getJoueur()->getId();
+                $presence->setCreneaux(array_map('strval', (array) ($saisie[$id] ?? [])));
+                if (\array_key_exists($id, $notes) || \array_key_exists($id, $formes)) {
+                    $presence->setNoteSemaine($notes[$id] ?? null)->setForme(\is_string($formes[$id] ?? null) ? $formes[$id] : null);
+                }
             }
             if ($ajout = $request->getPayload()->getInt('ajouter')) {
                 $joueur = $joueurs->find($ajout);
@@ -120,6 +127,7 @@ class PresenceController extends AbstractController
             'semaine' => $semaine,
             'presences' => $presences,
             'creneaux' => SemainePresence::CRENEAUX,
+            'formes' => Presence::FORMES,
             'motifs' => SemainePresence::MOTIFS,
             // Anciens codes (VA, AT) : affichés seulement là où ils sont déjà saisis.
             'motifs_anciens' => SemainePresence::MOTIFS_ANCIENS,
