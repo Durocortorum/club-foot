@@ -43,6 +43,22 @@ class Participation implements AppartientAuClub
         'Milieu offensif', 'Milieu offensif axe', 'Milieu offensif droit', 'Milieu offensif gauche',
         'Milieu excentré droit', 'Milieu excentré gauche', 'Attaquant', 'Non utilisé',
     ];
+    /** Abréviations des postes (petits affichages : cases des joueurs du Match Live), postes de la fiche joueur compris. */
+    public const ABREVIATIONS_POSTES = [
+        'Gardien' => 'G', 'Latéral droit' => 'LD', 'Latéral gauche' => 'LG', 'Défenseur' => 'DEF',
+        'Défenseur central' => 'DC', 'Défenseur central droit' => 'DCD', 'Défenseur central gauche' => 'DCG',
+        'Milieu' => 'MIL', 'Milieu défensif' => 'MDF', 'Milieu défensif axe' => 'MDC', 'Milieu défensif droit' => 'MDD', 'Milieu défensif gauche' => 'MDG',
+        'Milieu relayeur' => 'MR', 'Milieu relayeur droit' => 'MRD', 'Milieu relayeur gauche' => 'MRG',
+        'Milieu offensif' => 'MO', 'Milieu offensif axe' => 'MOC', 'Milieu offensif droit' => 'MOD', 'Milieu offensif gauche' => 'MOG',
+        'Milieu excentré droit' => 'MED', 'Milieu excentré gauche' => 'MEG', 'Attaquant' => 'AT',
+    ];
+
+    /** « Attaquant » → « AT » ; poste inconnu ou « Non utilisé » : null. */
+    public static function abreviationPoste(?string $poste): ?string
+    {
+        return self::ABREVIATIONS_POSTES[(string) $poste] ?? null;
+    }
+
     /** Codes Access des sanctions. */
     public const CARTONS = [
         'JJ' => 'Jaune (jeu)',

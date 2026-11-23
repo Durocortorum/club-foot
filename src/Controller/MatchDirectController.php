@@ -7,6 +7,7 @@ use App\Entity\Joueur;
 use App\Entity\Rencontre;
 use App\Repository\ActionMatchRepository;
 use App\Security\ActiviteVoter;
+use App\Service\CompositionTerrain;
 use App\Service\MatchDirect;
 use App\Service\SynchroFeuille;
 use Doctrine\ORM\EntityManagerInterface;
@@ -55,9 +56,16 @@ class MatchDirectController extends AbstractController
      */
     #[Route('/matchs/{id}/live', name: 'app_match_live', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted(ActiviteVoter::MODIFIER_MATCH, 'rencontre')]
-    public function live(Rencontre $rencontre): Response
+    public function live(Rencontre $rencontre, CompositionTerrain $terrain): Response
     {
         $club = $rencontre->getClub();
+        // Composition sur le terrain : places des titulaires de la feuille de match (placés par l'éducateur, sinon
+        // d'après le système et les postes) ; places du système pour les titulaires choisis sur la tablette.
+        $places = [];
+        foreach ($terrain->placer($rencontre)['titulaires'] as $t) {
+            $places[$t['participation']->getJoueur()->getId()] = [$t['x'], $t['y']];
+        }
+        $systeme = $rencontre->isPlacementEducateur() ? null : $rencontre->getSysteme();
 
         return $this->render('match_direct/live.html.twig', [
             'rencontre' => $rencontre,
@@ -68,7 +76,10 @@ class MatchDirectController extends AbstractController
                 'heure' => $rencontre->getHeure(),
                 'lieu' => $rencontre->getLieu(),
                 'domicile' => $rencontre->isADomicile(),
-                'logo' => $club?->getLogo() ? $this->generateUrl('app_club_logo', ['version' => $club->getVersion()]) : null,            ],
+                'logo' => $club?->getLogo() ? $this->generateUrl('app_club_logo', ['version' => $club->getVersion()]) : null,
+                'places' => (object) $places,
+                'placesSysteme' => $terrain->placesDuSysteme($systeme, $rencontre->joueursSurLeTerrain()),
+            ],
         ]);
     }
 

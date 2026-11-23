@@ -6,6 +6,7 @@ use App\Entity\ActionMatch;
 use App\Entity\But;
 use App\Entity\Convoque;
 use App\Entity\Joueur;
+use App\Entity\Participation;
 use App\Entity\Rencontre;
 use App\Repository\ConvocationRepository;
 use App\Repository\JoueurRepository;
@@ -63,7 +64,7 @@ class MatchDirect
         $liste = [];
         foreach ($rencontre->getParticipations() as $p) {
             if ($p->getJoueur() && 'Non utilisé' !== $p->getPoste()) {
-                $liste[$p->getJoueur()->getId()] = [$p->getJoueur(), $p->getNumero()];
+                $liste[$p->getJoueur()->getId()] = [$p->getJoueur(), $p->getNumero(), $p->getPoste()];
             }
         }
         if (!$liste && ($convocation = $this->convocations->pour($rencontre))) {
@@ -91,7 +92,9 @@ class MatchDirect
         }
         uasort($liste, fn ($a, $b) => [$a[1] ?? 99, $a[0]->getNom(), $a[0]->getPrenom()] <=> [$b[1] ?? 99, $b[0]->getNom(), $b[0]->getPrenom()]);
 
-        return array_values(array_map(fn (array $l) => ['id' => $l[0]->getId(), 'nom' => (string) $l[0]->getNom(), 'prenom' => (string) $l[0]->getPrenom(), 'numero' => $l[1]], $liste));
+        // Poste en abrégé (« AT ») : celui de la feuille de match, sinon le poste habituel du joueur.
+        return array_values(array_map(fn (array $l) => ['id' => $l[0]->getId(), 'nom' => (string) $l[0]->getNom(), 'prenom' => (string) $l[0]->getPrenom(), 'numero' => $l[1],
+            'poste' => Participation::abreviationPoste($l[2] ?? null) ?? Participation::abreviationPoste($l[0]->getPoste())], $liste));
     }
 
     /**

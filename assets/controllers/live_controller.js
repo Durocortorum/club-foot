@@ -698,7 +698,7 @@ export default class extends Controller {
         const visibles = this.cfg.joueurs.filter((j) => this.tousJoueurs || surLeTerrain(j) || j.id === this.joueurAction);
         const compte = (id) => liste.filter((a) => a.joueur === id && !EVENEMENTS.includes(a.type)).length;
         this.joueursActionTarget.innerHTML = visibles.map((j) => `<button type="button" class="live-tuile-joueur${j.id === this.joueurAction ? ' choisi' : ''}${surLeTerrain(j) ? '' : ' banc'}" data-joueur="${j.id}" data-action="live#choisirJoueurAction" aria-pressed="${j.id === this.joueurAction}">
-            <span class="num">${j.numero ?? ''}</span><span class="qui"><b>${this.echapper(j.nom)}</b><small>${this.echapper(j.prenom)}</small></span>${compte(j.id) ? `<span class="nb-actions" title="Actions notées">${compte(j.id)}</span>` : ''}</button>`).join('')
+            <span class="num">${j.numero ?? ''}</span><span class="qui"><b>${this.echapper(j.nom)}</b><small>${this.echapper(j.prenom)}</small></span>${j.poste ? `<span class="tuile-poste">${this.echapper(j.poste)}</span>` : ''}${compte(j.id) ? `<span class="nb-actions" title="Actions notées">${compte(j.id)}</span>` : ''}</button>`).join('')
             + (connu && visibles.length < this.cfg.joueurs.length || this.tousJoueurs
                 ? `<button type="button" class="lien-bouton petit live-tous" data-action="live#voirTousJoueurs">${this.tousJoueurs ? 'Seulement ceux sur le terrain' : 'Voir aussi les remplaçants'}</button>` : '')
             || '<p class="discret">Aucun joueur : remplissez la feuille de match ou la convocation.</p>';
@@ -827,8 +827,48 @@ export default class extends Controller {
         }
         const sur = this.cfg.joueurs.filter((j) => etat.get(j.id) && !exclus.has(j.id));
         const banc = this.cfg.joueurs.filter((j) => !etat.get(j.id) || exclus.has(j.id));
-        this.compoTarget.innerHTML = `<h3>Sur le terrain <span class="compteur">${sur.length}</span></h3><ul class="live-compo">${sur.map(ligne).join('')}</ul>
+        this.compoTarget.innerHTML = `<h3>Sur le terrain <span class="compteur">${sur.length}</span></h3>${this.terrainCompo(sur, liste, marques)}
             <h3>Remplaçants et sortis <span class="compteur">${banc.length}</span></h3><ul class="live-compo banc">${banc.map(ligne).join('') || '<li class="discret">Personne.</li>'}</ul>`;
+    }
+
+    /**
+     * Joueurs sur le terrain dessinés à leur place, comme la composition de l'éducateur (feuille de match) :
+     * le remplaçant entré prend la place du joueur sorti ; les autres vont aux places libres du système de jeu.
+     */
+    terrainCompo(sur, liste, marques) {
+        const places = new Map(Object.entries(this.cfg.places ?? {}).map(([id, p]) => [Number(id), p]));
+        liste.filter((a) => a.type === 'RP' && a.details?.entrant).sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute))
+            .forEach((a) => {
+                const p = places.get(a.joueur);
+                if (p) places.set(Number(a.details.entrant), p);
+            });
+        const prises = [];
+        const pos = new Map();
+        sur.forEach((j) => {
+            const p = places.get(j.id);
+            if (p && !prises.some((q) => Math.abs(q[0] - p[0]) < 1 && Math.abs(q[1] - p[1]) < 1)) {
+                pos.set(j.id, p);
+                prises.push(p);
+            }
+        });
+        const libres = (this.cfg.placesSysteme ?? []).filter((p) => !prises.some((q) => Math.abs(q[0] - p[0]) < 8 && Math.abs(q[1] - p[1]) < 8));
+        sur.filter((j) => !pos.has(j.id)).forEach((j, i) => pos.set(j.id, libres[i] ?? [10 + (i % 5) * 20, 50]));
+        const pions = sur.map((j) => {
+            const [x, y] = pos.get(j.id);
+            return `<div class="pion" style="left: ${x}%; top: ${100 - y}%" title="${this.echapper(`${j.prenom} ${j.nom}`)}">
+                <span class="pion-tete"><span class="pion-numero">${j.numero ?? ''}</span><span class="pion-buts">${marques(j.id)}</span></span>
+                <span class="pion-nom">${this.echapper(j.nom)}</span></div>`;
+        }).join('');
+
+        return `<div class="terrain-compo live-terrain-compo">
+            <svg class="terrain-lignes" viewBox="0 0 68 105" preserveAspectRatio="none" aria-hidden="true">
+                <g fill="none" stroke="rgba(255,255,255,.85)" stroke-width=".35">
+                    <rect x="1" y="1" width="66" height="103"/><line x1="1" y1="52.5" x2="67" y2="52.5"/><circle cx="34" cy="52.5" r="9.15"/>
+                    <rect x="13.84" y="1" width="40.32" height="16.5"/><rect x="24.84" y="1" width="18.32" height="5.5"/>
+                    <rect x="13.84" y="87.5" width="40.32" height="16.5"/><rect x="24.84" y="98.5" width="18.32" height="5.5"/>
+                    <path d="M26.7,17.5 A9.15,9.15 0 0 0 41.3,17.5"/><path d="M26.7,87.5 A9.15,9.15 0 0 1 41.3,87.5"/>
+                </g>
+            </svg>${pions}</div>`;
     }
 
     editerTitulaires() {

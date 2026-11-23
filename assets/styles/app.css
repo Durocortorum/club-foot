@@ -2158,6 +2158,9 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 .live-tuile-joueur .nb-actions { position: absolute; top: -.35rem; right: -.25rem; min-width: 1.25rem; padding: 0 .3rem; border-radius: 99px; background: var(--rouge); color: #fff; font-size: .7rem; font-weight: 700; text-align: center; line-height: 1.25rem; }
 .live-tuile-joueur.choisi { border-color: var(--rouge); background: color-mix(in srgb, var(--rouge) 12%, #fff); box-shadow: 0 0 0 2px var(--rouge) inset; }
 .live-tuile-joueur.banc { opacity: .6; }
+/* Poste en abrégé (« AT », « DC »…), tout petit en bas à droite de la case. */
+.live-tuile-joueur .tuile-poste { position: absolute; right: .35rem; bottom: .2rem; font-size: .6rem; font-weight: 700; letter-spacing: .02em; color: var(--gris); line-height: 1; }
+.live-tuile-joueur:has(.tuile-poste) .qui small { padding-right: 1.7rem; }
 .live-tous { grid-column: 1 / -1; justify-self: start; }
 .live-tuiles-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; margin: .7rem 0 .4rem; }
 .live-tuiles-actions .tuile-action { min-height: 3rem; padding: .3rem .4rem; font-size: .82rem; font-weight: 600; line-height: 1.15; touch-action: manipulation; }
