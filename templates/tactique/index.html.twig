@@ -13,7 +13,8 @@
         </div>
         <div class="actions">
             {% if tableaux %}<a class="bouton principal" href="{{ path('app_tactique_presenter', {id: rencontre.id}) }}">▶ Présenter (causerie)</a>{% endif %}
-            {% if modifiable %}<a class="bouton {{ tableaux ? '' : 'principal' }}" href="{{ path('app_tactique_nouveau', {id: rencontre.id}) }}">+ Nouveau tableau</a>{% endif %}
+            {% if modifiable %}<a class="bouton {{ tableaux ? '' : 'principal' }}" href="{{ path('app_tactique_nouveau', {id: rencontre.id}) }}">+ Nouveau tableau</a>
+                <a class="bouton" href="{{ path('app_cpa', {match: rencontre.id}) }}" title="Ajouter un corner, un coup franc ou une touche de la bibliothèque du club">🚩 Coups de pied arrêtés</a>{% endif %}
             {% if not rencontre.plateau %}<a class="bouton" href="{{ path('app_adversaire', {id: rencontre.id}) }}">🔎 Adversaire</a>{% endif %}
         </div>
     </div>

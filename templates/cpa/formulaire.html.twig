@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}{{ titre }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_cpa', {type: combinaison.type}), 'Coups de pied arrêtés') }}
+    <h1>{{ titre }}</h1>
+
+    {% if erreur %}<p class="flash flash-erreur">{{ erreur }}</p>{% endif %}
+
+    <form method="post" class="formulaire">
+        <input type="hidden" name="_token" value="{{ csrf_token('combinaison-cpa') }}">
+        <div class="carte">
+            <div class="champs">
+                <div class="champ large"><label for="titre">Nom de la combinaison</label>
+                    <input type="text" id="titre" name="titre" value="{{ combinaison.titre }}" maxlength="100" required placeholder="Ex. : Corner rentrant au 2e poteau"></div>
+                <div class="champ"><label for="type">Type</label>
+                    <select id="type" name="type">{% for cle, t in constant('App\\Entity\\CombinaisonCpa::TYPES') %}<option value="{{ cle }}" {{ combinaison.type == cle ? 'selected' }}>{{ t[1] }} {{ t[0]|trim('s', 'right') }}</option>{% endfor %}</select></div>
+                <div class="champ"><label for="cote">Côté</label>
+                    <select id="cote" name="cote">{% for cle, l in constant('App\\Entity\\CombinaisonCpa::COTES') %}<option value="{{ cle }}" {{ combinaison.cote == cle ? 'selected' }}>{{ l }}</option>{% endfor %}</select></div>
+                <div class="champ large"><label for="consignes">Consignes</label>
+                    <textarea id="consignes" name="consignes" rows="3" placeholder="Ex. : ballon rentrant au 2e poteau ; on part ensemble au signal du tireur (bras levé).">{{ combinaison.consignes }}</textarea></div>
+            </div>
+        </div>
+
+        {% include 'commun/_editeur_schema.html.twig' with {
+            schema: combinaison.schema,
+            aide: 'Placez vos joueurs (rouge) et l\'adversaire (bleu), tracez les courses et la trajectoire du ballon, puis ajoutez des étapes pour animer l\'action. Les numéros des joueurs servent pour les rôles ci-dessous.',
+        } %}
+
+        <section class="carte bloc">
+            <h2>Rôle de chaque joueur</h2>
+            <p class="discret petit">Le numéro du joueur sur le schéma, son rôle (choisissez dans la liste ou écrivez-le) et une précision. Les lignes sans rôle sont ignorées.</p>
+            <datalist id="roles-cpa">{% for r in constant('App\\Entity\\CombinaisonCpa::ROLES') %}<option value="{{ r }}">{% endfor %}</datalist>
+            <div class="table-defile">
+                <table class="liste roles-cpa">
+                    <thead><tr><th>N°</th><th>Rôle</th><th>Précision</th></tr></thead>
+                    <tbody>
+                        {% set lignes = combinaison.roles|merge([{n: '', role: '', detail: null}, {n: '', role: '', detail: null}, {n: '', role: '', detail: null}]) %}
+                        {% for r in lignes %}
+                            <tr>
+                                <td><input type="text" name="roles[{{ loop.index0 }}][n]" value="{{ r.n }}" maxlength="3" class="role-numero" aria-label="Numéro"></td>
+                                <td><input type="text" name="roles[{{ loop.index0 }}][role]" value="{{ r.role }}" list="roles-cpa" maxlength="60" aria-label="Rôle" placeholder="Ex. : Finition 1er poteau"></td>
+                                <td><input type="text" name="roles[{{ loop.index0 }}][detail]" value="{{ r.detail }}" maxlength="80" aria-label="Précision" placeholder="Ex. : attaque le 1er poteau"></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">Enregistrer dans la bibliothèque</button>
+        </div>
+    </form>
+{% endblock %}

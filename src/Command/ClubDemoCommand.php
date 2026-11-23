@@ -17,6 +17,7 @@ use App\Entity\Conducteur;
 use App\Entity\ContactUtile;
 use App\Entity\Contrat;
 use App\Entity\Convocation;
+use App\Entity\CombinaisonCpa;
 use App\Entity\Convoque;
 use App\Entity\Cotisation;
 use App\Entity\CreneauEntrainement;
@@ -176,6 +177,7 @@ class ClubDemoCommand extends Command
         $this->objectifsIndividuels();
         $this->semainesEntrainement();
         $this->etatsDeForme();
+        $this->bibliothequeCpa();
         $this->actionsEnDirect($matchs);
         $this->organisation($comptes);
         $this->em->flush();
@@ -776,6 +778,71 @@ class ClubDemoCommand extends Command
     }
 
     /** @param array<string, list<Rencontre>> $matchs */
+    /**
+     * Bibliothèque de coups de pied arrêtés : un corner offensif animé (écran, appels, finition), un corner défensif,
+     * un coup franc et une touche, avec les rôles de chaque joueur.
+     */
+    private function bibliothequeCpa(): void
+    {
+        $j = fn (float $x, float $y, string $n, string $c = 'rouge') => ['t' => 'joueur', 'x' => $x, 'y' => $y, 'c' => $c, 'n' => $n];
+        $f = fn (float $x1, float $y1, float $x2, float $y2, string $s = 'course', string $c = 'blanc', array $p = []) => ['t' => 'fleche', 'x1' => $x1, 'y1' => $y1, 'x2' => $x2, 'y2' => $y2, 's' => $s, 'c' => $c] + ($p ? ['p' => $p] : []);
+        // Corner offensif : tireur 10, écran du 5 sur le défenseur, 9 au 1er poteau, 7 en profondeur au 2e poteau, 8 en soutien.
+        $objets = [
+            ['t' => 'ballon', 'x' => 70, 'y' => 4], $j(71.5, 6, '10'), $j(37, 5, '1', 'bleu'),
+            $j(30, 22, '9'), $j(40, 19, '5'), $j(46, 24, '4'), $j(24, 26, '7'), $j(36, 31, '8'), $j(50, 30, '6'),
+            $j(33, 10, '', 'bleu'), $j(40, 12, '', 'bleu'), $j(44, 9, '', 'bleu'), $j(30, 16, '', 'bleu'),
+            $f(68, 5, 33, 9, 'passe', 'jaune', [[52, 0.5]]), $f(30, 21, 33, 10), $f(24, 25, 26, 11), $f(50, 29, 43, 24),
+        ];
+        $etape1 = array_fill(0, \count($objets), null);
+        $etape1[3] = [33, 11];
+        $etape1[4] = [38, 13];
+        $etape1[6] = [27, 12];
+        $etape1[8] = [36, 24];
+        $etape1[5] = [44, 17];
+        $etape2 = array_fill(0, \count($objets), null);
+        $etape2[0] = [33, 10, [[52, 1]]];
+        $corner = (new CombinaisonCpa())->setTitre('Corner rentrant, écran au premier poteau')->setType('corner')->setCote('offensif')
+            ->setConsignes("Signal du tireur : bras levé. Ballon rentrant tendu au 1er poteau.\nLe 5 fait écran sur le défenseur du 9 ; le 7 arrive lancé au 2e poteau.")
+            ->setSchema(['terrain' => 'demi', 'objets' => $objets, 'etapes' => [$etape1, $etape2]])
+            ->setRoles([
+                ['n' => '10', 'role' => 'Tireur', 'detail' => 'corner rentrant'], ['n' => '9', 'role' => 'Finition 1er poteau', 'detail' => 'attaque le 1er poteau'],
+                ['n' => '5', 'role' => 'Écran', 'detail' => 'gêne le défenseur'], ['n' => '7', 'role' => 'Appel 2e poteau', 'detail' => 'arrivée en profondeur'],
+                ['n' => '8', 'role' => 'Soutien (zone de reprise)', 'detail' => 'entrée de surface'], ['n' => '4', 'role' => 'Finition au point de penalty'],
+                ['n' => '6', 'role' => 'Repli', 'detail' => 'couvre la contre-attaque'],
+            ]);
+        $defensif = (new CombinaisonCpa())->setTitre('Défense de zone sur corner')->setType('corner')->setCote('defensif')
+            ->setConsignes("Trois joueurs en ligne aux 6 mètres, deux au point de penalty, un au 1er poteau.\nOn attaque le ballon, on ne recule pas.")
+            ->setSchema(['terrain' => 'demi', 'objets' => [
+                ['t' => 'ballon', 'x' => 70, 'y' => 4], $j(71.5, 6, '', 'bleu'), $j(37, 5, '1'),
+                $j(31, 9, '2'), $j(37, 9.5, '5'), $j(43, 9, '4'), $j(34, 15, '6'), $j(40, 15, '8'), $j(33.5, 5, '3'), $j(37, 30, '9'),
+                ['t' => 'zone', 'x' => 28, 'y' => 6.5, 'w' => 18, 'h' => 11, 'c' => 'jaune'],
+            ]])
+            ->setRoles([['n' => '1', 'role' => 'Gardien', 'detail' => 'sort sur les ballons dans les 6 m'], ['n' => '3', 'role' => 'Marquage de zone', 'detail' => '1er poteau'],
+                ['n' => '2', 'role' => 'Marquage de zone'], ['n' => '5', 'role' => 'Marquage de zone'], ['n' => '4', 'role' => 'Marquage de zone'],
+                ['n' => '6', 'role' => 'Marquage de zone', 'detail' => 'point de penalty'], ['n' => '8', 'role' => 'Marquage de zone', 'detail' => 'point de penalty'],
+                ['n' => '9', 'role' => 'Appel', 'detail' => 'reste haut pour la contre-attaque']]);
+        $coupFranc = (new CombinaisonCpa())->setTitre('Coup franc à 22 m : feinte et décalage')->setType('coup_franc')->setCote('offensif')
+            ->setConsignes('Le 8 passe au-dessus du ballon (feinte), le 10 décale pour la frappe du 6 à l\'entrée de la surface.')
+            ->setSchema(['terrain' => 'demi', 'objets' => [
+                $j(37, 5, '1', 'bleu'), ['t' => 'ballon', 'x' => 30, 'y' => 26], $j(29, 28, '10'), $j(32, 30, '8'), $j(38, 30, '6'),
+                $j(31, 19, '', 'bleu'), $j(32.6, 19, '', 'bleu'), $j(34.2, 19, '', 'bleu'), $j(35.8, 19, '', 'bleu'),
+                $j(40, 14, '9'), $j(45, 15, '5'), $f(32, 29, 29, 25), $f(30, 26, 37, 27, 'passe', 'jaune'),
+            ]])
+            ->setRoles([['n' => '8', 'role' => 'Leurre', 'detail' => 'passe au-dessus du ballon'], ['n' => '10', 'role' => 'Tireur', 'detail' => 'décalage court'],
+                ['n' => '6', 'role' => 'Tireur', 'detail' => 'frappe en une touche'], ['n' => '9', 'role' => 'Finition au point de penalty', 'detail' => 'suit la frappe'], ['n' => '5', 'role' => 'Finition 2e poteau']]);
+        $touche = (new CombinaisonCpa())->setTitre('Touche longue dans la surface')->setType('touche')->setCote('offensif')
+            ->setConsignes('Le 2 lance long vers le 1er poteau ; le 9 dévie, le 7 et le 5 attaquent le 2e poteau.')
+            ->setSchema(['terrain' => 'demi', 'objets' => [
+                $j(37, 5, '1', 'bleu'), ['t' => 'ballon', 'x' => 2, 'y' => 16], $j(3, 16, '2'), $j(28, 12, '9'), $j(36, 18, '7'), $j(42, 16, '5'),
+                $j(30, 13, '', 'bleu'), $j(38, 14, '', 'bleu'), $f(3, 15, 28, 11, 'passe', 'jaune', [[15, 7]]), $f(36, 17, 40, 8), $f(42, 15, 44, 9),
+            ]])
+            ->setRoles([['n' => '2', 'role' => 'Tireur', 'detail' => 'touche longue'], ['n' => '9', 'role' => 'Finition 1er poteau', 'detail' => 'dévie de la tête'],
+                ['n' => '7', 'role' => 'Finition 2e poteau'], ['n' => '5', 'role' => 'Finition 2e poteau', 'detail' => 'arrivée lancée']]);
+        foreach ([$corner, $defensif, $coupFranc, $touche] as $c) {
+            $this->em->persist($c->setSchema($c->getSchema()));
+        }
+    }
+
     /**
      * État de forme des 7 derniers jours (U15 et U19), un jour sur deux environ, et aujourd'hui pour presque tous :
      * en forme, à surveiller, fatigués. L'enfant U15 du compte parent n'a pas encore répondu aujourd'hui.

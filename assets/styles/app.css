@@ -2383,3 +2383,23 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .etat-forme-critere output { grid-row: span 2; font-weight: 800; font-size: 1.05rem; text-align: right; color: var(--rouge-fonce); }
 .etat-forme-critere input[type=range] { width: 100%; accent-color: var(--succes); padding: 0; border: 0; background: none; }
 .etat-forme-critere .bornes { grid-column: 2; display: flex; justify-content: space-between; font-size: .72rem; color: var(--gris); margin-top: -.2rem; }
+
+/* Bibliothèque de coups de pied arrêtés : onglets par type, légende des rôles à côté du terrain. */
+.cpa-types { display: flex; flex-wrap: wrap; gap: .5rem; margin: .5rem 0 .7rem; }
+.cpa-types a { display: inline-flex; align-items: center; gap: .4rem; padding: .55rem 1.1rem; border-radius: 99px; border: 1px solid var(--bordure); background: #fff; font-weight: 700; color: var(--encre); text-decoration: none; box-shadow: var(--ombre); }
+.cpa-types a.actif { background: var(--rouge); border-color: var(--rouge); color: #fff; }
+.cpa-types a.actif .compteur { background: rgb(255 255 255 / .25); color: #fff; }
+.cpa-cotes { max-width: 28rem; }
+.onze-vues a { flex: 1; display: inline-flex; align-items: center; justify-content: center; padding: .4rem .6rem; border: 1px solid var(--bordure); border-radius: 8px; background: #fff; font-weight: 600; color: var(--gris); text-decoration: none; }
+.onze-vues a.actif { border-color: var(--rouge); color: var(--rouge-fonce); background: var(--rouge-clair); }
+.cpa-corps { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1rem; align-items: start; }
+@media (max-width: 760px) { .cpa-corps { grid-template-columns: 1fr; } }
+.cpa-corps .schema-terrain { cursor: pointer; }
+.cpa-roles { list-style: none; margin: 0 0 .6rem; padding: 0; display: grid; gap: .45rem; }
+.cpa-roles li { display: flex; align-items: center; gap: .6rem; }
+.cpa-roles li > span:last-child { display: flex; flex-direction: column; line-height: 1.2; }
+.cpa-roles small { color: var(--gris); }
+.cpa-numero { display: grid; place-items: center; flex: none; width: 2rem; height: 2rem; border-radius: 50%; background: #d62839; color: #fff; font-weight: 800; font-size: .85rem; border: 2px solid #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .3); }
+.cpa-utiliser { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-top: .7rem; padding-top: .7rem; border-top: 1px solid var(--bordure); }
+.cpa-utiliser select { width: auto; max-width: 22rem; }
+.roles-cpa .role-numero { width: 3.5rem; text-align: center; }

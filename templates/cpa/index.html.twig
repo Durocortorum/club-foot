@@ -1,0 +1,102 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Coups de pied arrêtés{% endblock %}
+
+{% block body %}
+    {% if match %}
+        {{ m.retour(path('app_tactique', {id: match.id}), 'Tableau tactique') }}
+    {% elseif seance %}
+        {{ m.retour(path('app_seance_voir', {id: seance.id}), seance ~ '') }}
+    {% else %}
+        {{ m.retour(path('app_seance_index'), 'Entraînements') }}
+    {% endif %}
+
+    <div class="titre-page">
+        <div>
+            <h1>Bibliothèque de coups de pied arrêtés</h1>
+            <p class="discret">Préparez, organisez et partagez vos combinaisons de corners, coups francs et touches.
+                {% if match %}<strong>Choisissez une combinaison à ajouter au tableau tactique du match contre {{ match.adversaire }} ({{ match.date|date('d/m') }}).</strong>{% endif %}
+                {% if seance %}<strong>Choisissez une combinaison à ajouter à la séance du {{ seance.date|date('d/m') }}.</strong>{% endif %}</p>
+        </div>
+        <div class="actions"><a class="bouton principal" href="{{ path('app_cpa_nouvelle', {type: type}) }}">+ Nouvelle combinaison</a></div>
+    </div>
+
+    <nav class="cpa-types" aria-label="Type de coup de pied arrêté">
+        {% for cle, t in types %}
+            <a class="{{ cle == type ? 'actif' }}" href="{{ path('app_cpa', {type: cle, match: match ? match.id, seance: seance ? seance.id}|filter(v => v)) }}">{{ t[1] }} {{ t[0] }} <span class="compteur">{{ nombres[cle] ?? 0 }}</span></a>
+        {% endfor %}
+    </nav>
+    <div class="onze-vues cpa-cotes">
+        <a class="{{ not cote ? 'actif' }}" href="{{ path('app_cpa', {type: type, match: match ? match.id, seance: seance ? seance.id}|filter(v => v)) }}">Toutes</a>
+        {% for cle, l in cotes %}<a class="{{ cote == cle ? 'actif' }}" href="{{ path('app_cpa', {type: type, cote: cle, match: match ? match.id, seance: seance ? seance.id}|filter(v => v)) }}">{{ l }}s</a>{% endfor %}
+    </div>
+
+    {% for c in combinaisons %}
+        <section class="carte bloc cpa-carte" id="cpa-{{ c.id }}">
+            <div class="titre-page">
+                <h2>{{ c.icone }} {{ c.titre }} <span class="pastille {{ c.cote == 'offensif' ? 'succes' }}">{{ c.coteLibelle }}</span>
+                    {% if c.schema.etapes is defined and c.schema.etapes|length %}<span class="pastille">{{ c.schema.etapes|length + 1 }} étapes</span>{% endif %}</h2>
+                <div class="actions">
+                    {% if match %}
+                        <form method="post" action="{{ path('app_cpa_vers_match', {id: c.id}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('cpa' ~ c.id) }}"><input type="hidden" name="match" value="{{ match.id }}">
+                            <button class="bouton principal">+ Ajouter au match</button>
+                        </form>
+                    {% elseif seance %}
+                        <form method="post" action="{{ path('app_cpa_vers_seance', {id: c.id}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('cpa' ~ c.id) }}"><input type="hidden" name="seance" value="{{ seance.id }}">
+                            <button class="bouton principal">+ Ajouter à la séance</button>
+                        </form>
+                    {% endif %}
+                    <a class="bouton petit" href="{{ path('app_cpa_modifier', {id: c.id}) }}">Modifier</a>
+                    <form method="post" action="{{ path('app_cpa_dupliquer', {id: c.id}) }}" class="en-ligne">
+                        <input type="hidden" name="_token" value="{{ csrf_token('cpa' ~ c.id) }}">
+                        <button class="bouton petit" title="Faire une variante de cette combinaison">Variante</button>
+                    </form>
+                    {{ m.supprimer(path('app_cpa_supprimer', {id: c.id}), 'supprimer-cpa' ~ c.id, 'Supprimer « ' ~ c.titre ~ ' » de la bibliothèque ?') }}
+                </div>
+            </div>
+            <div class="cpa-corps">
+                <svg class="schema-terrain" data-controller="schema" data-schema-lecture-value="true" data-schema-schema-value="{{ c.schema|json_encode }}" data-schema-target="svg" role="img" aria-label="Schéma : {{ c.titre }}"></svg>
+                <div>
+                    {% if c.roles %}
+                        <ul class="cpa-roles">
+                            {% for r in c.roles %}
+                                <li><span class="cpa-numero">{{ r.n ?: '•' }}</span><span><strong>{{ r.role }}</strong>{% if r.detail %}<small>{{ r.detail }}</small>{% endif %}</span></li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    {% if c.consignes %}<p class="memo petit">{{ c.consignes }}</p>{% endif %}
+                </div>
+            </div>
+            {% if not match and not seance and (matchs or seances) %}
+                <div class="cpa-utiliser">
+                    {% if matchs %}
+                        <form method="post" action="{{ path('app_cpa_vers_match', {id: c.id}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('cpa' ~ c.id) }}">
+                            <select name="match" required aria-label="Match"><option value="">Ajouter au tableau tactique du match…</option>
+                                {% for r in matchs %}<option value="{{ r.id }}">{{ r.date|date('d/m') }} · {{ r.afficheContre }}</option>{% endfor %}</select>
+                            <button class="bouton petit">Ajouter</button>
+                        </form>
+                    {% endif %}
+                    {% if seances %}
+                        <form method="post" action="{{ path('app_cpa_vers_seance', {id: c.id}) }}" class="en-ligne">
+                            <input type="hidden" name="_token" value="{{ csrf_token('cpa' ~ c.id) }}">
+                            <select name="seance" required aria-label="Séance"><option value="">Ajouter à la séance d'entraînement…</option>
+                                {% for s in seances %}<option value="{{ s.id }}">{{ s }}</option>{% endfor %}</select>
+                            <button class="bouton petit">Ajouter</button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% endif %}
+            {% if c.modifieLe %}<p class="discret petit">Modifiée le {{ c.modifieLe|date('d/m/Y', 'Europe/Paris') }}{{ c.modifieParNom ? ' par ' ~ c.modifieParNom }}.</p>{% endif %}
+        </section>
+    {% else %}
+        <div class="carte">
+            <p>Pas encore de combinaison dans cette catégorie.</p>
+            <a class="bouton principal" href="{{ path('app_cpa_nouvelle', {type: type}) }}">+ Créer la première</a>
+        </div>
+    {% endfor %}
+    {% if combinaisons %}<p class="discret petit">Touchez un terrain pour lancer l'animation de la combinaison.</p>{% endif %}
+{% endblock %}

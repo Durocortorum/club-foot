@@ -7,6 +7,7 @@
     <div class="titre-page">
         <h1>Entraînements <span class="compteur">{{ total }} séance{{ total > 1 ? 's' }}</span></h1>
         <span class="actions">
+            <a class="bouton" href="{{ path('app_cpa') }}" title="Bibliothèque de combinaisons de corners, coups francs et touches">🚩 Coups de pied arrêtés</a>
             <a class="bouton" href="{{ path('app_etat_forme') }}" title="État de forme du jour renseigné par les joueurs : fatigue, sommeil, douleurs, motivation">💚 État de forme</a>
             <a class="bouton" href="{{ path('app_ressenti') }}" title="Effort ressenti par les joueurs après chaque séance (RPE)">Effort ressenti</a>
             {% if is_granted('ROLE_TESTS_PHYSIQUES_LECTURE') %}<a class="bouton" href="{{ path('app_tests') }}" title="Catalogue des tests physiques et techniques, séances de tests">Tests</a><a class="bouton" href="{{ path('app_progression_equipe') }}" title="Résultats et progression de chaque joueur">Progression</a>{% endif %}

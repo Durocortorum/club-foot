@@ -62,7 +62,7 @@
                     <a href="{{ path('app_rencontre_index') }}" class="{{ route starts with 'app_rencontre' ? 'actif' }}">Matchs</a>
                     <a href="{{ path('app_statistiques') }}" class="{{ route == 'app_statistiques' ? 'actif' }}">Statistiques</a>
                     <a href="{{ path('app_presence_index') }}" class="{{ route starts with 'app_presence' ? 'actif' }}">Présences</a>
-                    <a href="{{ path('app_seance_index') }}" class="{{ route starts with 'app_seance' or route starts with 'app_exercice' or route starts with 'app_planning' or route starts with 'app_ressenti' or route == 'app_etat_forme' or route == 'app_progression_equipe' or route starts with 'app_test_type' or route in ['app_tests', 'app_test_seance'] ? 'actif' }}">Entraînements</a>
+                    <a href="{{ path('app_seance_index') }}" class="{{ route starts with 'app_seance' or route starts with 'app_exercice' or route starts with 'app_planning' or route starts with 'app_ressenti' or route == 'app_etat_forme' or route starts with 'app_cpa' or route == 'app_progression_equipe' or route starts with 'app_test_type' or route in ['app_tests', 'app_test_seance'] ? 'actif' }}">Entraînements</a>
                     {% set non_lus = messages_non_lus() %}
                     <a href="{{ path('app_message_index') }}" class="{{ route starts with 'app_message' ? 'actif' }}" title="Messagerie avec les familles et les collègues">Messages <span class="pastille alerte" title="Messages et réponses non lus" data-controller="nouvelles" data-nouvelles-url-value="{{ path('app_messages_etat') }}" {{ non_lus ? '' : 'hidden' }}>{{ non_lus ?: '' }}</span></a>
                     {% set nb_taches_menu = taches_ouvertes() %}

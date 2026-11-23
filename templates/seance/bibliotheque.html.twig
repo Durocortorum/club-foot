@@ -12,7 +12,8 @@
         <div>
             <h1>Bibliothèque d'exercices</h1>
             {% if seance %}
-                <p class="discret">Choisissez un exercice type : il est copié dans la séance, où vous pourrez modifier le schéma, la durée et les consignes.</p>
+                <p class="discret">Choisissez un exercice type : il est copié dans la séance, où vous pourrez modifier le schéma, la durée et les consignes.
+                    Pour travailler les coups de pied arrêtés : <a href="{{ path('app_cpa', {seance: seance.id}) }}">🚩 bibliothèque des corners, coups francs et touches</a>.</p>
             {% else %}
                 <p class="discret">Tous les exercices types du club. Ajoutez-en un à l'une de vos séances : il y est copié, et vous pourrez ensuite l'adapter.</p>
             {% endif %}

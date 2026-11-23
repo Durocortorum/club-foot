@@ -1,0 +1,89 @@
+{# Éditeur de schéma sur terrain (schema_controller.js) : tableau tactique d'un match, coups de pied arrêtés.
+   Variables : schema (valeur de départ), formations (facultatif : choix de la formation, tableau tactique),
+   formation_defaut, aide (texte sous le terrain). Le champ caché « schema » part avec le formulaire. #}
+{% macro outil(type, libelle, icone, couleur = null) %}
+    <button type="button" class="outil" data-action="schema#ajouter" data-schema-type-param="{{ type }}" {% if couleur %}data-schema-couleur-param="{{ couleur }}"{% endif %} title="Ajouter : {{ libelle }}">
+        <svg viewBox="-2 -2 4 4" aria-hidden="true">{{ icone|raw }}</svg>
+        <span>{{ libelle }}</span>
+    </button>
+{% endmacro %}
+{% import _self as s %}
+<div class="carte schema-editeur" data-controller="schema" {% if formations is defined and formations %}data-schema-formations-value="{{ formations|json_encode }}"{% endif %}>
+    <input type="hidden" name="schema" value="{{ schema|json_encode }}" data-schema-target="champ">
+    <div class="schema-barre tactique-formation">
+        {% if formations is defined and formations %}
+            <label>Formation
+                <select data-schema-target="formation">
+                    {% for format, liste in constant('App\\Entity\\Rencontre::SYSTEMES') %}
+                        <optgroup label="{{ format }}">{% for f in liste %}<option value="{{ f }}" {{ f == (formation_defaut ?? '') ? 'selected' }}>{{ f }}</option>{% endfor %}</optgroup>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>pour
+                <select data-schema-target="campFormation">
+                    <option value="nous">nous (rouge)</option>
+                    <option value="eux">l'adversaire (bleu)</option>
+                </select>
+            </label>
+            <button type="button" class="bouton petit" data-action="schema#placerFormation">Placer les joueurs</button>
+        {% endif %}
+        <select data-schema-target="terrain" data-action="schema#changerTerrain" aria-label="Terrain">
+            {% for cle, libelle in constant('App\\Entity\\SchemaTerrain::TERRAINS') %}<option value="{{ cle }}">{{ libelle }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="schema-barre">
+        {{ s.outil('joueur', 'Joueur', '<circle r="1.5" fill="#d62839" stroke="#fff" stroke-width=".25"/>', 'rouge') }}
+        {{ s.outil('joueur', 'Adversaire', '<circle r="1.5" fill="#1f5fd1" stroke="#fff" stroke-width=".25"/>', 'bleu') }}
+        {{ s.outil('ballon', 'Ballon', '<circle r="1.1" fill="#fff" stroke="#1d1d1f" stroke-width=".2"/><path d="M0,-.45 L.43,-.14 L.27,.37 L-.27,.37 L-.43,-.14 z" fill="#1d1d1f"/>') }}
+        {{ s.outil('fleche', 'Déplacement / passe', '<path d="M-1.6,1 L1.2,-.8" stroke="#1d1d1f" stroke-width=".3"/><path d="M1.6,-1 L.5,-.9 L1.1,-.1 z" fill="#1d1d1f"/>') }}
+        {{ s.outil('zone', 'Zone', '<rect x="-1.6" y="-1.1" width="3.2" height="2.2" fill="#f5c518" fill-opacity=".35" stroke="#b8920c" stroke-width=".15" stroke-dasharray=".4 .25"/>') }}
+        {{ s.outil('mannequin', 'Mannequin', '<rect x="-1.5" y="-.55" width="3" height="1.1" rx=".55" fill="#e9e3d5" stroke="#1d1d1f" stroke-width=".15"/><circle r=".5" fill="#c9bfa8" stroke="#1d1d1f" stroke-width=".12"/>') }}
+        {{ s.outil('cone', 'Cône', '<path d="M0,-1.5 L1.3,1.1 L-1.3,1.1 z" fill="#ff7a1a" stroke="#1d1d1f" stroke-width=".15"/>') }}
+        {{ s.outil('texte', 'Texte', '<text text-anchor="middle" dominant-baseline="central" font-size="2.6" font-weight="700" fill="#1d1d1f">T</text>') }}
+    </div>
+
+    <svg class="schema-terrain modifiable" data-schema-target="svg" role="img" aria-label="Schéma"></svg>
+
+    <div class="schema-selection" data-schema-target="selection" hidden>
+        <strong data-schema-target="nom"></strong>
+        <span class="schema-couleurs" data-schema-target="couleurs"></span>
+        <label data-schema-target="libelleTexte">N° <input type="text" data-schema-target="texte" data-action="input->schema#texte blur->schema#finTexte"></label>
+        <select data-schema-target="style" data-action="schema#style">
+            <option value="passe">Passe (trait plein)</option>
+            <option value="course">Déplacement (pointillés)</option>
+            <option value="conduite">Conduite de balle (ondulé)</option>
+        </select>
+        <select data-schema-target="styleZone" data-action="schema#styleZone" hidden>
+            <option value="zone">Zone</option>
+            <option value="pressing">Zone de pressing (hachurée)</option>
+        </select>
+        <select data-schema-target="trace" data-action="schema#trace" title="Forme de la flèche quand elle est pliée">
+            <option value="courbe">Tracé : courbe</option>
+            <option value="brise">Tracé : angles</option>
+        </select>
+        <button type="button" class="bouton petit" data-schema-target="redresser" data-action="schema#redresser" title="Retirer tous les points de pliage">Redresser</button>
+        <span class="discret petit" data-schema-target="aidePliage"></span>
+        <button type="button" class="bouton petit" data-schema-target="tourner" data-action="schema#tourner">↻ Tourner</button>
+        <button type="button" class="bouton petit" data-action="schema#dupliquer">Dupliquer</button>
+        <button type="button" class="bouton petit danger" data-action="schema#supprimer">Supprimer</button>
+    </div>
+
+    <div class="schema-animation">
+        <div class="schema-etapes-ligne">
+            <strong>Étapes</strong>
+            <span class="schema-etapes" data-schema-target="etapes"></span>
+            <button type="button" class="bouton petit" data-schema-target="ajouterEtape" data-action="schema#ajouterEtape">+ Étape</button>
+            <button type="button" class="bouton petit danger" data-schema-target="supprimerEtape" data-action="schema#supprimerEtape" hidden>Supprimer l'étape</button>
+            <button type="button" class="bouton petit principal" data-schema-target="lecture" data-action="schema#lireAnimation" disabled>▶ Lire l'animation</button>
+        </div>
+        <p class="discret petit" data-schema-target="aideEtape"></p>
+    </div>
+
+    <div class="schema-pied">
+        <span class="discret petit">{{ aide ?? 'Cliquez un joueur pour le déplacer ou changer son numéro. Flèches : tirez leurs extrémités, choisissez passe ou déplacement. Zones : tirez le coin. Ctrl+Z pour annuler.' }}</span>
+        <span class="actions">
+            <button type="button" class="bouton petit" data-schema-target="annuler" data-action="schema#annuler" disabled>↶ Annuler</button>
+            <button type="button" class="bouton petit" data-action="schema#toutEffacer">Tout effacer</button>
+        </span>
+    </div>
+</div>
