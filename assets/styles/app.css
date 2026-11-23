@@ -2319,3 +2319,4 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .onze-commun span { display: block; height: 100%; background: var(--rouge); }
 .onze-onglets .compteur:empty { display: none; }
 .onze-place .onze-nom { display: block; }
+.onze-qui small.place { color: var(--succes); font-weight: 600; white-space: normal; }

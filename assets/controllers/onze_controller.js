@@ -146,6 +146,29 @@ export default class extends Controller {
             this.places[i].joueur = id;
             pris.add(id);
         });
+        // Améliorations : échanger deux titulaires, ou un titulaire contre un non-retenu, tant que l'équipe y gagne.
+        const val = (id, i) => (id === null ? -99 : this.valeur(this.joueurs.get(id), this.places[i].poste));
+        for (let tour = 0, mieux = true; mieux && tour < 50; tour++) {
+            mieux = false;
+            for (let i = 0; i < this.places.length; i++) {
+                for (let k = i + 1; k < this.places.length; k++) {
+                    const [a, b] = [this.places[i].joueur, this.places[k].joueur];
+                    if (val(b, i) + val(a, k) > val(a, i) + val(b, k) + 0.01) {
+                        [this.places[i].joueur, this.places[k].joueur] = [b, a];
+                        mieux = true;
+                    }
+                }
+                dispo.filter((j) => !pris.has(j.id)).forEach((j) => {
+                    const a = this.places[i].joueur;
+                    if (val(j.id, i) > val(a, i) + 0.01) {
+                        pris.delete(a);
+                        pris.add(j.id);
+                        this.places[i].joueur = j.id;
+                        mieux = true;
+                    }
+                });
+            }
+        }
         // Banc : les meilleurs des autres (7 au plus), un gardien remplaçant d'abord s'il y en a un.
         const reste = dispo.filter((j) => !pris.has(j.id)).sort((a, b) => (b.note ?? 0) - (a.note ?? 0));
         const gardien = reste.find((j) => j.ligne === 'G');
@@ -322,10 +345,16 @@ export default class extends Controller {
             const auBanc = this.banc.includes(j.id);
             const [icone, libelle] = ETATS[j.etat === 'dispo' && j.reponse === null && this.d.avecConvocation && j.convoque ? 'attente' : j.etat] || ETATS.dispo;
             const etat = j.etat === 'dispo' && j.reponse === null && this.d.avecConvocation && j.convoque ? 'attente' : j.etat;
+            // Titulaire : le poste où il est placé (le même que sur le terrain), puis son poste habituel s'il diffère.
+            const placeJoueur = this.places.find((p) => p.joueur === j.id);
+            const habituel = j.poste || 'poste non renseigné';
+            const postes = placeJoueur
+                ? `Placé ${this.abr[placeJoueur.poste] || ''} – ${placeJoueur.poste}${j.poste !== placeJoueur.poste ? ` · habituellement ${habituel}` : ''}`
+                : (j.poste || 'Poste non renseigné');
             return `<li class="onze-joueur${this.choixJoueur === j.id ? ' choisi' : ''}${titulaire ? ' titulaire' : ''}${['absent', 'blesse', 'suspendu'].includes(etat) ? ' indispo' : ''}" data-joueur="${j.id}" data-action="click->onze#toucherJoueur" role="button" tabindex="0">
                 ${j.photo ? `<img class="avatar mini" src="${j.photo}" alt="" loading="lazy">` : `<span class="avatar mini">${this.echapper((j.prenom[0] || '') + (j.nom[0] || ''))}</span>`}
-                <span class="onze-qui"><b>${this.echapper(j.nom)}</b> ${this.echapper(j.prenom)}<small>${this.echapper(j.poste || 'Poste non renseigné')}${!j.convoque ? ' · non convoqué' : ''}${j.libelleEtat ? ` · ${this.echapper(j.libelleEtat)}` : ''}</small></span>
-                ${this.pastilleNote(this.noteAuPoste(j, place?.poste))}
+                <span class="onze-qui"><b>${this.echapper(j.nom)}</b> ${this.echapper(j.prenom)}<small${placeJoueur ? ' class="place"' : ''}>${this.echapper(postes)}${!j.convoque ? ' · non convoqué' : ''}${j.libelleEtat ? ` · ${this.echapper(j.libelleEtat)}` : ''}</small></span>
+                ${this.pastilleNote(this.noteAuPoste(j, placeJoueur?.poste ?? place?.poste))}
                 <span class="onze-etat ${etat}" title="${this.echapper(j.libelleEtat || libelle)}">${icone}</span>
                 ${titulaire ? `<span class="pastille succes">titulaire</span><button type="button" class="lien-bouton petit" data-joueur="${j.id}" data-action="onze#retirerJoueur">Retirer</button>`
                     : `<button type="button" class="bouton petit${auBanc ? ' actif' : ''}" data-joueur="${j.id}" data-action="onze#basculerBanc">${auBanc ? '✓ Banc' : 'Banc'}</button>`}
