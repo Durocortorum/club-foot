@@ -117,7 +117,8 @@ class OnzeTest extends WebTestCase
         self::assertSame(['Gaby' => [true, 'Gardien'], 'Léo' => [true, 'Latéral droit'], 'Tom' => [false, null]], $feuille);
         self::assertEquals([$ld['x'], $ld['y']], $match->getPlacements()[$joueurs['Léo']->getId()]);
 
-        // Convocation envoyée à Gaby, Léo et Noé : seuls eux (et Tom, déjà sur la feuille) sont proposés.
+        // Convocation envoyée à Gaby, Léo et Noé : toute l'équipe reste visible (pour préparer), mais seuls eux
+        // sont marqués convoqués (vue « Convoqués », et seuls retenus par « Meilleur onze »).
         $club = $em->find(Club::class, $this->clubId);
         $convocation = (new Convocation($match))->setClub($club)->setJoueurs(array_map(fn (string $p) => $em->find(Joueur::class, $joueurs[$p]->getId()), ['Gaby', 'Léo', 'Noé']))->marquerEnvoyee();
         foreach ($convocation->getConvoques() as $cq) {
@@ -127,9 +128,10 @@ class OnzeTest extends WebTestCase
         $em->flush();
         $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/onze');
         $config = json_decode($crawler->filter('[data-controller="onze"]')->attr('data-onze-config-value'), true);
-        $prenoms = array_column($config['donnees']['joueurs'], 'prenom');
-        sort($prenoms);
-        self::assertSame(['Gaby', 'Léo', 'Noé', 'Tom'], $prenoms);
+        self::assertCount(6, $config['donnees']['joueurs']);
+        $convoques = array_column(array_filter($config['donnees']['joueurs'], fn ($j) => $j['convoque']), 'prenom');
+        sort($convoques);
+        self::assertSame(['Gaby', 'Léo', 'Noé'], $convoques);
         self::assertTrue($config['donnees']['avecConvocation']);
 
         // Mauvais jeton : refusé.

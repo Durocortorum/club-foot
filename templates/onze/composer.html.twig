@@ -35,10 +35,10 @@
 
         {# Le onze se compose avec les joueurs convoqués ; sans convocation, toute l'équipe est proposée en attendant. #}
         {% if donnees.avecConvocation %}
-            <p class="discret petit">Joueurs proposés : les convoqués de ce match{{ donnees.joueurs|filter(j => j.reponse == 'absent')|length ? ' (les absents sont signalés)' }}.</p>
+            <p class="discret petit">« ✨ Meilleur onze » choisit parmi les convoqués de ce match ; « Toute l'équipe » (au-dessus de la liste) aide à préparer.</p>
         {% else %}
-            <p class="flash flash-info">Pas encore de convocation pour ce match : en attendant, tous les joueurs de l'équipe sont proposés.
-                {% if modifiable %}<a href="{{ path('app_convocation', {id: rencontre.id}) }}">Convoquer les joueurs</a> : ensuite, seuls les convoqués seront proposés.{% endif %}</p>
+            <p class="flash flash-info">Pas encore de convocation pour ce match : en attendant, toute l'équipe est proposée (sauf blessés, suspendus et absents).
+                {% if modifiable %}<a href="{{ path('app_convocation', {id: rencontre.id}) }}">Convoquer les joueurs</a> : ensuite, « ✨ Meilleur onze » ne prendra que les convoqués.{% endif %}</p>
         {% endif %}
 
         <div class="onze-grille">

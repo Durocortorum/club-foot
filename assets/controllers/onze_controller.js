@@ -311,9 +311,23 @@ export default class extends Controller {
         this.dessinerJoueurs();
     }
 
+    /**
+     * « Convoqués » (dès qu'il y a une convocation) : les convoqués ; « Toute l'équipe » (pour préparer convocation
+     * et tactique) : tous les joueurs sauf les blessés, suspendus et absents. Les joueurs déjà placés restent visibles.
+     */
     joueursVisibles() {
-        // Avec une convocation, le serveur n'envoie que les convoqués (et ceux déjà sur la feuille de match).
-        return this.d.joueurs;
+        const place = (j) => this.estTitulaire(j.id) || this.banc.includes(j.id);
+        if (this.vueConvoques()) return this.d.joueurs.filter((j) => j.convoque || place(j));
+        return this.d.joueurs.filter((j) => !['absent', 'blesse', 'suspendu'].includes(j.etat) || place(j));
+    }
+
+    vueConvoques() {
+        return this.d.avecConvocation && this.vue !== 'equipe';
+    }
+
+    choisirVue(event) {
+        this.vue = event.currentTarget.dataset.vue;
+        this.afficher();
     }
 
     dessinerJoueurs() {
@@ -331,7 +345,15 @@ export default class extends Controller {
             const nb = this.noteAuPoste(b, place?.poste)?.note ?? -1;
             return nb - na || a.nom.localeCompare(b.nom);
         });
-        this.filtreTarget.innerHTML = (place
+        const nbConvoques = this.d.joueurs.filter((j) => j.convoque).length;
+        const nbEquipe = this.d.joueurs.filter((j) => !['absent', 'blesse', 'suspendu'].includes(j.etat)).length;
+        const vues = this.d.avecConvocation
+            ? `<div class="onze-vues" role="group" aria-label="Joueurs proposés">
+                <button type="button" class="${this.vueConvoques() ? 'actif' : ''}" data-vue="convoques" data-action="onze#choisirVue">Convoqués <span class="compteur">${nbConvoques}</span></button>
+                <button type="button" class="${this.vueConvoques() ? '' : 'actif'}" data-vue="equipe" data-action="onze#choisirVue" title="Pour préparer : tous les joueurs de l'équipe sauf blessés, suspendus et absents">Toute l'équipe <span class="compteur">${nbEquipe}</span></button>
+               </div>${this.vueConvoques() ? '' : '<p class="discret petit">Pour préparer : « ✨ Meilleur onze » ne prend que les convoqués.</p>'}`
+            : '<p class="discret petit">Pas encore de convocation : toute l\'équipe, sauf blessés, suspendus et absents.</p>';
+        this.filtreTarget.innerHTML = vues + (place
             ? `<p class="onze-pour">Pour la place <strong>${this.echapper(place.poste)}</strong> : ${LIGNES[ligne] ? `${LIGNES[ligne].toLowerCase()} d'abord, ` : ''}triés par note au poste.</p>`
             : '');
         this.listeTarget.innerHTML = `<ul class="onze-joueurs">${liste.map((j) => {
@@ -429,10 +451,13 @@ export default class extends Controller {
         const titulaires = this.places.filter((p) => p.joueur !== null);
         if (!titulaires.length) return this.montrerErreur('Placez au moins un joueur sur le terrain.');
         const absents = [...titulaires.map((p) => p.joueur), ...this.banc].map((id) => this.joueurs.get(id)).filter((j) => ['absent', 'blesse', 'suspendu'].includes(j.etat));
+        const nonConvoques = this.d.avecConvocation
+            ? [...titulaires.map((p) => p.joueur), ...this.banc].map((id) => this.joueurs.get(id)).filter((j) => !j.convoque) : [];
         const manque = this.places.length - titulaires.length;
         const avertissements = [
             manque ? `${manque} place${manque > 1 ? 's' : ''} encore vide${manque > 1 ? 's' : ''}.` : null,
             absents.length ? `Choisi${absents.length > 1 ? 's' : ''} malgré l'absence : ${absents.map((j) => `${this.nomCourt(j)} (${j.libelleEtat})`).join(', ')}.` : null,
+            nonConvoques.length ? `Pas convoqué${nonConvoques.length > 1 ? 's' : ''} : ${nonConvoques.map((j) => this.nomCourt(j)).join(', ')} (pensez à ${nonConvoques.length > 1 ? 'les' : 'le'} convoquer).` : null,
         ].filter(Boolean);
         if (avertissements.length && !(await confirmer(avertissements.join(' '), { titre: 'Valider ce onze ?', bouton: 'Valider quand même', style: 'principal' }))) return;
         this.boutonValiderTarget.disabled = true;
