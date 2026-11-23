@@ -2325,3 +2325,35 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .onze-vues button.actif { border-color: var(--rouge); color: var(--rouge-fonce); background: var(--rouge-clair); }
 .case-joueur-nom { display: flex; flex-direction: column; line-height: 1.2; }
 .case-joueur .poste-joueur { color: var(--gris); font-size: .74rem; }
+
+/* Objectifs individuels de progression : objectifs avec barre d'atteinte, progression mensuelle, observations. */
+.objectifs-grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 0 1rem; align-items: start; }
+.objectif-moyenne { font-weight: 800; font-size: 1.2rem; color: #fff; background: var(--rouge); border-radius: 99px; padding: .15rem .7rem; }
+.objectif { padding: .7rem .8rem; border: 1px solid var(--bordure); border-radius: 12px; margin-bottom: .6rem; background: color-mix(in srgb, var(--rouge) 4%, #fff); }
+.objectif.atteint { background: color-mix(in srgb, var(--succes) 8%, #fff); border-color: color-mix(in srgb, var(--succes) 35%, var(--bordure)); }
+.objectif-tete { display: flex; align-items: center; gap: .6rem; }
+.objectif-icone { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; flex: none; border-radius: 10px; background: var(--rouge-clair); font-size: 1.15rem; }
+.objectif-titre { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.objectif-pct { font-weight: 800; font-size: 1.1rem; color: var(--rouge-fonce); font-variant-numeric: tabular-nums; }
+.objectif.atteint .objectif-pct { color: var(--succes); }
+.objectif-barre { height: .6rem; border-radius: 99px; background: var(--bordure); overflow: hidden; margin: .5rem 0 .3rem; }
+.objectif-barre span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, color-mix(in srgb, var(--rouge) 70%, #fff), var(--rouge)); }
+.objectif.atteint .objectif-barre span { background: var(--succes); }
+.objectif-maj { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: .3rem; }
+.objectif-maj label { display: inline-flex; align-items: center; gap: .4rem; flex: 1; min-width: 12rem; }
+.objectif-maj input[type=range] { flex: 1; width: auto; accent-color: var(--rouge); padding: 0; border: 0; background: none; }
+.objectif-maj output { min-width: 3rem; font-weight: 700; }
+.objectif-edition { margin-top: .3rem; }
+.objectif-edition summary { cursor: pointer; color: var(--gris); }
+.objectifs-mois { display: flex; align-items: flex-end; gap: .5rem; height: 12rem; padding: .3rem 0; }
+.objectifs-mois-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: .25rem; min-width: 0; }
+.objectifs-mois-val { font-size: .75rem; font-weight: 700; color: var(--gris); white-space: nowrap; }
+.objectifs-mois-barre { width: 100%; max-width: 3rem; border-radius: 8px 8px 3px 3px; background: color-mix(in srgb, var(--rouge) 35%, #fff); min-height: 2px; }
+.objectifs-mois-barre.dernier { background: var(--rouge); }
+.objectifs-mois-lib { font-size: .75rem; color: var(--gris); }
+.observation { padding: .7rem 0; border-bottom: 1px solid var(--bordure); }
+.observation:last-child { border-bottom: 0; }
+.observation-tete { display: flex; align-items: center; gap: .6rem; margin-bottom: .35rem; flex-wrap: wrap; }
+.observation-tete > div { flex: 1; display: flex; flex-direction: column; }
+.observation-tete .avatar.mini { margin: 0; }
+.observation .memo { font-style: italic; margin-bottom: .4rem; }

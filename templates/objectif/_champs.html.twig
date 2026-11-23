@@ -1,0 +1,15 @@
+{# Champs d'un objectif (création ou modification). Variable : o (objectif, ou null pour un nouveau). #}
+<div class="champs">
+    <div class="champ"><label>Objectif</label>
+        <input type="text" name="titre" value="{{ o ? o.titre }}" maxlength="120" required placeholder="Ex. : Améliorer ma finition"></div>
+    <div class="champ"><label>Thème</label>
+        <select name="theme">
+            {% for cle, t in constant('App\\Entity\\ObjectifJoueur::THEMES') %}<option value="{{ cle }}" {{ o and o.theme == cle ? 'selected' }}>{{ t[1] }} {{ t[0] }}</option>{% endfor %}
+        </select></div>
+    <div class="champ"><label>Atteinte (%)</label>
+        <input type="number" name="progression" min="0" max="100" step="5" value="{{ o ? o.progression : 0 }}"></div>
+    <div class="champ"><label>Échéance (facultatif)</label>
+        <input type="date" name="echeance" value="{{ o and o.echeance ? o.echeance|date('Y-m-d') }}"></div>
+    <div class="champ large"><label>Comment l'atteindre (facultatif)</label>
+        <textarea name="description" rows="2" placeholder="Ex. : 20 frappes après chaque entraînement, viser les petits filets.">{{ o ? o.description }}</textarea></div>
+</div>

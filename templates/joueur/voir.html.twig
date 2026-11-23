@@ -63,6 +63,7 @@
             {% if peut_modifier %}
                 <a class="bouton principal" href="{{ path('app_joueur_modifier', {id: joueur.id}) }}">Modifier</a>
             {% endif %}
+            <a class="bouton" href="{{ path('app_objectifs_joueur', {id: joueur.id}) }}" title="Objectifs individuels de la saison, progression mois par mois, observations de l'entraîneur">🎯 Objectifs</a>
             {% if is_granted('ROLE_ADMIN') %}
                 {{ m.supprimer(path('app_joueur_supprimer', {id: joueur.id}), 'supprimer' ~ joueur.id, 'Supprimer définitivement la fiche de ' ~ joueur.nomComplet ~ ' ?') }}
             {% endif %}

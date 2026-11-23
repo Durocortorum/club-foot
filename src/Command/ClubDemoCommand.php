@@ -27,6 +27,8 @@ use App\Entity\Evenement;
 use App\Entity\FicheAdversaire;
 use App\Entity\Joueur;
 use App\Entity\Message;
+use App\Entity\ObjectifJoueur;
+use App\Entity\ObservationJoueur;
 use App\Entity\Operation;
 use App\Entity\Paiement;
 use App\Entity\PartenariatSponsor;
@@ -168,6 +170,7 @@ class ClubDemoCommand extends Command
         $this->boutique($comptes['parent']);
         $io->text('Infirmerie, tests, effort ressenti, discipline, tâches, messages…');
         $this->suiviSportif($matchs);
+        $this->objectifsIndividuels();
         $this->actionsEnDirect($matchs);
         $this->organisation($comptes);
         $this->em->flush();
@@ -768,6 +771,50 @@ class ClubDemoCommand extends Command
     }
 
     /** @param array<string, list<Rencontre>> $matchs */
+    /**
+     * Objectifs individuels de progression, mis à jour chaque mois depuis la rentrée, et observations de l'entraîneur :
+     * pour l'enfant U15 du compte parent (visible dans l'espace famille) et deux joueurs des U19.
+     */
+    private function objectifsIndividuels(): void
+    {
+        $aujourdhui = new \DateTimeImmutable('today');
+        $debut = new \DateTimeImmutable(substr($this->saison, 0, 4) . '-08-25');
+        $suivis = [
+            [$this->joueurs['U15'][2], 'Karim Benali', [['Améliorer ma finition', 'finition', 75, 'Frapper du bon pied, viser les petits filets ; 20 frappes après chaque entraînement.'],
+                ['Gagner en explosivité', 'physique', 60, 'Démarrages sur 10 m, travail des appuis.'], ['Renforcer mon jeu défensif', 'defense', 80, 'Repli immédiat à la perte du ballon.']],
+                ['Bonne progression sur la finition. Continue dans cette dynamique et sois plus exigeant dans le dernier geste.', 'Très bon repli défensif samedi, c\'est exactement ce qu\'on attend.']],
+            [$this->joueurs['U19'][9], 'Antoine Faure', [['Marquer 10 buts dans la saison', 'finition', 50, null], ['Jouer dos au but et remiser', 'technique', 65, 'Protéger le ballon, remiser en une touche.']],
+                ['Bon travail dos au but, mais trop de touches de balle avant la remise.']],
+            [$this->joueurs['U19'][0], 'Antoine Faure', [['Relances au pied plus précises', 'technique', 55, null], ['Diriger ma défense', 'mental', 70, 'Parler, placer la ligne sur les coups de pied arrêtés.']],
+                ['Tu prends la parole de plus en plus : continue, ta défense est plus sereine.']],
+        ];
+        foreach ($suivis as [$joueur, $coach, $objectifs, $observations]) {
+            $premier = null;
+            foreach ($objectifs as $k => [$titre, $theme, $final, $description]) {
+                $o = (new ObjectifJoueur($joueur, $this->saison))->setTitre($titre)->setTheme($theme)->setDescription($description)->setCreeParNom($coach);
+                // Une mise à jour par mois, de la rentrée à aujourd'hui, jusqu'au pourcentage atteint.
+                $etapes = [];
+                for ($m = $debut; $m <= $aujourdhui; $m = $m->modify('+1 month')) {
+                    $etapes[] = $m;
+                }
+                if (!$etapes || end($etapes)->format('Y-m') !== $aujourdhui->format('Y-m')) {
+                    $etapes[] = $aujourdhui;
+                }
+                foreach ($etapes as $i => $date) {
+                    $o->setProgression((int) (round(($final * ($i + 1) / \count($etapes)) / 5) * 5) ?: 5, $date);
+                }
+                $this->em->persist($o);
+                $premier ??= $o;
+            }
+            foreach ($observations as $i => $texte) {
+                $observation = (new ObservationJoueur($joueur))->setTexte($texte)->setAuteurNom($coach)->setObjectif(0 === $i ? $premier : null)
+                    ->setDate($aujourdhui->modify('-' . (3 + 12 * $i) . ' days'));
+                $observation->setLienVideo(0 === $i ? 'https://www.youtube.com/' : null);
+                $this->em->persist($observation);
+            }
+        }
+    }
+
     private function suiviSportif(array $matchs): void
     {
         $aujourdhui = new \DateTimeImmutable('today');

@@ -1,0 +1,89 @@
+{% import 'commun/_macros.html.twig' as m %}
+{# Objectifs de la saison, progression mensuelle et observations : fiche du joueur (encadrement) et espace famille.
+   Variables : objectifs, moyenne, mois, observations, modifiable (encadrement qui modifie le joueur). #}
+{% set modifiable = modifiable ?? false %}
+<div class="objectifs-grille">
+    <section class="carte bloc">
+        <div class="titre-page">
+            <h2>🎯 Objectifs de la saison</h2>
+            {% if moyenne is not null %}<span class="objectif-moyenne" title="Moyenne d'atteinte des objectifs">{{ moyenne }} %</span>{% endif %}
+        </div>
+        {% for o in objectifs %}
+            <div class="objectif {{ o.atteint ? 'atteint' }}" id="objectif-{{ o.id }}">
+                <div class="objectif-tete">
+                    <span class="objectif-icone" aria-hidden="true">{{ o.icone }}</span>
+                    <div class="objectif-titre">
+                        <strong>{{ o.titre }}</strong>
+                        <span class="discret petit">{{ o.themeLibelle }}{{ o.echeance ? ' · pour le ' ~ o.echeance|date('d/m/Y') }}{{ o.atteint ? ' · atteint 🎉' }}</span>
+                    </div>
+                    <span class="objectif-pct">{{ o.progression }} %</span>
+                </div>
+                <div class="objectif-barre" role="progressbar" aria-valuenow="{{ o.progression }}" aria-valuemin="0" aria-valuemax="100"><span style="width: {{ o.progression }}%"></span></div>
+                {% if o.description %}<p class="memo petit discret">{{ o.description }}</p>{% endif %}
+                {% if modifiable %}
+                    <form method="post" action="{{ path('app_objectif_modifier', {id: o.id}) }}" class="objectif-maj">
+                        <input type="hidden" name="_token" value="{{ csrf_token('objectif' ~ o.id) }}">
+                        <label class="petit">Atteinte
+                            <input type="range" name="progression" min="0" max="100" step="5" value="{{ o.progression }}" oninput="this.nextElementSibling.textContent = this.value + ' %'">
+                            <output>{{ o.progression }} %</output>
+                        </label>
+                        <button class="bouton petit">Enregistrer</button>
+                    </form>
+                    <details class="objectif-edition">
+                        <summary class="petit">Modifier ou supprimer</summary>
+                        <form method="post" action="{{ path('app_objectif_modifier', {id: o.id}) }}" class="formulaire">
+                            <input type="hidden" name="_token" value="{{ csrf_token('objectif' ~ o.id) }}">
+                            {% include 'objectif/_champs.html.twig' with {o: o} %}
+                            <div class="actions-ligne"><button class="bouton principal petit">Enregistrer</button></div>
+                        </form>
+                        {{ m.supprimer(path('app_objectif_supprimer', {id: o.id}), 'supprimer-objectif' ~ o.id, 'Supprimer l\'objectif « ' ~ o.titre ~ ' » ?') }}
+                    </details>
+                {% endif %}
+            </div>
+        {% else %}
+            <p class="discret">Pas encore d'objectif pour cette saison.{{ modifiable ? ' Ajoutez-en deux ou trois, clairs et mesurables (ex. : améliorer ma finition, gagner en explosivité).' }}</p>
+        {% endfor %}
+    </section>
+
+    <section class="carte bloc">
+        <h2>📈 Progression mensuelle</h2>
+        {% set avec_valeurs = mois|filter(x => x.valeur is not null) %}
+        {% if avec_valeurs|length %}
+            <div class="objectifs-mois" role="img" aria-label="Atteinte moyenne des objectifs, mois par mois">
+                {% for x in mois %}
+                    <div class="objectifs-mois-col">
+                        <span class="objectifs-mois-val">{{ x.valeur is not null ? x.valeur ~ ' %' }}</span>
+                        <span class="objectifs-mois-barre {{ loop.last ? 'dernier' }}" style="height: {{ x.valeur ?? 0 }}%"></span>
+                        <span class="objectifs-mois-lib">{{ x.libelle }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+            <p class="discret petit">Moyenne d'atteinte des objectifs à la fin de chaque mois.</p>
+        {% else %}
+            <p class="discret">La courbe apparaîtra dès que les objectifs auront un pourcentage d'atteinte.</p>
+        {% endif %}
+    </section>
+</div>
+
+<section class="carte bloc" id="observations">
+    <h2>💬 Observations de l'entraîneur</h2>
+    {% for ob in observations %}
+        <article class="observation">
+            <div class="observation-tete">
+                <span class="avatar mini">{{ (ob.auteurNom ?? '?')|split(' ')|map(x => x|first)|join|slice(0, 2)|upper }}</span>
+                <div>
+                    <strong>{{ ob.auteurNom ?? 'Entraîneur' }}</strong>
+                    <span class="discret petit">{{ ob.date|date('d/m/Y') }}{{ ob.objectif ? ' · ' ~ ob.objectif.icone ~ ' ' ~ ob.objectif.titre }}</span>
+                </div>
+                {% if modifiable %}
+                    {% if not ob.partage %}<span class="pastille">encadrement seulement</span>{% endif %}
+                    {{ m.supprimer(path('app_observation_supprimer', {id: ob.id}), 'supprimer-observation' ~ ob.id, 'Supprimer cette observation ?') }}
+                {% endif %}
+            </div>
+            <p class="memo">{{ ob.texte }}</p>
+            {% if ob.lienVideo %}<a class="bouton petit" href="{{ ob.lienVideo }}" target="_blank" rel="noopener">▶ Voir la vidéo</a>{% endif %}
+        </article>
+    {% else %}
+        <p class="discret">Pas encore d'observation cette saison.</p>
+    {% endfor %}
+</section>

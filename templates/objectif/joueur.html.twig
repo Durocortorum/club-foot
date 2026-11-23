@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Objectifs – {{ joueur.nomComplet }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_joueur_voir', {id: joueur.id}), 'Fiche de ' ~ joueur.prenom) }}
+
+    <div class="titre-page">
+        <div class="identite">
+            {{ m.avatar(joueur, 'grand') }}
+            <div>
+                <h1>Objectifs de progression – {{ joueur.prenom }} <strong>{{ joueur.nom }}</strong></h1>
+                <p class="discret">{{ joueur.categorie ?? 'Sans catégorie' }}{{ joueur.poste ? ' · ' ~ joueur.poste }}</p>
+            </div>
+        </div>
+        {% if saisons|length > 1 %}
+            <form method="get" class="actions">
+                <select name="saison" onchange="this.form.submit()" aria-label="Saison">
+                    {% for s in saisons %}<option value="{{ s }}" {{ s == saison ? 'selected' }}>Saison {{ s }}</option>{% endfor %}
+                </select>
+            </form>
+        {% endif %}
+    </div>
+
+    {% include 'objectif/_suivi.html.twig' %}
+
+    {% if modifiable %}
+        <div class="objectifs-grille">
+            <details class="carte bloc" {{ not objectifs ? 'open' }}>
+                <summary><strong>+ Nouvel objectif</strong></summary>
+                <form method="post" action="{{ path('app_objectif_nouveau', {id: joueur.id}) }}" class="formulaire">
+                    <input type="hidden" name="_token" value="{{ csrf_token('objectifs' ~ joueur.id) }}">
+                    <input type="hidden" name="saison" value="{{ saison }}">
+                    {% include 'objectif/_champs.html.twig' with {o: null} %}
+                    <div class="actions-ligne"><button class="bouton principal">Ajouter l'objectif</button></div>
+                </form>
+            </details>
+
+            <details class="carte bloc">
+                <summary><strong>+ Nouvelle observation</strong></summary>
+                <form method="post" action="{{ path('app_observation_nouvelle', {id: joueur.id}) }}" class="formulaire">
+                    <input type="hidden" name="_token" value="{{ csrf_token('objectifs' ~ joueur.id) }}">
+                    <div class="champs">
+                        <div class="champ"><label>Date</label><input type="date" name="date" value="{{ 'now'|date('Y-m-d') }}"></div>
+                        <div class="champ"><label>Objectif concerné (facultatif)</label>
+                            <select name="objectif"><option value="">—</option>{% for o in objectifs %}<option value="{{ o.id }}">{{ o.icone }} {{ o.titre }}</option>{% endfor %}</select></div>
+                        <div class="champ large"><label>Observation</label>
+                            <textarea name="texte" rows="3" required placeholder="Ex. : Bonne progression sur la finition. Continue dans cette dynamique et sois plus exigeant dans le dernier geste."></textarea></div>
+                        <div class="champ"><label>Vidéo (facultatif)</label><input type="url" name="lien_video" placeholder="https://… (Veo, YouTube, Drive)"></div>
+                        <div class="champ case"><label><input type="checkbox" name="partage" value="1" checked> Visible par le joueur et sa famille</label></div>
+                    </div>
+                    <div class="actions-ligne"><button class="bouton principal">Enregistrer l'observation</button></div>
+                </form>
+            </details>
+        </div>
+    {% endif %}
+{% endblock %}

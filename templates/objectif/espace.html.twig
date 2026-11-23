@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Objectifs – {{ joueur.prenom }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_espace'), 'Mon espace') }}
+    <h1>Mes objectifs de la saison – {{ joueur.prenom }}</h1>
+    <p class="discret">Fixés par l'entraîneur, mis à jour au fil de la saison. Saison {{ saison }}.</p>
+    {% include 'objectif/_suivi.html.twig' with {modifiable: false} %}
+{% endblock %}

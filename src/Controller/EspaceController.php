@@ -29,6 +29,7 @@ use App\Service\CalendrierMois;
 use App\Service\PaiementsEnLigne;
 use App\Repository\JoueurRepository;
 use App\Service\PlanningEntrainements;
+use App\Repository\ObjectifJoueurRepository;
 use App\Repository\RencontreRepository;
 use App\Repository\TableauTactiqueRepository;
 use App\Repository\UtilisateurRepository;
@@ -71,6 +72,7 @@ class EspaceController extends AbstractController
         SanctionRepository $sanctions,
         PaiementsEnLigne $paiementsEnLigne,
         TableauTactiqueRepository $tactiques,
+        ObjectifJoueurRepository $objectifs,
     ): Response
     {
         /** @var Utilisateur $moi */
@@ -131,6 +133,8 @@ class EspaceController extends AbstractController
                 'proches' => $acces->decideAccesParents($moi, $j) ? $proches->avecAcces($j) : null,
                 // Statistiques : joueur mineur et ses parents ; joueur majeur et les contacts qu'il autorise.
                 'stats' => $proches->voitStatistiques($moi, $j) ? self::statistiques($j, $bilan, $participations, $presences) : null,
+                // Objectifs de progression de la saison (mêmes personnes que les statistiques).
+                'objectifs' => $proches->voitStatistiques($moi, $j) ? $objectifs->duJoueur($j, Rencontre::saisonDe(new \DateTimeImmutable('today'))) : [],
                 // Cotisation de la saison, payable en ligne si le club a l'option et un compte HelloAsso vérifié.
                 'cotisation' => $paiementEnLigne && $proches->voitStatistiques($moi, $j) ? $paiementsEnLigne->situationCotisation($j) : null,
                 // Amendes (mêmes personnes que les statistiques) : à payer, et payées depuis le début de la saison.

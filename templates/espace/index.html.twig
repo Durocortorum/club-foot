@@ -288,6 +288,21 @@
                 <p class="discret">Aucun match programmé pour le moment.</p>
             {% endif %}
 
+            {% if e.objectifs %}
+                <h3>🎯 Objectifs de la saison</h3>
+                {% for o in e.objectifs %}
+                    <div class="objectif {{ o.atteint ? 'atteint' }}">
+                        <div class="objectif-tete">
+                            <span class="objectif-icone" aria-hidden="true">{{ o.icone }}</span>
+                            <div class="objectif-titre"><strong>{{ o.titre }}</strong></div>
+                            <span class="objectif-pct">{{ o.progression }} %</span>
+                        </div>
+                        <div class="objectif-barre"><span style="width: {{ o.progression }}%"></span></div>
+                    </div>
+                {% endfor %}
+                <p><a class="bouton petit" href="{{ path('app_espace_objectifs', {id: j.id}) }}">Voir le suivi et les observations</a></p>
+            {% endif %}
+
             {% if e.stats %}
                 {# Statistiques : on choisit la période, toute la carrière ou une saison (periode_controller.js). #}
                 <div class="statistiques-famille" data-controller="periode">
