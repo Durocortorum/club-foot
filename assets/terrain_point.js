@@ -7,7 +7,10 @@
 export const LONGUEUR = 105;
 export const LARGEUR = 68;
 
-const borne = (v, max) => Math.max(0, Math.min(max, v));
+/** Petit drapeau de corner, de la couleur du texte (le nombre de corners). */
+const DRAPEAU = '<svg class="drapeau-mini" viewBox="0 0 10 12" aria-hidden="true"><path d="M1.5 0.5v11" stroke="currentColor" stroke-width="1.4"/><path d="M2 1h7l-2 2.5 2 2.5H2z" fill="currentColor"/></svg>';
+
+const borne =(v, max) => Math.max(0, Math.min(max, v));
 
 /** Mètres dans le sens de l'attaque à partir d'un toucher sur l'élément du terrain. */
 export function pointTouche(event, element, vertical, sens) {
@@ -58,7 +61,7 @@ export function rondsHtml(actions, vertical, sens, echapper) {
         const { gauche, haut } = placeEcran([Number(x), Number(y)], vertical, sens);
         const dx = gauche > 50 ? '-100%' : '0';
         const dy = haut > 50 ? '-100%' : '0';
-        return `<span class="corner-terrain ${type === 'CO' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%;transform:translate(${dx},${dy})" title="${n} corner${n > 1 ? 's' : ''} ${type === 'CO' ? 'pour nous' : 'pour l\'adversaire'}"><small>🚩</small>${n}</span>`;
+        return `<span class="corner-terrain ${type === 'CO' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%;transform:translate(${dx},${dy})" title="${n} corner${n > 1 ? 's' : ''} ${type === 'CO' ? 'pour nous' : 'pour l\'adversaire'}">${DRAPEAU}${n}</span>`;
     }).join('');
     return drapeaux + actions.filter((a) => a.type !== 'CO' && a.type !== 'CA').map((a, i, liste) => {
         const { gauche, haut } = placeEcran(a.details.point, vertical, sens);
