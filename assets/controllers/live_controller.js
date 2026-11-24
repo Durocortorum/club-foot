@@ -512,6 +512,57 @@ export default class extends Controller {
         return !a.auteur || a.auteur === this.cfg.moi;
     }
 
+    voirToutesActions() {
+        this.toutesActions = !this.toutesActions;
+        this.dessinerActions();
+    }
+
+    /** Corriger une action de jeu notée sur cet appareil : joueur, action, minute (l'endroit sur le terrain est gardé). */
+    modifierAction(event) {
+        const a = this.actions.get(event.currentTarget.dataset.uuid);
+        if (!a || !this.aMoi(a)) return;
+        this.enCorrection = a.uuid;
+        const adverse = a.type in this.cfg.adverses;
+        const types = Object.entries(adverse ? this.cfg.adverses : this.cfg.types).filter(([c]) => !HORS_ACTIONS.includes(c) && !EVENEMENTS.includes(c));
+        // Action de l'adversaire, ou de l'équipe sans joueur (corner) : pas de choix du joueur.
+        this.dialogueTarget.innerHTML = `<form method="dialog" class="live-form">
+            <h2 class="dialogue-titre">Modifier l'action</h2>
+            ${adverse || !a.joueur ? `<p class="discret">${this.echapper(adverse ? this.cfg.adversaire : this.cfg.nous)}</p>` : `<label class="champ">Joueur
+                <select name="joueur">${this.cfg.joueurs.map((j) => `<option value="${j.id}" ${j.id === a.joueur ? 'selected' : ''}>${j.numero ? `${j.numero} · ` : ''}${this.echapper(this.nom(j))}</option>`).join('')}</select></label>`}
+            <label class="champ">Action
+                <select name="type">${types.map(([c, l]) => `<option value="${c}" ${c === a.type ? 'selected' : ''}>${this.echapper(l)}</option>`).join('')}</select></label>
+            <div class="live-minute-saisie">
+                <span>Minute</span>
+                <button type="button" class="bouton petit" data-action="live#minuteMoins" aria-label="Une minute de moins">−1</button>
+                <input type="number" name="minute" min="0" max="130" inputmode="numeric" value="${a.minute}" aria-label="Minute">
+                <button type="button" class="bouton petit" data-action="live#minutePlus" aria-label="Une minute de plus">+1</button>
+            </div>
+            <div class="dialogue-actions">
+                <button type="button" class="bouton danger" data-uuid="${a.uuid}" data-action="live#supprimerDepuisFenetre">Supprimer</button>
+                <button value="annuler" class="bouton" formnovalidate>Annuler</button>
+                <button type="button" class="bouton principal" data-action="live#enregistrerModification">Enregistrer</button>
+            </div>
+        </form>`;
+        this.dialogueTarget.showModal();
+    }
+
+    enregistrerModification() {
+        const a = this.actions.get(this.enCorrection);
+        const f = this.dialogueTarget.querySelector('form');
+        if (!a || !f) return;
+        const minute = Math.max(0, Math.min(130, Number(f.minute.value) || 0));
+        const joueur = f.joueur ? Number(f.joueur.value) : a.joueur;
+        const corrigee = { uuid: a.uuid, type: f.type.value, joueur, periode: a.periode, minute, zx: a.zx, zy: a.zy, ...(a.details ? { details: a.details } : {}) };
+        this.dialogueTarget.close();
+        this.noter([corrigee], minute);
+        this.direAction(`✓ Modifiée : ${minute}' · ${this.libelle(corrigee)}`);
+    }
+
+    async supprimerDepuisFenetre(event) {
+        this.dialogueTarget.close();
+        await this.supprimer(event);
+    }
+
     async supprimer(event) {
         const a = this.actions.get(event.currentTarget.dataset.uuid);
         if (!a || !this.aMoi(a) || !await confirmer(`${a.minute}' · ${this.libelle(a)}`, { titre: 'Supprimer cet événement ?', bouton: 'Supprimer' })) return;
@@ -744,10 +795,15 @@ export default class extends Controller {
             : (j ? `<b>${this.echapper(this.nom(j))}</b> : touchez son action (il reste choisi pour la suivante).` : 'Touchez le joueur, puis son action.');
         this.boutonAnnulerActionTarget.disabled = !this.mesActions.some((u) => this.actions.has(u));
         // Dernières actions de jeu (tous les appareils), la plus récente en haut.
-        const dernieres = liste.filter((a) => !EVENEMENTS.includes(a.type) && a.type !== 'RP')
-            .sort((a, b) => (b.periode - a.periode) || (b.minute - a.minute)).slice(0, 6);
+        const jeu = liste.filter((a) => !EVENEMENTS.includes(a.type) && a.type !== 'RP' && !a.uuid.startsWith('ffffffff'))
+            .sort((a, b) => (b.periode - a.periode) || (b.minute - a.minute));
+        const dernieres = this.toutesActions ? jeu : jeu.slice(0, 6);
+        // Ses propres actions se corrigent (joueur, action, minute) ou se suppriment.
         this.dernieresActionsTarget.innerHTML = dernieres.map((a) => `<li class="${this.enAttente[a.uuid] ? 'en-attente' : ''}"><span class="min">${a.minute}'</span>
-            <span class="pastille-action action-${a.type}">${a.type}</span> <span>${this.echapper(this.libelle(a))}</span></li>`).join('')
+            <span class="pastille-action action-${a.type}">${a.type}</span> <span class="quoi">${this.echapper(this.libelle(a))}</span>
+            ${this.aMoi(a) ? `<span class="live-corriger"><button type="button" class="lien-bouton petit" data-uuid="${a.uuid}" data-action="live#modifierAction">Modifier</button>
+                <button type="button" class="lien-bouton petit danger" data-uuid="${a.uuid}" data-action="live#supprimer" title="Supprimer" aria-label="Supprimer">✕</button></span>` : ''}</li>`).join('')
+            + (jeu.length > 6 ? `<li class="live-toutes"><button type="button" class="lien-bouton petit" data-action="live#voirToutesActions">${this.toutesActions ? 'Seulement les 6 dernières' : `Voir les ${jeu.length} actions du match`}</button></li>` : '')
             || '<li class="discret">Aucune action notée.</li>';
     }
 

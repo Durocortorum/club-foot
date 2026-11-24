@@ -10,7 +10,7 @@
        Les équipes sont dans l'ordre du match : celle qui reçoit à gauche.
     #}
     {% set logo = config.logo ?: asset('images/logo.svg') %}
-    <div class="live" data-controller="live" data-live-config-value="{{ config|json_encode }}" data-onglet="live">
+    <div class="live" data-controller="live" data-live-config-value="{{ config|json_encode }}" data-onglet="actions">
         <header class="live-entete">
             <div class="live-barre">
                 <a href="{{ path('app_rencontre_voir', {id: rencontre.id}) }}" class="live-retour" aria-label="Retour au match">‹</a>
@@ -81,7 +81,8 @@
             </p>
         {% endif %}
 
-        <section class="live-panneau" data-panneau="live">
+        {# Événements du match (buts, cartons, remplacements, mi-temps) : dans l'onglet « Stats », avant les chiffres. #}
+        <section class="live-panneau" data-panneau="stats">
             <h2>Événements du match</h2>
             <ol class="live-evenements" data-live-target="evenements"></ol>
         </section>
@@ -144,8 +145,7 @@
         </section>
 
         <nav class="live-onglets" aria-label="Sections du Match Live">
-            <button type="button" data-onglet="live" data-action="live#onglet" class="actif"><span aria-hidden="true">((•))</span>Live</button>
-            <button type="button" data-onglet="actions" data-action="live#onglet"><span aria-hidden="true">👟</span>Actions</button>
+            <button type="button" data-onglet="actions" data-action="live#onglet" class="actif"><span aria-hidden="true">👟</span>Actions</button>
             <button type="button" data-onglet="stats" data-action="live#onglet"><span aria-hidden="true">▮▮</span>Stats</button>
             <button type="button" data-onglet="compo" data-action="live#onglet"><span aria-hidden="true">👥</span>Compo</button>        </nav>
 

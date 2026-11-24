@@ -2136,7 +2136,7 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 
 .live-onglets {
     position: fixed; z-index: 20; left: 50%; bottom: max(.6rem, env(safe-area-inset-bottom)); transform: translateX(-50%);
-    width: min(560px, calc(100vw - 1.2rem)); display: grid; grid-template-columns: repeat(4, 1fr); gap: .2rem; padding: .3rem;
+    width: min(480px, calc(100vw - 1.2rem)); display: grid; grid-template-columns: repeat(3, 1fr); gap: .2rem; padding: .3rem;
     background: #0f1626; border-radius: 18px; box-shadow: 0 8px 24px rgb(0 0 0 / .25);
 }
 .live-onglets button { display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .4rem .2rem; border: 0; border-radius: 14px; background: transparent; color: #c9cdd6; font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; }
@@ -2420,3 +2420,9 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .legende-rond .rond-action { position: static; margin: 0; width: .75rem; height: .75rem; opacity: 1; animation: none; }
 .live-outils-actions .bouton.actif { background: var(--rouge); border-color: var(--rouge); color: #fff; }
 .live-zone-barre [hidden], .live-legende-terrain[hidden] { display: none; }
+/* Match Live : corriger ou supprimer une action depuis « Dernières actions ». */
+.live-dernieres .quoi { flex: 1; min-width: 0; }
+.live-corriger { display: inline-flex; gap: .4rem; flex: none; }
+.live-corriger .danger { color: var(--danger); font-weight: 700; }
+.live-dernieres .live-toutes { border-bottom: 0; justify-content: center; }
+.live-form .champ { display: flex; flex-direction: column; gap: .25rem; margin-bottom: .6rem; font-weight: 600; font-size: .9rem; }
