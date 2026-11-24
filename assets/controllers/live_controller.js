@@ -20,7 +20,8 @@ import { pointTouche, zoneDuPoint, rondsHtml, placeEcran } from '../terrain_poin
 const EVENEMENTS = ['B', 'BA', 'CJ', 'CR', 'JA', 'RA', 'RP', 'EX'];
 const HORS_CARTE = { horsCarte: true };
 // Actions de jeu de l'adversaire (le reste est à nous).
-const ADVERSES = ['AC', 'AH', 'ATC', 'ATH', 'CA'];
+const ADVERSES = ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA'];
+const BUTS = ['B', 'BA'];
 /** Notés par les gros boutons (But, Carton, Rempl.) : pas dans l'onglet « Actions ». */
 const HORS_ACTIONS = ['B', 'CJ', 'CR', 'RP', 'EX'];
 /** Réglage « avec ou sans zones », commun avec la saisie détaillée (gardé sur l'appareil). */
@@ -763,7 +764,12 @@ export default class extends Controller {
     dessinerTerrainAction(consultation = false) {
         const sens = (this.chrono.sens ?? 1) > 0 ? 1 : -1;
         // Pour placer une action : les 12 dernières ; pour regarder (« 🗺️ Terrain ») : toutes celles du match.
-        const toutes = [...this.actions.values()].filter((a) => a.details?.point && !EVENEMENTS.includes(a.type))
+        // Les buts placés (départ du tir) y sont aussi, en petit ballon ; la frappe cadrée ajoutée avec le but
+        // (« ffffffff… ») n'est pas dessinée en double.
+        const toutes = [...this.actions.values()]
+            .map((a) => (BUTS.includes(a.type) && a.details?.depart
+                ? { ...a, details: { ...a.details, point: [Math.max(0, Math.min(105, a.details.depart[0])), a.details.depart[1]] } } : a))
+            .filter((a) => a.details?.point && (BUTS.includes(a.type) || !EVENEMENTS.includes(a.type)) && !a.uuid.startsWith('ffffffff'))
             .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute))
             .map((a) => ({ ...a, libelle: `${this.libelle(a)}${a.joueur ? ` · ${this.nom(this.joueur(a.joueur))}` : ''}` }));
         // Pour regarder : filtre par équipe ou par joueur, puis par type d'action (légende).
@@ -780,12 +786,16 @@ export default class extends Controller {
             // Légende : chaque type d'action placée, sa couleur et son nombre ; la toucher ne montre que ce type.
             const parType = new Map();
             choisies.forEach((a) => parType.set(a.type, (parType.get(a.type) ?? 0) + 1));
-            const sansEndroit = [...this.actions.values()].filter((a) => !a.details?.point && !EVENEMENTS.includes(a.type)
-                && !a.uuid.startsWith('ffffffff') && duFiltre(a)).length;
+            const nonPlacees = [...this.actions.values()].filter((a) => !a.details?.point && !a.details?.depart
+                && (BUTS.includes(a.type) || !EVENEMENTS.includes(a.type))
+                && !a.uuid.startsWith('ffffffff') && duFiltre(a));
+            const butsSansEndroit = nonPlacees.filter((a) => BUTS.includes(a.type)).length;
+            const sansEndroit = nonPlacees.length - butsSansEndroit;
             this.legendeTerrainTarget.innerHTML = (parType.size
-                ? [...parType].sort((a, b) => b[1] - a[1]).map(([type, n]) => `<button type="button" class="legende-rond${f.type === type ? ' actif' : ''}${f.type && f.type !== type ? ' estompe' : ''}" data-type="${type}" data-action="live#filtrerTypeTerrain" aria-pressed="${f.type === type}" title="${f.type === type ? 'Revoir toutes les actions' : 'Ne montrer que cette action'}"><span class="rond-action action-${type}"></span>${this.echapper(this.cfg.types[type] ?? this.libelle({ type }))} <b>${n}</b></button>`).join('')
+                ? [...parType].sort((a, b) => b[1] - a[1]).map(([type, n]) => `<button type="button" class="legende-rond${f.type === type ? ' actif' : ''}${f.type && f.type !== type ? ' estompe' : ''}" data-type="${type}" data-action="live#filtrerTypeTerrain" aria-pressed="${f.type === type}" title="${f.type === type ? 'Revoir toutes les actions' : 'Ne montrer que cette action'}">${BUTS.includes(type) ? `<span class="but-terrain legende ${type === 'B' ? 'nous' : 'eux'}">⚽</span>` : `<span class="rond-action action-${type}"></span>`}${this.echapper(this.cfg.types[type] ?? this.libelle({ type }))} <b>${n}</b></button>`).join('')
                 : (toutes.length ? 'Aucune action placée sur le terrain pour ce choix.' : 'Aucune action placée sur le terrain pour l\'instant : après chaque action, touchez l\'endroit où elle a eu lieu.'))
-                + (sansEndroit ? `<span class="discret">+ ${sansEndroit} action${sansEndroit > 1 ? 's' : ''} sans endroit</span>` : '');
+                + (sansEndroit ? `<span class="discret">+ ${sansEndroit} action${sansEndroit > 1 ? 's' : ''} sans endroit</span>` : '')
+                + (butsSansEndroit ? `<span class="discret">+ ${butsSansEndroit} but${butsSansEndroit > 1 ? 's' : ''} sans endroit (pour le voir ici : en notant le but, déplacer le ballon sur le petit terrain)</span>` : '');
         }
         this.filtresTerrainTarget.hidden = !consultation;
         this.terrainActionTarget.dataset.sens = sens > 0 ? 'avant' : 'arriere';

@@ -2446,6 +2446,10 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .live-legende-terrain button.legende-rond { border: 1px solid transparent; background: none; font: inherit; color: inherit; padding: .15rem .45rem; border-radius: 99px; cursor: pointer; }
 .live-legende-terrain button.legende-rond.actif { border-color: #1f2937; background: #fff; color: #1f2937; }
 .live-legende-terrain button.legende-rond.estompe { opacity: .45; }
+.but-terrain { position: absolute; transform: translate(-50%, -50%); z-index: 3; display: flex; align-items: center; justify-content: center; width: 1.45rem; height: 1.45rem; border-radius: 50%; background: #fff; font-size: 1rem; line-height: 1; box-shadow: 0 1px 4px rgb(0 0 0 / .45); pointer-events: auto; }
+.but-terrain.nous { border: 3px solid #d62839; }
+.but-terrain.eux { border: 3px solid #1f5fd1; }
+.but-terrain.legende { position: static; transform: none; width: 1rem; height: 1rem; font-size: .7rem; border-width: 2px; box-shadow: none; }
 .lien-terrain { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 .lien-terrain span[aria-hidden] { font-size: .7rem; }
 /* Match Live : corriger ou supprimer une action depuis « Dernières actions ». */

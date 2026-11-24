@@ -66,6 +66,10 @@ export function rondsHtml(actions, vertical, sens, echapper) {
     return drapeaux + actions.filter((a) => a.type !== 'CO' && a.type !== 'CA').map((a, i, liste) => {
         const { gauche, haut } = placeEcran(a.details.point, vertical, sens);
         const dernier = i === liste.length - 1 ? ' dernier' : '';
+        // But (départ du tir) : un petit ballon, cerclé de rouge pour nous, de bleu pour l'adversaire.
+        if (a.type === 'B' || a.type === 'BA') {
+            return `<span class="but-terrain ${a.type === 'B' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%" title="${echapper(`${a.minute}' · ${a.libelle || ''}`)}">⚽</span>`;
+        }
         return `<span class="rond-action action-${a.type}${dernier}" style="left:${gauche}%;top:${haut}%" title="${echapper(`${a.minute}' · ${a.libelle || ''}`)}"></span>`;
     }).join('');
 }
