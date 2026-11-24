@@ -2432,6 +2432,8 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .drapeau-corner:hover { background: #f5c400; }
 /* Corners sur le terrain du direct : drapeau et nombre, un peu à l'intérieur du coin. */
 .corner-terrain { position: absolute; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: .15rem; padding: .1rem .4rem; border-radius: 99px; font-size: .85rem; font-weight: 800; color: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / .4); pointer-events: auto; white-space: nowrap; z-index: 2; }
+.corner-terrain, .coin-corner { gap: .1rem; }
+.corner-terrain small, .coin-corner small { font-size: .55rem; line-height: 1; }
 .corner-terrain.nous { background: #fff; color: #d62839; border: 3px solid #d62839; }
 .corner-terrain.eux { background: #fff; color: #1f5fd1; border: 3px solid #1f5fd1; }
 .coin-corner { width: auto; min-width: 1.9rem; padding: 0 .45rem; border-radius: 99px; gap: .15rem; background: #fff !important; }

@@ -54,9 +54,11 @@ export function rondsHtml(actions, vertical, sens, echapper) {
     });
     const drapeaux = [...corners].map(([cle, n]) => {
         const [type, x, y] = cle.split('|');
-        // Décalé vers l'intérieur : 5 m de la ligne de but, 6 m de la ligne de touche.
-        const { gauche, haut } = placeEcran([Number(x) === 0 ? 5 : 100, Number(y) === 0 ? 6 : 62], vertical, sens);
-        return `<span class="corner-terrain ${type === 'CO' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%" title="${n} corner${n > 1 ? 's' : ''} ${type === 'CO' ? 'pour nous' : 'pour l\'adversaire'}">🚩${n > 1 ? ` ${n}` : ''}</span>`;
+        // Collée au point de corner, à l'intérieur du terrain (elle s'accroche au coin par son propre angle).
+        const { gauche, haut } = placeEcran([Number(x), Number(y)], vertical, sens);
+        const dx = gauche > 50 ? '-100%' : '0';
+        const dy = haut > 50 ? '-100%' : '0';
+        return `<span class="corner-terrain ${type === 'CO' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%;transform:translate(${dx},${dy})" title="${n} corner${n > 1 ? 's' : ''} ${type === 'CO' ? 'pour nous' : 'pour l\'adversaire'}"><small>🚩</small>${n}</span>`;
     }).join('');
     return drapeaux + actions.filter((a) => a.type !== 'CO' && a.type !== 'CA').map((a, i, liste) => {
         const { gauche, haut } = placeEcran(a.details.point, vertical, sens);

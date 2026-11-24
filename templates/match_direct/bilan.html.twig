@@ -91,7 +91,7 @@
                 {# Corners : un petit rond avec leur nombre, au coin où ils ont été tirés (pas de zone colorée). #}
                 {% for camp, places in coins|filter(c => c is not null) %}
                     {% for place, n in places %}
-                        {% if n %}<span class="coin-corner {{ camp == 'nous' ? 'nous' : 'eux' }} {{ place }}" title="{{ n }} corner{{ n > 1 ? 's' }} {{ camp == 'nous' ? 'pour nous' : 'pour l\'adversaire' }}">🚩 {{ n }}</span>{% endif %}
+                        {% if n %}<span class="coin-corner {{ camp == 'nous' ? 'nous' : 'eux' }} {{ place }}" title="{{ n }} corner{{ n > 1 ? 's' }} {{ camp == 'nous' ? 'pour nous' : 'pour l\'adversaire' }}"><small>🚩</small>{{ n }}</span>{% endif %}
                     {% endfor %}
                 {% endfor %}
             </div>
