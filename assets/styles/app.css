@@ -2106,6 +2106,19 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 .live-stat .barre.nous-droite { background: var(--rouge); }
 .live-stat .barre.nous-droite i { background: #d5d7dd; }
 .live-stat.vide .barre, .live-stat.vide .barre i { background: var(--fond); border-color: transparent; }
+.live-sous-titre { font-size: 1rem; margin: 1.2rem 0 .5rem; }
+.live-actions-joueurs { overflow-x: auto; max-width: 100%; }
+.live { min-width: 0; }
+.live-table-actions { width: 100%; border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.live-table-actions th, .live-table-actions td { padding: .35rem .3rem; border-bottom: 1px solid var(--bordure); text-align: center; white-space: nowrap; }
+.live-table-actions th[scope="row"], .live-table-actions thead th:first-child { text-align: left; white-space: normal; }
+.live-table-actions th, .live-table-actions td { padding-left: .2rem; padding-right: .2rem; }
+.live-table-actions thead th { font-size: .75rem; color: var(--gris); font-weight: 600; }
+.live-table-actions .num { display: inline-block; min-width: 1.3rem; color: var(--bleu, #1f5fd1); font-weight: 800; }
+.live-table-actions .total { font-weight: 800; }
+.live-table-actions tfoot th, .live-table-actions tfoot td { font-weight: 700; background: var(--fond); }
+.live-table-actions tfoot tr:first-child th, .live-table-actions tfoot tr:first-child td { border-top: 2px solid var(--rouge); }
+.live-table-actions tfoot tr.eux th, .live-table-actions tfoot tr.eux td { color: #1f5fd1; }
 .live-ajouts { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin: 1rem 0 .6rem; padding-top: .8rem; border-top: 1px solid var(--bordure); }
 .live-ajouts > div { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
 .live-ajouts > div > span { flex-basis: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -19,6 +19,8 @@ import { pointTouche, zoneDuPoint, rondsHtml, placeEcran } from '../terrain_poin
  */
 const EVENEMENTS = ['B', 'BA', 'CJ', 'CR', 'JA', 'RA', 'RP', 'EX'];
 const HORS_CARTE = { horsCarte: true };
+// Actions de jeu de l'adversaire (le reste est à nous).
+const ADVERSES = ['AC', 'AH', 'ATC', 'ATH', 'CA'];
 /** Notés par les gros boutons (But, Carton, Rempl.) : pas dans l'onglet « Actions ». */
 const HORS_ACTIONS = ['B', 'CJ', 'CR', 'RP', 'EX'];
 /** Réglage « avec ou sans zones », commun avec la saisie détaillée (gardé sur l'appareil). */
@@ -28,7 +30,7 @@ const DELAI_ZONE = 8000;
 
 export default class extends Controller {
     static values = { config: Object };
-    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'analyse','evenements', 'stats',
+    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'analyse','evenements', 'stats', 'statsJoueurs',
         'compo', 'boutonTitulaires', 'dialogue',
         'boutonAnnulerAction', 'consigneAction', 'joueursAction', 'typesAction', 'dernieresActions',
         'boutonZones', 'zoneAction', 'sensAction', 'terrainAction', 'choixActions',
@@ -903,13 +905,18 @@ export default class extends Controller {
     /** Barres « nous / eux » dans l'ordre du match (l'équipe qui reçoit à gauche). */
     dessinerStats(liste) {
         const n = (...types) => liste.filter((a) => types.includes(a.type)).length;
+        // Actions de jeu (tout sauf buts, cartons et remplacements), de chaque équipe.
+        const jeu = liste.filter((a) => !EVENEMENTS.includes(a.type));
+        const adverses = jeu.filter((a) => ADVERSES.includes(a.type));
+        const notres = jeu.filter((a) => !ADVERSES.includes(a.type));
         const lignes = [
-            ['Tirs', n('FC', 'FH', 'TC', 'TH'), n('AC', 'AH', 'ATC', 'ATH')],
+            ['Actions', notres.length, adverses.length],
+            ['Tirs',n('FC', 'FH', 'TC', 'TH'), n('AC', 'AH', 'ATC', 'ATH')],
             ['Tirs cadrés', n('FC', 'TC'), n('AC', 'ATC')],
             ['Corners', n('CO'), n('CA')],
             ['Cartons jaunes', n('CJ'), n('JA')],
             ['Cartons rouges', n('CR'), n('RA')],
-        ].filter(([, a, b], i) => i < 3 || a + b > 0);
+        ].filter(([, a, b], i) => i < 4 || a + b > 0);
         this.statsTarget.innerHTML = lignes.map(([titre, nous, eux]) => {
             const [g, d] = this.ordre(nous, eux);
             const total = g + d;
@@ -920,6 +927,45 @@ export default class extends Controller {
                 <span class="barre ${nousAGauche ? 'nous-gauche' : 'nous-droite'}" role="img" aria-label="${titre} : ${this.echapper(this.cfg.nous)} ${nous}, ${this.echapper(this.cfg.adversaire)} ${eux}"><i style="width:${part}%"></i></span>
                 <span class="val">${d}</span></div>`;
         }).join('');
+        this.dessinerStatsJoueurs(notres, adverses);
+    }
+
+    /**
+     * Actions par joueur (réussies / tentées pour passes, duels, contrôles ; tirs cadrés / tirs), puis le total de
+     * l'équipe (y compris les actions notées sans joueur) et celui de l'adversaire.
+     */
+    dessinerStatsJoueurs(notres, adverses) {
+        if (!this.hasStatsJoueursTarget) return;
+        const colonnes = [
+            ['Passes', ['BP'], ['MP']],
+            ['Duels', ['DG'], ['DP']],
+            ['Contr.', ['BC'], ['MC']],
+            ['Tirs', ['FC', 'TC'], ['FH', 'TH']],
+        ];
+        const cellules = (actions) => colonnes.map(([, bons, rates]) => {
+            const b = actions.filter((a) => bons.includes(a.type)).length;
+            const total = b + actions.filter((a) => rates.includes(a.type)).length;
+            return `<td>${total ? `${b}/${total}` : '<span class="discret">–</span>'}</td>`;
+        }).join('');
+        const parJoueur = new Map();
+        notres.filter((a) => a.joueur).forEach((a) => parJoueur.set(a.joueur, [...(parJoueur.get(a.joueur) ?? []), a]));
+        const lignes = [...parJoueur].sort((x, y) => y[1].length - x[1].length).map(([id, actions]) => {
+            const j = this.joueur(id);
+            return `<tr><th scope="row">${j ? `<span class="num">${j.numero ?? ''}</span> ${this.echapper(this.nom(j))}` : 'Joueur'}</th>${cellules(actions)}<td class="total">${actions.length}</td></tr>`;
+        }).join('');
+        const tirsAdverses = adverses.filter((a) => ['AC', 'AH', 'ATC', 'ATH'].includes(a.type)).length;
+        const cadresAdverses = adverses.filter((a) => ['AC', 'ATC'].includes(a.type)).length;
+        if (!notres.length && !adverses.length) {
+            this.statsJoueursTarget.innerHTML = '<p class="discret petit">Aucune action notée pour l\'instant (onglet « Actions »).</p>';
+            return;
+        }
+        this.statsJoueursTarget.innerHTML = `<table class="live-table-actions">
+            <thead><tr><th scope="col">Joueur</th>${colonnes.map(([t]) => `<th scope="col">${t}</th>`).join('')}<th scope="col">Total</th></tr></thead>
+            <tbody>${lignes}</tbody>
+            <tfoot>
+                <tr><th scope="row">${this.echapper(this.cfg.nous)}</th>${cellules(notres)}<td class="total">${notres.length}</td></tr>
+                <tr class="eux"><th scope="row">${this.echapper(this.cfg.adversaire)}</th><td colspan="3"></td>${tirsAdverses ? `<td>${cadresAdverses}/${tirsAdverses}</td>` : '<td><span class="discret">–</span></td>'}<td class="total">${adverses.length}</td></tr>
+            </tfoot></table>`;
     }
 
     dessinerCompo(liste) {

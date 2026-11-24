@@ -99,7 +99,9 @@
                     </div>
                 {% endfor %}
             </div>
-            <p class="discret petit">Passes, duels et contrôles : onglet « Actions ». Bilan complet par joueur dans les <a href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">statistiques du direct</a>.</p>
+            <h3 class="live-sous-titre">Actions par joueur</h3>
+            <div class="live-actions-joueurs" data-live-target="statsJoueurs"></div>
+            <p class="discret petit">Réussies / tentées (tirs : cadrés / tirs). Passes, duels et contrôles : onglet « Actions ». Bilan complet par joueur dans les <a href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">statistiques du direct</a>.</p>
         </section>
 
         {# Actions des joueurs : le joueur puis l'action, enregistrée aussitôt (sans zone du terrain). #}
