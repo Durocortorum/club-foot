@@ -2426,3 +2426,7 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .live-corriger .danger { color: var(--danger); font-weight: 700; }
 .live-dernieres .live-toutes { border-bottom: 0; justify-content: center; }
 .live-form .champ { display: flex; flex-direction: column; gap: .25rem; margin-bottom: .6rem; font-weight: 600; font-size: .9rem; }
+/* Match Live : choisir le drapeau d'où le corner est tiré. */
+.mini-corner { margin: 1.4rem 1.6rem 1.6rem; width: auto; overflow: visible; }
+.drapeau-corner { position: absolute; transform: translate(-50%, -50%); width: 3.2rem; height: 3.2rem; border-radius: 50%; border: 3px solid #fff; background: rgb(255 255 255 / .25); font-size: 1.5rem; cursor: pointer; box-shadow: 0 2px 8px rgb(0 0 0 / .35); touch-action: manipulation; }
+.drapeau-corner:hover { background: #f5c400; }

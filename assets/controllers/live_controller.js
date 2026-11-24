@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { confirmer } from '../confirmation.js';
 import { preparerBut, dessinerBut, ecouterBut, arrondir } from '../terrain_but.js';
-import { pointTouche, zoneDuPoint, rondsHtml } from '../terrain_point.js';
+import { pointTouche, zoneDuPoint, rondsHtml, placeEcran } from '../terrain_point.js';
 
 /*
  * Match Live : version simple du direct, pour le téléphone. Gros score et chrono, cinq boutons (But, Carton,
@@ -316,9 +316,46 @@ export default class extends Controller {
 
     /** Corner : noté d'un coup, sans fenêtre. */
     corner(event) {
-        const nous = event.currentTarget.dataset.camp === 'nous';
-        this.noter([{ uuid: this.nouvelUuid(), type: nous ? 'CO' : 'CA', joueur: null, details: HORS_CARTE }]);
-        this.annoncer(`Corner ${nous ? this.cfg.nous : this.cfg.adversaire} noté (${this.minuteCourante()}').`);
+        this.demanderCoteCorner(event.currentTarget.dataset.camp === 'nous' ? 'CO' : 'CA');
+    }
+
+    /**
+     * Corner : petit terrain avec les deux drapeaux du but concerné (le but adverse pour nos corners, le nôtre pour
+     * ceux de l'adversaire), dans le sens où l'on attaque ; toucher le drapeau d'où le corner est tiré.
+     */
+    demanderCoteCorner(type) {
+        const sens = (this.chrono.sens ?? 1) > 0 ? 1 : -1;
+        const x = type === 'CO' ? 105 : 0;
+        const drapeau = (y) => {
+            const { gauche, haut } = placeEcran([x, y], false, sens);
+            return `<button type="button" class="drapeau-corner" style="left:${gauche}%;top:${haut}%" data-type="${type}" data-x="${x}" data-y="${y}" data-action="live#choisirCoteCorner" aria-label="Corner de ce côté">🚩</button>`;
+        };
+        this.dialogueTarget.innerHTML = `<form method="dialog" class="live-form">
+            <h2 class="dialogue-titre">Corner ${this.echapper(type === 'CO' ? this.cfg.nous : this.cfg.adversaire)}</h2>
+            <p class="discret petit">Touchez le drapeau d'où le corner est tiré (${type === 'CO' ? 'nous attaquons' : 'l\'adversaire attaque'} ${(type === 'CO') === (sens > 0) ? '→' : '←'}).</p>
+            <div class="terrain-direct horizontal mini-corner">
+                <span class="marque mediane"></span><span class="marque rond"></span>
+                <span class="marque surface nous"></span><span class="marque surface eux"></span>
+                ${drapeau(0)}${drapeau(68)}
+            </div>
+            <div class="dialogue-actions">
+                <button type="button" class="bouton" data-type="${type}" data-action="live#choisirCoteCorner">Sans côté</button>
+                <button value="annuler" class="bouton" formnovalidate>Annuler</button>
+            </div>
+        </form>`;
+        this.dialogueTarget.showModal();
+    }
+
+    choisirCoteCorner(event) {
+        const { type, x, y } = event.currentTarget.dataset;
+        this.dialogueTarget.close();
+        const point = x !== undefined ? [Number(x), Number(y)] : null;
+        const action = { uuid: this.nouvelUuid(), type, joueur: null, ...(point ? { ...zoneDuPoint(point), details: { point } } : { details: HORS_CARTE }) };
+        this.mesActions.push(action.uuid);
+        navigator.vibrate?.(25);
+        this.noter([action]);
+        this.annoncer(`Corner ${type === 'CO' ? this.cfg.nous : this.cfg.adversaire} noté (${this.minuteCourante()}')${point ? '' : ', sans côté'}.`);
+        this.direAction(`✓ ${this.minuteCourante()}' · ${this.libelle(action)}`);
     }
 
     ouvrir(type, camp = null) {
@@ -634,6 +671,11 @@ export default class extends Controller {
 
     choisirAction(event) {
         const type = event.currentTarget.dataset.type;
+        // Corner (pour nous ou l'adversaire) : on choisit seulement le drapeau d'où il est tiré.
+        if (type === 'CO' || type === 'CA') {
+            this.demanderCoteCorner(type);
+            return;
+        }
         const adverse = type in this.cfg.adverses;
         // Corner : pas de joueur à choisir (comme le « + Corner » des statistiques).
         if (!adverse && type !== 'CO' && !this.joueurAction) {
