@@ -42,7 +42,9 @@ export default class extends Controller {
         const montrees = choisies.filter((a) => !this.filtre.type || a.type === this.filtre.type);
         const zones = this.terrainTarget.querySelector('.zones');
         if (this.mode === 'points') {
-            zones.innerHTML = rondsHtml(montrees.map((a) => ({ ...a, libelle: a.libelle })), false, 1, (t) => this.echapper(t)).replace(/ dernier"/, '"');
+            // Tout le match : une couleur par équipe ; une équipe ou un joueur : une couleur par action.
+            const campDe = this.filtre.qui === 'tous' ? (a) => (a.eux ? 'eux' : 'nous') : null;
+            zones.innerHTML = rondsHtml(montrees, false, 1, (t) => this.echapper(t), campDe).replace(/ dernier"/, '"');
         } else {
             // Corners : leurs drapeaux ; le reste compté par zone.
             zones.innerHTML = this.zonesHtml(montrees.filter((a) => !CORNERS.includes(a.type)))
@@ -106,10 +108,16 @@ export default class extends Controller {
         // Actions sans endroit précis (notées par zone) : visibles avec « Zones ».
         const sansEndroit = this.mode === 'points'
             ? this.utiles('zones').filter((a) => !a.details.point && this.duFiltre(a)).length : 0;
+        const note = sansEndroit ? `<span class="discret">+ ${sansEndroit} action${sansEndroit > 1 ? 's' : ''} sans endroit précis (voir « Zones »)</span>` : '';
+        // Tout le match : la légende, ce sont les deux équipes (les toucher montre leurs actions, couleur par action).
+        if (f.qui === 'tous' && choisies.length) {
+            const equipe = (camp, nom) => `<button type="button" class="legende-rond" data-qui="${camp}" data-action="carte-match#filtrerQui" title="Voir le détail de ses actions"><span class="rond-action camp-${camp}"></span>${this.echapper(nom)} <b>${choisies.filter((a) => a.eux === (camp === 'eux')).length}</b></button>`;
+            this.legendeTarget.innerHTML = equipe('nous', this.donneesValue.nous) + equipe('eux', this.donneesValue.adversaire) + note;
+            return;
+        }
         this.legendeTarget.innerHTML = (parType.size
             ? [...parType].sort((a, b) => b[1] - a[1]).map(([type, n]) => `<button type="button" class="legende-rond${f.type === type ? ' actif' : ''}${f.type && f.type !== type ? ' estompe' : ''}" data-type="${type}" data-action="carte-match#filtrerType" aria-pressed="${f.type === type}" title="${f.type === type ? 'Revoir toutes les actions' : 'Ne montrer que cette action'}">${icone(type)}${this.echapper(this.donneesValue.types[type] ?? type)} <b>${n}</b></button>`).join('')
-            : 'Aucune action à montrer pour ce choix.')
-            + (sansEndroit ? `<span class="discret">+ ${sansEndroit} action${sansEndroit > 1 ? 's' : ''} sans endroit précis (voir « Zones »)</span>` : '');
+            : 'Aucune action à montrer pour ce choix.') + note;
     }
 
     filtrerQui(event) {

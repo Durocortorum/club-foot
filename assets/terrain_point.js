@@ -48,7 +48,7 @@ export function zoneDuPoint([x, y]) {
  * Ronds des actions déjà placées (les plus récentes en dernier, la dernière mise en valeur). Les corners, tirés au
  * ras du coin, sont regroupés par coin : un drapeau avec leur nombre, un peu à l'intérieur du terrain pour bien se voir.
  */
-export function rondsHtml(actions, vertical, sens, echapper) {
+export function rondsHtml(actions, vertical, sens, echapper, campDe = null) {
     const corners = new Map();
     actions.filter((a) => a.type === 'CO' || a.type === 'CA').forEach((a) => {
         const [x, y] = a.details.point;
@@ -70,6 +70,8 @@ export function rondsHtml(actions, vertical, sens, echapper) {
         if (a.type === 'B' || a.type === 'BA') {
             return `<span class="but-terrain ${a.type === 'B' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%" title="${echapper(`${a.minute}' · ${a.libelle || ''}`)}">⚽</span>`;
         }
-        return `<span class="rond-action action-${a.type}${dernier}" style="left:${gauche}%;top:${haut}%" title="${echapper(`${a.minute}' · ${a.libelle || ''}`)}"></span>`;
+        // Tout le match : une couleur par équipe (campDe) au lieu d'une couleur par action.
+        const couleur = campDe ? `camp-${campDe(a)}` : `action-${a.type}`;
+        return `<span class="rond-action ${couleur}${dernier}" style="left:${gauche}%;top:${haut}%" title="${echapper(`${a.minute}' · ${a.libelle || ''}`)}"></span>`;
     }).join('');
 }

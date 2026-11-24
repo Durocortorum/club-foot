@@ -2450,6 +2450,10 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .but-terrain.nous { border: 3px solid #d62839; }
 .but-terrain.eux { border: 3px solid #1f5fd1; }
 .but-terrain.legende { position: static; transform: none; width: 1rem; height: 1rem; font-size: .7rem; border-width: 2px; box-shadow: none; }
+/* « Tout le match » : une couleur par équipe. */
+.rond-action.camp-nous { --couleur-action: #d62839; background: #d62839; }
+.rond-action.camp-eux { --couleur-action: #1f5fd1; background: #1f5fd1; }
+.legende-rond .rond-action.camp-nous, .legende-rond .rond-action.camp-eux { width: .85rem; height: .85rem; }
 /* Carte du terrain des statistiques du match : comme le terrain du Match Live. */
 .carte-match .terrain-direct { max-width: 46rem; }
 .carte-match .live-legende-terrain, .carte-match .live-filtres-terrain { max-width: 46rem; }

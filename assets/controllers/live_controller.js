@@ -779,7 +779,8 @@ export default class extends Controller {
         const choisies = consultation ? toutes.filter(duFiltre) : toutes;
         const placees = consultation ? choisies.filter((a) => !f.type || a.type === f.type) : toutes.slice(-12);
         this.terrainActionTarget.querySelector('.zones').innerHTML = (consultation ? '' : `<button type="button" class="zone-libre" data-action="live#choisirZoneAction" aria-label="Toucher l'endroit de l'action"></button>`)
-            + rondsHtml(placees, false, sens, (t) => this.echapper(t));
+            // Tout le match (pour regarder) : une couleur par équipe ; une équipe ou un joueur : une couleur par action.
+            + rondsHtml(placees, false, sens, (t) => this.echapper(t), consultation && f.qui === 'tous' ? (a) => (ADVERSES.includes(a.type) ? 'eux' : 'nous') : null);
         this.terrainActionTarget.classList.toggle('consultation', consultation);
         if (consultation) {
             this.dessinerFiltresTerrain(toutes, f);
@@ -791,11 +792,16 @@ export default class extends Controller {
                 && !a.uuid.startsWith('ffffffff') && duFiltre(a));
             const butsSansEndroit = nonPlacees.filter((a) => BUTS.includes(a.type)).length;
             const sansEndroit = nonPlacees.length - butsSansEndroit;
-            this.legendeTerrainTarget.innerHTML = (parType.size
+            const notes = (sansEndroit ? `<span class="discret">+ ${sansEndroit} action${sansEndroit > 1 ? 's' : ''} sans endroit</span>` : '')
+                + (butsSansEndroit ? `<span class="discret">+ ${butsSansEndroit} but${butsSansEndroit > 1 ? 's' : ''} sans endroit (pour le voir ici : en notant le but, déplacer le ballon sur le petit terrain)</span>` : '');
+            if (f.qui === 'tous' && choisies.length) {
+                // Tout le match : la légende, ce sont les deux équipes (les toucher montre leurs actions, couleur par action).
+                const equipe = (camp, nom) => `<button type="button" class="legende-rond" data-qui="${camp}" data-action="live#filtrerQuiTerrain" title="Voir le détail de ses actions"><span class="rond-action camp-${camp}"></span>${this.echapper(nom)} <b>${choisies.filter((a) => ADVERSES.includes(a.type) === (camp === 'eux')).length}</b></button>`;
+                this.legendeTerrainTarget.innerHTML = equipe('nous', this.cfg.nous) + equipe('eux', this.cfg.adversaire) + notes;
+            } else this.legendeTerrainTarget.innerHTML = (parType.size
                 ? [...parType].sort((a, b) => b[1] - a[1]).map(([type, n]) => `<button type="button" class="legende-rond${f.type === type ? ' actif' : ''}${f.type && f.type !== type ? ' estompe' : ''}" data-type="${type}" data-action="live#filtrerTypeTerrain" aria-pressed="${f.type === type}" title="${f.type === type ? 'Revoir toutes les actions' : 'Ne montrer que cette action'}">${BUTS.includes(type) ? `<span class="but-terrain legende ${type === 'B' ? 'nous' : 'eux'}">⚽</span>` : `<span class="rond-action action-${type}"></span>`}${this.echapper(this.cfg.types[type] ?? this.libelle({ type }))} <b>${n}</b></button>`).join('')
                 : (toutes.length ? 'Aucune action placée sur le terrain pour ce choix.' : 'Aucune action placée sur le terrain pour l\'instant : après chaque action, touchez l\'endroit où elle a eu lieu.'))
-                + (sansEndroit ? `<span class="discret">+ ${sansEndroit} action${sansEndroit > 1 ? 's' : ''} sans endroit</span>` : '')
-                + (butsSansEndroit ? `<span class="discret">+ ${butsSansEndroit} but${butsSansEndroit > 1 ? 's' : ''} sans endroit (pour le voir ici : en notant le but, déplacer le ballon sur le petit terrain)</span>` : '');
+                + notes;
         }
         this.filtresTerrainTarget.hidden = !consultation;
         this.terrainActionTarget.dataset.sens = sens > 0 ? 'avant' : 'arriere';
