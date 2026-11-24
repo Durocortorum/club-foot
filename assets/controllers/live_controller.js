@@ -1,6 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { confirmer } from '../confirmation.js';
 import { preparerBut, dessinerBut, ecouterBut, arrondir } from '../terrain_but.js';
+import { pointTouche, zoneDuPoint, rondsHtml } from '../terrain_point.js';
 
 /*
  * Match Live : version simple du direct, pour le téléphone. Gros score et chrono, cinq boutons (But, Carton,
@@ -619,16 +620,17 @@ export default class extends Controller {
         this.dessinerActions();
     }
 
+    /** Endroit touché sur le terrain : point précis (rond de couleur) et zone déduite, pour l'action qui vient d'être notée. */
     choisirZoneAction(event) {
         const a = this.actions.get(this.aPlacer);
         this.finirZone();
         if (!a) return;
-        const zone = event.currentTarget;
-        zone.classList.add('touchee');
+        const sens = (this.chrono.sens ?? 1) > 0 ? 1 : -1;
+        const point = pointTouche(event, this.terrainActionTarget, false, sens);
         navigator.vibrate?.(25);
-        // Placée : plus « hors carte », dessinée sur la carte du bilan.
-        const action = { uuid: a.uuid, type: a.type, joueur: a.joueur, periode: a.periode, minute: a.minute, zx: Number(zone.dataset.zx), zy: Number(zone.dataset.zy) };
-        this.direAction(`✓ Zone notée · ${this.libelle(action)}`);
+        // Placée : plus « hors carte », dessinée sur la carte du bilan à cet endroit.
+        const action = { uuid: a.uuid, type: a.type, joueur: a.joueur, periode: a.periode, minute: a.minute, ...zoneDuPoint(point), details: { point } };
+        this.direAction(`✓ Endroit noté · ${this.libelle(action)}`);
         this.noter([action], a.minute);
     }
 
@@ -648,18 +650,16 @@ export default class extends Controller {
         this.dessinerActions();
     }
 
-    /** Terrain horizontal, 6 bandes × 3 couloirs, zones enregistrées dans le sens de notre attaque. */
+    /**
+     * Terrain horizontal à toucher n'importe où (endroit précis de l'action, dans le sens de notre attaque) ;
+     * les dernières actions placées y apparaissent en petits ronds de couleur.
+     */
     dessinerTerrainAction() {
         const sens = (this.chrono.sens ?? 1) > 0 ? 1 : -1;
-        const zones = [];
-        for (let zx = 0; zx < 6; zx++) {
-            for (let zy = 0; zy < 3; zy++) {
-                const colonne = sens > 0 ? zx + 1 : 6 - zx;
-                const ligne = sens > 0 ? zy + 1 : 3 - zy;
-                zones.push(`<button type="button" class="zone" style="grid-row:${ligne};grid-column:${colonne}" data-zx="${zx}" data-zy="${zy}" data-action="live#choisirZoneAction" aria-label="Zone ${zx + 1}-${zy + 1}"></button>`);
-            }
-        }
-        this.terrainActionTarget.querySelector('.zones').innerHTML = zones.join('');
+        const placees = [...this.actions.values()].filter((a) => a.details?.point && !EVENEMENTS.includes(a.type))
+            .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute)).slice(-12)
+            .map((a) => ({ ...a, libelle: this.libelle(a) }));
+        this.terrainActionTarget.querySelector('.zones').innerHTML = `<button type="button" class="zone-libre" data-action="live#choisirZoneAction" aria-label="Toucher l'endroit de l'action"></button>${rondsHtml(placees, false, sens, (t) => this.echapper(t))}`;
         this.terrainActionTarget.dataset.sens = sens > 0 ? 'avant' : 'arriere';
         this.sensActionTarget.textContent = `Nous attaquons ${sens > 0 ? '→' : '←'}`;
     }

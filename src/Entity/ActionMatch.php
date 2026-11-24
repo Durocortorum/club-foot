@@ -150,13 +150,15 @@ class ActionMatch implements AppartientAuClub
         }
         // « Hors carte » : venue de la feuille de match sans place sur le terrain (pas dessinée sur la carte).
         $horsCarte = true === ($details['horsCarte'] ?? null);
+        $point = fn ($p) => \is_array($p) && \count($p) >= 2 && is_numeric($p[0]) && is_numeric($p[1])
+            ? [round(max(-3.0, min(108.0, (float) $p[0])), 1), round(max(0.0, min(68.0, (float) $p[1])), 1)] : null;
         if (null === $details || !\in_array($this->type ?? null, ['B', 'BA'], true)) {
-            $this->details = $horsCarte ? ['horsCarte' => true] : null;
+            // Autres actions : endroit précis touché sur le terrain (mètres dans le sens de notre attaque), facultatif.
+            $endroit = $point($details['point'] ?? null);
+            $this->details = $endroit ? ['point' => [min(105.0, max(0.0, $endroit[0])), $endroit[1]]] : ($horsCarte ? ['horsCarte' => true] : null);
 
             return $this;
         }
-        $point = fn ($p) => \is_array($p) && \count($p) >= 2 && is_numeric($p[0]) && is_numeric($p[1])
-            ? [round(max(-3.0, min(108.0, (float) $p[0])), 1), round(max(0.0, min(68.0, (float) $p[1])), 1)] : null;
         $propre = array_filter([
             'depart' => $point($details['depart'] ?? null),
             'arrivee' => $point($details['arrivee'] ?? null),

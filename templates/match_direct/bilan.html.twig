@@ -84,6 +84,10 @@
                         {% endif %}
                     {% endfor %}{% endfor %}
                 </div>
+                {# Endroits précis (actions notées en touchant le terrain) : petit rond de la couleur de l'action. #}
+                {% for p in points %}
+                    <span class="rond-action action-{{ p.type }} bilan" style="left: {{ p.gauche }}%; top: {{ p.haut }}%" title="{{ p.titre }}"></span>
+                {% endfor %}
                 {# Corners : un petit rond avec leur nombre, au coin où ils ont été tirés (pas de zone colorée). #}
                 {% for camp, places in coins|filter(c => c is not null) %}
                     {% for place, n in places %}
@@ -91,6 +95,9 @@
                     {% endfor %}
                 {% endfor %}
             </div>
+            {% if points %}
+                <p class="discret petit">Petits ronds : endroit précis de chaque action notée en touchant le terrain, de la couleur de l'action (passez dessus pour la minute et le joueur).</p>
+            {% endif %}
             {% if (coins.nous.haut ?? 0) + (coins.nous.bas ?? 0) + (coins.adverse.haut ?? 0) + (coins.adverse.bas ?? 0) %}
                 <p class="discret petit">Ronds aux coins du terrain : nombre de corners (<span class="pastille-carte nous"></span> pour nous, <span class="pastille-carte eux"></span> pour l'adversaire).</p>
             {% endif %}

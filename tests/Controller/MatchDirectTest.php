@@ -89,6 +89,15 @@ class MatchDirectTest extends WebTestCase
         self::assertSame('Pluie', $em->find(Rencontre::class, $matchId)->getMeteo());
         self::assertSame(['Fort', '-3'], [$em->find(Rencontre::class, $matchId)->getVent(), $em->find(Rencontre::class, $matchId)->getTemperature()]);
 
+        // Endroit précis touché sur le terrain : point gardé (mètres dans le sens de l'attaque), dessiné sur la carte.
+        $envoyer(['actions' => [['uuid' => '88888888-8888-4888-8888-888888888888', 'joueur' => $tomId, 'type' => 'C', 'periode' => 1, 'minute' => 20,
+            'zx' => 5, 'zy' => 2, 'details' => ['point' => [97.3, 61.8], 'pirate' => 'x']]]]);
+        $em->clear();
+        self::assertSame(['point' => [97.3, 61.8]], $em->getRepository(ActionMatch::class)->findOneBy(['uuid' => '88888888-8888-4888-8888-888888888888'])->getDetails());
+        $client->request('GET', "/matchs/$matchId/direct/bilan");
+        self::assertSelectorExists('.carte-chaleur .rond-action.action-C[style*="left: 92.7%"]');
+        $envoyer(['supprimes' => ['88888888-8888-4888-8888-888888888888']]);
+
         // Deuxième tablette (autre compte de l'encadrement) : elle reçoit les actions de la première avec leur auteur,
         // ne peut ni les corriger ni les supprimer, et ses actions s'ajoutent ; le chrono est commun.
         $chrono = ['periode' => 1, 'enCours' => true, 'debut' => 1_700_000_000_000, 'cumul' => 0, 'fini' => false, 'sens' => 1, 'maj' => 1_700_000_000_000];

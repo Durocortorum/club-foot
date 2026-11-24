@@ -1,6 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { confirmer } from '../confirmation.js';
 import { preparerBut, dessinerBut as dessinerTerrainBut, ecouterBut, arrondir } from '../terrain_but.js';
+import { pointTouche, zoneDuPoint, rondsHtml } from '../terrain_point.js';
 
 /*
  * Match en direct (table de statistiques) : joueur → action, la minute vient du chrono. L'action est enregistrée dès
@@ -662,7 +663,9 @@ export default class extends Controller {
 
     /** Zone touchée : ajoutée à l'action qui vient d'être notée (ou à celle qu'on corrige). */
     choisirZone(event) {
-        const { zx, zy } = event.currentTarget.dataset;
+        // Endroit précis touché (mètres dans le sens de notre attaque) et zone qui le contient.
+        const point = pointTouche(event, this.terrainTarget, this.vertical.matches, this.chrono.sens > 0 ? 1 : -1);
+        const { zx, zy } = zoneDuPoint(point);
         const enAttente = this.aPlacer;
         const a = this.actions.get(enAttente ?? (this.choix.modifie && this.choix.type ? this.choix.modifie : ''));
         if (!a || ['B', 'BA', 'RP', 'EX'].includes(a.type)) {
@@ -670,16 +673,14 @@ export default class extends Controller {
             this.consigneTarget.classList.add('alerte');
             return;
         }
-        const action = { uuid: a.uuid, joueur: a.joueur, type: a.type, periode: a.periode, minute: a.minute, zx: Number(zx), zy: Number(zy) };
+        const action = { uuid: a.uuid, joueur: a.joueur, type: a.type, periode: a.periode, minute: a.minute, zx, zy, details: { point } };
         this.noter(action);
         if (this.dernierTir?.uuid === action.uuid) this.dernierTir = action;
         navigator.vibrate?.(25);
-        const zone = event.currentTarget;
-        zone.classList.add('touchee');
-        setTimeout(() => zone.classList.remove('touchee'), 350);
         this.finirZone();
         if (!enAttente) this.choix = this.choixVide();
-        this.annoncer(`✓ Zone notée · ${this.libelle(action)}`);
+        this.dessinerTerrain();
+        this.annoncer(`✓ Endroit noté · ${this.libelle(action)}`);
         this.etape(this.etapeSuivante());
         this.envoyer();
     }
@@ -928,24 +929,11 @@ export default class extends Controller {
         const sens = this.chrono.sens > 0 ? 1 : -1;
         this.terrainTarget.classList.toggle('vertical', vertical);
         this.terrainTarget.classList.toggle('horizontal', !vertical);
-        const zones = [];
-        for (let zx = 0; zx < COLONNES; zx++) {
-            for (let zy = 0; zy < COULOIRS; zy++) {
-                let ligne;
-                let colonne;
-                if (vertical) {
-                    // Attaque vers le haut (sens 1) ou vers le bas.
-                    ligne = sens > 0 ? COLONNES - zx : zx + 1;
-                    colonne = sens > 0 ? zy + 1 : COULOIRS - zy;
-                } else {
-                    // Attaque vers la droite (sens 1) ou vers la gauche ; zy 0 (gauche de l'attaquant) en haut.
-                    colonne = sens > 0 ? zx + 1 : COLONNES - zx;
-                    ligne = sens > 0 ? zy + 1 : COULOIRS - zy;
-                }
-                zones.push(`<button type="button" class="zone" style="grid-row:${ligne};grid-column:${colonne}" data-zx="${zx}" data-zy="${zy}" data-action="direct#choisirZone" aria-label="Zone ${zx + 1}-${zy + 1}"></button>`);
-            }
-        }
-        this.terrainTarget.querySelector('.zones').innerHTML = zones.join('');
+        // Terrain à toucher n'importe où ; les dernières actions placées en petits ronds de couleur.
+        const placees = [...this.actions.values()].filter((a) => a.details?.point)
+            .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute)).slice(-12)
+            .map((a) => ({ ...a, libelle: this.libelle(a) }));
+        this.terrainTarget.querySelector('.zones').innerHTML = `<button type="button" class="zone-libre" data-action="direct#choisirZone" aria-label="Toucher l'endroit de l'action"></button>${rondsHtml(placees, vertical, sens, (t) => this.echapper(t))}`;
         const fleche = vertical ? (sens > 0 ? '↑' : '↓') : (sens > 0 ? '→' : '←');
         this.sensTarget.textContent = `Nous attaquons ${fleche}`;
         this.terrainTarget.dataset.sens = sens > 0 ? 'avant' : 'arriere';

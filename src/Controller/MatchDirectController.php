@@ -285,6 +285,8 @@ class MatchDirectController extends AbstractController
         // Corners : pas de zone colorée, un petit rond avec leur nombre dans le coin du terrain (haut ou bas) ;
         // les nôtres côté adverse, ceux de l'adversaire de notre côté.
         $coins = ['nous' => ['haut' => 0, 'bas' => 0], 'adverse' => ['haut' => 0, 'bas' => 0]];
+        // Endroits précis (actions notées en touchant le terrain) : un petit rond de la couleur de l'action.
+        $points = [];
         foreach ($actions as $a) {
             $retenue = match ($type) {
                 '', 'nous', 'adverse' => true,
@@ -300,14 +302,20 @@ class MatchDirectController extends AbstractController
                 ++$coins[$camp][2 === $a->getZy() ? 'bas' : 'haut'];
             } else {
                 ++$cartes[$camp][$a->getZx()][$a->getZy()];
+                if ($p = $a->getDetails()['point'] ?? null) {
+                    $points[] = ['camp' => $camp, 'type' => $a->getType(), 'gauche' => round($p[0] / 105 * 100, 1), 'haut' => round($p[1] / 68 * 100, 1),
+                        'titre' => $a->getMinute() . "' · " . ActionMatch::libelleDe($a->getType()) . ($a->getJoueur() ? ' · ' . $a->getJoueur()->getPrenom() . ' ' . $a->getJoueur()->getNom() : '')];
+                }
             }
         }
         if ('nous' === $type || ($type && isset(ActionMatch::ACTIONS[$type])) || $joueur) {
             $cartes['adverse'] = null;
             $coins['adverse'] = null;
+            $points = array_values(array_filter($points, fn (array $p) => 'nous' === $p['camp']));
         } elseif ('adverse' === $type || isset(ActionMatch::ADVERSES[$type])) {
             $cartes['nous'] = null;
             $coins['nous'] = null;
+            $points = array_values(array_filter($points, fn (array $p) => 'adverse' === $p['camp']));
         }
         $carte = $cartes['nous'] ?? $cartes['adverse'];
 
@@ -351,6 +359,7 @@ class MatchDirectController extends AbstractController
             'carte' => $carte,
             'cartes' => $cartes,
             'coins' => $coins,
+            'points' => $points,
             'max_carte' => max(1, ...array_merge(...array_merge(...array_values(array_filter($cartes))))),
             'type' => ActionMatch::existe($type) || \in_array($type, ['nous', 'adverse'], true) ? $type : '',
             'joueur' => $joueur,
