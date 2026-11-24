@@ -91,7 +91,7 @@
                 {# Corners : un petit rond avec leur nombre, au coin où ils ont été tirés (pas de zone colorée). #}
                 {% for camp, places in coins|filter(c => c is not null) %}
                     {% for place, n in places %}
-                        {% if n %}<span class="coin-corner {{ camp == 'nous' ? 'nous' : 'eux' }} {{ place }}" title="{{ n }} corner{{ n > 1 ? 's' }} {{ camp == 'nous' ? 'pour nous' : 'pour l\'adversaire' }}">{{ n }}</span>{% endif %}
+                        {% if n %}<span class="coin-corner {{ camp == 'nous' ? 'nous' : 'eux' }} {{ place }}" title="{{ n }} corner{{ n > 1 ? 's' }} {{ camp == 'nous' ? 'pour nous' : 'pour l\'adversaire' }}">🚩 {{ n }}</span>{% endif %}
                     {% endfor %}
                 {% endfor %}
             </div>
@@ -99,7 +99,7 @@
                 <p class="discret petit">Petits ronds : endroit précis de chaque action notée en touchant le terrain, de la couleur de l'action (passez dessus pour la minute et le joueur).</p>
             {% endif %}
             {% if (coins.nous.haut ?? 0) + (coins.nous.bas ?? 0) + (coins.adverse.haut ?? 0) + (coins.adverse.bas ?? 0) %}
-                <p class="discret petit">Ronds aux coins du terrain : nombre de corners (<span class="pastille-carte nous"></span> pour nous, <span class="pastille-carte eux"></span> pour l'adversaire).</p>
+                <p class="discret petit">Drapeaux 🚩 aux coins du terrain : nombre de corners (<span class="pastille-carte nous"></span> pour nous, <span class="pastille-carte eux"></span> pour l'adversaire).</p>
             {% endif %}
         </section>
 

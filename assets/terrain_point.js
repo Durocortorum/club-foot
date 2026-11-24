@@ -41,11 +41,26 @@ export function zoneDuPoint([x, y]) {
     return { zx: Math.min(5, Math.max(0, Math.floor(x / 17.5))), zy: Math.min(2, Math.max(0, Math.floor(y / (LARGEUR / 3)))) };
 }
 
-/** Ronds des actions déjà placées (les plus récentes en dernier, la dernière mise en valeur). */
+/**
+ * Ronds des actions déjà placées (les plus récentes en dernier, la dernière mise en valeur). Les corners, tirés au
+ * ras du coin, sont regroupés par coin : un drapeau avec leur nombre, un peu à l'intérieur du terrain pour bien se voir.
+ */
 export function rondsHtml(actions, vertical, sens, echapper) {
-    return actions.map((a, i) => {
+    const corners = new Map();
+    actions.filter((a) => a.type === 'CO' || a.type === 'CA').forEach((a) => {
+        const [x, y] = a.details.point;
+        const cle = `${a.type}|${x < 52.5 ? 0 : 105}|${y < 34 ? 0 : 68}`;
+        corners.set(cle, (corners.get(cle) ?? 0) + 1);
+    });
+    const drapeaux = [...corners].map(([cle, n]) => {
+        const [type, x, y] = cle.split('|');
+        // Décalé vers l'intérieur : 5 m de la ligne de but, 6 m de la ligne de touche.
+        const { gauche, haut } = placeEcran([Number(x) === 0 ? 5 : 100, Number(y) === 0 ? 6 : 62], vertical, sens);
+        return `<span class="corner-terrain ${type === 'CO' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%" title="${n} corner${n > 1 ? 's' : ''} ${type === 'CO' ? 'pour nous' : 'pour l\'adversaire'}">🚩${n > 1 ? ` ${n}` : ''}</span>`;
+    }).join('');
+    return drapeaux + actions.filter((a) => a.type !== 'CO' && a.type !== 'CA').map((a, i, liste) => {
         const { gauche, haut } = placeEcran(a.details.point, vertical, sens);
-        const dernier = i === actions.length - 1 ? ' dernier' : '';
+        const dernier = i === liste.length - 1 ? ' dernier' : '';
         return `<span class="rond-action action-${a.type}${dernier}" style="left:${gauche}%;top:${haut}%" title="${echapper(`${a.minute}' · ${a.libelle || ''}`)}"></span>`;
     }).join('');
 }
