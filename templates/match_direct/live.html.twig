@@ -105,6 +105,7 @@
         <section class="live-panneau" data-panneau="actions">
             <h2>Actions des joueurs
                 <span class="live-outils-actions">
+                    <button type="button" class="bouton petit" data-live-target="boutonTerrain" data-action="live#basculerTerrain" title="Voir sur le terrain toutes les actions placées du match">🗺️ Terrain</button>
                     <button type="button" class="bouton petit" data-live-target="boutonZones" data-action="live#basculerZones"></button>
                     <button type="button" class="bouton petit" data-live-target="boutonAnnulerAction" data-action="live#annulerAction" disabled>↶ Annuler la dernière</button>
                 </span></h2>
@@ -114,12 +115,14 @@
             <div class="live-zone" data-live-target="zoneAction" hidden>
                 <p class="live-zone-barre"><span data-live-target="sensAction"></span>
                     <button type="button" class="lien-bouton petit" data-action="live#changerCote">⇄ Changer de côté</button>
-                    <button type="button" class="bouton petit" data-action="live#passerZone">Sans zone ⏭</button></p>
+                    <button type="button" class="bouton petit" data-live-target="boutonSansZone" data-action="live#passerZone">Sans zone ⏭</button>
+                    <button type="button" class="bouton petit" data-live-target="boutonFermerTerrain" data-action="live#basculerTerrain" hidden>✕ Fermer le terrain</button></p>
                 <div class="terrain-direct horizontal" data-live-target="terrainAction">
                     <span class="marque mediane"></span><span class="marque rond"></span>
                     <span class="marque surface nous"></span><span class="marque surface eux"></span>
                     <div class="zones"></div>
                 </div>
+                <p class="live-legende-terrain" data-live-target="legendeTerrain" hidden></p>
             </div>
             <div data-live-target="choixActions">
                 <div class="live-tuiles-actions" data-live-target="typesAction"></div>

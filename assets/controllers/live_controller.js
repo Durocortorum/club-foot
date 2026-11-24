@@ -31,7 +31,8 @@ export default class extends Controller {
     static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'analyse','evenements', 'stats',
         'compo', 'boutonTitulaires', 'dialogue',
         'boutonAnnulerAction', 'consigneAction', 'joueursAction', 'typesAction', 'dernieresActions',
-        'boutonZones', 'zoneAction', 'sensAction', 'terrainAction', 'choixActions'];
+        'boutonZones', 'zoneAction', 'sensAction', 'terrainAction', 'choixActions',
+        'boutonTerrain', 'boutonSansZone', 'boutonFermerTerrain', 'legendeTerrain'];
 
     connect() {
         this.cfg = this.configValue;
@@ -641,6 +642,12 @@ export default class extends Controller {
         this.chronoChange();
     }
 
+    /** Ouvre ou ferme le terrain pour regarder toutes les actions placées du match (sans en noter). */
+    basculerTerrain() {
+        this.voirTerrain = !this.voirTerrain;
+        this.dessinerActions();
+    }
+
     basculerZones() {
         this.avecZones = !this.avecZones;
         try {
@@ -654,12 +661,24 @@ export default class extends Controller {
      * Terrain horizontal à toucher n'importe où (endroit précis de l'action, dans le sens de notre attaque) ;
      * les dernières actions placées y apparaissent en petits ronds de couleur.
      */
-    dessinerTerrainAction() {
+    dessinerTerrainAction(consultation = false) {
         const sens = (this.chrono.sens ?? 1) > 0 ? 1 : -1;
-        const placees = [...this.actions.values()].filter((a) => a.details?.point && !EVENEMENTS.includes(a.type))
-            .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute)).slice(-12)
-            .map((a) => ({ ...a, libelle: this.libelle(a) }));
-        this.terrainActionTarget.querySelector('.zones').innerHTML = `<button type="button" class="zone-libre" data-action="live#choisirZoneAction" aria-label="Toucher l'endroit de l'action"></button>${rondsHtml(placees, false, sens, (t) => this.echapper(t))}`;
+        // Pour placer une action : les 12 dernières ; pour regarder (« 🗺️ Terrain ») : toutes celles du match.
+        const toutes = [...this.actions.values()].filter((a) => a.details?.point && !EVENEMENTS.includes(a.type))
+            .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute))
+            .map((a) => ({ ...a, libelle: `${this.libelle(a)}${a.joueur ? ` · ${this.nom(this.joueur(a.joueur))}` : ''}` }));
+        const placees = consultation ? toutes : toutes.slice(-12);
+        this.terrainActionTarget.querySelector('.zones').innerHTML = (consultation ? '' : `<button type="button" class="zone-libre" data-action="live#choisirZoneAction" aria-label="Toucher l'endroit de l'action"></button>`)
+            + rondsHtml(placees, false, sens, (t) => this.echapper(t));
+        this.terrainActionTarget.classList.toggle('consultation', consultation);
+        if (consultation) {
+            // Légende : chaque type d'action placée, sa couleur et son nombre.
+            const parType = new Map();
+            toutes.forEach((a) => parType.set(a.type, (parType.get(a.type) ?? 0) + 1));
+            this.legendeTerrainTarget.innerHTML = parType.size
+                ? [...parType].sort((a, b) => b[1] - a[1]).map(([type, n]) => `<span class="legende-rond"><span class="rond-action action-${type}"></span>${this.echapper(this.cfg.types[type] ?? this.libelle({ type }))} <b>${n}</b></span>`).join('')
+                : 'Aucune action placée sur le terrain pour l\'instant : après chaque action, touchez l\'endroit où elle a eu lieu.';
+        }
         this.terrainActionTarget.dataset.sens = sens > 0 ? 'avant' : 'arriere';
         this.sensActionTarget.textContent = `Nous attaquons ${sens > 0 ? '→' : '←'}`;
     }
@@ -706,11 +725,16 @@ export default class extends Controller {
             this.typesActionTarget.innerHTML = Object.entries(this.cfg.types).filter(([c]) => !HORS_ACTIONS.includes(c))
                 .map(([c, l]) => `<button type="button" class="tuile-action action-${c}" data-type="${c}" data-action="live#choisirAction">${this.echapper(l)}</button>`).join('');
         }
-        // En attente de zone : le terrain à la place des boutons d'action.
+        // En attente de zone, ou terrain ouvert pour le regarder (« 🗺️ Terrain ») : le terrain à la place des actions.
         const enAttenteZone = !!this.aPlacer && this.actions.has(this.aPlacer);
-        if (enAttenteZone) this.dessinerTerrainAction();
-        this.zoneActionTarget.hidden = !enAttenteZone;
-        this.choixActionsTarget.hidden = enAttenteZone;
+        const consultation = !enAttenteZone && !!this.voirTerrain;
+        if (enAttenteZone || consultation) this.dessinerTerrainAction(consultation);
+        this.zoneActionTarget.hidden = !enAttenteZone && !consultation;
+        this.choixActionsTarget.hidden = enAttenteZone || consultation;
+        this.boutonSansZoneTarget.hidden = consultation;
+        this.boutonFermerTerrainTarget.hidden = !consultation;
+        this.legendeTerrainTarget.hidden = !consultation;
+        this.boutonTerrainTarget.classList.toggle('actif', consultation);
         this.boutonZonesTarget.textContent = this.avecZones ? '📍 Zones : oui' : '📍 Zones : non';
         this.boutonZonesTarget.title = this.avecZones ? 'Après chaque action, le terrain s\'affiche pour toucher la zone (facultatif). Toucher pour ne plus le proposer.' : 'Toucher pour proposer la zone du terrain après chaque action.';
         const j = this.joueur(this.joueurAction);
