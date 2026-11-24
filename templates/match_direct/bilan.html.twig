@@ -45,63 +45,26 @@
             <div class="tuile"><span class="tuile-valeur"><b class="pastille-action action-CJ">{{ e.CJ }}</b> <b class="pastille-action action-CR">{{ e.CR }}</b></span><span class="tuile-libelle">cartons (adversaire : {{ e.JA }} jaune{{ e.JA > 1 ? 's' }}, {{ e.RA }} rouge{{ e.RA > 1 ? 's' }})</span></div>
         </div>
 
-        <section class="carte bloc" id="carte">
+        {# Carte du terrain : même terrain que le Match Live, dessinée dans la page (carte_match_controller.js). #}
+        <section class="carte bloc carte-match" id="carte" data-controller="carte-match" data-carte-match-donnees-value="{{ carte|json_encode }}">
             <h2>Carte du terrain</h2>
-            <form method="get" class="filtres" action="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}#carte">
-                <select name="type" onchange="this.form.requestSubmit()" aria-label="Action">
-                    <option value="">Toutes les actions (les deux équipes)</option>
-                    <option value="nous" {{ type == 'nous' ? 'selected' }}>Toutes nos actions</option>
-                    <option value="adverse" {{ type == 'adverse' ? 'selected' }}>Tout ce qu'a fait l'adversaire</option>
-                    <optgroup label="Nos actions">{% for code, t in types %}<option value="{{ code }}" {{ type == code ? 'selected' }}>{{ t[0] }}</option>{% endfor %}</optgroup>
-                    <optgroup label="Adversaire">{% for code, l in adverses %}<option value="{{ code }}" {{ type == code ? 'selected' }}>{{ l }}</option>{% endfor %}</optgroup>
-                </select>
-                <select name="joueur" onchange="this.form.requestSubmit()" aria-label="Joueur">
-                    <option value="">Toute l'équipe</option>
-                    {% for l in stats.joueurs %}<option value="{{ l.joueur.id }}" {{ joueur == l.joueur.id ? 'selected' }}>{{ l.joueur.nom }} {{ l.joueur.prenom }}</option>{% endfor %}
-                </select>
-            </form>
-            {% set deux = cartes.nous is not null and cartes.adverse is not null %}
-            <p class="discret petit">
-                Nous attaquons vers la droite. Plus la zone est foncée, plus il y a d'actions.
-                {% if deux %}<span class="legende-carte"><span class="pastille-carte nous"></span> nous (en haut de chaque zone) <span class="pastille-carte eux"></span> l'adversaire (en bas)</span>
-                {% elseif cartes.adverse is not null %}<span class="legende-carte"><span class="pastille-carte eux"></span> actions de l'adversaire</span>{% endif %}
+            <p class="carte-match-barre">
+                <span class="discret petit">Nous attaquons →</span>
+                <span class="choix-mode" role="group" aria-label="Affichage">
+                    <button type="button" class="filtre-terrain" data-mode="points" data-action="carte-match#choisirMode" data-carte-match-target="boutonMode">📍 Endroits</button>
+                    <button type="button" class="filtre-terrain" data-mode="zones" data-action="carte-match#choisirMode" data-carte-match-target="boutonMode">▦ Zones</button>
+                </span>
             </p>
-            <div class="terrain-direct horizontal carte-chaleur">
+            <div class="live-filtres-terrain" data-carte-match-target="filtres"></div>
+            <div class="terrain-direct horizontal consultation" data-sens="avant" data-carte-match-target="terrain">
                 <span class="marque mediane"></span><span class="marque rond"></span>
                 <span class="marque surface nous"></span><span class="marque surface eux"></span>
-                <div class="zones">
-                    {% for zx in 0..5 %}{% for zy in 0..2 %}
-                        {% if deux %}
-                            {# Zone coupée en deux : nos actions en haut (rouge), celles de l'adversaire en bas (bleu). #}
-                            {% set a = cartes.nous[zx][zy] %}{% set b = cartes.adverse[zx][zy] %}
-                            <span class="zone partagee" style="grid-row:{{ zy + 1 }};grid-column:{{ zx + 1 }}" title="Nous : {{ a }} · adversaire : {{ b }}">
-                                <span class="demi nous" style="--intensite:{{ (a / max_carte)|round(2) }}">{{ a ?: '' }}</span>
-                                <span class="demi eux" style="--intensite:{{ (b / max_carte)|round(2) }}">{{ b ?: '' }}</span>
-                            </span>
-                        {% else %}
-                            {% set n = carte[zx][zy] %}
-                            <span class="zone {{ cartes.adverse is not null ? 'eux' }}" style="grid-row:{{ zy + 1 }};grid-column:{{ zx + 1 }};--intensite:{{ (n / max_carte)|round(2) }}">{{ n ?: '' }}</span>
-                        {% endif %}
-                    {% endfor %}{% endfor %}
-                </div>
-                {# Endroits précis (actions notées en touchant le terrain) : petit rond de la couleur de l'action. #}
-                {% for p in points %}
-                    <span class="rond-action action-{{ p.type }} bilan" style="left: {{ p.gauche }}%; top: {{ p.haut }}%" title="{{ p.titre }}"></span>
-                {% endfor %}
-                {# Corners : un petit rond avec leur nombre, au coin où ils ont été tirés (pas de zone colorée). #}
-                {% for camp, places in coins|filter(c => c is not null) %}
-                    {% for place, n in places %}
-                        {% if n %}<span class="coin-corner {{ camp == 'nous' ? 'nous' : 'eux' }} {{ place }}" title="{{ n }} corner{{ n > 1 ? 's' }} {{ camp == 'nous' ? 'pour nous' : 'pour l\'adversaire' }}"><svg class="drapeau-mini" viewBox="0 0 10 12" aria-hidden="true"><path d="M1.5 0.5v11" stroke="currentColor" stroke-width="1.4"/><path d="M2 1h7l-2 2.5 2 2.5H2z" fill="currentColor"/></svg>{{ n }}</span>{% endif %}
-                    {% endfor %}
-                {% endfor %}
+                <div class="zones"></div>
             </div>
-            {% if points %}
-                <p class="discret petit">Petits ronds : endroit précis de chaque action notée en touchant le terrain, de la couleur de l'action (passez dessus pour la minute et le joueur).</p>
-            {% endif %}
-            {% if (coins.nous.haut ?? 0) + (coins.nous.bas ?? 0) + (coins.adverse.haut ?? 0) + (coins.adverse.bas ?? 0) %}
-                <p class="discret petit">Drapeaux 🚩 aux coins du terrain : nombre de corners (<span class="pastille-carte nous"></span> pour nous, <span class="pastille-carte eux"></span> pour l'adversaire).</p>
-            {% endif %}
+            <p class="live-legende-terrain" data-carte-match-target="legende"></p>
+            <p class="discret petit">Touchez une équipe ou un joueur pour ne voir que ses actions, et une couleur de la légende pour ne garder que ce type d'action. Passez sur un rond pour la minute et le joueur. « Zones » : nombre d'actions de chaque zone (rouge : nous ; bleu : l'adversaire).</p>
         </section>
+
 
         {% if traces.marques or traces.encaisses %}
             <section class="carte bloc">

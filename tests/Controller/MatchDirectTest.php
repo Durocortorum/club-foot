@@ -20,6 +20,12 @@ class MatchDirectTest extends WebTestCase
 {
     private ?int $clubId = null;
 
+    /** Actions de la carte du terrain du bilan (données passées à la page). */
+    private function carte(\Symfony\Component\DomCrawler\Crawler $page): array
+    {
+        return json_decode($page->filter('[data-controller="carte-match"]')->attr('data-carte-match-donnees-value'), true)['actions'];
+    }
+
     protected function tearDown(): void
     {
         if ($this->clubId) {
@@ -94,8 +100,8 @@ class MatchDirectTest extends WebTestCase
             'zx' => 5, 'zy' => 2, 'details' => ['point' => [97.3, 61.8], 'pirate' => 'x']]]]);
         $em->clear();
         self::assertSame(['point' => [97.3, 61.8]], $em->getRepository(ActionMatch::class)->findOneBy(['uuid' => '88888888-8888-4888-8888-888888888888'])->getDetails());
-        $client->request('GET', "/matchs/$matchId/direct/bilan");
-        self::assertSelectorExists('.carte-chaleur .rond-action.action-C[style*="left: 92.7%"]');
+        $carte = $this->carte($client->request('GET', "/matchs/$matchId/direct/bilan"));
+        self::assertContains([97.3, 61.8], array_map(fn ($a) => $a['details']['point'], array_filter($carte, fn ($a) => 'C' === $a['type'])));
         $envoyer(['supprimes' => ['88888888-8888-4888-8888-888888888888']]);
 
         // Deuxième tablette (autre compte de l'encadrement) : elle reçoit les actions de la première avec leur auteur,
@@ -177,9 +183,9 @@ class MatchDirectTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.titre-page', '1 – 1');
         self::assertStringContainsString('PETIT Tom', $crawler->filter('.stats-direct')->text());
-        self::assertCount(18, $crawler->filter('.carte-chaleur .zone'));
-        $adverse = $client->request('GET', "/matchs/$matchId/direct/bilan?type=adverse");
-        self::assertSame(2, array_sum(array_map('intval', $adverse->filter('.carte-chaleur .zone')->each(fn ($z) => $z->text()))));
+        self::assertCount(2, array_filter($this->carte($crawler), fn ($a) => $a['eux']));
+        $surTom = $client->request('GET', "/matchs/$matchId/direct/bilan?joueur=$tomId");
+        self::assertSame($tomId, json_decode($surTom->filter('[data-controller="carte-match"]')->attr('data-carte-match-donnees-value'), true)['joueur']);
 
         // Feuille de match déjà à jour (carton jaune de Tom à la 30e) : rien à signaler ; le rattrapage ne change rien.
         $client->request('GET', "/matchs/$matchId/modifier");
@@ -214,10 +220,12 @@ class MatchDirectTest extends WebTestCase
 
         // Statistiques du match : la feuille fait foi pour les buts (score, schémas, carte du terrain), même pour un but
         // placé seulement sur la feuille ; ses cartons comptent.
-        $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan?type=BA");
+        $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
         self::assertSelectorTextContains('.titre-page', '1 – 1');
         self::assertStringContainsString('Buts encaissés (1)', $crawler->filter('.buts-schemas')->text());
-        self::assertSame(1, array_sum(array_map('intval', $crawler->filter('.carte-chaleur .zone')->each(fn ($z) => $z->text()))), 'but adverse placé sur la feuille : sur la carte');
+        $butsAdverses = array_values(array_filter($this->carte($crawler), fn ($a) => 'BA' === $a['type']));
+        self::assertCount(1, $butsAdverses, 'but adverse placé sur la feuille : sur la carte');
+        self::assertEquals([8.0, 30.0], $butsAdverses[0]['details']['point'], 'à l\'endroit du tir dessiné sur la feuille');
         self::assertStringContainsString('(feuille de match)', $crawler->filter('.journal')->text());
         $feuille = [];
         foreach ($match->getParticipations() as $p) {
@@ -235,8 +243,9 @@ class MatchDirectTest extends WebTestCase
         $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
         self::assertStringContainsString('Buts marqués (1)', $crawler->filter('.buts-schemas')->text());
         // But adverse de la feuille pas placé sur le terrain : la zone notée en direct reste sur la carte.
-        $carteBA = $client->request('GET', "/matchs/$matchId/direct/bilan?type=BA");
-        self::assertSame(['1'], array_values(array_filter($carteBA->filter('.carte-chaleur .zone')->each(fn ($z) => trim($z->text())))));
+        $butsAdverses = array_values(array_filter($this->carte($client->request('GET', "/matchs/$matchId/direct/bilan")), fn ($a) => 'BA' === $a['type']));
+        self::assertCount(1, $butsAdverses);
+        self::assertNotNull($butsAdverses[0]['zx'], 'zone notée en direct');
         $envoyer(['jeton' => $config['jeton'], 'actions' => [
             ['uuid' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'joueur' => null, 'type' => 'B', 'periode' => 2, 'minute' => 70, 'zx' => 5, 'zy' => 1,
                 'details' => ['depart' => [101, 34], 'arrivee' => [105, 33], 'geste' => 'csc']],

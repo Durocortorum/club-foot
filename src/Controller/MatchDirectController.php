@@ -275,49 +275,34 @@ class MatchDirectController extends AbstractController
         // Complétées par la feuille de match (buts, cartons, remplacements saisis ou corrigés sur la feuille).
         $actions = $this->direct->avecFeuille($rencontre, $notees);
         $stats = $this->direct->statistiques($rencontre, $actions);
-        $type = $request->query->getString('type');
-        $joueur = $request->query->getInt('joueur');
-        // Carte du terrain : une action, toutes nos actions (« nous »), tout ce qu'a fait l'adversaire (« adverse »)
-        // ou tout ; pour un joueur ou toute l'équipe.
-        // Deux cartes : nos actions et celles de l'adversaire (couleurs différentes ; zones coupées en deux pour « toutes »).
-        $vide = array_fill(0, ActionMatch::COLONNES, array_fill(0, ActionMatch::COULOIRS, 0));
-        $cartes = ['nous' => $vide, 'adverse' => $vide];
-        // Corners : pas de zone colorée, un petit rond avec leur nombre dans le coin du terrain (haut ou bas) ;
-        // les nôtres côté adverse, ceux de l'adversaire de notre côté.
-        $coins = ['nous' => ['haut' => 0, 'bas' => 0], 'adverse' => ['haut' => 0, 'bas' => 0]];
-        // Endroits précis (actions notées en touchant le terrain) : un petit rond de la couleur de l'action.
-        $points = [];
+        // Carte du terrain (dessinée dans la page, comme le terrain du Match Live) : chaque action avec son endroit
+        // précis (mètres dans le sens de notre attaque) et sa zone ; filtres par équipe, joueur et type dans la page.
+        $carteActions = [];
         foreach ($actions as $a) {
-            $retenue = match ($type) {
-                '', 'nous', 'adverse' => true,
-                default => $a->getType() === $type,
-            };
             // Pas sur la carte : changements, cartons blancs, et ce que la feuille ne place pas sur le terrain.
-            if (!$retenue || isset(ActionMatch::HORS_JEU[$a->getType()]) || str_starts_with($a->getUuid(), MatchDirect::SANS_ZONE) || $a->isHorsCarte()
-                || ($joueur && $a->getJoueur()?->getId() !== $joueur)) {
+            if (isset(ActionMatch::HORS_JEU[$a->getType()]) || str_starts_with($a->getUuid(), MatchDirect::SANS_ZONE) || $a->isHorsCarte()) {
                 continue;
             }
-            $camp = $a->isAdverse() ? 'adverse' : 'nous';
-            if (\in_array($a->getType(), ['CO', 'CA'], true)) {
-                ++$coins[$camp][2 === $a->getZy() ? 'bas' : 'haut'];
-            } else {
-                ++$cartes[$camp][$a->getZx()][$a->getZy()];
-                if ($p = $a->getDetails()['point'] ?? null) {
-                    $points[] = ['camp' => $camp, 'type' => $a->getType(), 'gauche' => round($p[0] / 105 * 100, 1), 'haut' => round($p[1] / 68 * 100, 1),
-                        'titre' => $a->getMinute() . "' · " . ActionMatch::libelleDe($a->getType()) . ($a->getJoueur() ? ' · ' . $a->getJoueur()->getPrenom() . ' ' . $a->getJoueur()->getNom() : '')];
-                }
+            $d = $a->getDetails() ?? [];
+            $point = \in_array($a->getType(), ['B', 'BA'], true) ? ($d['depart'] ?? null) : ($d['point'] ?? null);
+            $corner = \in_array($a->getType(), ['CO', 'CA'], true);
+            // Corner noté avant le choix du drapeau : dans le coin d'après son couloir.
+            if ($corner && !$point) {
+                $point = ['CO' === $a->getType() ? 105 : 0, 2 === $a->getZy() ? 68 : 0];
             }
+            $carteActions[] = [
+                'type' => $a->getType(),
+                'eux' => $a->isAdverse(),
+                'joueur' => $a->getJoueur()?->getId(),
+                'minute' => $a->getMinute(),
+                'zx' => $a->getZx(),
+                'zy' => $a->getZy(),
+                // Frappe cadrée ajoutée avec un but : le ballon du but la remplace sur le terrain.
+                'avecBut' => str_starts_with($a->getUuid(), 'ffffffff'),
+                'details' => ['point' => $point ? [round(max(0.0, min(105.0, (float) $point[0])), 1), round((float) $point[1], 1)] : null],
+                'libelle' => ActionMatch::libelleDe($a->getType()) . ($a->getJoueur() ? ' · ' . $a->getJoueur()->getPrenom() . ' ' . $a->getJoueur()->getNom() : ''),
+            ];
         }
-        if ('nous' === $type || ($type && isset(ActionMatch::ACTIONS[$type])) || $joueur) {
-            $cartes['adverse'] = null;
-            $coins['adverse'] = null;
-            $points = array_values(array_filter($points, fn (array $p) => 'nous' === $p['camp']));
-        } elseif ('adverse' === $type || isset(ActionMatch::ADVERSES[$type])) {
-            $cartes['nous'] = null;
-            $coins['nous'] = null;
-            $points = array_values(array_filter($points, fn (array $p) => 'adverse' === $p['camp']));
-        }
-        $carte = $cartes['nous'] ?? $cartes['adverse'];
 
         // Schémas des buts : départ du ballon et point d'entrée dans le but (sans tracé noté : milieu de la zone, centre du but).
         $traces = ['marques' => [], 'encaisses' => []];
@@ -356,13 +341,15 @@ class MatchDirectController extends AbstractController
             'rencontre' => $rencontre,
             'actions' => $actions,
             'stats' => $stats,
-            'carte' => $carte,
-            'cartes' => $cartes,
-            'coins' => $coins,
-            'points' => $points,
-            'max_carte' => max(1, ...array_merge(...array_merge(...array_values(array_filter($cartes))))),
-            'type' => ActionMatch::existe($type) || \in_array($type, ['nous', 'adverse'], true) ? $type : '',
-            'joueur' => $joueur,
+            'carte' => [
+                'actions' => $carteActions,
+                'joueurs' => $this->direct->joueurs($rencontre, $actions),
+                'types' => array_map(fn (array $t) => $t[0], ActionMatch::ACTIONS) + ActionMatch::ADVERSES,
+                'nous' => (string) ($rencontre->isADomicile() ? $rencontre->getDomicile() : $rencontre->getExterieur()),
+                'adversaire' => (string) $rencontre->getAdversaire(),
+                // Lien « carte de ce joueur » (fiche du joueur, tableau par joueur) : la carte s'ouvre sur lui.
+                'joueur' => $request->query->getInt('joueur') ?: null,
+            ],
             'types' => ActionMatch::ACTIONS,
             'adverses' => ActionMatch::ADVERSES,
             'buts_feuille' => \count($rencontre->getButs()),

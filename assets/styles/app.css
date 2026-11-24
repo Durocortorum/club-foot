@@ -2450,6 +2450,23 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .but-terrain.nous { border: 3px solid #d62839; }
 .but-terrain.eux { border: 3px solid #1f5fd1; }
 .but-terrain.legende { position: static; transform: none; width: 1rem; height: 1rem; font-size: .7rem; border-width: 2px; box-shadow: none; }
+/* Carte du terrain des statistiques du match : comme le terrain du Match Live. */
+.carte-match .terrain-direct { max-width: 46rem; }
+.carte-match .live-legende-terrain, .carte-match .live-filtres-terrain { max-width: 46rem; }
+.carte-match-barre { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem .8rem; margin: 0 0 .5rem; }
+.choix-mode { display: inline-flex; gap: .3rem; margin-left: auto; }
+.carte-match .zone { cursor: default; padding: 0; color: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / .5); }
+.carte-match .zone { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; align-items: stretch; justify-items: stretch; align-content: stretch; justify-content: stretch; }
+.carte-match .zone.partagee { grid-template-rows: 1fr 1fr; }
+.carte-match .demi { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; }
+.carte-match .demi.nous { background: rgb(214 40 57 / calc(var(--intensite, 0) * .85)); }
+.carte-match .demi.eux { background: rgb(31 95 209 / calc(var(--intensite, 0) * .85)); }
+.carte-match .zone.partagee .demi.eux { border-top: 1px dashed rgb(255 255 255 / .3); }
+.carte-match .rond-action { pointer-events: auto; }
+.corner-legende { display: inline-flex; align-items: center; justify-content: center; width: 1rem; height: 1rem; border-radius: 50%; background: #fff; }
+.corner-legende.nous { color: #d62839; border: 2px solid #d62839; }
+.corner-legende.eux { color: #1f5fd1; border: 2px solid #1f5fd1; }
+.corner-legende .drapeau-mini { width: .45rem; height: .55rem; }
 .lien-terrain { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 .lien-terrain span[aria-hidden] { font-size: .7rem; }
 /* Match Live : corriger ou supprimer une action depuis « Dernières actions ». */
