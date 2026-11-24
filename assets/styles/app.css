@@ -2432,7 +2432,22 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .legende-rond { display: inline-flex; align-items: center; gap: .35rem; }
 .legende-rond .rond-action { position: static; margin: 0; width: .75rem; height: .75rem; opacity: 1; animation: none; }
 .live-outils-actions .bouton.actif { background: var(--rouge); border-color: var(--rouge); color: #fff; }
-.live-zone-barre [hidden], .live-legende-terrain[hidden] { display: none; }
+.live-zone-barre [hidden], .live-legende-terrain[hidden], .live-filtres-terrain[hidden] { display: none; }
+.live-filtres-terrain { display: grid; gap: .4rem; margin: 0 0 .5rem; }
+.filtres-equipes, .filtres-joueurs { display: flex; flex-wrap: wrap; gap: .35rem; }
+.filtres-joueurs { max-height: 5.6rem; overflow-y: auto; }
+.filtre-terrain { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .65rem; border: 1px solid var(--bordure); border-radius: 99px; background: #fff; font: inherit; font-size: .82rem; cursor: pointer; color: inherit; }
+.filtre-terrain b { font-variant-numeric: tabular-nums; color: var(--gris); }
+.filtre-terrain .num { font-weight: 800; color: #1f5fd1; }
+.filtre-terrain.actif { background: #1f2937; border-color: #1f2937; color: #fff; }
+.filtre-terrain.actif b, .filtre-terrain.actif .num { color: #fff; }
+.filtre-terrain.nous:not(.actif) { border-color: #d62839; }
+.filtre-terrain.eux:not(.actif) { border-color: #1f5fd1; }
+.live-legende-terrain button.legende-rond { border: 1px solid transparent; background: none; font: inherit; color: inherit; padding: .15rem .45rem; border-radius: 99px; cursor: pointer; }
+.live-legende-terrain button.legende-rond.actif { border-color: #1f2937; background: #fff; color: #1f2937; }
+.live-legende-terrain button.legende-rond.estompe { opacity: .45; }
+.lien-terrain { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.lien-terrain span[aria-hidden] { font-size: .7rem; }
 /* Match Live : corriger ou supprimer une action depuis « Dernières actions ». */
 .live-dernieres .quoi { flex: 1; min-width: 0; }
 .live-corriger { display: inline-flex; gap: .4rem; flex: none; }

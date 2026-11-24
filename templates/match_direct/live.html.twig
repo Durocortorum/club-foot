@@ -101,7 +101,7 @@
             </div>
             <h3 class="live-sous-titre">Actions par joueur</h3>
             <div class="live-actions-joueurs" data-live-target="statsJoueurs"></div>
-            <p class="discret petit">Réussies / tentées (tirs : cadrés / tirs). Passes, duels et contrôles : onglet « Actions ». Bilan complet par joueur dans les <a href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">statistiques du direct</a>.</p>
+            <p class="discret petit">Réussies / tentées (tirs : cadrés / tirs). Touchez un joueur ou une équipe pour voir ses actions sur le terrain. Passes, duels et contrôles : onglet « Actions ». Bilan complet par joueur dans les <a href="{{ path('app_match_direct_bilan', {id: rencontre.id}) }}">statistiques du direct</a>.</p>
         </section>
 
         {# Actions des joueurs : le joueur puis l'action, enregistrée aussitôt (sans zone du terrain). #}
@@ -120,6 +120,7 @@
                     <button type="button" class="lien-bouton petit" data-action="live#changerCote">⇄ Changer de côté</button>
                     <button type="button" class="bouton petit" data-live-target="boutonSansZone" data-action="live#passerZone">Sans zone ⏭</button>
                     <button type="button" class="bouton petit" data-live-target="boutonFermerTerrain" data-action="live#basculerTerrain" hidden>✕ Fermer le terrain</button></p>
+                <div class="live-filtres-terrain" data-live-target="filtresTerrain" hidden></div>
                 <div class="terrain-direct horizontal" data-live-target="terrainAction">
                     <span class="marque mediane"></span><span class="marque rond"></span>
                     <span class="marque surface nous"></span><span class="marque surface eux"></span>

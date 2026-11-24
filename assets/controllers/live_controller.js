@@ -30,7 +30,7 @@ const DELAI_ZONE = 8000;
 
 export default class extends Controller {
     static values = { config: Object };
-    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'analyse','evenements', 'stats', 'statsJoueurs',
+    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'analyse','evenements', 'stats', 'statsJoueurs', 'filtresTerrain',
         'compo', 'boutonTitulaires', 'dialogue',
         'boutonAnnulerAction', 'consigneAction', 'joueursAction', 'typesAction', 'dernieresActions',
         'boutonZones', 'zoneAction', 'sensAction', 'terrainAction', 'choixActions',
@@ -627,10 +627,13 @@ export default class extends Controller {
     // ———————— Onglets ————————
 
     onglet(event) {
-        const nom = event.currentTarget.dataset.onglet;
+        this.allerOnglet(event.currentTarget.dataset.onglet);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    allerOnglet(nom) {
         this.element.dataset.onglet = nom;
         this.element.querySelectorAll('.live-onglets button').forEach((b) => b.classList.toggle('actif', b.dataset.onglet === nom));
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ———————— Affichage ————————
@@ -740,6 +743,7 @@ export default class extends Controller {
     /** Ouvre ou ferme le terrain pour regarder toutes les actions placées du match (sans en noter). */
     basculerTerrain() {
         this.voirTerrain = !this.voirTerrain;
+        if (this.voirTerrain) this.filtreTerrain = { qui: 'tous', type: null };
         this.dessinerActions();
     }
 
@@ -762,20 +766,65 @@ export default class extends Controller {
         const toutes = [...this.actions.values()].filter((a) => a.details?.point && !EVENEMENTS.includes(a.type))
             .sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute))
             .map((a) => ({ ...a, libelle: `${this.libelle(a)}${a.joueur ? ` · ${this.nom(this.joueur(a.joueur))}` : ''}` }));
-        const placees = consultation ? toutes : toutes.slice(-12);
+        // Pour regarder : filtre par équipe ou par joueur, puis par type d'action (légende).
+        const f = this.filtreTerrain ?? { qui: 'tous', type: null };
+        const duFiltre = (a) => f.qui === 'tous' || (f.qui === 'nous' && !ADVERSES.includes(a.type))
+            || (f.qui === 'eux' && ADVERSES.includes(a.type)) || (typeof f.qui === 'number' && Number(a.joueur) === f.qui);
+        const choisies = consultation ? toutes.filter(duFiltre) : toutes;
+        const placees = consultation ? choisies.filter((a) => !f.type || a.type === f.type) : toutes.slice(-12);
         this.terrainActionTarget.querySelector('.zones').innerHTML = (consultation ? '' : `<button type="button" class="zone-libre" data-action="live#choisirZoneAction" aria-label="Toucher l'endroit de l'action"></button>`)
             + rondsHtml(placees, false, sens, (t) => this.echapper(t));
         this.terrainActionTarget.classList.toggle('consultation', consultation);
         if (consultation) {
-            // Légende : chaque type d'action placée, sa couleur et son nombre.
+            this.dessinerFiltresTerrain(toutes, f);
+            // Légende : chaque type d'action placée, sa couleur et son nombre ; la toucher ne montre que ce type.
             const parType = new Map();
-            toutes.forEach((a) => parType.set(a.type, (parType.get(a.type) ?? 0) + 1));
-            this.legendeTerrainTarget.innerHTML = parType.size
-                ? [...parType].sort((a, b) => b[1] - a[1]).map(([type, n]) => `<span class="legende-rond"><span class="rond-action action-${type}"></span>${this.echapper(this.cfg.types[type] ?? this.libelle({ type }))} <b>${n}</b></span>`).join('')
-                : 'Aucune action placée sur le terrain pour l\'instant : après chaque action, touchez l\'endroit où elle a eu lieu.';
+            choisies.forEach((a) => parType.set(a.type, (parType.get(a.type) ?? 0) + 1));
+            const sansEndroit = [...this.actions.values()].filter((a) => !a.details?.point && !EVENEMENTS.includes(a.type)
+                && !a.uuid.startsWith('ffffffff') && duFiltre(a)).length;
+            this.legendeTerrainTarget.innerHTML = (parType.size
+                ? [...parType].sort((a, b) => b[1] - a[1]).map(([type, n]) => `<button type="button" class="legende-rond${f.type === type ? ' actif' : ''}${f.type && f.type !== type ? ' estompe' : ''}" data-type="${type}" data-action="live#filtrerTypeTerrain" aria-pressed="${f.type === type}" title="${f.type === type ? 'Revoir toutes les actions' : 'Ne montrer que cette action'}"><span class="rond-action action-${type}"></span>${this.echapper(this.cfg.types[type] ?? this.libelle({ type }))} <b>${n}</b></button>`).join('')
+                : (toutes.length ? 'Aucune action placée sur le terrain pour ce choix.' : 'Aucune action placée sur le terrain pour l\'instant : après chaque action, touchez l\'endroit où elle a eu lieu.'))
+                + (sansEndroit ? `<span class="discret">+ ${sansEndroit} action${sansEndroit > 1 ? 's' : ''} sans endroit</span>` : '');
         }
+        this.filtresTerrainTarget.hidden = !consultation;
         this.terrainActionTarget.dataset.sens = sens > 0 ? 'avant' : 'arriere';
         this.sensActionTarget.textContent = `Nous attaquons ${sens > 0 ? '→' : '←'}`;
+    }
+
+    /** Boutons au-dessus du terrain : tout le match, notre équipe, l'adversaire, puis chaque joueur qui a des actions placées. */
+    dessinerFiltresTerrain(toutes, f) {
+        const nb = (test) => toutes.filter(test).length;
+        const bouton = (qui, texte, n, classe = '') => `<button type="button" class="filtre-terrain${classe}${f.qui === qui ? ' actif' : ''}" data-qui="${qui}" data-action="live#filtrerQuiTerrain" aria-pressed="${f.qui === qui}">${texte} <b>${n}</b></button>`;
+        const parJoueur = new Map();
+        toutes.filter((a) => a.joueur && !ADVERSES.includes(a.type)).forEach((a) => parJoueur.set(Number(a.joueur), (parJoueur.get(Number(a.joueur)) ?? 0) + 1));
+        const joueurs = [...parJoueur].map(([id, n]) => ({ j: this.joueur(id), id, n }))
+            .sort((x, y) => (x.j?.numero ?? 99) - (y.j?.numero ?? 99));
+        this.filtresTerrainTarget.innerHTML = `<div class="filtres-equipes">${bouton('tous', 'Tout le match', toutes.length)}${bouton('nous', this.echapper(this.cfg.nous), nb((a) => !ADVERSES.includes(a.type)), ' nous')}${bouton('eux', this.echapper(this.cfg.adversaire), nb((a) => ADVERSES.includes(a.type)), ' eux')}</div>`
+            + (joueurs.length ? `<div class="filtres-joueurs">${joueurs.map(({ j, id, n }) => bouton(id, j ? `<span class="num">${j.numero ?? ''}</span>${this.echapper(this.nom(j))}` : 'Joueur', n)).join('')}</div>` : '');
+    }
+
+    filtrerQuiTerrain(event) {
+        const q = event.currentTarget.dataset.qui;
+        this.filtreTerrain = { qui: ['tous', 'nous', 'eux'].includes(q) ? q : Number(q), type: null };
+        this.dessinerActions();
+    }
+
+    filtrerTypeTerrain(event) {
+        const type = event.currentTarget.dataset.type;
+        const f = this.filtreTerrain ?? { qui: 'tous', type: null };
+        this.filtreTerrain = { ...f, type: f.type === type ? null : type };
+        this.dessinerActions();
+    }
+
+    /** Depuis le tableau « Actions par joueur » : le terrain avec les seules actions de ce joueur (ou de l'équipe). */
+    voirTerrainDe(event) {
+        const q = event.currentTarget.dataset.qui;
+        this.filtreTerrain = { qui: ['tous', 'nous', 'eux'].includes(q) ? q : Number(q), type: null };
+        this.voirTerrain = true;
+        this.allerOnglet('actions');
+        this.dessinerActions();
+        setTimeout(() => this.zoneActionTarget.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     }
 
     annulerAction() {
@@ -947,11 +996,13 @@ export default class extends Controller {
             const total = b + actions.filter((a) => rates.includes(a.type)).length;
             return `<td>${total ? `${b}/${total}` : '<span class="discret">–</span>'}</td>`;
         }).join('');
+        // Toucher un nom : ses actions sur le terrain.
+        const voir = (qui, texte) => `<button type="button" class="lien-terrain" data-qui="${qui}" data-action="live#voirTerrainDe" title="Voir ses actions sur le terrain">${texte} <span aria-hidden="true">🗺️</span></button>`;
         const parJoueur = new Map();
         notres.filter((a) => a.joueur).forEach((a) => parJoueur.set(a.joueur, [...(parJoueur.get(a.joueur) ?? []), a]));
         const lignes = [...parJoueur].sort((x, y) => y[1].length - x[1].length).map(([id, actions]) => {
             const j = this.joueur(id);
-            return `<tr><th scope="row">${j ? `<span class="num">${j.numero ?? ''}</span> ${this.echapper(this.nom(j))}` : 'Joueur'}</th>${cellules(actions)}<td class="total">${actions.length}</td></tr>`;
+            return `<tr><th scope="row">${voir(id, j ? `<span class="num">${j.numero ?? ''}</span> ${this.echapper(this.nom(j))}` : 'Joueur')}</th>${cellules(actions)}<td class="total">${actions.length}</td></tr>`;
         }).join('');
         const tirsAdverses = adverses.filter((a) => ['AC', 'AH', 'ATC', 'ATH'].includes(a.type)).length;
         const cadresAdverses = adverses.filter((a) => ['AC', 'ATC'].includes(a.type)).length;
@@ -963,8 +1014,8 @@ export default class extends Controller {
             <thead><tr><th scope="col">Joueur</th>${colonnes.map(([t]) => `<th scope="col">${t}</th>`).join('')}<th scope="col">Total</th></tr></thead>
             <tbody>${lignes}</tbody>
             <tfoot>
-                <tr><th scope="row">${this.echapper(this.cfg.nous)}</th>${cellules(notres)}<td class="total">${notres.length}</td></tr>
-                <tr class="eux"><th scope="row">${this.echapper(this.cfg.adversaire)}</th><td colspan="3"></td>${tirsAdverses ? `<td>${cadresAdverses}/${tirsAdverses}</td>` : '<td><span class="discret">–</span></td>'}<td class="total">${adverses.length}</td></tr>
+                <tr><th scope="row">${voir('nous', this.echapper(this.cfg.nous))}</th>${cellules(notres)}<td class="total">${notres.length}</td></tr>
+                <tr class="eux"><th scope="row">${voir('eux', this.echapper(this.cfg.adversaire))}</th><td colspan="3"></td>${tirsAdverses ? `<td>${cadresAdverses}/${tirsAdverses}</td>` : '<td><span class="discret">–</span></td>'}<td class="total">${adverses.length}</td></tr>
             </tfoot></table>`;
     }
 
