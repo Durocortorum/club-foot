@@ -2178,6 +2178,7 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 .live-tuile-joueur .nb-actions { position: absolute; top: -.35rem; right: -.25rem; min-width: 1.25rem; padding: 0 .3rem; border-radius: 99px; background: var(--rouge); color: #fff; font-size: .7rem; font-weight: 700; text-align: center; line-height: 1.25rem; }
 .live-tuile-joueur.choisi { border-color: var(--rouge); background: color-mix(in srgb, var(--rouge) 12%, #fff); box-shadow: 0 0 0 2px var(--rouge) inset; }
 .live-tuile-joueur.banc { opacity: .6; }
+.live-sans-titulaires { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: .4rem .6rem; margin: 0 0 .3rem; padding: .45rem .6rem; border-radius: 10px; background: #fff4e0; color: #6b4200; font-size: .82rem; }
 /* Joueurs rangés par ligne : petit titre et bande de couleur à gauche de chaque carte. */
 .live-ligne-titre { grid-column: 1 / -1; display: flex; align-items: center; gap: .4rem; margin: .45rem 0 0; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--gris); }
 .live-ligne-titre:first-child { margin-top: 0; }

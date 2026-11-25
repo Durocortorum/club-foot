@@ -329,7 +329,8 @@ class Rencontre implements AppartientAuClub
             }
         }
 
-        return $ids;
+        // Feuille remplie sans titulaires cochés : ceux choisis sur la tablette.
+        return $ids ?: $this->getTitulairesDirect();
     }
 
     public function getChronoDirect(): ?array

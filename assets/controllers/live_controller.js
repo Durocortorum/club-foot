@@ -942,7 +942,10 @@ export default class extends Controller {
         const groupes = LIGNES.map(([code, titre]) => [code, titre, visibles.filter((j) => ligneDuPoste(j.poste) === code)
             .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999) || a.nom.localeCompare(b.nom))]).filter(([, , js]) => js.length);
         const avecTitres = groupes.length > 1 || (groupes.length === 1 && groupes[0][0] !== 'autre');
-        this.joueursActionTarget.innerHTML = (avecTitres
+        // Titulaires inconnus : tout le monde est affiché ; un bouton pour les choisir (onglet Compo).
+        const aChoisir = !connu && this.cfg.joueurs.length > (this.cfg.maxTitulaires || 11)
+            ? `<p class="live-sans-titulaires">Titulaires pas encore choisis : tous les joueurs sont affichés. <button type="button" class="bouton petit" data-action="live#choisirTitulaires">Choisir les titulaires</button></p>` : '';
+        this.joueursActionTarget.innerHTML = aChoisir + (avecTitres
             ? groupes.map(([code, titre, js]) => `<p class="live-ligne-titre ligne-${code}">${titre}</p>${js.map(tuile).join('')}`).join('')
             : visibles.map(tuile).join(''))
             + (connu && visibles.length < this.cfg.joueurs.length || this.tousJoueurs
@@ -1178,6 +1181,21 @@ export default class extends Controller {
         this.messageTitulaires = null;
         this.boutonTitulairesTarget.textContent = this.editionTitulaires ? '✓ Terminé' : 'Choisir les titulaires';
         this.dessinerCompo([...this.actions.values()]);
+        this.dessinerActions();
+        // Choix terminé après être venu de l'onglet Actions : on y revient.
+        if (!this.editionTitulaires && this.retourActions) {
+            this.retourActions = false;
+            this.allerOnglet('actions');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    /** Depuis l'onglet Actions : onglet Compo, choix des titulaires ouvert. */
+    choisirTitulaires() {
+        this.allerOnglet('compo');
+        if (!this.editionTitulaires) this.editerTitulaires();
+        this.retourActions = true;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     basculerTitulaire(event) {
