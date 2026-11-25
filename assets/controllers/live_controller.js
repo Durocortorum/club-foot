@@ -605,6 +605,41 @@ export default class extends Controller {
         this.dessinerDetails();
     }
 
+    /**
+     * Corriger un but déjà noté (sur cet appareil) : la fenêtre « But » rouverte et remplie (buteur, passeur, façon de
+     * marquer, situation, minute, place sur le terrain) ; il garde sa période. Même chose possible après la fin du match.
+     */
+    modifierBut(event) {
+        const a = this.actions.get(event.currentTarget.dataset.uuid);
+        if (!a || !BUTS.includes(a.type) || !this.aMoi(a)) return;
+        const nous = a.type === 'B';
+        const d = a.details ?? {};
+        this.ouvrir('but', nous ? 'nous' : 'eux');
+        this.saisie.modifie = a.uuid;
+        this.saisie.periode = a.periode;
+        const f = this.dialogueTarget;
+        f.querySelector('.dialogue-titre').textContent = `Modifier le but${nous ? '' : ` de ${this.cfg.adversaire}`}`;
+        f.querySelector('input[name=minute]').value = a.minute;
+        const cocher = (nom, valeur) => {
+            const r = f.querySelector(`input[name=${nom}][value="${valeur}"]`);
+            if (!r) return;
+            r.checked = true;
+            r.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+        cocher('geste', d.geste || 'tir');
+        cocher('situation', d.situation || 'jeu');
+        if (a.joueur) cocher('joueur', a.joueur);
+        const passeur = f.querySelector('select[name=passeur]');
+        if (passeur && d.passeur) passeur.value = String(d.passeur);
+        // Place déjà notée : ballon, flèche (et endroit du coup franc) remis où ils étaient.
+        const svg = f.querySelector('[data-but-terrain]');
+        if (svg && d.depart) {
+            this.trace = preparerBut(nous, d.depart, d.arrivee, d.situation ?? null, d.coupFranc ?? null);
+            this.traceTouchee = true;
+            dessinerBut(svg, this.trace);
+        }
+    }
+
     camp() {
         return this.saisie.camp ?? this.dialogueTarget.querySelector('input[name=camp]:checked')?.value ?? 'nous';
     }
@@ -737,7 +772,9 @@ export default class extends Controller {
         const nous = this.camp() === 'nous';
         const minute = Math.max(0, Math.min(130, parseInt(this.dialogueTarget.querySelector('input[name=minute]').value, 10) || 0));
         const joueur = Number(this.valeur('joueur')) || null;
-        const uuid = this.nouvelUuid();
+        // Correction d'un but : même identifiant (remplacé partout), même période.
+        const modifie = this.saisie.modifie ?? null;
+        const uuid = modifie ?? this.nouvelUuid();
         let actions = [];
         if (type === 'but') {
             const geste = this.valeur('geste') || 'tir';
@@ -758,6 +795,15 @@ export default class extends Controller {
             const tir = t ? { ...place } : { details: HORS_CARTE };
             if (nous && geste !== 'csc') actions.push({ uuid: this.uuidTir(uuid), type: geste === 'tete' ? 'TC' : 'FC', joueur, ...tir });
             if (!nous) actions.push({ uuid: this.uuidTir(uuid), type: geste === 'tete' ? 'ATC' : 'AC', joueur: null, ...tir });
+            if (modifie) {
+                actions = actions.map((x) => ({ ...x, periode: this.saisie.periode }));
+                // Devenu un contre son camp : plus de frappe cadrée qui allait avec.
+                if (actions.length === 1 && this.actions.has(this.uuidTir(uuid))) {
+                    this.actions.delete(this.uuidTir(uuid));
+                    delete this.enAttente[this.uuidTir(uuid)];
+                    this.supprimes.push(this.uuidTir(uuid));
+                }
+            }
         } else if (type === 'carton') {
             const couleur = this.valeur('couleur');
             if (nous && !joueur) return this.erreur('Touchez le joueur.');
@@ -780,7 +826,8 @@ export default class extends Controller {
         this.noter(actions, minute);
         this.dialogueTarget.close();
         navigator.vibrate?.(type === 'but' ? [30, 60, 30] : 25);
-        if (type === 'but' && nous) this.annoncer('But enregistré !');
+        if (type === 'but' && modifie) this.annoncer('But modifié.');
+        else if (type === 'but' && nous) this.annoncer('But enregistré !');
     }
 
     /** Enregistre des actions (période et minute du chrono, sauf minute donnée), puis envoi. */
@@ -1321,7 +1368,7 @@ export default class extends Controller {
             const passe = a.type === 'B' && a.details?.passeur ? ` <span class="discret petit">${tire ? 'tiré par' : 'passe de'} ${this.echapper(this.nom(this.joueur(a.details.passeur)))}</span>` : '';
             return `<li class="${this.enAttente[a.uuid] ? 'en-attente' : ''}${but ? ` but-liste ${a.type === 'B' ? 'nous' : 'eux'}` : ''}"><span class="min">${this.texteMinute(a.periode, a.minute)}</span>
             ${but ? '<span class="pastille-action pastille-but">⚽</span>' : `<span class="pastille-action action-${a.type}">${a.type}</span>`} <span class="quoi">${this.echapper(this.libelle(a))}${passe}</span>
-            ${this.aMoi(a) ? `<span class="live-corriger">${but ? '' : `<button type="button" class="lien-bouton petit" data-uuid="${a.uuid}" data-action="live#modifierAction">Modifier</button>`}
+            ${this.aMoi(a) ? `<span class="live-corriger"><button type="button" class="lien-bouton petit" data-uuid="${a.uuid}" data-action="live#${but ? 'modifierBut' : 'modifierAction'}">Modifier</button>
                 <button type="button" class="lien-bouton petit danger" data-uuid="${a.uuid}" data-action="live#supprimer" title="Supprimer" aria-label="Supprimer">✕</button></span>` : ''}</li>`;
         }).join('')
             + (jeu.length > 6 ? `<li class="live-toutes"><button type="button" class="lien-bouton petit" data-action="live#voirToutesActions">${this.toutesActions ? 'Seulement les 6 dernières' : `Voir les ${jeu.length} actions du match`}</button></li>` : '')
@@ -1360,7 +1407,7 @@ export default class extends Controller {
             const html = `<li class="${a.type === 'B' ? 'but-nous' : ''}${this.enAttente[a.uuid] ? ' en-attente' : ''}">
                 <span class="min">${this.texteMinute(a.periode, a.minute)}</span><span class="ico">${this.icone(a.type)}</span>
                 <span class="quoi">${this.echapper(this.libelle(a))}${sc}${passeur}</span>
-                ${this.aMoi(a) ? `<button type="button" class="lien-bouton danger" data-uuid="${a.uuid}" data-action="live#supprimer" title="Supprimer" aria-label="Supprimer">✕</button>` : ''}</li>`;
+                ${this.aMoi(a) ? `${BUTS.includes(a.type) ? `<button type="button" class="lien-bouton petit" data-uuid="${a.uuid}" data-action="live#modifierBut">Modifier</button> ` : ''}<button type="button" class="lien-bouton danger" data-uuid="${a.uuid}" data-action="live#supprimer" title="Supprimer" aria-label="Supprimer">✕</button>` : ''}</li>`;
             return { a, html };
         });
         const c = this.chrono;
