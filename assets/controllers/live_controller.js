@@ -22,6 +22,16 @@ const HORS_CARTE = { horsCarte: true };
 // Actions de jeu de l'adversaire (le reste est à nous).
 const ADVERSES = ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA'];
 const BUTS = ['B', 'BA'];
+// Lignes de l'équipe, d'après l'abréviation du poste (G ; DEF, DC, LD… ; MIL, MDC, MOG… ; AT).
+const LIGNES = [['gardien', 'Gardiens'], ['defense', 'Défenseurs'], ['milieu', 'Milieux'], ['attaque', 'Attaquants'], ['autre', 'Sans poste']];
+function ligneDuPoste(poste) {
+    if (!poste) return 'autre';
+    if (poste === 'G') return 'gardien';
+    if (poste === 'AT') return 'attaque';
+    if (poste.startsWith('D') || poste.startsWith('L')) return 'defense';
+    if (poste.startsWith('M')) return 'milieu';
+    return 'autre';
+}
 // Minutes sans action, après le temps réglementaire, avant d'arrêter la période toute seule.
 const ATTENTE_FIN = 10;
 /** Notés par les gros boutons (But, Carton, Rempl.) : pas dans l'onglet « Actions ». */
@@ -451,7 +461,7 @@ export default class extends Controller {
 
     /** Joueurs à toucher (sur le terrain d'abord quand on le sait). */
     grilleJoueurs(nom, ids, titre) {
-        const tuile = (j) => `<label class="live-joueur"><input type="radio" name="${nom}" value="${j.id}"><span class="num">${j.numero ?? ''}</span><span class="qui">${this.echapper(j.prenom)} <b>${this.echapper(j.nom)}</b></span></label>`;
+        const tuile = (j) => `<label class="live-joueur ligne-${ligneDuPoste(j.poste)}"><input type="radio" name="${nom}" value="${j.id}"><span class="num">${j.numero ?? ''}</span><span class="qui">${this.echapper(j.prenom)} <b>${this.echapper(j.nom)}</b></span></label>`;
         const liste = ids.map((id) => this.joueur(id)).filter(Boolean);
         return `<p class="live-libelle">${titre}</p><div class="live-joueurs">${liste.map(tuile).join('') || '<p class="discret petit">Aucun joueur.</p>'}</div>`;
     }
@@ -925,8 +935,16 @@ export default class extends Controller {
         const surLeTerrain = (j) => !connu || (etat.get(j.id) && !exclus.has(j.id));
         const visibles = this.cfg.joueurs.filter((j) => this.tousJoueurs || surLeTerrain(j) || j.id === this.joueurAction);
         const compte = (id) => liste.filter((a) => a.joueur === id && !EVENEMENTS.includes(a.type)).length;
-        this.joueursActionTarget.innerHTML = visibles.map((j) => `<button type="button" class="live-tuile-joueur${j.id === this.joueurAction ? ' choisi' : ''}${surLeTerrain(j) ? '' : ' banc'}" data-joueur="${j.id}" data-action="live#choisirJoueurAction" aria-pressed="${j.id === this.joueurAction}">
-            <span class="num">${j.numero ?? ''}</span><span class="qui"><b>${this.echapper(j.nom)}</b><small>${this.echapper(j.prenom)}</small></span>${j.poste ? `<span class="tuile-poste">${this.echapper(j.poste)}</span>` : ''}${compte(j.id) ? `<span class="nb-actions" title="Actions notées">${compte(j.id)}</span>` : ''}</button>`).join('')
+        const tuile = (j) => `<button type="button" class="live-tuile-joueur ligne-${ligneDuPoste(j.poste)}${j.id === this.joueurAction ? ' choisi' : ''}${surLeTerrain(j) ? '' : ' banc'}" data-joueur="${j.id}" data-action="live#choisirJoueurAction" aria-pressed="${j.id === this.joueurAction}">
+            <span class="num">${j.numero ?? ''}</span><span class="qui"><b>${this.echapper(j.nom)}</b><small>${this.echapper(j.prenom)}</small></span>${j.poste ? `<span class="tuile-poste">${this.echapper(j.poste)}</span>` : ''}${compte(j.id) ? `<span class="nb-actions" title="Actions notées">${compte(j.id)}</span>` : ''}</button>`;
+        // Rangés par ligne (gardiens, défenseurs, milieux, attaquants), chaque ligne avec sa couleur : on trouve
+        // un joueur sans le connaître. Dans une ligne : par numéro, puis par nom.
+        const groupes = LIGNES.map(([code, titre]) => [code, titre, visibles.filter((j) => ligneDuPoste(j.poste) === code)
+            .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999) || a.nom.localeCompare(b.nom))]).filter(([, , js]) => js.length);
+        const avecTitres = groupes.length > 1 || (groupes.length === 1 && groupes[0][0] !== 'autre');
+        this.joueursActionTarget.innerHTML = (avecTitres
+            ? groupes.map(([code, titre, js]) => `<p class="live-ligne-titre ligne-${code}">${titre}</p>${js.map(tuile).join('')}`).join('')
+            : visibles.map(tuile).join(''))
             + (connu && visibles.length < this.cfg.joueurs.length || this.tousJoueurs
                 ? `<button type="button" class="lien-bouton petit live-tous" data-action="live#voirTousJoueurs">${this.tousJoueurs ? 'Seulement ceux sur le terrain' : 'Voir aussi les remplaçants'}</button>` : '')
             || '<p class="discret">Aucun joueur : remplissez la feuille de match ou la convocation.</p>';
