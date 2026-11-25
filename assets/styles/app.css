@@ -2498,6 +2498,8 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .pastille-action.pastille-but { background: #fff; font-size: .85rem; box-shadow: inset 0 0 0 2px #d62839; border-radius: 99px; }
 .but-liste.eux .pastille-but { box-shadow: inset 0 0 0 2px #1f5fd1; }
 .but-liste .quoi { font-weight: 700; }
+.live-aide-cpa { margin: .2rem 0 .4rem; padding: .35rem .6rem; border-radius: 8px; background: #fff7e6; color: #8a5a00; font-weight: 600; }
+.live-aide-cpa[hidden] { display: none; }
 .live-note-passeur { display: block; margin-top: .3rem; color: #b45309; font-weight: 600; }
 .live-note-passeur[hidden] { display: none; }
 /* Situation d'un but (bilan) et tableau « D'où viennent les buts ». */

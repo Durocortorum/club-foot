@@ -679,7 +679,7 @@ export default class extends Controller {
         if (type === 'but') {
             // Facultatif : ballon au départ du tir et flèche jusqu'à l'entrée dans le but (comme sur la saisie détaillée).
             html += `<p class="live-libelle">Où ? <small class="discret">(facultatif) déplacez le ballon là où part le tir, puis la pointe de la flèche là où il entre dans le but</small></p>
-                <p class="discret petit" data-aide-cf hidden>Coup franc indirect : placez aussi le rond « CF » là où le coup franc est tiré.</p>
+                <p class="live-aide-cpa petit" data-aide-cf hidden></p>
                 <svg class="terrain-but" data-but-terrain role="img" aria-label="Demi-terrain avec le but"></svg>`;
         } else if (type === 'carton') {
             html = this.choix('couleur', nous ? [['J', '🟨 Jaune'], ['R', '🟥 Rouge'], ['B', '⬜ Blanc (10 min)']] : [['J', '🟨 Jaune'], ['R', '🟥 Rouge']])
@@ -738,7 +738,15 @@ export default class extends Controller {
                 const situation = this.valeur('situation');
                 const t = this.trace;
                 this.trace = preparerBut(nous, this.traceTouchee ? t.depart : departDeSituation(nous, situation), this.traceTouchee ? t.arrivee : null, situation, t.coupFranc);
-                if (aide) aide.hidden = situation !== 'cfi';
+                if (aide) {
+                    aide.hidden = !SITUATIONS[situation];
+                    aide.textContent = {
+                        corner: 'Placé d\'office : le drapeau du côté du ballon. Déplacez le ballon (de l\'autre côté pour l\'autre drapeau) si besoin.',
+                        cfd: 'Placé d\'office : déplacez le ballon à l\'endroit du coup franc.',
+                        cfi: 'Placé d\'office : déplacez le rond « CF » là où le coup franc est tiré, et le ballon à l\'endroit de la reprise.',
+                        penalty: 'Placé d\'office au point de penalty.',
+                    }[situation] ?? '';
+                }
                 dessinerBut(svg, this.trace);
             }));
         }
@@ -783,7 +791,9 @@ export default class extends Controller {
             const situation = SITUATIONS[this.valeur('situation')] ? this.valeur('situation') : null;
             // Placé sur le terrain : départ et arrivée du ballon, zone du direct d'après le départ (en mètres).
             // Penalty pas placé : tiré du point de penalty (11 m), vers le milieu du but.
-            const t = this.trace && this.traceTouchee ? this.trace
+            // Coup de pied arrêté choisi : le ballon (et le drapeau, l'endroit du coup franc) dessiné d'office compte,
+            // même sans l'avoir déplacé ; action de jeu : seulement si on a placé le ballon.
+            const t = this.trace && (this.traceTouchee || situation) ? this.trace
                 : (situation === 'penalty' ? { depart: [nous ? 94 : 11, 34], arrivee: [nous ? 105 : 0, 34] } : null);
             const place = t
                 ? { zx: Math.max(0, Math.min(5, Math.floor(t.depart[0] / 17.5))), zy: Math.max(0, Math.min(2, Math.floor(t.depart[1] / (68 / 3)))) }
