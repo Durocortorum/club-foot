@@ -2531,7 +2531,7 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .score-tab.elimine { color: var(--danger-fonce); }
 /* Formulaire du match : bloc « coupe » affiché seulement quand la compétition est « Coupe ». */
 .coupe-match { display: none; }
-form:has(select[name$="[competition]"] option[value="Coupe"]:checked) .coupe-match { display: grid; }
+form:has(select[name$="[competition]"] option[value^="Coupe" i]:checked) .coupe-match { display: grid; }
 .score-tab-cases { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
 .score-tab-cases input { width: 4rem; text-align: center; }
 /* Bilan : séance tir par tir. */

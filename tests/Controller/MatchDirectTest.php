@@ -57,7 +57,7 @@ class MatchDirectTest extends WebTestCase
         $tom = (new Joueur())->setClub($club)->setCategorie($u15)->setNom('Petit')->setPrenom('Tom');
         // Nous jouons à l'extérieur : la séance est rangée côté extérieur pour nous.
         $match = (new Rencontre())->setClub($club)->setCategorie($u15)->setDate(new \DateTimeImmutable('today'))
-            ->setDomicile('AS ADVERSE')->setExterieur("FC COUPE $id")->setCompetition('Coupe')->setEgalite('prolongations');
+            ->setDomicile('AS ADVERSE')->setExterieur("FC COUPE $id")->setCompetition('Coupe Gambardella')->setEgalite('prolongations');
         foreach ([$tom, $match] as $e) {
             $em->persist($e);
         }

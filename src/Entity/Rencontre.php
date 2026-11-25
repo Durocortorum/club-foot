@@ -279,9 +279,10 @@ class Rencontre implements AppartientAuClub
         return $this;
     }
 
+    /** Match de coupe : toute compétition qui commence par « Coupe » (Coupe, Coupe Gambardella, Coupe de France…). */
     public function isCoupe(): bool
     {
-        return 'Coupe' === $this->competition;
+        return str_starts_with(mb_strtolower(trim((string) $this->competition)), 'coupe');
     }
 
     public function getTabDomicile(): ?int
