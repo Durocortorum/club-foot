@@ -1113,13 +1113,20 @@ export default class extends Controller {
             const r = liste.some((a) => a.type === 'CR' && a.joueur === id);
             return `${'⚽'.repeat(buts)}${j ? '<i class="carte-jeu jaune"></i>'.repeat(j) : ''}${r ? '<i class="carte-jeu rouge"></i>' : ''}`;
         };
-        const ligne = (j) => `<li${this.editionTitulaires ? ` class="modifiable${this.titulaires().includes(j.id) ? ' titulaire' : ''}" data-joueur="${j.id}" data-action="click->live#basculerTitulaire" role="button" tabindex="0"` : ''}>
+        const ligne = (j) => `<li class="ligne-${ligneDuPoste(j.poste)}${this.editionTitulaires ? ` modifiable${this.titulaires().includes(j.id) ? ' titulaire' : ''}" data-joueur="${j.id}" data-action="click->live#basculerTitulaire" role="button" tabindex="0"` : '"'}>
             <span class="num">${j.numero ?? ''}</span><span class="qui">${this.echapper(j.prenom)} <b>${this.echapper(j.nom)}</b></span>
-            <span class="marques">${marques(j.id)}${exclus.has(j.id) ? ' <span class="discret petit">exclu</span>' : ''}</span></li>`;
+            <span class="marques">${marques(j.id)}${exclus.has(j.id) ? ' <span class="discret petit">exclu</span>' : ''}</span>${j.poste ? `<span class="poste-compo" title="Poste">${this.echapper(j.poste)}</span>` : ''}</li>`;
+        // Rangés par ligne, comme dans l'onglet Actions (gardiens, défenseurs, milieux, attaquants).
+        const parLigne = (joueurs) => {
+            const groupes = LIGNES.map(([code, titre]) => [code, titre, joueurs.filter((j) => ligneDuPoste(j.poste) === code)
+                .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999) || a.nom.localeCompare(b.nom))]).filter(([, , js]) => js.length);
+            if (groupes.length === 1 && groupes[0][0] === 'autre') return joueurs.map(ligne).join('');
+            return groupes.map(([code, titre, js]) => `<li class="live-compo-titre ligne-${code}">${titre}</li>${js.map(ligne).join('')}`).join('');
+        };
         if (this.editionTitulaires) {
             const t = this.titulaires();
             this.compoTarget.innerHTML = `<p class="discret petit">Touchez les joueurs sur le terrain au coup d'envoi : <b>${t.length} / ${this.cfg.maxTitulaires || 11}</b>.${this.messageTitulaires ? ` <span class="alerte-titulaires">${this.echapper(this.messageTitulaires)}</span>` : ''}</p>
-                <ul class="live-compo">${this.cfg.joueurs.map(ligne).join('')}</ul>`;
+                <ul class="live-compo">${parLigne(this.cfg.joueurs)}</ul>`;
             return;
         }
         if (!this.cfg.joueurs.length) {
@@ -1127,13 +1134,13 @@ export default class extends Controller {
             return;
         }
         if (!connu) {
-            this.compoTarget.innerHTML = `<p class="discret petit">Titulaires pas encore choisis : touchez « Choisir les titulaires ».</p><ul class="live-compo">${this.cfg.joueurs.map(ligne).join('')}</ul>`;
+            this.compoTarget.innerHTML = `<p class="discret petit">Titulaires pas encore choisis : touchez « Choisir les titulaires ».</p><ul class="live-compo">${parLigne(this.cfg.joueurs)}</ul>`;
             return;
         }
         const sur = this.cfg.joueurs.filter((j) => etat.get(j.id) && !exclus.has(j.id));
         const banc = this.cfg.joueurs.filter((j) => !etat.get(j.id) || exclus.has(j.id));
         this.compoTarget.innerHTML = `<h3>Sur le terrain <span class="compteur">${sur.length}</span></h3>${this.terrainCompo(sur, liste, marques)}
-            <h3>Remplaçants et sortis <span class="compteur">${banc.length}</span></h3><ul class="live-compo banc">${banc.map(ligne).join('') || '<li class="discret">Personne.</li>'}</ul>`;
+            <h3>Remplaçants et sortis <span class="compteur">${banc.length}</span></h3><ul class="live-compo banc">${parLigne(banc) || '<li class="discret">Personne.</li>'}</ul>`;
     }
 
     /**

@@ -2137,6 +2137,13 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 .live-compo li.modifiable { cursor: pointer; border-radius: 8px; }
 .live-compo li.modifiable.titulaire { background: #e3f4e7; }
 .live-compo .marques { white-space: nowrap; }
+/* Poste de chaque joueur et lignes de l'équipe (mêmes couleurs que l'onglet Actions). */
+.live-compo li { grid-template-columns: 2rem 1fr auto 2.6rem; border-left: 4px solid transparent; }
+.live-compo li[class*="ligne-"] { border-left-color: var(--couleur-ligne); }
+.live-compo .poste-compo { justify-self: end; font-size: .72rem; font-weight: 800; color: var(--gris); letter-spacing: .02em; }
+.live-compo li.live-compo-titre { display: flex; align-items: center; gap: .4rem; padding: .7rem .3rem .25rem; border-bottom: 0; border-left-color: transparent; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--gris); opacity: 1; cursor: default; }
+.live-compo li.live-compo-titre::before { content: ""; width: .65rem; height: .65rem; border-radius: 3px; background: var(--couleur-ligne); }
+.live-compo li.live-compo-titre:first-child { padding-top: .2rem; }
 .alerte-titulaires { color: var(--danger); }
 
 .live-dialogue { width: min(32rem, calc(100vw - 1.5rem)); max-height: calc(100dvh - 2rem); overflow: auto; }
