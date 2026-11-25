@@ -36,6 +36,11 @@
                 <path d="M{{ bx }},{{ cy }} V{{ haut }}" stroke="#1d1d1f" stroke-width="0.25"/>
                 <path d="M{{ bx }},{{ haut }} l{{ s * 2.2 }},{{ cy ? 0.8 : -0.8 }} l{{ -s * 2.2 }},{{ cy ? 0.8 : -0.8 }} z" fill="{{ couleur }}"/>
             {% endif %}
+            {# Coup franc indirect : de l'endroit où il est tiré jusqu'à la reprise, en pointillés. #}
+            {% if b.situation == 'cfi' and b.coupFranc|default(null) %}
+                <line x1="{{ b.coupFranc[0] }}" y1="{{ b.coupFranc[1] }}" x2="{{ b.depart[0] }}" y2="{{ b.depart[1] }}" stroke="{{ couleur }}" stroke-width="0.3" stroke-dasharray="0.8 0.8" opacity="0.8"/>
+                <circle cx="{{ b.coupFranc[0] }}" cy="{{ b.coupFranc[1] }}" r="0.8" fill="#fff" stroke="{{ couleur }}" stroke-width="0.3"/>
+            {% endif %}
             <line x1="{{ b.depart[0] }}" y1="{{ b.depart[1] }}" x2="{{ b.arrivee[0] }}" y2="{{ b.arrivee[1] }}" stroke="{{ couleur }}" stroke-width="0.45"
                   stroke-dasharray="{{ b.geste == 'Tête' ? '1 0.6' : 'none' }}" marker-end="url(#pointe-but-{{ cote }})"/>
             <circle cx="{{ b.depart[0] }}" cy="{{ b.depart[1] }}" r="0.9" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>

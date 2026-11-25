@@ -228,6 +228,8 @@ class MatchDirect
                     'passeur' => $b->isAdverse() ? null : $b->getPasseur()?->getId(),
                     // Corner, coup franc, penalty : d'après la « Situation » de la feuille, sinon notée en direct.
                     'situation' => ActionMatch::situationDeConditions($b->getConditions()) ?? $note?->getDetails()['situation'] ?? null,
+                    // Endroit du coup franc indirect : seulement noté en direct (pas sur la feuille).
+                    'coupFranc' => $note?->getDetails()['coupFranc'] ?? null,
                 ]);
                 $place = $trace['depart'] ?? ($note ? [($note->getZx() + 0.5) * 17.5, ($note->getZy() + 0.5) * 68 / 3] : null)
                     // Penalty : du point de penalty.

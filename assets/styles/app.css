@@ -270,8 +270,8 @@ body:has(.direct) .contenu { padding-top: .6rem; max-width: none; }
 .action-C { --couleur-action: #6b3fc4; } .action-DP { --couleur-action: #f0a500; } .action-DG { --couleur-action: #d62839; }
 .action-FC { --couleur-action: #1e9e4a; } .action-FH { --couleur-action: #7ad67f; } .action-BP { --couleur-action: #1f5fd1; }
 .action-MP { --couleur-action: #8fb3e8; } .action-MC { --couleur-action: #f5d000; } .action-BC { --couleur-action: #12285c; }
-.action-B { --couleur-action: #b7791f; } .action-CO { --couleur-action: #6b6e75; }
-.action-AC, .action-AH, .action-CA, .action-BA { --couleur-action: #3d3f45; }
+.action-B { --couleur-action: #b7791f; } .action-CO { --couleur-action: #6b6e75; } .action-CF { --couleur-action: #0f766e; }
+.action-AC, .action-AH, .action-CA, .action-CFA, .action-BA { --couleur-action: #3d3f45; }
 .action-TC { --couleur-action: #0e8f7e; } .action-TH { --couleur-action: #8fd6cb; }
 .action-ATC, .action-ATH { --couleur-action: #3d3f45; }
 .action-TH.pastille-action { color: #1d1d1f; }
@@ -2487,6 +2487,9 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .but-terrain.nous .pastille-cpa { background: #d62839; }
 .but-terrain.eux .pastille-cpa { background: #1f5fd1; }
 .but-terrain .pastille-cpa .drapeau-mini { width: .5rem; height: .6rem; color: #fff; }
+.cf-terrain { position: absolute; transform: translate(-50%, -50%); z-index: 3; display: inline-flex; align-items: center; justify-content: center; width: 1.25rem; height: 1.25rem; border-radius: 50%; font-size: .55rem; font-weight: 800; color: #fff; border: 2px solid #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .4); pointer-events: auto; }
+.cf-terrain.nous { background: #d62839; }
+.cf-terrain.eux { background: #1f5fd1; }
 .trajets-cpa { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
 .trajets-cpa line { stroke-width: 2.5; stroke-dasharray: 5 4; stroke-linecap: round; }
 .trajets-cpa line.nous { stroke: #d62839; }

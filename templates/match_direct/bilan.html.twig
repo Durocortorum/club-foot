@@ -43,6 +43,7 @@
             <div class="tuile"><span class="tuile-valeur">{{ e.AC + e.ATC }} / {{ e.AC + e.AH + e.ATC + e.ATH }}</span><span class="tuile-libelle">frappes et têtes adverses cadrées</span></div>
             <div class="tuile"><span class="tuile-valeur">{{ e.C }}</span><span class="tuile-libelle">centres</span></div>
             <div class="tuile"><span class="tuile-valeur double">{{ e.CO }} – {{ e.CA }}</span><span class="tuile-libelle">corners pour – contre</span></div>
+            {% if e.CF or e.CFA %}<div class="tuile"><span class="tuile-valeur double">{{ e.CF }} – {{ e.CFA }}</span><span class="tuile-libelle">coups francs pour – contre</span></div>{% endif %}
             <div class="tuile"><span class="tuile-valeur"><b class="pastille-action action-CJ">{{ e.CJ }}</b> <b class="pastille-action action-CR">{{ e.CR }}</b></span><span class="tuile-libelle">cartons (adversaire : {{ e.JA }} jaune{{ e.JA > 1 ? 's' }}, {{ e.RA }} rouge{{ e.RA > 1 ? 's' }})</span></div>
         </div>
 
@@ -91,6 +92,13 @@
                                         <td>{{ n }} sur {{ a.corners[camp] }}{% if a.corners[camp] %} <span class="discret">({{ (100 * n / a.corners[camp])|round }} %)</span>{% endif %}</td>
                                     {% endfor %}</tr>
                             {% endif %}
+                            {% if a.coupsFrancs.nous or a.coupsFrancs.eux %}
+                                <tr><th>Coups francs transformés</th>
+                                    {% for camp in ['nous', 'eux'] %}
+                                        {% set n = (a.origines[camp].cfd ?? 0) + (a.origines[camp].cfi ?? 0) %}
+                                        <td>{{ n }} sur {{ a.coupsFrancs[camp] }}{% if a.coupsFrancs[camp] %} <span class="discret">({{ (100 * n / a.coupsFrancs[camp])|round }} %)</span>{% endif %}</td>
+                                    {% endfor %}</tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
@@ -106,7 +114,7 @@
         {% if traces.marques or traces.encaisses %}
             <section class="carte bloc">
                 <h2>Les buts</h2>
-                <p class="discret petit">D'où part le ballon (rond, avec la minute) et où il entre dans le but (flèche) ; pointillés : de la tête. Coups de pied arrêtés : trajet du corner depuis le drapeau, pastille « CF » (coup franc) ou « P » (penalty).</p>
+                <p class="discret petit">D'où part le ballon (rond, avec la minute) et où il entre dans le but (flèche) ; pointillés : de la tête. Coups de pied arrêtés : trajet du corner depuis le drapeau (ou du coup franc indirect depuis l'endroit où il est tiré), pastille « CF » (coup franc) ou « P » (penalty).</p>
                 <div class="buts-schemas">
                     <figure>
                         <figcaption>Buts marqués ({{ traces.marques|length }})</figcaption>

@@ -162,7 +162,7 @@ class MatchDirectController extends AbstractController
                 continue;
             }
             // Sans joueur : un corner, ou un but contre son camp d'un adversaire.
-            $sansJoueur = 'CO' === $type || ('B' === $type && 'csc' === ($a['details']['geste'] ?? null));
+            $sansJoueur = \in_array($type, ['CO', 'CF'], true) || ('B' === $type && 'csc' === ($a['details']['geste'] ?? null));
             if (ActionMatch::deJoueur($type) && !$sansJoueur && !isset($joueurs[$joueurId])) {
                 continue; // action d'un joueur du club sans joueur du match
             }
@@ -350,6 +350,7 @@ class MatchDirectController extends AbstractController
                     'point' => $point ? [round(max(0.0, min(105.0, (float) $point[0])), 1), round((float) $point[1], 1)] : null,
                     // But sur corner, coup franc ou penalty : signalé sur le terrain (trajet du corner, pastille).
                     'situation' => $d['situation'] ?? null,
+                    'coupFranc' => $d['coupFranc'] ?? null,
                 ], fn ($v) => null !== $v) + ['point' => null],
                 'libelle' => ActionMatch::libelleDe($a->getType()) . ($a->getJoueur() ? ' · ' . $a->getJoueur()->getPrenom() . ' ' . $a->getJoueur()->getNom() : '')
                     . $this->origineDuBut($a),
@@ -360,11 +361,15 @@ class MatchDirectController extends AbstractController
         // transformés ; tireurs des corners et coups francs décisifs.
         $origines = ['nous' => [], 'eux' => []];
         $corners = ['nous' => 0, 'eux' => 0];
+        $coupsFrancs = ['nous' => 0, 'eux' => 0];
         $tireurs = [];
         $nbButs = 0;
         foreach ($actions as $a) {
             if (\in_array($a->getType(), ['CO', 'CA'], true)) {
                 ++$corners['CO' === $a->getType() ? 'nous' : 'eux'];
+            }
+            if (\in_array($a->getType(), ['CF', 'CFA'], true)) {
+                ++$coupsFrancs['CF' === $a->getType() ? 'nous' : 'eux'];
             }
             if (!\in_array($a->getType(), ['B', 'BA'], true)) {
                 continue;
@@ -382,6 +387,7 @@ class MatchDirectController extends AbstractController
         $analyseButs = $nbButs ? [
             'origines' => $origines,
             'corners' => $corners,
+            'coupsFrancs' => $coupsFrancs,
             'tireurs' => array_values($tireurs),
             'libelles' => ['jeu' => 'Action de jeu'] + ActionMatch::SITUATIONS_BUT,
         ] : null;
@@ -402,6 +408,7 @@ class MatchDirectController extends AbstractController
                 'geste' => ActionMatch::GESTES_BUT[$d['geste'] ?? ''] ?? null,
                 'passeur' => isset($d['passeur']) ? $this->em->find(Joueur::class, $d['passeur'])?->getPrenom() . ' ' . $this->em->find(Joueur::class, $d['passeur'])?->getNom() : null,
                 'situation' => $d['situation'] ?? null,
+                'coupFranc' => $d['coupFranc'] ?? null,
                 'depart' => $d['depart'] ?? [($a->getZx() + 0.5) * 17.5, ($a->getZy() + 0.5) * 68 / 3],
                 'arrivee' => $d['arrivee'] ?? [$adverse ? 0.0 : 105.0, 34.0],
             ];

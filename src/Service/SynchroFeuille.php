@@ -424,6 +424,7 @@ class SynchroFeuille
                 'geste' => 'CSC' === $b['conditions'] ? 'csc' : ('Tête' === $b['geste'] ? 'tete' : (($ancien['geste'] ?? null) === 'tete' ? 'tir' : ($ancien['geste'] ?? null))),
                 'passeur' => $b['passeur'],
                 'situation' => ActionMatch::situationDeConditions($b['conditions']),
+                'coupFranc' => $ancien['coupFranc'] ?? null,
                 'horsCarte' => $horsCarte ?: null,
             ], fn ($v) => null !== $v) ?: null);
     }

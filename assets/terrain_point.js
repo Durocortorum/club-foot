@@ -69,9 +69,20 @@ export function rondsHtml(actions, vertical, sens, echapper, campDe = null) {
         const coin = placeEcran([a.type === 'B' ? LONGUEUR : 0, y < LARGEUR / 2 ? 0 : LARGEUR], vertical, sens);
         const tir = placeEcran(a.details.point, vertical, sens);
         return `<line class="${a.type === 'B' ? 'nous' : 'eux'}" x1="${coin.gauche}" y1="${coin.haut}" x2="${tir.gauche}" y2="${tir.haut}" vector-effect="non-scaling-stroke"/>`;
+    }).join('')
+        // But sur coup franc indirect : de l'endroit du coup franc jusqu'à la reprise.
+        + actions.filter((a) => (a.type === 'B' || a.type === 'BA') && a.details?.situation === 'cfi' && a.details?.coupFranc).map((a) => {
+            const cf = placeEcran(a.details.coupFranc, vertical, sens);
+            const tir = placeEcran(a.details.point, vertical, sens);
+            return `<line class="${a.type === 'B' ? 'nous' : 'eux'}" x1="${cf.gauche}" y1="${cf.haut}" x2="${tir.gauche}" y2="${tir.haut}" vector-effect="non-scaling-stroke"/>`;
+        }).join('');
+    // Endroit du coup franc indirect : petit rond « CF » à la couleur de l'équipe.
+    const lieuxCf = actions.filter((a) => (a.type === 'B' || a.type === 'BA') && a.details?.situation === 'cfi' && a.details?.coupFranc).map((a) => {
+        const { gauche, haut } = placeEcran(a.details.coupFranc, vertical, sens);
+        return `<span class="cf-terrain ${a.type === 'B' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%" title="${echapper(`${a.minute}' · coup franc indirect`)}">CF</span>`;
     }).join('');
     const svg = trajets ? `<svg class="trajets-cpa" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${trajets}</svg>` : '';
-    return svg + drapeaux + actions.filter((a) => a.type !== 'CO' && a.type !== 'CA').map((a, i, liste) => {
+    return svg + drapeaux + lieuxCf + actions.filter((a) => a.type !== 'CO' && a.type !== 'CA').map((a, i, liste) => {
         const { gauche, haut } = placeEcran(a.details.point, vertical, sens);
         const dernier = i === liste.length - 1 ? ' dernier' : '';
         // But (départ du tir) : un petit ballon, cerclé de rouge pour nous, de bleu pour l'adversaire ; coup de pied

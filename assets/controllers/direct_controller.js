@@ -583,7 +583,7 @@ export default class extends Controller {
         const type = event.currentTarget.dataset.type;
         this.finirZone();
         this.choix.type = type;
-        if (this.estAdverse(type) || type === 'CO' || this.choix.joueur) {
+        if (this.estAdverse(type) || ['CO', 'CF'].includes(type) || this.choix.joueur) {
             this.enregistrerChoix();
             return;
         }
@@ -595,7 +595,7 @@ export default class extends Controller {
         const ancienne = modifie ? this.actions.get(modifie) : null;
         const adverse = this.estAdverse(type);
         // Corner : au joueur touché pour lui, pas à celui gardé de l'action précédente.
-        const joueur = adverse || (type === 'CO' && this.choix.collant) ? null : (this.choix.joueur || null);
+        const joueur = adverse || (['CO', 'CF'].includes(type) && this.choix.collant) ? null : (this.choix.joueur || null);
         // Après l'action : le joueur du club reste choisi, sauf après une action adverse (le ballon a changé de camp).
         const garde = adverse ? undefined : (this.choix.joueur || undefined);
         this.choix = garde ? { joueur: garde, type: null, modifie: null, collant: true } : this.choixVide();
@@ -793,7 +793,7 @@ export default class extends Controller {
             uuid: b.uuid, type: b.type, periode: b.periode, minute: b.minute, zx, zy,
             // Contre son camp d'un adversaire : pas de buteur chez nous.
             joueur: b.type === 'B' && geste !== 'csc' ? b.joueur : null,
-            details: { depart: arrondir(b.depart), arrivee: arrondir(b.arrivee), geste, ...(b.details?.situation ? { situation: b.details.situation } : {}) },
+            details: { depart: arrondir(b.depart), arrivee: arrondir(b.arrivee), geste, ...(b.details?.situation ? { situation: b.details.situation } : {}), ...(b.details?.coupFranc ? { coupFranc: b.details.coupFranc } : {}) },
         };
         const passeur = Number(this.passeurButTarget.value);
         if (b.type === 'B' && passeur) action.details.passeur = passeur;

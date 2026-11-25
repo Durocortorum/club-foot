@@ -137,7 +137,7 @@
                 <div class="live-tuiles-actions" data-live-target="typesAction"></div>
                 <p class="live-libelle">{{ config.adversaire }}</p>
                 <div class="live-tuiles-actions adverse">
-                    {% for code, libelle in {AC: 'Frappe cadrée', AH: 'Frappe hors cadre', CA: 'Corner', ATC: 'Tête cadrée', ATH: 'Tête hors cadre'} %}
+                    {% for code, libelle in {AC: 'Frappe cadrée', AH: 'Frappe hors cadre', CA: 'Corner', ATC: 'Tête cadrée', ATH: 'Tête hors cadre', CFA: 'Coup franc'} %}
                         <button type="button" class="tuile-action adverse action-{{ code }}" data-type="{{ code }}" data-action="live#choisirAction">{{ libelle }}</button>
                     {% endfor %}
                 </div>

@@ -22,8 +22,10 @@ const TIRS = ['TB', 'ATB'];
 const EVENEMENTS = ['B', 'BA', 'CJ', 'CR', 'JA', 'RA', 'RP', 'EX', ...TIRS];
 const HORS_CARTE = { horsCarte: true };
 // Actions de jeu de l'adversaire (le reste est à nous).
-const ADVERSES = ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA'];
+const ADVERSES = ['AC', 'AH', 'ATC', 'ATH', 'CA', 'CFA', 'BA'];
 const BUTS = ['B', 'BA'];
+// Actions de l'équipe sans joueur à choisir (corner, coup franc obtenu).
+const SANS_JOUEUR = ['CO', 'CF'];
 // D'où vient un but quand ce n'est pas une action de jeu (comme ActionMatch::SITUATIONS_BUT).
 const SITUATIONS = { corner: 'Corner', cfd: 'Coup franc direct', cfi: 'Coup franc indirect', penalty: 'Penalty' };
 // Lignes de l'équipe, d'après l'abréviation du poste (G ; DEF, DC, LD… ; MIL, MDC, MOG… ; AT).
@@ -642,6 +644,7 @@ export default class extends Controller {
         if (type === 'but') {
             // Facultatif : ballon au départ du tir et flèche jusqu'à l'entrée dans le but (comme sur la saisie détaillée).
             html += `<p class="live-libelle">Où ? <small class="discret">(facultatif) déplacez le ballon là où part le tir, puis la pointe de la flèche là où il entre dans le but</small></p>
+                <p class="discret petit" data-aide-cf hidden>Coup franc indirect : placez aussi le rond « CF » là où le coup franc est tiré.</p>
                 <svg class="terrain-but" data-but-terrain role="img" aria-label="Demi-terrain avec le but"></svg>`;
         } else if (type === 'carton') {
             html = this.choix('couleur', nous ? [['J', '🟨 Jaune'], ['R', '🟥 Rouge'], ['B', '⬜ Blanc (10 min)']] : [['J', '🟨 Jaune'], ['R', '🟥 Rouge']])
@@ -693,12 +696,14 @@ export default class extends Controller {
             svg.addEventListener('pointerdown', (e) => { if (e.target.closest('[data-poignee]')) this.traceTouchee = true; });
             ecouterBut(svg, () => this.trace);
             dessinerBut(svg, this.trace);
+            const aide = this.dialogueTarget.querySelector('[data-aide-cf]');
             // Situation choisie : ballon replacé là où part d'habitude ce tir (corner : près du but, avec le drapeau et le
             // centre en pointillés ; penalty : au point de penalty), tant qu'on ne l'a pas déplacé soi-même.
             this.dialogueTarget.querySelectorAll('input[name=situation]').forEach((r) => r.addEventListener('change', () => {
                 const situation = this.valeur('situation');
                 const t = this.trace;
-                this.trace = preparerBut(nous, this.traceTouchee ? t.depart : departDeSituation(nous, situation), this.traceTouchee ? t.arrivee : null, situation);
+                this.trace = preparerBut(nous, this.traceTouchee ? t.depart : departDeSituation(nous, situation), this.traceTouchee ? t.arrivee : null, situation, t.coupFranc);
+                if (aide) aide.hidden = situation !== 'cfi';
                 dessinerBut(svg, this.trace);
             }));
         }
@@ -746,7 +751,7 @@ export default class extends Controller {
             const place = t
                 ? { zx: Math.max(0, Math.min(5, Math.floor(t.depart[0] / 17.5))), zy: Math.max(0, Math.min(2, Math.floor(t.depart[1] / (68 / 3)))) }
                 : {};
-            const ou = t ? { depart: arrondir(t.depart), arrivee: arrondir(t.arrivee) } : HORS_CARTE;
+            const ou = t ? { depart: arrondir(t.depart), arrivee: arrondir(t.arrivee), ...(situation === 'cfi' && t.coupFranc ? { coupFranc: arrondir(t.coupFranc) } : {}) } : HORS_CARTE;
             const details = { geste, ...ou, ...(nous && passeur && passeur !== joueur && geste !== 'csc' ? { passeur } : {}), ...(situation ? { situation } : {}) };
             actions = [{ uuid, type: nous ? 'B' : 'BA', joueur: nous && geste !== 'csc' ? joueur : null, details, ...place }];
             // La frappe cadrée qui va avec (pas pour un contre son camp), à la même place que le but si elle est connue.
@@ -940,11 +945,11 @@ export default class extends Controller {
         }
         const adverse = type in this.cfg.adverses;
         // Corner : pas de joueur à choisir (comme le « + Corner » des statistiques).
-        if (!adverse && type !== 'CO' && !this.joueurAction) {
+        if (!adverse && !SANS_JOUEUR.includes(type) && !this.joueurAction) {
             this.direAction('Touchez d\'abord le joueur, puis son action.', true);
             return;
         }
-        const action = { uuid: this.nouvelUuid(), type, joueur: adverse || type === 'CO' ? null : this.joueurAction, details: HORS_CARTE };
+        const action = { uuid: this.nouvelUuid(), type, joueur: adverse || SANS_JOUEUR.includes(type) ? null : this.joueurAction, details: HORS_CARTE };
         this.mesActions.push(action.uuid);
         // Action adverse : le ballon a changé de camp, le joueur est relâché.
         if (adverse) this.joueurAction = null;
@@ -1395,6 +1400,7 @@ export default class extends Controller {
             ['Tirs',n('FC', 'FH', 'TC', 'TH'), n('AC', 'AH', 'ATC', 'ATH')],
             ['Tirs cadrés', n('FC', 'TC'), n('AC', 'ATC')],
             ['Corners', n('CO'), n('CA')],
+            ['Coups francs', n('CF'), n('CFA')],
             ['Cartons jaunes', n('CJ'), n('JA')],
             ['Cartons rouges', n('CR'), n('RA')],
         ].filter(([, a, b], i) => i < 4 || a + b > 0);

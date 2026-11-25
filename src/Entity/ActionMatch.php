@@ -35,6 +35,8 @@ class ActionMatch implements AppartientAuClub
         'C' => ['Centre', 'centre', null],
         'B' => ['But', 'but', true],
         'CO' => ['Corner', 'corner', null],
+        // Coup franc obtenu (pour l'équipe, comme un corner : sans joueur), placé à l'endroit de la faute.
+        'CF' => ['Coup franc', 'coup_franc', null],
         'CJ' => ['Carton jaune', 'carton', null],
         'CR' => ['Carton rouge', 'carton', null],
     ];
@@ -45,6 +47,7 @@ class ActionMatch implements AppartientAuClub
         'ATC' => 'Tête adverse cadrée',
         'ATH' => 'Tête adverse hors cadre',
         'CA' => 'Corner adverse',
+        'CFA' => 'Coup franc adverse',
         'BA' => 'But adverse',
         'JA' => 'Carton jaune adverse',
         'RA' => 'Carton rouge adverse',
@@ -71,10 +74,11 @@ class ActionMatch implements AppartientAuClub
         'Têtes' => ['TC', 'TH'],
         'Centres' => ['C'],
         'Corners' => ['CO'],
+        'Coups francs' => ['CF'],
         'Buts' => ['B'],
         'Cartons' => ['CJ', 'CR'],
         'Changements' => ['RP', 'EX'],
-        'Adversaire' => ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA', 'JA', 'RA'],
+        'Adversaire' => ['AC', 'AH', 'ATC', 'ATH', 'CA', 'CFA', 'BA', 'JA', 'RA'],
     ];
     /**
      * Tirs au but (séance après un match de coupe à égalité) : période 5, details : reussi. Ils ne comptent ni dans le
@@ -217,6 +221,8 @@ class ActionMatch implements AppartientAuClub
             'passeur' => 'B' === $this->type && is_numeric($details['passeur'] ?? null) && (int) $details['passeur'] > 0 ? (int) $details['passeur'] : null,
             // Corner, coup franc, penalty (absent : action de jeu).
             'situation' => isset(self::SITUATIONS_BUT[$details['situation'] ?? '']) ? $details['situation'] : null,
+            // Coup franc indirect : endroit d'où il est tiré (le départ est celui de la reprise du buteur).
+            'coupFranc' => 'cfi' === ($details['situation'] ?? null) && ($cf = $point($details['coupFranc'] ?? null)) ? [min(105.0, max(0.0, $cf[0])), $cf[1]] : null,
             'horsCarte' => $horsCarte && !isset($details['depart']) ? true : null,
         ], fn ($v) => null !== $v);
         // Penalty : tiré du point de penalty, même sans place notée.

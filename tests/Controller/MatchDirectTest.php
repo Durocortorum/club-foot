@@ -152,6 +152,13 @@ class MatchDirectTest extends WebTestCase
             // Penalty adverse, pas placé : tiré du point de penalty.
             ['uuid' => 'd3333333-3333-4333-8333-333333333333', 'joueur' => null, 'type' => 'BA', 'periode' => 2, 'minute' => 70, 'details' => ['geste' => 'tir', 'situation' => 'penalty', 'horsCarte' => true]],
             ['uuid' => 'd4444444-4444-4444-8444-444444444444', 'joueur' => $tomId, 'type' => 'B', 'periode' => 2, 'minute' => 80, 'details' => ['geste' => 'tir', 'situation' => 'pirate', 'horsCarte' => true]],
+            // Coups francs obtenus (sans joueur, comme un corner), placés ; un de l'adversaire.
+            ['uuid' => 'e1111111-1111-4111-8111-111111111111', 'joueur' => null, 'type' => 'CF', 'periode' => 2, 'minute' => 84, 'zx' => 4, 'zy' => 0, 'details' => ['point' => [80, 15]]],
+            ['uuid' => 'e2222222-2222-4222-8222-222222222222', 'joueur' => null, 'type' => 'CF', 'periode' => 2, 'minute' => 59, 'zx' => 3, 'zy' => 1, 'details' => ['point' => [78, 30]]],
+            ['uuid' => 'e3333333-3333-4333-8333-333333333333', 'joueur' => null, 'type' => 'CFA', 'periode' => 1, 'minute' => 30, 'zx' => 1, 'zy' => 1, 'details' => ['point' => [25, 34]]],
+            // Tête de Léo sur un coup franc indirect tiré par Tom depuis la droite.
+            ['uuid' => 'd5555555-5555-4555-8555-555555555555', 'joueur' => $leoId, 'type' => 'B', 'periode' => 2, 'minute' => 75, 'zx' => 5, 'zy' => 1,
+                'details' => ['depart' => [99, 36], 'arrivee' => [105, 32], 'geste' => 'tete', 'passeur' => $tomId, 'situation' => 'cfi', 'coupFranc' => [80, 15]]],
         ]]));
         self::assertResponseIsSuccessful();
 
@@ -168,21 +175,28 @@ class MatchDirectTest extends WebTestCase
             $buts[$b->getMinute()] = [$b->getConditions(), $b->getPhase()];
         }
         ksort($buts);
-        self::assertSame([12 => ['Corner gauche', 'CPA'], 60 => ['CF direct', 'CPA'], 70 => ['Pénalty', 'CPA'], 80 => [null, null]], $buts);
+        self::assertSame([12 => ['Corner gauche', 'CPA'], 60 => ['CF direct', 'CPA'], 70 => ['Pénalty', 'CPA'], 75 => ['CF indirect', 'CPA'], 80 => [null, null]], $buts);
 
         // Bilan : d'où viennent les buts, corners transformés, tireur décisif, carte.
         $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
         self::assertResponseIsSuccessful();
         $lignes = $crawler->filter('.origines-buts tbody tr')->each(fn ($tr) => $tr->filter('th, td')->each(fn ($c) => $c->text()));
         self::assertSame([
-            ['Action de jeu', '1', '–'], ['Corner', '1', '–'], ['Coup franc direct', '1', '–'], ['Coup franc indirect', '–', '–'], ['Penalty', '–', '1'],
-            ['Sur coups de pied arrêtés', '2', '1'], ['Corners transformés', '1 sur 2 (50 %)', '0 sur 0'],
+            ['Action de jeu', '1', '–'], ['Corner', '1', '–'], ['Coup franc direct', '1', '–'], ['Coup franc indirect', '1', '–'], ['Penalty', '–', '1'],
+            ['Sur coups de pied arrêtés', '3', '1'], ['Corners transformés', '1 sur 2 (50 %)', '0 sur 0'],
+            ['Coups francs transformés', '2 sur 2 (100 %)', '0 sur 1 (0 %)'],
         ], $lignes);
+        self::assertStringContainsString('Tom PETIT (1 coup franc)', $crawler->filter('.origines-buts')->ancestors()->filter('section')->text());
         self::assertStringContainsString('Léo GRAND (1 corner)', $crawler->filter('.origines-buts')->ancestors()->filter('section')->text());
         $corner = array_values(array_filter($this->carte($crawler), fn ($a) => 'B' === $a['type'] && 12 === $a['minute']))[0];
         self::assertSame('corner', $corner['details']['situation']);
         self::assertStringContainsString('sur corner de Léo GRAND', $corner['libelle']);
         self::assertStringContainsString('Corner tiré par Léo GRAND', $crawler->filter('.buts-liste')->first()->text());
+
+        $cf = array_values(array_filter($this->carte($crawler), fn ($a) => 'B' === $a['type'] && 75 === $a['minute']))[0];
+        self::assertEquals([80, 15], $cf['details']['coupFranc'], 'endroit du coup franc indirect sur la carte');
+        self::assertCount(2, array_filter($this->carte($crawler), fn ($a) => 'CF' === $a['type']), 'coups francs obtenus sur la carte');
+        self::assertStringContainsString('2 – 1', $crawler->filter('.tuile')->reduce(fn ($t) => str_contains($t->text(), 'coups francs'))->text());
 
         // Situation écrite à la main sur la feuille → code du direct.
         self::assertSame(['corner', 'cfi', 'cfd', 'penalty', null], array_map([ActionMatch::class, 'situationDeConditions'], ['Corner droit', 'CF indirect', 'Coup franc direct', 'Pénalty', 'Tir croisé']));

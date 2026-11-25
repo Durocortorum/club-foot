@@ -7,21 +7,25 @@
  */
 
 /** Départ par défaut (milieu d'une zone du direct, ou devant le but) et point d'entrée au centre du but. */
-export function preparerBut(droite, depart = null, arrivee = null, situation = null) {
+export function preparerBut(droite, depart = null, arrivee = null, situation = null, coupFranc = null) {
     const but = {
         droite,
         situation,
         depart: depart ? [...depart] : [droite ? 94 : 11, 34],
         arrivee: arrivee ? [...arrivee] : [droite ? 105 : 0, 34],
     };
+    // Coup franc indirect : endroit d'où il est tiré (déplaçable), relié à la reprise du buteur.
+    if (situation === 'cfi') but.coupFranc = coupFranc ? [...coupFranc] : [droite ? 80 : 25, 18];
     // Vue resserrée devant le but (le but paraît plus grand), élargie juste assez pour montrer le départ du tir
-    // (et le drapeau d'où part un corner).
-    const [dx, dy] = but.depart;
-    const y0 = situation === 'corner' ? -2 : Math.max(-2, Math.min(10, dy - 6));
-    const y1 = situation === 'corner' ? 70 : Math.min(70, Math.max(58, dy + 6));
+    // (et le drapeau d'où part un corner, l'endroit du coup franc).
+    const points = [but.depart, ...(but.coupFranc ? [but.coupFranc] : [])];
+    const xs = points.map((p) => p[0]);
+    const ys = points.map((p) => p[1]);
+    const y0 = situation === 'corner' ? -2 : Math.max(-2, Math.min(10, Math.min(...ys) - 6));
+    const y1 = situation === 'corner' ? 70 : Math.min(70, Math.max(58, Math.max(...ys) + 6));
     but.vue = droite
-        ? [Math.max(50.5, Math.min(78, dx - 6)), y0, 108.5, y1]
-        : [-3.5, y0, Math.min(54.5, Math.max(27, dx + 6)), y1];
+        ? [Math.max(50.5, Math.min(78, Math.min(...xs) - 6)), y0, 108.5, y1]
+        : [-3.5, y0, Math.min(54.5, Math.max(27, Math.max(...xs) + 6)), y1];
     return but;
 }
 
@@ -48,6 +52,12 @@ export function dessinerBut(svg, b) {
         <circle cx="${bx}" cy="30.34" r="0.5" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
         <circle cx="${bx}" cy="37.66" r="0.5" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
         ${b.situation === 'corner' ? coinDuCorner(b, bx, s, couleur) : ''}
+        ${b.coupFranc ? `<line x1="${b.coupFranc[0]}" y1="${b.coupFranc[1]}" x2="${b.depart[0]}" y2="${b.depart[1]}" stroke="#fff" stroke-width="0.35" stroke-dasharray="1 0.8" opacity="0.9"/>
+        <g class="poignee-but" data-poignee="coupFranc">
+            <circle cx="${b.coupFranc[0]}" cy="${b.coupFranc[1]}" r="2.4" fill="transparent"/>
+            <circle cx="${b.coupFranc[0]}" cy="${b.coupFranc[1]}" r="1.5" fill="${couleur}" stroke="#fff" stroke-width="0.25"/>
+            <text x="${b.coupFranc[0]}" y="${b.coupFranc[1] + 0.55}" text-anchor="middle" font-size="1.5" font-weight="800" fill="#fff">CF</text>
+        </g>` : ''}
         <line x1="${b.depart[0]}" y1="${b.depart[1]}" x2="${b.arrivee[0]}" y2="${b.arrivee[1]}" stroke="${couleur}" stroke-width="0.5" marker-end="url(#pointe-saisie-but)"/>
         <circle class="poignee-but" data-poignee="arrivee" cx="${b.arrivee[0]}" cy="${b.arrivee[1]}" r="1.6" fill="rgba(255,255,255,.35)" stroke="${couleur}" stroke-width="0.25"/>
         <g class="poignee-but" data-poignee="depart">
@@ -87,7 +97,9 @@ export function ecouterBut(svg, lire) {
         const b = lire();
         if (!prise || !b) return;
         const q = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
-        b[prise] = [Math.min(108, Math.max(-3, q.x)), Math.min(68, Math.max(0, q.y))];
+        // Le coup franc se tire sur le terrain (pas dans le but).
+        b[prise] = prise === 'coupFranc' ? [Math.min(105, Math.max(0, q.x)), Math.min(68, Math.max(0, q.y))]
+            : [Math.min(108, Math.max(-3, q.x)), Math.min(68, Math.max(0, q.y))];
         dessinerBut(svg, b);
     });
     const lacher = () => { prise = null; };
