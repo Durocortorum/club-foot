@@ -88,7 +88,7 @@
                             {% if a.corners.nous or a.corners.eux %}
                                 <tr><th>Corners transformés</th>
                                     {% for camp in ['nous', 'eux'] %}
-                                        {% set n = a.origines[camp].corner ?? 0 %}
+                                        {% set n = (a.origines[camp].corner ?? 0) + (a.origines[camp].cod ?? 0) %}
                                         <td>{{ n }} sur {{ a.corners[camp] }}{% if a.corners[camp] %} <span class="discret">({{ (100 * n / a.corners[camp])|round }} %)</span>{% endif %}</td>
                                     {% endfor %}</tr>
                             {% endif %}

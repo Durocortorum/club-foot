@@ -27,7 +27,7 @@ const BUTS = ['B', 'BA'];
 // Actions de l'équipe sans joueur à choisir (corner, coup franc obtenu).
 const SANS_JOUEUR = ['CO', 'CF'];
 // D'où vient un but quand ce n'est pas une action de jeu (comme ActionMatch::SITUATIONS_BUT).
-const SITUATIONS = { corner: 'Corner', cfd: 'Coup franc direct', cfi: 'Coup franc indirect', penalty: 'Penalty' };
+const SITUATIONS = { corner: 'Corner', cod: 'Corner direct', cfd: 'Coup franc direct', cfi: 'Coup franc indirect', penalty: 'Penalty' };
 // Lignes de l'équipe, d'après l'abréviation du poste (G ; DEF, DC, LD… ; MIL, MDC, MOG… ; AT).
 const LIGNES = [['gardien', 'Gardiens'], ['defense', 'Défenseurs'], ['milieu', 'Milieux'], ['attaque', 'Attaquants'], ['autre', 'Sans poste']];
 function ligneDuPoste(poste) {
@@ -668,7 +668,7 @@ export default class extends Controller {
         const nous = this.camp() === 'nous';
         let html = '';
         // Sur quelle action : de jeu, ou coup de pied arrêté (corner, coup franc, penalty) pour l'analyse des buts.
-        const situation = `<p class="live-libelle">Sur quelle action ?</p>${this.choix('situation', [['jeu', 'Action de jeu'], ['corner', '🚩 Corner'], ['cfd', 'Coup franc direct'], ['cfi', 'Coup franc indirect'], ['penalty', 'Penalty']])}`;
+        const situation = `<p class="live-libelle">Sur quelle action ?</p>${this.choix('situation', [['jeu', 'Action de jeu'], ['corner', '🚩 Corner'], ['cod', '🚩 Corner direct'], ['cfd', 'Coup franc direct'], ['cfi', 'Coup franc indirect'], ['penalty', 'Penalty']])}`;
         if (type === 'but' && nous) {
             html = this.choix('geste', [['tir', 'Tir'], ['tete', 'Tête'], ['csc', 'Contre son camp (adversaire)']]) + situation
                 + `<div class="si-joueur">${this.grilleJoueurs('joueur', this.joueursTries(), 'Buteur')}
@@ -738,10 +738,17 @@ export default class extends Controller {
                 const situation = this.valeur('situation');
                 const t = this.trace;
                 this.trace = preparerBut(nous, this.traceTouchee ? t.depart : departDeSituation(nous, situation), this.traceTouchee ? t.arrivee : null, situation, t.coupFranc);
+                // Corner direct : pas de passe décisive.
+                const choixPasseur = this.dialogueTarget.querySelector('select[name=passeur]');
+                if (choixPasseur) {
+                    choixPasseur.disabled = situation === 'cod';
+                    if (situation === 'cod') choixPasseur.value = '';
+                }
                 if (aide) {
                     aide.hidden = !SITUATIONS[situation];
                     aide.textContent = {
                         corner: 'Placé d\'office : le drapeau du côté du ballon. Déplacez le ballon (de l\'autre côté pour l\'autre drapeau) si besoin.',
+                        cod: 'Placé d\'office au drapeau : le buteur a tiré le corner, pas de passeur. Pour l\'autre drapeau, glissez le ballon dans l\'autre coin.',
                         cfd: 'Placé d\'office : déplacez le ballon à l\'endroit du coup franc.',
                         cfi: 'Placé d\'office : déplacez le rond « CF » là où le coup franc est tiré, et le ballon à l\'endroit de la reprise.',
                         penalty: 'Placé d\'office au point de penalty.',
@@ -799,7 +806,7 @@ export default class extends Controller {
                 ? { zx: Math.max(0, Math.min(5, Math.floor(t.depart[0] / 17.5))), zy: Math.max(0, Math.min(2, Math.floor(t.depart[1] / (68 / 3)))) }
                 : {};
             const ou = t ? { depart: arrondir(t.depart), arrivee: arrondir(t.arrivee), ...(situation === 'cfi' && t.coupFranc ? { coupFranc: arrondir(t.coupFranc) } : {}) } : HORS_CARTE;
-            const details = { geste, ...ou, ...(nous && passeur && passeur !== joueur && geste !== 'csc' ? { passeur } : {}), ...(situation ? { situation } : {}) };
+            const details = { geste, ...ou, ...(nous && passeur && passeur !== joueur && geste !== 'csc' && situation !== 'cod' ? { passeur } : {}), ...(situation ? { situation } : {}) };
             actions = [{ uuid, type: nous ? 'B' : 'BA', joueur: nous && geste !== 'csc' ? joueur : null, details, ...place }];
             // La frappe cadrée qui va avec (pas pour un contre son camp), à la même place que le but si elle est connue.
             const tir = t ? { ...place } : { details: HORS_CARTE };
@@ -807,9 +814,9 @@ export default class extends Controller {
             if (!nous) actions.push({ uuid: this.uuidTir(uuid), type: geste === 'tete' ? 'ATC' : 'AC', joueur: null, ...tir });
             // Sur corner ou coup franc : le corner (ou coup franc) obtenu est compté aussi, à son endroit quand on le
             // connaît (drapeau du côté du tir, endroit du coup franc indirect, départ du coup franc direct).
-            const cpa = situation === 'corner' ? (nous ? 'CO' : 'CA') : (['cfd', 'cfi'].includes(situation) ? (nous ? 'CF' : 'CFA') : null);
+            const cpa = ['corner', 'cod'].includes(situation) ? (nous ? 'CO' : 'CA') : (['cfd', 'cfi'].includes(situation) ? (nous ? 'CF' : 'CFA') : null);
             if (cpa) {
-                const brut = situation === 'corner' ? (t ? [nous ? 105 : 0, t.depart[1] < 34 ? 0 : 68] : null)
+                const brut = ['corner', 'cod'].includes(situation) ? (t ? [nous ? 105 : 0, t.depart[1] < 34 ? 0 : 68] : null)
                     : (situation === 'cfi' ? t?.coupFranc : t?.depart);
                 const pt = brut ? arrondir([Math.max(0, Math.min(105, brut[0])), Math.max(0, Math.min(68, brut[1]))]) : null;
                 actions.push({ uuid: this.uuidCpa(uuid), type: cpa, joueur: null, ...(pt ? { ...zoneDuPoint(pt), details: { point: pt } } : { details: HORS_CARTE }) });

@@ -139,7 +139,7 @@ class ActionMatch implements AppartientAuClub
      * D'où vient un but (B ou BA) quand ce n'est pas une action de jeu : coup de pied arrêté. Le passeur décisif d'un but
      * sur corner ou sur coup franc indirect est le joueur qui l'a tiré. Reporté sur la feuille de match (« Situation »).
      */
-    public const SITUATIONS_BUT = ['corner' => 'Corner', 'cfd' => 'Coup franc direct', 'cfi' => 'Coup franc indirect', 'penalty' => 'Penalty'];
+    public const SITUATIONS_BUT = ['corner' => 'Corner', 'cod' => 'Corner direct', 'cfd' => 'Coup franc direct', 'cfi' => 'Coup franc indirect', 'penalty' => 'Penalty'];
 
     /** Situation du direct d'après la « Situation » écrite sur la feuille de match (Corner droit, CF direct, Pénalty…). */
     public static function situationDeConditions(?string $conditions): ?string
@@ -147,6 +147,7 @@ class ActionMatch implements AppartientAuClub
         $c = mb_strtolower(trim((string) $conditions));
 
         return match (true) {
+            str_starts_with($c, 'corner direct') => 'cod',
             str_starts_with($c, 'corner') => 'corner',
             str_contains($c, 'indirect') && (str_starts_with($c, 'cf') || str_starts_with($c, 'coup franc')) => 'cfi',
             str_starts_with($c, 'cf') || str_starts_with($c, 'coup franc') => 'cfd',
@@ -165,6 +166,8 @@ class ActionMatch implements AppartientAuClub
     {
         return match ($situation) {
             'corner' => null === $depart ? 'Corner' : (($depart[1] < 34) !== $adverse ? 'Corner gauche' : 'Corner droit'),
+            // Corner direct : marqué du drapeau, sans passeur.
+            'cod' => 'Corner direct',
             'cfd' => 'CF direct',
             'cfi' => 'CF indirect',
             'penalty' => 'Pénalty',
@@ -218,7 +221,7 @@ class ActionMatch implements AppartientAuClub
             'arrivee' => $point($details['arrivee'] ?? null),
             'geste' => isset(self::GESTES_BUT[$details['geste'] ?? '']) ? $details['geste'] : null,
             // Passeur décisif (id du joueur ; contrôlé par le contrôleur : joueur du match, autre que le buteur).
-            'passeur' => 'B' === $this->type && is_numeric($details['passeur'] ?? null) && (int) $details['passeur'] > 0 ? (int) $details['passeur'] : null,
+            'passeur' => 'B' === $this->type && 'cod' !== ($details['situation'] ?? null) && is_numeric($details['passeur'] ?? null) && (int) $details['passeur'] > 0 ? (int) $details['passeur'] : null,
             // Corner, coup franc, penalty (absent : action de jeu).
             'situation' => isset(self::SITUATIONS_BUT[$details['situation'] ?? '']) ? $details['situation'] : null,
             // Coup franc indirect : endroit d'où il est tiré (le départ est celui de la reprise du buteur).

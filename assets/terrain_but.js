@@ -21,8 +21,9 @@ export function preparerBut(droite, depart = null, arrivee = null, situation = n
     const points = [but.depart, ...(but.coupFranc ? [but.coupFranc] : [])];
     const xs = points.map((p) => p[0]);
     const ys = points.map((p) => p[1]);
-    const y0 = situation === 'corner' ? -2 : Math.max(-2, Math.min(10, Math.min(...ys) - 6));
-    const y1 = situation === 'corner' ? 70 : Math.min(70, Math.max(58, Math.max(...ys) + 6));
+    const coin = situation === 'corner' || situation === 'cod';
+    const y0 = coin ? -2 : Math.max(-2, Math.min(10, Math.min(...ys) - 6));
+    const y1 = coin ? 70 : Math.min(70, Math.max(58, Math.max(...ys) + 6));
     but.vue = droite
         ? [Math.max(50.5, Math.min(78, Math.min(...xs) - 6)), y0, 108.5, y1]
         : [-3.5, y0, Math.min(54.5, Math.max(27, Math.max(...xs) + 6)), y1];
@@ -51,7 +52,7 @@ export function dessinerBut(svg, b) {
         <rect x="${droite ? 105 : -2.4}" y="30.34" width="2.4" height="7.32" fill="url(#filet-saisie)" stroke="#6b6e75" stroke-width="0.25"/>
         <circle cx="${bx}" cy="30.34" r="0.5" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
         <circle cx="${bx}" cy="37.66" r="0.5" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
-        ${b.situation === 'corner' ? coinDuCorner(b, bx, s, couleur) : ''}
+        ${b.situation === 'corner' || b.situation === 'cod' ? coinDuCorner(b, bx, s, couleur) : ''}
         ${b.coupFranc ? `<line x1="${b.coupFranc[0]}" y1="${b.coupFranc[1]}" x2="${b.depart[0]}" y2="${b.depart[1]}" stroke="#fff" stroke-width="0.35" stroke-dasharray="1 0.8" opacity="0.9"/>
         <g class="poignee-but" data-poignee="coupFranc">
             <circle cx="${b.coupFranc[0]}" cy="${b.coupFranc[1]}" r="2.4" fill="transparent"/>
@@ -72,14 +73,15 @@ function coinDuCorner(b, bx, s, couleur) {
     const cy = b.depart[1] < 34 ? 0 : 68;
     const haut = cy ? cy - 3.2 : 3.2;
     const pente = cy ? 0.8 : -0.8;
-    return `<line x1="${bx}" y1="${cy}" x2="${b.depart[0]}" y2="${b.depart[1]}" stroke="#fff" stroke-width="0.35" stroke-dasharray="1 0.8" opacity="0.9"/>
+    // Corner direct : le ballon part du drapeau, pas de centre à dessiner.
+    return `${b.situation === 'corner' ? `<line x1="${bx}" y1="${cy}" x2="${b.depart[0]}" y2="${b.depart[1]}" stroke="#fff" stroke-width="0.35" stroke-dasharray="1 0.8" opacity="0.9"/>` : ''}
         <path d="M${bx},${cy} V${haut}" stroke="#1d1d1f" stroke-width="0.3"/>
         <path d="M${bx},${haut} l${s * 2.4},${pente} l${-s * 2.4},${pente} z" fill="${couleur}" stroke="#fff" stroke-width="0.15"/>`;
 }
 
 /** Départ du tir par défaut selon la situation du but (dans le sens où l'on attaque ce but). */
 export function departDeSituation(droite, situation) {
-    const [x, y] = { corner: [5.5, 30], cfd: [22, 28], cfi: [8, 37], penalty: [11, 34] }[situation] ?? [13, 29];
+    const [x, y] = { corner: [5.5, 30], cod: [0.6, 0.8], cfd: [22, 28], cfi: [8, 37], penalty: [11, 34] }[situation] ?? [13, 29];
     return [droite ? 105 - x : x, y];
 }
 

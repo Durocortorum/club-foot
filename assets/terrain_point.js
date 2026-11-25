@@ -88,7 +88,7 @@ export function rondsHtml(actions, vertical, sens, echapper, campDe = null) {
         // But (départ du tir) : un petit ballon, cerclé de rouge pour nous, de bleu pour l'adversaire ; coup de pied
         // arrêté : pastille (drapeau pour un corner, « CF » pour un coup franc, « P » pour un penalty).
         if (a.type === 'B' || a.type === 'BA') {
-            const pastille = { corner: DRAPEAU, cfd: 'CF', cfi: 'CF', penalty: 'P' }[a.details?.situation] ?? '';
+            const pastille = { corner: DRAPEAU, cod: DRAPEAU, cfd: 'CF', cfi: 'CF', penalty: 'P' }[a.details?.situation] ?? '';
             return `<span class="but-terrain ${a.type === 'B' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%" title="${echapper(`${a.minute}' · ${a.libelle || ''}`)}">⚽${pastille ? `<span class="pastille-cpa">${pastille}</span>` : ''}</span>`;
         }
         // Tout le match : une couleur par équipe (campDe) au lieu d'une couleur par action.

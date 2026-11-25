@@ -182,7 +182,7 @@ class MatchDirectTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $lignes = $crawler->filter('.origines-buts tbody tr')->each(fn ($tr) => $tr->filter('th, td')->each(fn ($c) => $c->text()));
         self::assertSame([
-            ['Action de jeu', '1', '–'], ['Corner', '1', '–'], ['Coup franc direct', '1', '–'], ['Coup franc indirect', '1', '–'], ['Penalty', '–', '1'],
+            ['Action de jeu', '1', '–'], ['Corner', '1', '–'], ['Corner direct', '–', '–'], ['Coup franc direct', '1', '–'], ['Coup franc indirect', '1', '–'], ['Penalty', '–', '1'],
             ['Sur coups de pied arrêtés', '3', '1'], ['Corners transformés', '1 sur 2 (50 %)', '0 sur 0'],
             ['Coups francs transformés', '2 sur 2 (100 %)', '0 sur 1 (0 %)'],
         ], $lignes);
@@ -199,7 +199,10 @@ class MatchDirectTest extends WebTestCase
         self::assertStringContainsString('2 – 1', $crawler->filter('.tuile')->reduce(fn ($t) => str_contains($t->text(), 'coups francs'))->text());
 
         // Situation écrite à la main sur la feuille → code du direct.
-        self::assertSame(['corner', 'cfi', 'cfd', 'penalty', null], array_map([ActionMatch::class, 'situationDeConditions'], ['Corner droit', 'CF indirect', 'Coup franc direct', 'Pénalty', 'Tir croisé']));
+        self::assertSame(['corner', 'cod', 'cfi', 'cfd', 'penalty', null], array_map([ActionMatch::class, 'situationDeConditions'], ['Corner droit', 'Corner direct', 'CF indirect', 'Coup franc direct', 'Pénalty', 'Tir croisé']));
+        // Corner direct : pas de passeur (le buteur a tiré le corner).
+        $direct = (new ActionMatch($em->find(Rencontre::class, $matchId), 'test'))->setType('B')->setDetails(['situation' => 'cod', 'passeur' => $leoId, 'geste' => 'tir']);
+        self::assertSame(['geste' => 'tir', 'situation' => 'cod'], $direct->getDetails());
     }
 
     public function testSaisieEnDirectEtBilan(): void

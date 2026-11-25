@@ -2504,7 +2504,7 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .live-note-passeur[hidden] { display: none; }
 /* Situation d'un but (bilan) et tableau « D'où viennent les buts ». */
 .situation-but { display: inline-block; padding: .05rem .45rem; border-radius: 99px; font-size: .8em; font-weight: 700; background: #fde8ea; color: #a51c2c; white-space: nowrap; }
-.situation-but.corner::before { content: '🚩 '; }
+.situation-but.corner::before, .situation-but.cod::before { content: '🚩 '; }
 .situation-but.penalty { background: #fff1d6; color: #8a5a00; }
 .situation-but.cfd, .situation-but.cfi { background: #e6efff; color: #1a4fae; }
 .origines-buts tr.vide { opacity: .5; }
