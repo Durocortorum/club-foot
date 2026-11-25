@@ -3,131 +3,155 @@
 
 {% block title %}Analyse de l'adversaire – {{ adversaire }}{% endblock %}
 
-{% macro note(classe, icone, titre, texte) %}
-    {% if texte %}
-        <li class="note-adv {{ classe }}">
-            <span class="note-adv-icone" aria-hidden="true">{{ icone }}</span>
-            <div><strong>{{ titre }}</strong><p class="memo sans-marge">{{ texte }}</p></div>
-        </li>
-    {% endif %}
+{# Texte sur plusieurs lignes → liste à puces (une ligne = un point). #}
+{% macro puces(texte, classe = '') %}
+    {% set lignes = texte|split("\n")|map(l => l|trim|trim('-•·*', 'left')|trim)|filter(l => l) %}
+    {% if lignes|length %}<ul class="adv-puces {{ classe }}">{% for l in lignes %}<li>{{ l }}</li>{% endfor %}</ul>{% endif %}
+{% endmacro %}
+
+{# Niveau de danger de 1 à 5 : cinq barres, les premières en couleur. #}
+{% macro niveau(n) %}
+    <span class="adv-niveau" role="img" aria-label="Niveau {{ n }} sur 5">{% for i in 1..5 %}<i class="{{ i <= n ? 'plein' }}"></i>{% endfor %}</span>
+{% endmacro %}
+
+{# Joueur dangereux : numéro dans un rond, poste et nom, ce qu'il faut savoir. #}
+{% macro joueur(j) %}
+    {% set j = {numero: null, poste: null, nom: null, note: null}|merge(j) %}
+    <li class="adv-joueur">
+        <span class="adv-numero">{{ j.numero ?? '?' }}</span>
+        <div><strong>{{ j.numero ? 'N°' ~ j.numero }}{{ j.numero and (j.poste or j.nom) ? ' – ' }}{{ [j.poste, j.nom]|filter(x => x)|join(' · ') }}</strong>
+            {% if j.note %}<p class="discret petit sans-marge">{{ j.note }}</p>{% endif %}</div>
+    </li>
 {% endmacro %}
 {% import _self as a %}
 
 {% block body %}
     {{ m.retour(path('app_rencontre_voir', {id: rencontre.id}), rencontre.intitule) }}
 
-    <div class="titre-page">
+    <div data-controller="onglets">
+    <div class="titre-page adv-entete">
         <div>
-            <p class="discret">Analyse de l'adversaire · {{ rencontre.equipeAffichee }}</p>
+            <p class="discret">Rapport d'observation de l'adversaire · {{ rencontre.equipeAffichee }}</p>
             <h1>{{ adversaire }}</h1>
         </div>
-        {% if prochain %}
-            <div class="actions">
-                <a class="bouton principal" href="#preparation">Préparer le {{ nom_prochain }}</a>
-            </div>
-        {% endif %}
+        <div class="actions">
+            {% if prochain %}
+                <a class="pastille adv-prochain" href="{{ path('app_rencontre_voir', {id: prochain.id}) }}">📅 {{ libelle_prochain }} · {{ prochain.date|date('d/m/Y') }}{{ prochain.heure ? ' à ' ~ prochain.heure }}</a>
+            {% endif %}
+            {% if modifiable %}<a class="bouton principal" href="#modifier" data-action="onglets#modifier">✏️ Modifier / compléter</a>{% endif %}
+        </div>
     </div>
 
-    {# Les quatre temps de la préparation, chacun mène à son bloc. #}
-    <ol class="parcours-adv">
-        <li><a href="#derniere"><span class="parcours-num">1</span> Revoir le dernier match</a></li>
-        <li><a href="#historique"><span class="parcours-num">2</span> Analyser les points clés</a></li>
-        <li><a href="#notes"><span class="parcours-num">3</span> Ajuster la tactique</a></li>
-        <li><a href="#preparation"><span class="parcours-num">4</span> Préparer le {{ nom_prochain }}</a></li>
-    </ol>
+    <nav class="adv-onglets" role="tablist">
+        <a href="#analyse" role="tab" data-onglet="analyse" data-onglets-target="bouton" data-action="onglets#choisir">📊 Analyse</a>
+        <a href="#effectif" role="tab" data-onglet="effectif" data-onglets-target="bouton" data-action="onglets#choisir">👥 Effectif</a>
+        <a href="#historique" role="tab" data-onglet="historique" data-onglets-target="bouton" data-action="onglets#choisir">🕘 Historique</a>
+        <a href="#video" role="tab" data-onglet="video" data-onglets-target="bouton" data-action="onglets#choisir">▶ Vidéo</a>
+    </nav>
 
-    <section class="bloc" id="historique">
-        <h2 class="titre-bloc">Historique des confrontations</h2>
-        {% if joues|length %}
-            <div class="tuiles bilan">
-                <div class="tuile"><span class="tuile-valeur"><span class="resultat-V">{{ bilan.V }}</span></span><span class="tuile-libelle">victoire{{ bilan.V > 1 ? 's' }}</span></div>
-                <div class="tuile"><span class="tuile-valeur"><span class="resultat-N">{{ bilan.N }}</span></span><span class="tuile-libelle">nul{{ bilan.N > 1 ? 's' }}</span></div>
-                <div class="tuile"><span class="tuile-valeur"><span class="resultat-D">{{ bilan.D }}</span></span><span class="tuile-libelle">défaite{{ bilan.D > 1 ? 's' }}</span></div>
-                <div class="tuile"><span class="tuile-valeur double">{{ bilan.pour }} – {{ bilan.contre }}</span><span class="tuile-libelle">buts marqués – encaissés</span></div>
-                {% if prochain %}
-                    <a class="tuile tuile-prochain" href="{{ path('app_rencontre_voir', {id: prochain.id}) }}">
-                        <span class="tuile-valeur petit-valeur">{{ libelle_prochain }}</span>
-                        <span class="tuile-libelle">{{ prochain.date|date('d/m/Y') }}{{ prochain.heure ? ' à ' ~ prochain.heure }} · {{ prochain.aDomicile ? 'à domicile' : 'à l\'extérieur' }}</span>
-                    </a>
+    {# ———————— Analyse : système, forces et faiblesses, animation de jeu, joueurs à surveiller, plan de match ———————— #}
+    <div id="onglet-analyse" data-onglet="analyse" data-onglets-target="panneau" role="tabpanel">
+        <div class="adv-grille-haut" id="notes">
+            <section class="carte adv-systeme">
+                <h2>Système habituel</h2>
+                {% if systeme_habituel %}
+                    <p class="adv-systeme-nom">{{ systeme_habituel|replace({' ': '-'})|replace({'-losange': ' losange'}) }}</p>
+                    <div class="adv-mini-terrain" role="img" aria-label="Système {{ systeme_habituel }}">
+                        <span class="adv-mt-ligne mediane"></span><span class="adv-mt-ligne surface haut"></span><span class="adv-mt-ligne surface bas"></span>
+                        {% for p in places %}<span class="adv-pion{{ loop.first ? ' gardien' }}" style="left:{{ p.x }}%;top:{{ p.y }}%"></span>{% endfor %}
+                    </div>
+                    {% if systeme_deduit %}<p class="discret petit">D'après les matchs joués contre lui.</p>{% endif %}
+                {% else %}
+                    <p class="discret">Pas encore noté{{ modifiable ? ' : choisissez-le dans « Modifier / compléter ».' : '.' }}</p>
                 {% endif %}
+            </section>
+
+            <section class="carte adv-forces">
+                <h2><span aria-hidden="true">👍</span> Forces</h2>
+                {% if fiche and fiche.pointsForts %}{{ a.puces(fiche.pointsForts) }}{% else %}<p class="discret">Rien de noté.</p>{% endif %}
+            </section>
+            <section class="carte adv-faiblesses">
+                <h2><span aria-hidden="true">⚠️</span> Faiblesses</h2>
+                {% if fiche and fiche.pointsFaibles %}{{ a.puces(fiche.pointsFaibles) }}{% else %}<p class="discret">Rien de noté.</p>{% endif %}
+            </section>
+
+            <div class="adv-themes">
+
+            {% for code, t in jeu %}
+                {% set theme = fiche ? fiche.theme(code) : {texte: null, niveau: 0} %}
+                <section class="carte adv-theme">
+                    <h3><span aria-hidden="true">{{ t[1] }}</span> {{ t[0] }}</h3>
+                    {% if theme.texte %}<p class="petit sans-marge">{{ theme.texte|nl2br }}</p>{% else %}<p class="discret petit sans-marge">Rien de noté.</p>{% endif %}
+                    {# Coups de pied arrêtés : ce que nos confrontations disent déjà. #}
+                    {% if code == 'cpa' and cpa_encaisses.total %}
+                        <p class="adv-constat petit">⚽ {{ cpa_encaisses.total }} but{{ cpa_encaisses.total > 1 ? 's' }} encaissé{{ cpa_encaisses.total > 1 ? 's' }} contre eux sur coup de pied arrêté ({{ cpa_encaisses.detail|map((n, s) => n ~ ' sur ' ~ s)|join(', ') }}).</p>
+                    {% endif %}
+                    {% if theme.niveau %}<div class="adv-theme-pied">{{ a.niveau(theme.niveau) }}<span class="discret petit">danger {{ theme.niveau }}/5</span></div>{% endif %}
+                </section>
+            {% endfor %}
             </div>
-            {% if systemes %}
-                <p>Organisations de l'adversaire :
-                    {% for s, n in systemes %}<span class="pastille">{{ s }}{{ n > 1 ? ' (' ~ n ~ ' matchs)' }}</span> {% endfor %}
-                </p>
-            {% endif %}
-            <div class="table-defile">
-                <table class="liste">
-                    <thead><tr><th>Date</th><th>Compétition</th><th>Match</th><th>Score</th><th>Organisation adverse</th><th>Vidéo</th></tr></thead>
-                    <tbody>
-                        {% for r in joues %}
-                            <tr>
-                                <td>{{ r.date|date('d/m/Y') }}</td>
-                                <td>{{ r.competition ?? '—' }}</td>
-                                <td class="principal"><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.aDomicile ? 'À domicile' : 'À l\'extérieur' }}</a></td>
-                                <td>{{ m.score(r) }}</td>
-                                <td>{{ r.systemeAdverse ?? '—' }}</td>
-                                <td>{% if r.lienVideo %}<a href="{{ r.lienVideo }}" target="_blank" rel="noopener">▶ {{ r.siteVideo ?? 'Voir' }}</a>{% endif %}</td>
-                            </tr>
+        </div>
+
+        <div class="adv-grille-bas">
+            <section class="carte">
+                <div class="titre-page"><h2>⭐ Joueurs dangereux</h2>
+                    <a class="petit" href="#effectif" data-onglet="effectif" data-action="onglets#choisir">Tout l'effectif →</a></div>
+                {% set dangereux = fiche ? fiche.joueursDangereux : [] %}
+                {% if dangereux|length %}
+                    <ul class="adv-joueurs">{% for j in dangereux|slice(0, 3) %}{{ a.joueur(j) }}{% endfor %}</ul>
+                {% elseif buteurs_adverses|length %}
+                    <p class="petit">Buteurs contre nous : {% for n, b in buteurs_adverses|slice(0, 3, true) %}<span class="pastille">N°{{ n }} · {{ b }} but{{ b > 1 ? 's' }}</span> {% endfor %}</p>
+                {% else %}
+                    <p class="discret">Personne de noté{{ modifiable ? ' : ajoutez leurs numéros dans « Modifier / compléter ».' : '.' }}</p>
+                {% endif %}
+            </section>
+
+            <section class="carte" id="preparation">
+                <div class="titre-page"><h2>📝 Notes et plan du {{ nom_prochain }}</h2>
+                    {% if prochain %}<span class="pastille">{{ prochain.date|date('d/m/Y') }}</span>{% endif %}</div>
+                {% if fiche and fiche.aRetenir %}<p class="adv-retenir"><strong>À retenir :</strong> {{ fiche.aRetenir }}</p>{% endif %}
+                {% if fiche and fiche.preparation %}{{ a.puces(fiche.preparation, 'plan') }}
+                {% elseif not (fiche and fiche.aRetenir) %}<p class="discret">Rien de prévu pour l'instant.</p>{% endif %}
+                <div class="actions-ligne">
+                    {% if modifiable %}<a class="bouton principal" href="#modifier" data-action="onglets#modifier">✏️ Modifier / compléter</a>{% endif %}
+                    {% if prochain and modifiable %}
+                        <a class="bouton" href="{{ path('app_tactique', {id: prochain.id}) }}">📋 Tableau tactique</a>
+                        <a class="bouton" href="{{ path('app_rencontre_composition', {id: prochain.id}) }}">Composition</a>
+                        <a class="bouton" href="{{ path('app_convocation', {id: prochain.id}) }}">Convocation</a>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+    </div>
+
+    {# ———————— Effectif : joueurs à surveiller, buteurs contre nous, notre composition au dernier match ———————— #}
+    <div id="onglet-effectif" data-onglet="effectif" data-onglets-target="panneau" role="tabpanel" hidden>
+        <div class="adv-grille-bas">
+            <section class="carte">
+                <h2>⭐ Joueurs dangereux</h2>
+                {% set dangereux = fiche ? fiche.joueursDangereux : [] %}
+                {% if dangereux|length %}
+                    <ul class="adv-joueurs">{% for j in dangereux %}{{ a.joueur(j) }}{% endfor %}</ul>
+                {% else %}
+                    <p class="discret">Personne de noté{{ modifiable ? ' : notez leur numéro, leur poste et ce qu\'il faut savoir dans « Modifier / compléter ».' : '.' }}</p>
+                {% endif %}
+            </section>
+            <section class="carte">
+                <h2>⚽ Buteurs contre nous</h2>
+                {% if buteurs_adverses|length %}
+                    <ul class="adv-joueurs">
+                        {% for n, b in buteurs_adverses %}
+                            <li class="adv-joueur"><span class="adv-numero">{{ n }}</span><div><strong>N°{{ n }}</strong><p class="discret petit sans-marge">{{ b }} but{{ b > 1 ? 's' }} contre nous</p></div></li>
                         {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <div class="carte">
-                <p class="sans-marge">Aucun match joué contre {{ adversaire }} pour le moment{{ prochain ? ' : la fiche se remplira après le ' ~ prochain.date|date('d/m/Y') }}. Les notes et la préparation ci-dessous peuvent déjà servir.</p>
-            </div>
-        {% endif %}
-    </section>
-
-    {% if derniere %}
-        <section class="carte bloc" id="derniere">
-            <div class="titre-page">
-                <h2>Dernière confrontation{% if derniere.competition %} <span class="pastille">{{ derniere.competition }}</span>{% endif %}</h2>
-                <a class="bouton petit" href="{{ path('app_rencontre_voir', {id: derniere.id}) }}">Voir le match</a>
-            </div>
-            <div class="derniere-adv">
-                <div>
-                    <p class="affiche">
-                        <span>{{ derniere.domicile }}</span>
-                        {{ m.score(derniere) }}
-                        <span>{{ derniere.exterieur }}</span>
-                    </p>
-                    <dl>
-                        {{ m.ligne('Date', derniere.date|date('d/m/Y')) }}
-                        {{ m.ligne('Mi-temps', derniere.butsDomicileMiTemps is not null ? derniere.butsDomicileMiTemps ~ ' – ' ~ derniere.butsExterieurMiTemps) }}
-                        {{ m.ligne('Organisation de l\'adversaire', derniere.systemeAdverse) }}
-                        {{ m.ligne('Notre organisation', derniere.systemeLibelle) }}
-                        {{ m.ligne('Terrain', derniere.terrain) }}
-                    </dl>
-                    {% set marques = derniere.buts|filter(b => not b.adverse) %}
-                    {% if marques|length %}
-                        <p class="petit">⚽ {{ marques|map(b => (b.buteur ? b.buteur.prenom ~ ' ' ~ b.buteur.nom : 'but') ~ (b.temps ? ' (' ~ b.temps ~ '\')' : ''))|join(', ') }}</p>
-                    {% endif %}
-                    <p><a href="{{ path('app_match_direct_bilan', {id: derniere.id}) }}">Statistiques du direct</a> (passes, duels, frappes, carte du terrain)</p>
-                </div>
-                <div class="video-adv">
-                    {% if derniere.lienVideo %}
-                        <a class="video-adv-vignette" href="{{ derniere.lienVideo }}" target="_blank" rel="noopener">
-                            <span class="video-adv-lecture" aria-hidden="true">▶</span>
-                            <span>Voir le match{{ derniere.siteVideo ? ' (' ~ derniere.siteVideo ~ ')' }}</span>
-                        </a>
-                    {% else %}
-                        <div class="video-adv-vignette vide">
-                            <span class="video-adv-lecture" aria-hidden="true">▶</span>
-                            <span>Pas encore de vidéo{{ video_modifiable ? ' : collez son lien dans « Modifier l\'analyse »' }}</span>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </section>
-
-    {% endif %}
-
-    <div class="adv-colonnes">
-    {% if derniere and compo.titulaires %}
+                    </ul>
+                {% else %}
+                    <p class="discret">D'après le numéro des buteurs adverses noté sur la feuille de match : rien pour l'instant.</p>
+                {% endif %}
+            </section>
+        </div>
+        {% if derniere and compo.titulaires %}
             <section class="carte bloc adv-compo">
-                <h2>Notre composition{% if derniere.systeme and not derniere.placementEducateur %} <span class="pastille">{{ derniere.systeme }}</span>{% endif %}</h2>
+                <h2>Notre composition au dernier match{% if derniere.systeme and not derniere.placementEducateur %} <span class="pastille">{{ derniere.systeme }}</span>{% endif %}</h2>
                 {% include 'rencontre/_terrain_compo.html.twig' with {rencontre: derniere, compo: compo, modifiable: false} %}
                 {% if derniere.remplacements|length %}
                     <p class="petit"><strong>Changements :</strong>
@@ -137,41 +161,103 @@
                     </p>
                 {% endif %}
             </section>
-    {% endif %}
-
-    <div>
-    <section class="carte bloc" id="notes">
-        <h2>Notes de l'éducateur</h2>
-        {% if fiche and fiche.aDesNotes %}
-            <ul class="notes-adv">
-                {{ a.note('fort', '✓', 'Points forts', fiche.pointsForts) }}
-                {{ a.note('faible', '✗', 'Points faibles', fiche.pointsFaibles) }}
-                {{ a.note('retenir', '!', 'À retenir', fiche.aRetenir) }}
-            </ul>
-        {% else %}
-            <p class="discret">Pas encore de notes sur cet adversaire{{ modifiable ? ' : notez ses points forts, ses points faibles et ce qu\'il faut retenir avec « Modifier l\'analyse ».' : '.' }}</p>
         {% endif %}
-    </section>
-
-    <section class="carte bloc" id="preparation">
-        <div class="titre-page">
-            <h2>Préparation du {{ nom_prochain }}</h2>
-            {% if prochain %}<span class="pastille">{{ prochain.date|date('d/m/Y') }}</span>{% endif %}
-        </div>
-        {% if fiche and fiche.preparation %}
-            <p class="memo">{{ fiche.preparation }}</p>
-        {% else %}
-            <p class="discret">Rien de prévu pour l'instant{{ modifiable ? ' : notez l\'organisation choisie, les consignes et les ajustements avec « Modifier l\'analyse ».' : '.' }}</p>
-        {% endif %}
-        {% if prochain and modifiable %}
-            <div class="actions-ligne">
-                <a class="bouton principal" href="{{ path('app_tactique', {id: prochain.id}) }}">📋 Tableau tactique</a>
-                <a class="bouton" href="{{ path('app_rencontre_composition', {id: prochain.id}) }}">Composition du prochain match</a>
-                <a class="bouton" href="{{ path('app_convocation', {id: prochain.id}) }}">Convocation</a>
-            </div>
-        {% endif %}
-    </section>
     </div>
+
+    {# ———————— Historique : bilan des confrontations, dernière confrontation ———————— #}
+    <div id="onglet-historique" data-onglet="historique" data-onglets-target="panneau" role="tabpanel" hidden>
+        <section class="bloc" id="historique">
+            {% if joues|length %}
+                <div class="tuiles bilan">
+                    <div class="tuile"><span class="tuile-valeur"><span class="resultat-V">{{ bilan.V }}</span></span><span class="tuile-libelle">victoire{{ bilan.V > 1 ? 's' }}</span></div>
+                    <div class="tuile"><span class="tuile-valeur"><span class="resultat-N">{{ bilan.N }}</span></span><span class="tuile-libelle">nul{{ bilan.N > 1 ? 's' }}</span></div>
+                    <div class="tuile"><span class="tuile-valeur"><span class="resultat-D">{{ bilan.D }}</span></span><span class="tuile-libelle">défaite{{ bilan.D > 1 ? 's' }}</span></div>
+                    <div class="tuile"><span class="tuile-valeur double">{{ bilan.pour }} – {{ bilan.contre }}</span><span class="tuile-libelle">buts marqués – encaissés</span></div>
+                    {% if prochain %}
+                        <a class="tuile tuile-prochain" href="{{ path('app_rencontre_voir', {id: prochain.id}) }}">
+                            <span class="tuile-valeur petit-valeur">{{ libelle_prochain }}</span>
+                            <span class="tuile-libelle">{{ prochain.date|date('d/m/Y') }}{{ prochain.heure ? ' à ' ~ prochain.heure }} · {{ prochain.aDomicile ? 'à domicile' : 'à l\'extérieur' }}</span>
+                        </a>
+                    {% endif %}
+                </div>
+                {% if systemes %}
+                    <p>Organisations de l'adversaire :
+                        {% for s, n in systemes %}<span class="pastille">{{ s }}{{ n > 1 ? ' (' ~ n ~ ' matchs)' }}</span> {% endfor %}
+                    </p>
+                {% endif %}
+                <div class="table-defile">
+                    <table class="liste">
+                        <thead><tr><th>Date</th><th>Compétition</th><th>Match</th><th>Score</th><th>Organisation adverse</th><th>Vidéo</th></tr></thead>
+                        <tbody>
+                            {% for r in joues %}
+                                <tr>
+                                    <td>{{ r.date|date('d/m/Y') }}</td>
+                                    <td>{{ r.competition ?? '—' }}</td>
+                                    <td class="principal"><a href="{{ path('app_rencontre_voir', {id: r.id}) }}">{{ r.aDomicile ? 'À domicile' : 'À l\'extérieur' }}</a></td>
+                                    <td>{{ m.score(r) }}</td>
+                                    <td>{{ r.systemeAdverse ?? '—' }}</td>
+                                    <td>{% if r.lienVideo %}<a href="{{ r.lienVideo }}" target="_blank" rel="noopener">▶ {{ r.siteVideo ?? 'Voir' }}</a>{% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="carte">
+                    <p class="sans-marge">Aucun match joué contre {{ adversaire }} pour le moment{{ prochain ? ' : l\'historique se remplira après le ' ~ prochain.date|date('d/m/Y') }}.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        {% if derniere %}
+            <section class="carte bloc" id="derniere">
+                <div class="titre-page">
+                    <h2>Dernière confrontation{% if derniere.competition %} <span class="pastille">{{ derniere.competition }}</span>{% endif %}</h2>
+                    <a class="bouton petit" href="{{ path('app_rencontre_voir', {id: derniere.id}) }}">Voir le match</a>
+                </div>
+                <p class="affiche">
+                    <span>{{ derniere.domicile }}</span>
+                    {{ m.score(derniere) }}
+                    <span>{{ derniere.exterieur }}</span>
+                </p>
+                <dl>
+                    {{ m.ligne('Date', derniere.date|date('d/m/Y')) }}
+                    {{ m.ligne('Mi-temps', derniere.butsDomicileMiTemps is not null ? derniere.butsDomicileMiTemps ~ ' – ' ~ derniere.butsExterieurMiTemps) }}
+                    {{ m.ligne('Organisation de l\'adversaire', derniere.systemeAdverse) }}
+                    {{ m.ligne('Notre organisation', derniere.systemeLibelle) }}
+                    {{ m.ligne('Terrain', derniere.terrain) }}
+                </dl>
+                {% set marques = derniere.buts|filter(b => not b.adverse) %}
+                {% if marques|length %}
+                    <p class="petit">⚽ {{ marques|map(b => (b.buteur ? b.buteur.prenom ~ ' ' ~ b.buteur.nom : 'but') ~ (b.temps ? ' (' ~ b.temps ~ '\')' : ''))|join(', ') }}</p>
+                {% endif %}
+                <p><a href="{{ path('app_match_direct_bilan', {id: derniere.id}) }}">Statistiques du direct</a> (passes, duels, frappes, carte du terrain, d'où viennent les buts)</p>
+            </section>
+        {% endif %}
+    </div>
+
+    {# ———————— Vidéo : dernier match, autres matchs contre lui, extraits ———————— #}
+    <div id="onglet-video" data-onglet="video" data-onglets-target="panneau" role="tabpanel" hidden>
+        <div class="adv-videos">
+            {% for r in videos_matchs %}
+                <a class="video-adv-vignette" href="{{ r.lienVideo }}" target="_blank" rel="noopener">
+                    <span class="video-adv-lecture" aria-hidden="true">▶</span>
+                    <span>{{ loop.first ? 'Dernier match' : 'Match' }} du {{ r.date|date('d/m/Y') }}{{ r.siteVideo ? ' (' ~ r.siteVideo ~ ')' }}</span>
+                </a>
+            {% endfor %}
+            {% for v in fiche ? fiche.videos : [] %}
+                <a class="video-adv-vignette extrait" href="{{ v.url }}" target="_blank" rel="noopener">
+                    <span class="video-adv-lecture" aria-hidden="true">▶</span>
+                    <span>{{ v.titre }}</span>
+                </a>
+            {% endfor %}
+            {% if not videos_matchs and not (fiche and fiche.videos) %}
+                <div class="video-adv-vignette vide">
+                    <span class="video-adv-lecture" aria-hidden="true">▶</span>
+                    <span>Pas encore de vidéo{{ modifiable ? ' : collez le lien (Veo, YouTube…) dans « Modifier / compléter »' }}</span>
+                </div>
+            {% endif %}
+        </div>
     </div>
 
     {% if fiche and fiche.modifieLe %}
@@ -179,21 +265,24 @@
     {% endif %}
 
     {% if modifiable %}
-        <details class="carte bloc" id="modifier" {{ ouvrir ? 'open' }}>
-            <summary><strong>✏️ Modifier l'analyse</strong></summary>
+        <details class="carte bloc" id="modifier" data-onglets-target="formulaire" {{ ouvrir ? 'open' }}>
+            <summary><strong>✏️ Modifier / compléter l'analyse</strong></summary>
             <form method="post" class="formulaire">
                 <input type="hidden" name="_token" value="{{ csrf_token('adversaire' ~ rencontre.id) }}">
+
+                <h3>Organisation</h3>
                 <div class="champs">
-                    <div class="champ large"><label for="points_forts">Points forts</label>
-                        <textarea id="points_forts" name="points_forts" rows="3" placeholder="Ex. : pressing haut, vitesse des ailiers">{{ fiche.pointsForts ?? '' }}</textarea></div>
-                    <div class="champ large"><label for="points_faibles">Points faibles</label>
-                        <textarea id="points_faibles" name="points_faibles" rows="3" placeholder="Ex. : espace dans leur dos, relance sous pression">{{ fiche.pointsFaibles ?? '' }}</textarea></div>
-                    <div class="champ large"><label for="a_retenir">À retenir</label>
-                        <textarea id="a_retenir" name="a_retenir" rows="2" placeholder="Ex. : forte intensité en début de match">{{ fiche.aRetenir ?? '' }}</textarea></div>
-                    <div class="champ large"><label for="preparation">Préparation du prochain match</label>
-                        <textarea id="preparation" name="preparation" rows="4" placeholder="Organisation prévue, consignes, ajustements (ex. : 4 2 3 1, deux milieux devant la défense, jouer dans leur dos)">{{ fiche.preparation ?? '' }}</textarea></div>
+                    <div class="champ"><label for="systeme_habituel">Système habituel</label>
+                        <select id="systeme_habituel" name="systeme_habituel">
+                            <option value="">—</option>
+                            {% for format, liste in systemes_choix %}
+                                <optgroup label="{{ format }}">
+                                    {% for s in liste %}<option value="{{ s }}" {{ systeme_habituel == s ? 'selected' }}>{{ s }}</option>{% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select></div>
                     {% if video_modifiable %}
-                        <div class="champ"><label for="systeme_adverse">Organisation de l'adversaire au dernier match ({{ derniere.date|date('d/m/Y') }})</label>
+                        <div class="champ"><label for="systeme_adverse">Son organisation au dernier match ({{ derniere.date|date('d/m/Y') }})</label>
                             <select id="systeme_adverse" name="systeme_adverse">
                                 <option value="">—</option>
                                 {% for format, liste in systemes_choix %}
@@ -202,14 +291,76 @@
                                     </optgroup>
                                 {% endfor %}
                             </select></div>
-                        <div class="champ"><label for="lien_video">Vidéo du dernier match (lien Veo, YouTube…)</label>
+                    {% endif %}
+                </div>
+
+                <h3>Forces et faiblesses <small class="discret">(une ligne = un point)</small></h3>
+                <div class="champs">
+                    <div class="champ large"><label for="points_forts">Forces</label>
+                        <textarea id="points_forts" name="points_forts" rows="3" placeholder="Bonne maîtrise technique&#10;Ailiers rapides et percutants">{{ fiche.pointsForts ?? '' }}</textarea></div>
+                    <div class="champ large"><label for="points_faibles">Faiblesses</label>
+                        <textarea id="points_faibles" name="points_faibles" rows="3" placeholder="Fragiles sur les transitions défensives&#10;Espaces derrière les latéraux">{{ fiche.pointsFaibles ?? '' }}</textarea></div>
+                </div>
+
+                <h3>Animation de jeu</h3>
+                <div class="adv-form-themes">
+                    {% for code, t in jeu %}
+                        {% set theme = fiche ? fiche.theme(code) : {texte: null, niveau: 0} %}
+                        <div class="champ"><label for="jeu_{{ code }}">{{ t[1] }} {{ t[0] }}</label>
+                            <textarea id="jeu_{{ code }}" name="jeu_{{ code }}" rows="2" placeholder="{{ t[2] }}">{{ theme.texte }}</textarea>
+                            <label class="petit">Danger
+                                <select name="niveau_{{ code }}">
+                                    <option value="0">—</option>
+                                    {% for i in 1..5 %}<option value="{{ i }}" {{ theme.niveau == i ? 'selected' }}>{{ i }} / 5{{ {1: ' (faible)', 3: ' (moyen)', 5: ' (très fort)'}[i] ?? '' }}</option>{% endfor %}
+                                </select></label></div>
+                    {% endfor %}
+                </div>
+
+                <h3>Joueurs dangereux</h3>
+                {% set liste = fiche ? fiche.joueursDangereux : [] %}
+                <div class="adv-form-joueurs">
+                    <span class="discret petit">N°</span><span class="discret petit">Poste</span><span class="discret petit">Nom (si connu)</span><span class="discret petit">Ce qu'il faut savoir</span>
+                    {% for i in 0..(min(max_joueurs, liste|length + 2) - 1) %}
+                        {% set j = liste[i] ?? {} %}
+                        <input type="number" name="joueurs[{{ i }}][numero]" min="1" max="99" inputmode="numeric" value="{{ j.numero ?? '' }}" aria-label="Numéro">
+                        <input type="text" name="joueurs[{{ i }}][poste]" maxlength="30" list="postes-adv" value="{{ j.poste ?? '' }}" placeholder="Ailier droit" aria-label="Poste">
+                        <input type="text" name="joueurs[{{ i }}][nom]" maxlength="60" value="{{ j.nom ?? '' }}" aria-label="Nom">
+                        <input type="text" name="joueurs[{{ i }}][note]" maxlength="200" value="{{ j.note ?? '' }}" placeholder="Très rapide, frappe des deux pieds" aria-label="Ce qu'il faut savoir">
+                    {% endfor %}
+                </div>
+                <datalist id="postes-adv">{% for p in ['Gardien', 'Défenseur central', 'Latéral droit', 'Latéral gauche', 'Milieu défensif', 'Meneur de jeu', 'Ailier droit', 'Ailier gauche', 'Attaquant'] %}<option value="{{ p }}">{% endfor %}</datalist>
+                {% if buteurs_adverses|length %}<p class="discret petit">Buteurs contre nous d'après les feuilles de match : {{ buteurs_adverses|map((b, n) => 'N°' ~ n ~ ' (' ~ b ~ ')')|join(', ') }}.</p>{% endif %}
+
+                <h3>Notes et plan de match</h3>
+                <div class="champs">
+                    <div class="champ large"><label for="a_retenir">À retenir</label>
+                        <textarea id="a_retenir" name="a_retenir" rows="2" placeholder="Ex. : forte intensité en début de match">{{ fiche.aRetenir ?? '' }}</textarea></div>
+                    <div class="champ large"><label for="preparation">Plan du {{ nom_prochain }} <small class="discret">(une ligne = une consigne)</small></label>
+                        <textarea id="preparation" name="preparation" rows="4" placeholder="Défendre plus bas sur leurs côtés&#10;Être vigilant sur les corners&#10;Exploiter les espaces en transition">{{ fiche.preparation ?? '' }}</textarea></div>
+                </div>
+
+                <h3>Vidéos</h3>
+                <div class="champs">
+                    {% if video_modifiable %}
+                        <div class="champ large"><label for="lien_video">Vidéo du dernier match ({{ derniere.date|date('d/m/Y') }} : Veo, YouTube…)</label>
                             <input type="url" id="lien_video" name="lien_video" value="{{ derniere.lienVideo }}" placeholder="https://app.veo.co/matches/…"></div>
                     {% endif %}
                 </div>
+                {% set vids = fiche ? fiche.videos : [] %}
+                <div class="adv-form-videos">
+                    <span class="discret petit">Autre vidéo (extraits, match contre un autre club)</span><span class="discret petit">Lien</span>
+                    {% for i in 0..(min(max_videos, vids|length + 1) - 1) %}
+                        {% set v = vids[i] ?? {} %}
+                        <input type="text" name="videos[{{ i }}][titre]" maxlength="80" value="{{ v.titre ?? '' }}" placeholder="Extraits : leurs corners" aria-label="Titre de la vidéo">
+                        <input type="url" name="videos[{{ i }}][url]" value="{{ v.url ?? '' }}" placeholder="https://…" aria-label="Lien de la vidéo">
+                    {% endfor %}
+                </div>
+
                 <div class="actions-ligne">
                     <button type="submit" class="bouton principal">Enregistrer</button>
                 </div>
             </form>
         </details>
     {% endif %}
+    </div>
 {% endblock %}

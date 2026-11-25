@@ -521,7 +521,16 @@ class ClubDemoCommand extends Command
                 ->setPointsForts("Pressing haut dès la perte du ballon.\nAiliers très rapides, surtout côté droit.")
                 ->setPointsFaibles("Espace dans le dos de la défense quand les latéraux montent.\nRelance difficile sous pression.")
                 ->setARetenir('Forte intensité en début de match : rester compacts les 20 premières minutes.')
-                ->setPreparation("4 2 3 1 : deux milieux devant la défense pour couper les ailiers.\nJouer vite dans leur dos dès la récupération.\nPresser leur gardien sur les relances courtes."));
+                ->setPreparation("4 2 3 1 : deux milieux devant la défense pour couper les ailiers.\nJouer vite dans leur dos dès la récupération.\nPresser leur gardien sur les relances courtes.\nÊtre vigilant sur les corners (marquage au premier poteau).")
+                ->setSystemeHabituel('4 3 3')
+                ->setTheme('pressing', 'Pressing haut et intense les 20 premières minutes.', 4)
+                ->setTheme('relance', 'Relance courte, privilégie les côtés.', 3)
+                ->setTheme('cpa', 'Dangereux sur corners (jeu au premier poteau).', 4)
+                ->setJoueursDangereux([
+                    ['numero' => 10, 'poste' => 'Meneur de jeu', 'note' => 'Créatif, bon tireur, passe décisive.'],
+                    ['numero' => 7, 'poste' => 'Ailier droit', 'note' => 'Très rapide, provoque beaucoup.'],
+                    ['numero' => 9, 'poste' => 'Attaquant', 'note' => 'Bon jeu de tête, puissant.'],
+                ]));
         }
     }
 

@@ -85,13 +85,31 @@ class AdversaireTest extends WebTestCase
             'preparation' => 'Jouer en 4 2 3 1',
             'systeme_adverse' => '4 3 3',
             'lien_video' => 'app.veo.co/matches/test',
+            'systeme_habituel' => '4 2 3 1',
+            'jeu_pressing' => 'Pressing haut les 20 premières minutes',
+            'niveau_pressing' => '4',
+            'jeu_cpa' => 'Dangereux sur corners',
+            'niveau_cpa' => '5',
+            'joueurs[0][numero]' => '10',
+            'joueurs[0][poste]' => 'Meneur de jeu',
+            'joueurs[0][note]' => 'Créatif, bon tireur',
+            'joueurs[1][numero]' => '',
+            'videos[0][titre]' => 'Leurs corners',
+            'videos[0][url]' => 'youtube.com/watch?v=test',
         ]);
         $this->client->submit($form);
         self::assertResponseRedirects('/matchs/' . $retour->getId() . '/adversaire');
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('#notes', 'Pressing haut');
         self::assertSelectorTextContains('#preparation', 'Jouer en 4 2 3 1');
-        self::assertSelectorTextContains('#derniere', 'Voir le match (Veo)');
+        // Onglets : analyse (système dessiné, animation de jeu notée), effectif, vidéo.
+        self::assertCount(4, $crawler->filter('.adv-onglets [data-onglet]'));
+        self::assertSelectorTextContains('.adv-systeme-nom', '4-2-3-1');
+        self::assertCount(11, $crawler->filter('.adv-mini-terrain .adv-pion'), 'gardien et 10 joueurs de champ');
+        self::assertCount(4, $crawler->filter('.adv-theme')->first()->filter('.adv-niveau i.plein'), 'pressing : danger 4/5');
+        self::assertSelectorTextContains('#onglet-effectif', 'N°10 – Meneur de jeu');
+        self::assertSelectorTextContains('#onglet-video', 'Leurs corners');
+        self::assertSelectorTextContains('#onglet-video', 'Dernier match');
 
         $em->clear();
         $aller = $em->find(Rencontre::class, $aller->getId());
@@ -100,6 +118,12 @@ class AdversaireTest extends WebTestCase
         $fiche = $em->getRepository(FicheAdversaire::class)->findOneBy(['club' => $club]);
         self::assertSame('vallee verte', $fiche->getCle());
         self::assertSame('Coach TEST', $fiche->getModifieParNom());
+        self::assertSame('4 2 3 1', $fiche->getSystemeHabituel());
+        self::assertSame(['texte' => 'Dangereux sur corners', 'niveau' => 5], $fiche->getTheme('cpa'));
+        self::assertSame(5, (clone $fiche)->setTheme('cpa', 'x', 9)->getTheme('cpa')['niveau'], 'niveau ramené à 5 au plus');
+        self::assertSame(['texte' => null, 'niveau' => 0], $fiche->getTheme('relance'));
+        self::assertEquals([['numero' => 10, 'poste' => 'Meneur de jeu', 'note' => 'Créatif, bon tireur']], $fiche->getJoueursDangereux(), 'ligne vide écartée');
+        self::assertEquals([['titre' => 'Leurs corners', 'url' => 'https://youtube.com/watch?v=test']], $fiche->getVideos());
 
         // Juste après un match sifflé dans le Match Live, score pas encore remonté : c'est la dernière confrontation,
         // et le bouton « Analyser l'adversaire » ouvre le formulaire.

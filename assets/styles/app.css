@@ -2239,32 +2239,73 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
     .live-bouton .icone { font-size: 1.25rem; }
 }
 
-/* Analyse de l'adversaire : les quatre temps de la préparation, dernière confrontation avec sa vidéo, notes. */
+/* Analyse de l'adversaire (rapport d'observation) : onglets, système sur un petit terrain, forces et faiblesses,
+   animation de jeu avec niveau de danger, joueurs dangereux, plan de match, vidéos. */
+/* Étapes d'une préparation (tableau tactique, composition) : pastilles numérotées. */
 .parcours-adv { list-style: none; margin: 0 0 1.2rem; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: .5rem; counter-reset: none; }
 .parcours-adv a { display: flex; align-items: center; gap: .55rem; height: 100%; padding: .6rem .8rem; border: 1px solid var(--bordure); border-radius: var(--rayon); background: #fff; box-shadow: var(--ombre); color: var(--encre); font-weight: 600; font-size: .9rem; text-decoration: none; }
 .parcours-adv a:hover { border-color: var(--rouge); color: var(--rouge-fonce); }
 .parcours-num { flex: none; display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: var(--rouge); color: #fff; font-weight: 800; font-size: .85rem; }
-.derniere-adv { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
-.derniere-adv .affiche { margin-top: 0; }
-@media (max-width: 700px) { .derniere-adv { grid-template-columns: 1fr; } }
+.adv-entete .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.adv-prochain { font-weight: 700; }
+.adv-onglets { display: flex; gap: .3rem; margin: 0 0 1rem; padding: .3rem; border-radius: 99px; background: #fff; border: 1px solid var(--bordure); box-shadow: var(--ombre); overflow-x: auto; }
+.adv-onglets a { flex: 1 0 auto; text-align: center; padding: .5rem .9rem; border-radius: 99px; color: var(--encre); font-weight: 600; white-space: nowrap; text-decoration: none; }
+.adv-onglets a:hover { background: var(--rouge-clair); text-decoration: none; }
+.adv-onglets a.actif { background: var(--rouge); color: var(--sur-rouge); }
+.adv-grille-haut { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1rem; }
+.adv-grille-haut .adv-systeme { grid-row: span 2; }
+.adv-themes { grid-column: span 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.adv-themes > .carte { margin: 0; }
+.adv-grille-bas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 1rem; margin-bottom: 1rem; }
+.adv-grille-haut > .carte, .adv-grille-bas > .carte { margin: 0; }
+@media (max-width: 860px) { .adv-grille-haut { grid-template-columns: 1fr 1fr; } .adv-grille-haut .adv-systeme { grid-row: auto; grid-column: 1 / -1; } .adv-themes { grid-column: 1 / -1; } }
+@media (max-width: 600px) { .adv-grille-haut, .adv-grille-bas, .adv-themes { grid-template-columns: 1fr; } }
+.adv-systeme-nom { display: inline-block; margin: 0 0 .6rem; padding: .15rem .8rem; border-radius: 99px; background: #fff; border: 2px solid var(--encre); font-weight: 800; font-size: 1.1rem; }
+.adv-mini-terrain { position: relative; aspect-ratio: 68 / 80; max-width: 15rem; border-radius: 8px; border: 2px solid #2f7a3a; background: repeating-linear-gradient(0deg, #46a653 0 12.5%, #3f9b4a 12.5% 25%); overflow: hidden; }
+.adv-mt-ligne { position: absolute; border: 2px solid rgb(255 255 255 / .75); }
+.adv-mt-ligne.mediane { left: 0; right: 0; top: -2px; height: 0; border-width: 2px 0 0; }
+.adv-mt-ligne.surface { left: 22%; right: 22%; height: 16%; }
+.adv-mt-ligne.surface.bas { bottom: -2px; } .adv-mt-ligne.surface.haut { display: none; }
+.adv-pion { position: absolute; width: 8%; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); background: var(--rouge); border: 2px solid #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .4); }
+.adv-pion.gardien { background: #f0a500; }
+.adv-forces h2 { color: var(--succes); }
+.adv-forces { border-top: 4px solid var(--succes); }
+.adv-faiblesses h2 { color: #b45309; }
+.adv-faiblesses { border-top: 4px solid #f0a500; }
+.adv-puces { margin: 0; padding-left: 1.1rem; display: grid; gap: .3rem; }
+.adv-puces.plan li::marker { color: var(--rouge); }
+.adv-theme h3 { margin: 0 0 .4rem; font-size: .95rem; }
+.adv-theme { display: flex; flex-direction: column; }
+.adv-theme-pied { margin-top: auto; padding-top: .5rem; display: flex; align-items: center; gap: .5rem; }
+.adv-niveau { display: inline-flex; gap: 3px; }
+.adv-niveau i { width: 1.1rem; height: .45rem; border-radius: 2px; background: var(--bordure); }
+.adv-niveau i.plein { background: var(--rouge); }
+.adv-constat { margin: .4rem 0 0; padding: .3rem .5rem; border-radius: 6px; background: #fff7e6; color: #8a5a00; font-weight: 600; }
+.adv-joueurs { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+.adv-joueur { display: flex; gap: .7rem; align-items: center; }
+.adv-numero { flex: none; display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 50%; background: var(--encre); color: #fff; font-weight: 800; }
+.adv-retenir { margin: 0 0 .6rem; padding: .5rem .7rem; border-radius: 8px; background: #fff7e6; border-left: 4px solid #f0a500; }
+.adv-videos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(16rem, 100%), 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.video-adv-vignette.extrait { background: radial-gradient(circle at 50% 40%, #3b4a6b 0%, #1d2740 70%); }
+.adv-form-themes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); gap: .8rem 1rem; margin-bottom: .8rem; }
+.adv-form-themes textarea { width: 100%; }
+.adv-form-themes select { margin-left: .4rem; }
+.adv-form-joueurs { display: grid; grid-template-columns: 4rem minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); gap: .35rem .5rem; align-items: center; margin-bottom: .4rem; }
+.adv-form-videos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: .35rem .5rem; margin-bottom: .8rem; }
+.adv-form-joueurs input, .adv-form-videos input { width: 100%; min-width: 0; }
+@media (max-width: 600px) { .adv-form-joueurs { grid-template-columns: 3.5rem minmax(0, 1fr); } .adv-form-joueurs > span:nth-child(n+3) { display: none; } }
+#modifier form h3 { margin: 1rem 0 .5rem; font-size: 1rem; }
+#modifier #lien_video { width: 100%; }
+.adv-form-themes .champ { display: flex; flex-direction: column; justify-content: flex-start; }
 .video-adv-vignette { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; aspect-ratio: 16 / 9; border-radius: var(--rayon); padding: 1rem; text-align: center;
     background: radial-gradient(circle at 50% 40%, #3f8f3a 0%, #1f5a1f 70%); color: #fff; font-weight: 700; text-decoration: none; box-shadow: var(--ombre); }
 .video-adv-vignette:hover { text-decoration: none; filter: brightness(1.08); }
 .video-adv-vignette.vide { background: color-mix(in srgb, var(--gris) 18%, #fff); color: var(--gris); font-weight: 500; box-shadow: none; }
 .video-adv-lecture { display: grid; place-items: center; width: 3.4rem; height: 3.4rem; border-radius: 50%; background: rgba(255, 255, 255, .92); color: #1f5a1f; font-size: 1.4rem; padding-left: .2rem; }
 .video-adv-vignette.vide .video-adv-lecture { background: #fff; color: var(--gris); }
-.notes-adv { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
-.note-adv { display: flex; gap: .7rem; align-items: flex-start; }
-.note-adv-icone { flex: none; display: grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; color: #fff; font-weight: 800; }
-.note-adv.fort .note-adv-icone { background: var(--succes); }
-.note-adv.faible .note-adv-icone { background: var(--danger); }
-.note-adv.retenir .note-adv-icone { background: #f0a500; }
 details#modifier > summary { cursor: pointer; }
 details#modifier[open] > summary { margin-bottom: .8rem; }
-.adv-colonnes { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 0 1.2rem; align-items: start; }
-.adv-colonnes > :only-child { grid-column: 1 / -1; }
 .adv-compo .terrain-compo { max-width: 20rem; }
-@media (max-width: 760px) { .adv-colonnes { grid-template-columns: 1fr; } }
 .live-analyse { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .7rem; margin: .7rem 0 0; }
 .live-analyse[hidden] { display: none; }
 .live-analyse .bouton { flex: 1 1 100%; justify-content: center; text-align: center; font-size: 1.05rem; padding: .8rem 1rem; }

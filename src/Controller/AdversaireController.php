@@ -60,7 +60,13 @@ class AdversaireController extends AbstractController
                     ->setPointsForts($donnees->getString('points_forts'))
                     ->setPointsFaibles($donnees->getString('points_faibles'))
                     ->setARetenir($donnees->getString('a_retenir'))
-                    ->setPreparation($donnees->getString('preparation'));
+                    ->setPreparation($donnees->getString('preparation'))
+                    ->setSystemeHabituel($donnees->getString('systeme_habituel'))
+                    ->setJoueursDangereux($donnees->all('joueurs'))
+                    ->setVideos($donnees->all('videos'));
+                foreach (array_keys(FicheAdversaire::JEU) as $theme) {
+                    $fiche->setTheme($theme, $donnees->getString('jeu_' . $theme), $donnees->getInt('niveau_' . $theme));
+                }
                 $moi = $this->getUser();
                 if ($moi instanceof Utilisateur) {
                     $fiche->marquerModifie($moi);
@@ -105,7 +111,38 @@ class AdversaireController extends AbstractController
         arsort($systemes);
         $libelle = $prochain ? $this->libelleProchain($prochain, $joues) : null;
 
+        // Ce que les matchs joués disent déjà : buteurs adverses (numéro de maillot noté sur la feuille) et buts
+        // encaissés sur coups de pied arrêtés (situation du but : corner, coup franc, penalty).
+        $buteurs = [];
+        $cpa = ['total' => 0, 'detail' => []];
+        foreach ($joues as $r) {
+            foreach ($r->getButs() as $b) {
+                if (!$b->isAdverse()) {
+                    continue;
+                }
+                if ($b->getNumeroAdverse()) {
+                    $buteurs[$b->getNumeroAdverse()] = ($buteurs[$b->getNumeroAdverse()] ?? 0) + 1;
+                }
+                if ($s = $b->getSituationCpa()) {
+                    ++$cpa['total'];
+                    $nomCpa = mb_strtolower(\App\Entity\ActionMatch::SITUATIONS_BUT[$s]);
+                    $cpa['detail'][$nomCpa] = ($cpa['detail'][$nomCpa] ?? 0) + 1;
+                }
+            }
+        }
+        arsort($buteurs);
+        $systemeHabituel = $fiche?->getSystemeHabituel() ?? (array_key_first($systemes) ?: null);
+
         return $this->render('adversaire/fiche.html.twig', [
+            'buteurs_adverses' => $buteurs,
+            'cpa_encaisses' => $cpa,
+            'systeme_habituel' => $systemeHabituel,
+            'systeme_deduit' => !$fiche?->getSystemeHabituel() && $systemeHabituel,
+            'places' => FicheAdversaire::positionsSysteme($systemeHabituel),
+            'jeu' => FicheAdversaire::JEU,
+            'max_joueurs' => FicheAdversaire::MAX_JOUEURS,
+            'max_videos' => FicheAdversaire::MAX_VIDEOS,
+            'videos_matchs' => array_values(array_filter(array_reverse($joues), fn (Rencontre $r) => $r->getLienVideo())),
             'rencontre' => $rencontre,
             'adversaire' => $nom,
             'fiche' => $fiche,
