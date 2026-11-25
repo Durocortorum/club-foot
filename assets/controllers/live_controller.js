@@ -661,6 +661,28 @@ export default class extends Controller {
                 + (connu ? '' : '<p class="discret petit">Astuce : choisissez les titulaires (onglet « Compo ») pour ne voir que les joueurs sur le terrain.</p>');
         }
         this.dialogueTarget.querySelector('[data-zone=details]').innerHTML = html;
+        // Buteur et passeur : jamais le même joueur. Le buteur choisi est grisé dans la liste des passeurs ; s'il y
+        // était déjà choisi, le passeur revient à « Aucun » avec un petit mot.
+        const passeur = this.dialogueTarget.querySelector('select[name=passeur]');
+        if (passeur) {
+            const note = document.createElement('small');
+            note.className = 'live-note-passeur';
+            note.hidden = true;
+            passeur.after(note);
+            this.dialogueTarget.querySelectorAll('input[name=joueur]').forEach((r) => r.addEventListener('change', () => {
+                const buteur = r.value;
+                passeur.querySelectorAll('option').forEach((o) => {
+                    o.disabled = o.value !== '' && o.value === buteur;
+                    o.textContent = o.textContent.replace(' (buteur)', '') + (o.disabled ? ' (buteur)' : '');
+                });
+                note.hidden = passeur.value !== buteur;
+                if (passeur.value === buteur) {
+                    passeur.value = '';
+                    note.textContent = 'Le buteur ne peut pas être aussi le passeur : choisissez un autre passeur (ou « Aucun »).';
+                }
+            }));
+            passeur.addEventListener('change', () => { note.hidden = true; });
+        }
         const svg = this.dialogueTarget.querySelector('[data-but-terrain]');
         this.trace = null;
         if (svg) {

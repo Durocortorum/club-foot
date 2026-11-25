@@ -2491,6 +2491,8 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .trajets-cpa line { stroke-width: 2.5; stroke-dasharray: 5 4; stroke-linecap: round; }
 .trajets-cpa line.nous { stroke: #d62839; }
 .trajets-cpa line.eux { stroke: #1f5fd1; }
+.live-note-passeur { display: block; margin-top: .3rem; color: #b45309; font-weight: 600; }
+.live-note-passeur[hidden] { display: none; }
 /* Situation d'un but (bilan) et tableau « D'où viennent les buts ». */
 .situation-but { display: inline-block; padding: .05rem .45rem; border-radius: 99px; font-size: .8em; font-weight: 700; background: #fde8ea; color: #a51c2c; white-space: nowrap; }
 .situation-but.corner::before { content: '🚩 '; }
