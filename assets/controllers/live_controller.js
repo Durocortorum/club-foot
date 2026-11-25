@@ -1305,15 +1305,20 @@ export default class extends Controller {
                 : (j ? `<b>${this.echapper(this.nom(j))}</b> : touchez son action (il reste choisi pour la suivante).` : 'Touchez le joueur, puis son action.'));
         if (!m && this.blocage()) this.consigneActionTarget.className = 'live-consigne alerte';
         this.boutonAnnulerActionTarget.disabled = !this.mesActions.some((u) => this.actions.has(u));
-        // Dernières actions de jeu (tous les appareils), la plus récente en haut.
-        const jeu = liste.filter((a) => !EVENEMENTS.includes(a.type) && a.type !== 'RP' && !a.uuid.startsWith('ffffffff'))
-            .sort((a, b) => (b.periode - a.periode) || (b.minute - a.minute));
+        // Dernières actions de jeu et buts (tous les appareils), la plus récente en haut ; à minute égale, le but d'abord.
+        const jeu = liste.filter((a) => (BUTS.includes(a.type) || !EVENEMENTS.includes(a.type)) && a.type !== 'RP' && !a.uuid.startsWith('ffffffff'))
+            .sort((a, b) => (b.periode - a.periode) || (b.minute - a.minute) || (BUTS.includes(b.type) - BUTS.includes(a.type)));
         const dernieres = this.toutesActions ? jeu : jeu.slice(0, 6);
-        // Ses propres actions se corrigent (joueur, action, minute) ou se suppriment.
-        this.dernieresActionsTarget.innerHTML = dernieres.map((a) => `<li class="${this.enAttente[a.uuid] ? 'en-attente' : ''}"><span class="min">${this.texteMinute(a.periode, a.minute)}</span>
-            <span class="pastille-action action-${a.type}">${a.type}</span> <span class="quoi">${this.echapper(this.libelle(a))}</span>
-            ${this.aMoi(a) ? `<span class="live-corriger"><button type="button" class="lien-bouton petit" data-uuid="${a.uuid}" data-action="live#modifierAction">Modifier</button>
-                <button type="button" class="lien-bouton petit danger" data-uuid="${a.uuid}" data-action="live#supprimer" title="Supprimer" aria-label="Supprimer">✕</button></span>` : ''}</li>`).join('')
+        // Ses propres actions se corrigent (joueur, action, minute) ou se suppriment ; un but se supprime (puis se renote).
+        this.dernieresActionsTarget.innerHTML = dernieres.map((a) => {
+            const but = BUTS.includes(a.type);
+            const tire = ['corner', 'cfi'].includes(a.details?.situation);
+            const passe = a.type === 'B' && a.details?.passeur ? ` <span class="discret petit">${tire ? 'tiré par' : 'passe de'} ${this.echapper(this.nom(this.joueur(a.details.passeur)))}</span>` : '';
+            return `<li class="${this.enAttente[a.uuid] ? 'en-attente' : ''}${but ? ` but-liste ${a.type === 'B' ? 'nous' : 'eux'}` : ''}"><span class="min">${this.texteMinute(a.periode, a.minute)}</span>
+            ${but ? '<span class="pastille-action pastille-but">⚽</span>' : `<span class="pastille-action action-${a.type}">${a.type}</span>`} <span class="quoi">${this.echapper(this.libelle(a))}${passe}</span>
+            ${this.aMoi(a) ? `<span class="live-corriger">${but ? '' : `<button type="button" class="lien-bouton petit" data-uuid="${a.uuid}" data-action="live#modifierAction">Modifier</button>`}
+                <button type="button" class="lien-bouton petit danger" data-uuid="${a.uuid}" data-action="live#supprimer" title="Supprimer" aria-label="Supprimer">✕</button></span>` : ''}</li>`;
+        }).join('')
             + (jeu.length > 6 ? `<li class="live-toutes"><button type="button" class="lien-bouton petit" data-action="live#voirToutesActions">${this.toutesActions ? 'Seulement les 6 dernières' : `Voir les ${jeu.length} actions du match`}</button></li>` : '')
             || '<li class="discret">Aucune action notée.</li>';
     }
