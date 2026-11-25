@@ -315,6 +315,7 @@ class MatchDirectController extends AbstractController
             $adverse = 'BA' === $a->getType();
             $traces[$adverse ? 'encaisses' : 'marques'][] = [
                 'minute' => $a->getMinute(),
+                'periode' => $a->getPeriode(),
                 'nom' => $a->getJoueur() ? $a->getJoueur()->getPrenom() . ' ' . $a->getJoueur()->getNom() : ('csc' === ($d['geste'] ?? null) ? 'CSC' : ''),
                 'geste' => ActionMatch::GESTES_BUT[$d['geste'] ?? ''] ?? null,
                 'passeur' => isset($d['passeur']) ? $this->em->find(Joueur::class, $d['passeur'])?->getPrenom() . ' ' . $this->em->find(Joueur::class, $d['passeur'])?->getNom() : null,
@@ -327,10 +328,10 @@ class MatchDirectController extends AbstractController
         $changements = [];
         foreach ($actions as $a) {
             if (ActionMatch::EXCLUSION_TEMPORAIRE === $a->getType()) {
-                $changements[] = ['minute' => $a->getMinute(), 'sortant' => $a->getJoueur(), 'entrant' => null, 'motif' => 'Carton blanc'];
+                $changements[] = ['minute' => $a->getMinute(), 'periode' => $a->getPeriode(), 'sortant' => $a->getJoueur(), 'entrant' => null, 'motif' => 'Carton blanc'];
             } elseif (ActionMatch::CHANGEMENT === $a->getType()) {
                 $entrant = isset($a->getDetails()['entrant']) ? $this->em->find(Joueur::class, $a->getDetails()['entrant']) : null;
-                $changements[] = ['minute' => $a->getMinute(), 'sortant' => $a->getJoueur(), 'entrant' => $entrant, 'motif' => $a->getDetails()['motif'] ?? 'Choix'];
+                $changements[] = ['minute' => $a->getMinute(), 'periode' => $a->getPeriode(), 'sortant' => $a->getJoueur(), 'entrant' => $entrant, 'motif' => $a->getDetails()['motif'] ?? 'Choix'];
             }
         }
 
@@ -352,6 +353,8 @@ class MatchDirectController extends AbstractController
             ],
             'types' => ActionMatch::ACTIONS,
             'adverses' => ActionMatch::ADVERSES,
+            // Durée d'une mi-temps : temps additionnel affiché « 45+2' ».
+            'mi' => intdiv($this->direct->duree($rencontre), 2),
             'buts_feuille' => \count($rencontre->getButs()),
             'modifiable' => $this->isGranted(ActiviteVoter::MODIFIER_MATCH, $rencontre),
         ]);

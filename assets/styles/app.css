@@ -2053,6 +2053,13 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 .live-reglages .bouton { background: rgb(255 255 255 / .14); color: #fff; border-color: rgb(255 255 255 / .25); min-width: 2.4rem; }
 .live-reglages .bouton:hover { background: rgb(255 255 255 / .25); }
 .live-reglages .bouton:disabled { opacity: .4; }
+/* Temps réglementaire passé : orange qui clignote doucement. */
+.live-minute.depasse { background: #ff9f1c; color: #2b1600; animation: temps-depasse 1.2s ease-in-out infinite; }
+.live-temps.depasse { color: #ffb347; animation: temps-depasse 1.2s ease-in-out infinite; }
+@keyframes temps-depasse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .live-minute.depasse, .live-temps.depasse { animation: none; } }
+.live-avis { margin: .6rem 0 0; padding: .5rem .7rem; border-radius: 10px; background: #ff9f1c; color: #2b1600; font-size: .85rem; font-weight: 600; text-align: center; }
+.live-avis[hidden] { display: none; }
 .live-etat { margin: .5rem 0 0; font-size: .8rem; opacity: .85; text-align: center; min-height: 1.1em; }
 .live-etat.alerte { color: #ffd166; opacity: 1; }
 .live-etat.succes { color: #8ff0b7; opacity: 1; font-weight: 600; }

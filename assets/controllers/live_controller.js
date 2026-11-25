@@ -22,6 +22,8 @@ const HORS_CARTE = { horsCarte: true };
 // Actions de jeu de l'adversaire (le reste est à nous).
 const ADVERSES = ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA'];
 const BUTS = ['B', 'BA'];
+// Minutes sans action, après le temps réglementaire, avant d'arrêter la période toute seule.
+const ATTENTE_FIN = 10;
 /** Notés par les gros boutons (But, Carton, Rempl.) : pas dans l'onglet « Actions ». */
 const HORS_ACTIONS = ['B', 'CJ', 'CR', 'RP', 'EX'];
 /** Réglage « avec ou sans zones », commun avec la saisie détaillée (gardé sur l'appareil). */
@@ -31,7 +33,7 @@ const DELAI_ZONE = 8000;
 
 export default class extends Controller {
     static values = { config: Object };
-    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'analyse','evenements', 'stats', 'statsJoueurs', 'filtresTerrain',
+    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'analyse','evenements', 'stats', 'statsJoueurs', 'filtresTerrain', 'avis',
         'compo', 'boutonTitulaires', 'dialogue',
         'boutonAnnulerAction', 'consigneAction', 'joueursAction', 'typesAction', 'dernieresActions',
         'boutonZones', 'zoneAction', 'sensAction', 'terrainAction', 'choixActions',
@@ -130,20 +132,65 @@ export default class extends Controller {
         return (this.chrono.periode - 1) * this.mi() + Math.floor(this.secondes() / 60) + 1;
     }
 
+    /** Minute à afficher : temps additionnel comme à la télévision (« 45+2' », « 90+3' »). */
+    texteMinute(periode, minute) {
+        const fin = (periode === 1 ? 1 : 2) * this.mi();
+        return minute > fin ? `${fin}+${minute - fin}'` : `${minute}'`;
+    }
+
+    /**
+     * Période oubliée : une fois le temps réglementaire passé, si aucune action n'est notée pendant ATTENTE_FIN
+     * minutes, la période s'arrête toute seule (mi-temps, ou fin du match), à la minute de la dernière action
+     * (ou à la fin du temps réglementaire).
+     */
+    verifierFinAuto() {
+        const c = this.chrono;
+        if (!c.enCours || c.fini) return;
+        const mi = this.mi();
+        const reglementaire = c.periode * mi;
+        const minute = this.minuteCourante();
+        if (minute - reglementaire < ATTENTE_FIN) return;
+        const derniere = Math.max(reglementaire, ...[...this.actions.values()]
+            .filter((a) => a.periode === c.periode && !a.uuid.startsWith('feuille')).map((a) => a.minute));
+        if (minute - derniere < ATTENTE_FIN) return;
+        const texte = this.texteMinute(c.periode, derniere);
+        if (c.periode === 1) {
+            this.chrono = { periode: 2, enCours: false, debut: null, cumul: 0, fini: false, sens: -c.sens, maj: c.maj };
+            this.avis = `⏸ Mi-temps sifflée automatiquement (${texte}) : aucune action depuis ${ATTENTE_FIN} minutes après le temps réglementaire. Touchez « ▶ 2e période » à la reprise.`;
+        } else {
+            c.enCours = false;
+            c.debut = null;
+            c.cumul = (derniere - mi) * 60;
+            c.fini = true;
+            this.avis = `🏁 Fin du match sifflée automatiquement (${texte}) : aucune action depuis ${ATTENTE_FIN} minutes après le temps réglementaire.`;
+        }
+        this.verrou?.release?.();
+        this.chronoChange();
+    }
+
     /** Période commencée : chrono lancé au moins une fois. */
     commencee() {
         return this.chrono.enCours || this.chrono.cumul > 0;
     }
 
     tic() {
+        this.verifierFinAuto();
         const c = this.chrono;
         const s = Math.floor(this.secondes());
         this.chronoTarget.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
         const avant = c.periode === 1 && !this.commencee();
         const pause = c.periode === 2 && !this.commencee();
-        this.minuteTarget.textContent = c.fini ? 'Terminé' : (avant ? 'À venir' : (pause ? 'Mi-temps' : `${this.minuteCourante()}'`));
+        // Temps réglementaire de la période passé : minute et chrono en orange, qui clignotent.
+        const depasse = !c.fini && !avant && !pause && s >= this.mi() * 60;
+        this.minuteTarget.textContent = c.fini ? 'Terminé' : (avant ? 'À venir' : (pause ? 'Mi-temps' : this.texteMinute(c.periode, this.minuteCourante())));
         this.minuteTarget.classList.toggle('arrete', !c.enCours);
-        this.periodeTarget.textContent = c.fini ? 'Match terminé' : (avant ? 'Avant le match' : (pause ? 'Mi-temps' : (c.periode === 1 ? '1re période' : '2e période')));
+        this.minuteTarget.classList.toggle('depasse', depasse);
+        this.chronoTarget.classList.toggle('depasse', depasse);
+        this.periodeTarget.textContent = c.fini ? 'Match terminé' : (avant ? 'Avant le match' : (pause ? 'Mi-temps' : `${c.periode === 1 ? '1re période' : '2e période'}${depasse ? ' · temps additionnel' : ''}`));
+        if (this.hasAvisTarget) {
+            this.avisTarget.textContent = this.avis ?? '';
+            this.avisTarget.hidden = !this.avis;
+        }
         this.pauseTarget.textContent = c.enCours ? '⏸' : '▶';
         this.pauseTarget.disabled = !!c.fini || avant || pause;
         // Bouton de période : coup d'envoi → mi-temps → 2e période ; « Fin » pendant la 2e période.
@@ -180,6 +227,7 @@ export default class extends Controller {
 
     pause() {
         if (this.chrono.fini) return;
+        this.avis = null;
         if (this.chrono.enCours) this.arreter(); else this.demarrer();
         this.chronoChange();
     }
@@ -203,6 +251,7 @@ export default class extends Controller {
         const c = this.chrono;
         if (c.fini) return;
         if (!this.commencee()) {
+            this.avis = null;
             this.demarrer();
             this.chronoChange();
             return;
@@ -357,8 +406,8 @@ export default class extends Controller {
         this.mesActions.push(action.uuid);
         navigator.vibrate?.(25);
         this.noter([action]);
-        this.annoncer(`Corner ${type === 'CO' ? this.cfg.nous : this.cfg.adversaire} noté (${this.minuteCourante()}')${point ? '' : ', sans côté'}.`);
-        this.direAction(`✓ ${this.minuteCourante()}' · ${this.libelle(action)}`);
+        this.annoncer(`Corner ${type === 'CO' ? this.cfg.nous : this.cfg.adversaire} noté (${this.texteMinute(this.chrono.periode, this.minuteCourante())})${point ? '' : ', sans côté'}.`);
+        this.direAction(`✓ ${this.texteMinute(this.chrono.periode, this.minuteCourante())} · ${this.libelle(action)}`);
     }
 
     ouvrir(type, camp = null) {
@@ -605,7 +654,7 @@ export default class extends Controller {
 
     async supprimer(event) {
         const a = this.actions.get(event.currentTarget.dataset.uuid);
-        if (!a || !this.aMoi(a) || !await confirmer(`${a.minute}' · ${this.libelle(a)}`, { titre: 'Supprimer cet événement ?', bouton: 'Supprimer' })) return;
+        if (!a || !this.aMoi(a) || !await confirmer(`${this.texteMinute(a.periode, a.minute)} · ${this.libelle(a)}`, { titre: 'Supprimer cet événement ?', bouton: 'Supprimer' })) return;
         [a.uuid, ...(['B', 'BA'].includes(a.type) ? [this.uuidTir(a.uuid)] : [])].forEach((u) => {
             const x = this.actions.get(u);
             if (!x || !this.aMoi(x)) return;
@@ -696,7 +745,7 @@ export default class extends Controller {
         bouton.classList.add('touchee');
         setTimeout(() => bouton.classList.remove('touchee'), 300);
         navigator.vibrate?.(25);
-        this.direAction(`✓ ${this.minuteCourante()}' · ${this.libelle(action)}${adverse ? ` (${this.cfg.adversaire})` : ''}${this.avecZones ? ' · touchez la zone (facultatif)' : ''}`);
+        this.direAction(`✓ ${this.texteMinute(this.chrono.periode, this.minuteCourante())} · ${this.libelle(action)}${adverse ? ` (${this.cfg.adversaire})` : ''}${this.avecZones ? ' · touchez la zone (facultatif)' : ''}`);
         if (this.avecZones) this.attendreZone(action.uuid);
         this.noter([action]);
     }
@@ -854,7 +903,7 @@ export default class extends Controller {
             if (this.aPlacer === uuid) this.finirZone();
             this.garder();
             navigator.vibrate?.([20, 40, 20]);
-            this.direAction(`↶ Annulé : ${a.minute}' · ${this.libelle(a)}`);
+            this.direAction(`↶ Annulé : ${this.texteMinute(a.periode, a.minute)} · ${this.libelle(a)}`);
             this.afficher();
             this.envoyer();
             return;
@@ -908,7 +957,7 @@ export default class extends Controller {
             .sort((a, b) => (b.periode - a.periode) || (b.minute - a.minute));
         const dernieres = this.toutesActions ? jeu : jeu.slice(0, 6);
         // Ses propres actions se corrigent (joueur, action, minute) ou se suppriment.
-        this.dernieresActionsTarget.innerHTML = dernieres.map((a) => `<li class="${this.enAttente[a.uuid] ? 'en-attente' : ''}"><span class="min">${a.minute}'</span>
+        this.dernieresActionsTarget.innerHTML = dernieres.map((a) => `<li class="${this.enAttente[a.uuid] ? 'en-attente' : ''}"><span class="min">${this.texteMinute(a.periode, a.minute)}</span>
             <span class="pastille-action action-${a.type}">${a.type}</span> <span class="quoi">${this.echapper(this.libelle(a))}</span>
             ${this.aMoi(a) ? `<span class="live-corriger"><button type="button" class="lien-bouton petit" data-uuid="${a.uuid}" data-action="live#modifierAction">Modifier</button>
                 <button type="button" class="lien-bouton petit danger" data-uuid="${a.uuid}" data-action="live#supprimer" title="Supprimer" aria-label="Supprimer">✕</button></span>` : ''}</li>`).join('')
@@ -943,7 +992,7 @@ export default class extends Controller {
             const sc = ['B', 'BA'].includes(a.type) ? ` <span class="sc">(${this.texteScore(score)})</span>` : '';
             const passeur = a.type === 'B' && a.details?.passeur ? ` <span class="discret petit">passe de ${this.echapper(this.nom(this.joueur(a.details.passeur)))}</span>` : '';
             const html = `<li class="${a.type === 'B' ? 'but-nous' : ''}${this.enAttente[a.uuid] ? ' en-attente' : ''}">
-                <span class="min">${a.minute}'</span><span class="ico">${this.icone(a.type)}</span>
+                <span class="min">${this.texteMinute(a.periode, a.minute)}</span><span class="ico">${this.icone(a.type)}</span>
                 <span class="quoi">${this.echapper(this.libelle(a))}${sc}${passeur}</span>
                 ${this.aMoi(a) ? `<button type="button" class="lien-bouton danger" data-uuid="${a.uuid}" data-action="live#supprimer" title="Supprimer" aria-label="Supprimer">✕</button>` : ''}</li>`;
             return { a, html };

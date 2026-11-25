@@ -3,6 +3,7 @@
 {% block title %}Bilan du direct · {{ rencontre.domicile }} – {{ rencontre.exterieur }}{% endblock %}
 
 {% macro pct(v) %}{% if v is not null %}<span class="pct {{ v >= 70 ? 'bon' : (v < 50 ? 'faible') }}">{{ v }} %</span>{% else %}<span class="discret">–</span>{% endif %}{% endmacro %}
+{% macro min(periode, minute, mi) %}{% set fin = (periode == 1 ? 1 : 2) * mi %}{{ minute > fin ? fin ~ '+' ~ (minute - fin) : minute }}'{% endmacro %}
 {% import _self as m %}
 
 {% block body %}
@@ -74,12 +75,12 @@
                     <figure>
                         <figcaption>Buts marqués ({{ traces.marques|length }})</figcaption>
                         {{ include('match_direct/_demi_terrain.html.twig', {buts: traces.marques, cote: 'eux'}) }}
-                        <ul class="buts-liste">{% for b in traces.marques %}<li><b>{{ b.minute }}'</b> {{ b.nom ?: '—' }}{{ b.passeur ? ', passe de ' ~ b.passeur }}{{ b.geste ? ' · ' ~ b.geste }}</li>{% endfor %}</ul>
+                        <ul class="buts-liste">{% for b in traces.marques %}<li><b>{{ m.min(b.periode, b.minute, mi) }}</b> {{ b.nom ?: '—' }}{{ b.passeur ? ', passe de ' ~ b.passeur }}{{ b.geste ? ' · ' ~ b.geste }}</li>{% endfor %}</ul>
                     </figure>
                     <figure>
                         <figcaption>Buts encaissés ({{ traces.encaisses|length }})</figcaption>
                         {{ include('match_direct/_demi_terrain.html.twig', {buts: traces.encaisses, cote: 'nous'}) }}
-                        <ul class="buts-liste">{% for b in traces.encaisses %}<li><b>{{ b.minute }}'</b> {{ b.geste ?: 'adversaire' }}</li>{% endfor %}</ul>
+                        <ul class="buts-liste">{% for b in traces.encaisses %}<li><b>{{ m.min(b.periode, b.minute, mi) }}</b> {{ b.geste ?: 'adversaire' }}</li>{% endfor %}</ul>
                     </figure>
                 </div>
             </section>
@@ -90,7 +91,7 @@
                 <h2>Changements ({{ changements|length }})</h2>
                 <ul class="liste-changements">
                     {% for c in changements %}
-                        <li><b>{{ c.minute }}'</b>
+                        <li><b>{{ m.min(c.periode, c.minute, mi) }}</b>
                             <span class="sort">↓ {{ c.sortant ? c.sortant.prenom ~ ' ' ~ c.sortant.nom : '—' }}</span>
                             {% if c.entrant %}<span class="entre">↑ {{ c.entrant.prenom ~ ' ' ~ c.entrant.nom }}</span>{% elseif c.motif == 'Carton blanc' %}<span class="discret">carton blanc, 10 min hors du terrain, revient ensuite</span>{% else %}<span class="discret">sans remplaçant</span>{% endif %}
                             {% if c.motif == 'Blessure' %}<span class="discret">(blessure)</span>{% endif %}</li>
@@ -164,7 +165,7 @@
             <summary><strong>Toutes les actions ({{ actions|length }})</strong></summary>
             <ol class="journal">
                 {% for a in actions %}
-                    <li><span class="min">{{ a.minute }}'</span><span class="quoi"><b class="pastille-action action-{{ a.type }}">{{ a.type }}</b> {% if a.joueur %}{{ a.joueur.nom }} {{ a.joueur.prenom }} · {% endif %}{{ a.libelle }}{% if a.uuid starts with 'feuille-' %} <span class="discret">(feuille de match)</span>{% endif %}</span></li>
+                    <li><span class="min">{{ m.min(a.periode, a.minute, mi) }}</span><span class="quoi"><b class="pastille-action action-{{ a.type }}">{{ a.type }}</b> {% if a.joueur %}{{ a.joueur.nom }} {{ a.joueur.prenom }} · {% endif %}{{ a.libelle }}{% if a.uuid starts with 'feuille-' %} <span class="discret">(feuille de match)</span>{% endif %}</span></li>
                 {% endfor %}
             </ol>
         </details>
