@@ -197,6 +197,9 @@ export default class extends Controller {
         this.minuteTarget.classList.toggle('depasse', depasse);
         this.chronoTarget.classList.toggle('depasse', depasse);
         this.periodeTarget.textContent = c.fini ? 'Match terminé' : (avant ? 'Avant le match' : (pause ? 'Mi-temps' : `${c.periode === 1 ? '1re période' : '2e période'}${depasse ? ' · temps additionnel' : ''}`));
+        // Saisie impossible (chrono pas parti, mi-temps, match fini) : boutons de saisie grisés.
+        this.element.classList.toggle('saisie-bloquee', !!this.blocage());
+        this.element.classList.toggle('rempl-bloque', !!this.blocage('rempl'));
         if (this.hasAvisTarget) {
             this.avisTarget.textContent = this.avis ?? '';
             this.avisTarget.hidden = !this.avis;
@@ -360,25 +363,56 @@ export default class extends Controller {
 
     // ———————— Saisie : fenêtre commune (but, carton, tir, remplacement) ————————
 
+    /**
+     * Rien à noter tant que le chrono n'est pas parti : avant le coup d'envoi, à la mi-temps (sauf les remplacements)
+     * et après la fin du match. Renvoie la raison, ou null si l'on peut noter.
+     */
+    blocage(quoi = 'action') {
+        const c = this.chrono;
+        if (c.fini) return 'Le match est terminé : plus rien à noter. Une action se corrige avec « Modifier » dans les dernières actions.';
+        if (c.periode === 1 && !this.commencee()) return 'Le match n\'a pas commencé : touchez « ▶ Coup d\'envoi » pour lancer le chrono, puis notez les actions.';
+        if (c.periode === 2 && !this.commencee() && quoi !== 'rempl') return 'C\'est la mi-temps : touchez « ▶ 2e période » à la reprise pour noter les actions. Les remplacements restent possibles.';
+        return null;
+    }
+
+    /** Saisie refusée : message orange sous le score (visible dans tous les onglets), quelques secondes. */
+    refuser(raison) {
+        this.avis = `⏱ ${raison}`;
+        navigator.vibrate?.([40, 60, 40]);
+        clearTimeout(this.finAvis);
+        this.finAvis = setTimeout(() => { if (this.avis === `⏱ ${raison}`) { this.avis = null; this.tic(); } }, 6000);
+        this.tic();
+        this.boutonPeriodeTarget.classList.remove('secoue');
+        void this.boutonPeriodeTarget.offsetWidth;
+        this.boutonPeriodeTarget.classList.add('secoue');
+    }
+
+    /** Vrai si la saisie est possible ; sinon explique pourquoi. */
+    peutNoter(quoi = 'action') {
+        const raison = this.blocage(quoi);
+        if (raison) this.refuser(raison);
+        return !raison;
+    }
+
     but() {
-        this.ouvrir('but');
+        if (this.peutNoter()) this.ouvrir('but');
     }
 
     carton() {
-        this.ouvrir('carton');
+        if (this.peutNoter()) this.ouvrir('carton');
     }
 
     tir(event) {
-        this.ouvrir('tir', event.currentTarget.dataset.camp);
+        if (this.peutNoter()) this.ouvrir('tir', event.currentTarget.dataset.camp);
     }
 
     remplacement() {
-        this.ouvrir('rempl', 'nous');
+        if (this.peutNoter('rempl')) this.ouvrir('rempl', 'nous');
     }
 
     /** Corner : noté d'un coup, sans fenêtre. */
     corner(event) {
-        this.demanderCoteCorner(event.currentTarget.dataset.camp === 'nous' ? 'CO' : 'CA');
+        if (this.peutNoter()) this.demanderCoteCorner(event.currentTarget.dataset.camp === 'nous' ? 'CO' : 'CA');
     }
 
     /**
@@ -735,6 +769,7 @@ export default class extends Controller {
     }
 
     choisirAction(event) {
+        if (!this.peutNoter()) return;
         const type = event.currentTarget.dataset.type;
         // Corner (pour nous ou l'adversaire) : on choisit seulement le drapeau d'où il est tiré.
         if (type === 'CO' || type === 'CA') {
@@ -971,7 +1006,9 @@ export default class extends Controller {
         const m = this.messageAction;
         this.consigneActionTarget.className = `live-consigne${m ? (m.alerte ? ' alerte' : ' succes') : ''}`;
         this.consigneActionTarget.innerHTML = m ? this.echapper(m.texte)
-            : (j ? `<b>${this.echapper(this.nom(j))}</b> : touchez son action (il reste choisi pour la suivante).` : 'Touchez le joueur, puis son action.');
+            : (this.blocage() ? this.echapper(this.blocage())
+                : (j ? `<b>${this.echapper(this.nom(j))}</b> : touchez son action (il reste choisi pour la suivante).` : 'Touchez le joueur, puis son action.'));
+        if (!m && this.blocage()) this.consigneActionTarget.className = 'live-consigne alerte';
         this.boutonAnnulerActionTarget.disabled = !this.mesActions.some((u) => this.actions.has(u));
         // Dernières actions de jeu (tous les appareils), la plus récente en haut.
         const jeu = liste.filter((a) => !EVENEMENTS.includes(a.type) && a.type !== 'RP' && !a.uuid.startsWith('ffffffff'))

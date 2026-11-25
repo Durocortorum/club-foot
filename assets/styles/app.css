@@ -2058,6 +2058,13 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 .live-temps.depasse { color: #ffb347; animation: temps-depasse 1.2s ease-in-out infinite; }
 @keyframes temps-depasse { 50% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .live-minute.depasse, .live-temps.depasse { animation: none; } }
+/* Chrono pas parti (avant le coup d'envoi, mi-temps, match fini) : boutons de saisie grisés. */
+.live.saisie-bloquee .live-bouton[data-action="live#but"], .live.saisie-bloquee .live-bouton[data-action="live#carton"],
+.live.rempl-bloque .live-bouton[data-action="live#remplacement"],
+.live.saisie-bloquee .tuile-action, .live.saisie-bloquee .live-ajouts .bouton { opacity: .4; filter: grayscale(.6); }
+.live-bouton.secoue { animation: secoue .5s ease-in-out 2; }
+@keyframes secoue { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+@media (prefers-reduced-motion: reduce) { .live-bouton.secoue { animation: none; outline: 3px solid #ff9f1c; } }
 .live-avis { margin: .6rem 0 0; padding: .5rem .7rem; border-radius: 10px; background: #ff9f1c; color: #2b1600; font-size: .85rem; font-weight: 600; text-align: center; }
 .live-avis[hidden] { display: none; }
 .live-etat { margin: .5rem 0 0; font-size: .8rem; opacity: .85; text-align: center; min-height: 1.1em; }
