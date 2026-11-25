@@ -795,14 +795,24 @@ export default class extends Controller {
             const tir = t ? { ...place } : { details: HORS_CARTE };
             if (nous && geste !== 'csc') actions.push({ uuid: this.uuidTir(uuid), type: geste === 'tete' ? 'TC' : 'FC', joueur, ...tir });
             if (!nous) actions.push({ uuid: this.uuidTir(uuid), type: geste === 'tete' ? 'ATC' : 'AC', joueur: null, ...tir });
+            // Sur corner ou coup franc : le corner (ou coup franc) obtenu est compté aussi, à son endroit quand on le
+            // connaît (drapeau du côté du tir, endroit du coup franc indirect, départ du coup franc direct).
+            const cpa = situation === 'corner' ? (nous ? 'CO' : 'CA') : (['cfd', 'cfi'].includes(situation) ? (nous ? 'CF' : 'CFA') : null);
+            if (cpa) {
+                const brut = situation === 'corner' ? (t ? [nous ? 105 : 0, t.depart[1] < 34 ? 0 : 68] : null)
+                    : (situation === 'cfi' ? t?.coupFranc : t?.depart);
+                const pt = brut ? arrondir([Math.max(0, Math.min(105, brut[0])), Math.max(0, Math.min(68, brut[1]))]) : null;
+                actions.push({ uuid: this.uuidCpa(uuid), type: cpa, joueur: null, ...(pt ? { ...zoneDuPoint(pt), details: { point: pt } } : { details: HORS_CARTE }) });
+            }
             if (modifie) {
                 actions = actions.map((x) => ({ ...x, periode: this.saisie.periode }));
-                // Devenu un contre son camp : plus de frappe cadrée qui allait avec.
-                if (actions.length === 1 && this.actions.has(this.uuidTir(uuid))) {
-                    this.actions.delete(this.uuidTir(uuid));
-                    delete this.enAttente[this.uuidTir(uuid)];
-                    this.supprimes.push(this.uuidTir(uuid));
-                }
+                // Devenu un contre son camp (plus de frappe cadrée) ou une action de jeu (plus de corner ni de coup franc) :
+                // ce qui allait avec disparaît.
+                [this.uuidTir(uuid), this.uuidCpa(uuid)].filter((u) => this.actions.has(u) && !actions.some((x) => x.uuid === u)).forEach((u) => {
+                    this.actions.delete(u);
+                    delete this.enAttente[u];
+                    this.supprimes.push(u);
+                });
             }
         } else if (type === 'carton') {
             const couleur = this.valeur('couleur');
@@ -845,6 +855,11 @@ export default class extends Controller {
     /** Identifiant de la frappe cadrée qui accompagne un but noté ici. */
     uuidTir(uuid) {
         return `ffffffff${uuid.slice(8)}`;
+    }
+
+    /** Corner ou coup franc qui va avec un but sur coup de pied arrêté (compté et dessiné, pas listé à part). */
+    uuidCpa(uuid) {
+        return `eeeeeeee${uuid.slice(8)}`;
     }
 
     aMoi(a) {
@@ -905,7 +920,7 @@ export default class extends Controller {
     async supprimer(event) {
         const a = this.actions.get(event.currentTarget.dataset.uuid);
         if (!a || !this.aMoi(a) || !await confirmer(`${this.texteMinute(a.periode, a.minute)} · ${this.libelle(a)}`, { titre: 'Supprimer cet événement ?', bouton: 'Supprimer' })) return;
-        [a.uuid, ...(['B', 'BA'].includes(a.type) ? [this.uuidTir(a.uuid)] : [])].forEach((u) => {
+        [a.uuid, ...(['B', 'BA'].includes(a.type) ? [this.uuidTir(a.uuid), this.uuidCpa(a.uuid)] : [])].forEach((u) => {
             const x = this.actions.get(u);
             if (!x || !this.aMoi(x)) return;
             this.actions.delete(u);
@@ -1358,7 +1373,7 @@ export default class extends Controller {
         if (!m && this.blocage()) this.consigneActionTarget.className = 'live-consigne alerte';
         this.boutonAnnulerActionTarget.disabled = !this.mesActions.some((u) => this.actions.has(u));
         // Dernières actions de jeu et buts (tous les appareils), la plus récente en haut ; à minute égale, le but d'abord.
-        const jeu = liste.filter((a) => (BUTS.includes(a.type) || !EVENEMENTS.includes(a.type)) && a.type !== 'RP' && !a.uuid.startsWith('ffffffff'))
+        const jeu = liste.filter((a) => (BUTS.includes(a.type) || !EVENEMENTS.includes(a.type)) && a.type !== 'RP' && !a.uuid.startsWith('ffffffff') && !a.uuid.startsWith('eeeeeeee'))
             .sort((a, b) => (b.periode - a.periode) || (b.minute - a.minute) || (BUTS.includes(b.type) - BUTS.includes(a.type)));
         const dernieres = this.toutesActions ? jeu : jeu.slice(0, 6);
         // Ses propres actions se corrigent (joueur, action, minute) ou se suppriment ; un but se supprime (puis se renote).
