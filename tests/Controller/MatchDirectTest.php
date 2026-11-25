@@ -115,6 +115,79 @@ class MatchDirectTest extends WebTestCase
         self::assertSelectorTextContains('.score-tab', '(1 – 1 aux tirs au but)');
     }
 
+    /**
+     * Buts sur coups de pied arrêtés : corner (tiré par le passeur), coup franc, penalty notés en direct, reportés sur la
+     * feuille (« Situation », phase CPA), analysés dans le bilan et signalés sur la carte.
+     */
+    public function testButsSurCoupsDePiedArretes(): void
+    {
+        $client = static::createClient();
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Admin');
+        $club = (new Club())->setNom("FC CPA $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $u15 = $em->getRepository(Categorie::class)->findOneBy(['club' => $club, 'nom' => 'U15']);
+        $tom = (new Joueur())->setClub($club)->setCategorie($u15)->setNom('Petit')->setPrenom('Tom');
+        $leo = (new Joueur())->setClub($club)->setCategorie($u15)->setNom('Grand')->setPrenom('Léo');
+        $match = (new Rencontre())->setClub($club)->setCategorie($u15)->setDate(new \DateTimeImmutable('today'))
+            ->setDomicile("FC CPA $id")->setExterieur('AS ADVERSE')->setCompetition('Championnat');
+        foreach ([$tom, $leo, $match] as $e) {
+            $em->persist($e);
+        }
+        $em->flush();
+        [$matchId, $tomId, $leoId] = [$match->getId(), $tom->getId(), $leo->getId()];
+        $client->loginUser($admin);
+        $crawler = $client->request('GET', "/matchs/$matchId/live");
+        $config = json_decode($crawler->filter('[data-controller="live"]')->attr('data-live-config-value'), true);
+
+        $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['jeton' => $config['jeton'], 'actions' => [
+            ['uuid' => 'c1111111-1111-4111-8111-111111111111', 'joueur' => null, 'type' => 'CO', 'periode' => 1, 'minute' => 10, 'zx' => 5, 'zy' => 0, 'details' => ['point' => [105, 0]]],
+            ['uuid' => 'c2222222-2222-4222-8222-222222222222', 'joueur' => null, 'type' => 'CO', 'periode' => 1, 'minute' => 12, 'zx' => 5, 'zy' => 0, 'details' => ['point' => [105, 0]]],
+            // Tête de Tom sur un corner tiré par Léo, venu de la gauche.
+            ['uuid' => 'd1111111-1111-4111-8111-111111111111', 'joueur' => $tomId, 'type' => 'B', 'periode' => 1, 'minute' => 12, 'zx' => 5, 'zy' => 0,
+                'details' => ['depart' => [99, 20], 'arrivee' => [105, 33], 'geste' => 'tete', 'passeur' => $leoId, 'situation' => 'corner']],
+            ['uuid' => 'd2222222-2222-4222-8222-222222222222', 'joueur' => $tomId, 'type' => 'B', 'periode' => 2, 'minute' => 60, 'details' => ['geste' => 'tir', 'situation' => 'cfd', 'horsCarte' => true]],
+            // Penalty adverse, pas placé : tiré du point de penalty.
+            ['uuid' => 'd3333333-3333-4333-8333-333333333333', 'joueur' => null, 'type' => 'BA', 'periode' => 2, 'minute' => 70, 'details' => ['geste' => 'tir', 'situation' => 'penalty', 'horsCarte' => true]],
+            ['uuid' => 'd4444444-4444-4444-8444-444444444444', 'joueur' => $tomId, 'type' => 'B', 'periode' => 2, 'minute' => 80, 'details' => ['geste' => 'tir', 'situation' => 'pirate', 'horsCarte' => true]],
+        ]]));
+        self::assertResponseIsSuccessful();
+
+        $em->clear();
+        $actions = $em->getRepository(ActionMatch::class);
+        self::assertSame('corner', $actions->findOneBy(['uuid' => 'd1111111-1111-4111-8111-111111111111'])->getDetails()['situation']);
+        self::assertEquals(['depart' => [11.0, 34.0], 'arrivee' => [0.0, 34.0], 'geste' => 'tir', 'situation' => 'penalty'],
+            $actions->findOneBy(['uuid' => 'd3333333-3333-4333-8333-333333333333'])->getDetails(), 'penalty au point de penalty');
+        self::assertArrayNotHasKey('situation', $actions->findOneBy(['uuid' => 'd4444444-4444-4444-8444-444444444444'])->getDetails(), 'situation inconnue écartée');
+
+        // Feuille de match : « Situation » et phase « Coup de pied arrêté ».
+        $buts = [];
+        foreach ($em->find(Rencontre::class, $matchId)->getButs() as $b) {
+            $buts[$b->getMinute()] = [$b->getConditions(), $b->getPhase()];
+        }
+        ksort($buts);
+        self::assertSame([12 => ['Corner gauche', 'CPA'], 60 => ['CF direct', 'CPA'], 70 => ['Pénalty', 'CPA'], 80 => [null, null]], $buts);
+
+        // Bilan : d'où viennent les buts, corners transformés, tireur décisif, carte.
+        $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
+        self::assertResponseIsSuccessful();
+        $lignes = $crawler->filter('.origines-buts tbody tr')->each(fn ($tr) => $tr->filter('th, td')->each(fn ($c) => $c->text()));
+        self::assertSame([
+            ['Action de jeu', '1', '–'], ['Corner', '1', '–'], ['Coup franc direct', '1', '–'], ['Coup franc indirect', '–', '–'], ['Penalty', '–', '1'],
+            ['Sur coups de pied arrêtés', '2', '1'], ['Corners transformés', '1 sur 2 (50 %)', '0 sur 0'],
+        ], $lignes);
+        self::assertStringContainsString('Léo GRAND (1 corner)', $crawler->filter('.origines-buts')->ancestors()->filter('section')->text());
+        $corner = array_values(array_filter($this->carte($crawler), fn ($a) => 'B' === $a['type'] && 12 === $a['minute']))[0];
+        self::assertSame('corner', $corner['details']['situation']);
+        self::assertStringContainsString('sur corner de Léo GRAND', $corner['libelle']);
+        self::assertStringContainsString('Corner tiré par Léo GRAND', $crawler->filter('.buts-liste')->first()->text());
+
+        // Situation écrite à la main sur la feuille → code du direct.
+        self::assertSame(['corner', 'cfi', 'cfd', 'penalty', null], array_map([ActionMatch::class, 'situationDeConditions'], ['Corner droit', 'CF indirect', 'Coup franc direct', 'Pénalty', 'Tir croisé']));
+    }
+
     public function testSaisieEnDirectEtBilan(): void
     {
         $client = static::createClient();

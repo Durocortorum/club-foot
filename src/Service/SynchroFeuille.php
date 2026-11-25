@@ -224,6 +224,22 @@ class SynchroFeuille
         if (isset($d['depart'], $d['arrivee'])) {
             $but->setTrace($d);
         }
+        // Corner, coup franc, penalty : « Situation » de la feuille et phase « Coup de pied arrêté ». Une situation de la
+        // feuille qui dit déjà la même chose est gardée (« Corner droit » plutôt que « Corner »).
+        if ('csc' !== ($d['geste'] ?? null)) {
+            $situation = $d['situation'] ?? null;
+            $avant = ActionMatch::situationDeConditions($but->getConditions());
+            if (null !== $situation && $avant !== $situation) {
+                $but->setConditions(ActionMatch::conditionsDeSituation($situation, $d['depart'] ?? null, 'BA' === $a->getType()));
+            } elseif (null === $situation && null !== $avant) {
+                $but->setConditions(null);
+            }
+            if (null !== $situation && null === $but->getPhase()) {
+                $but->setPhase('CPA');
+            } elseif (null === $situation && 'CPA' === $but->getPhase()) {
+                $but->setPhase(null);
+            }
+        }
         if ('BA' === $a->getType()) {
             $but->setButeur(null)->setPasseur(null);
 
@@ -407,6 +423,7 @@ class SynchroFeuille
                 'arrivee' => $b['trace']['arrivee'] ?? $ancien['arrivee'] ?? null,
                 'geste' => 'CSC' === $b['conditions'] ? 'csc' : ('Tête' === $b['geste'] ? 'tete' : (($ancien['geste'] ?? null) === 'tete' ? 'tir' : ($ancien['geste'] ?? null))),
                 'passeur' => $b['passeur'],
+                'situation' => ActionMatch::situationDeConditions($b['conditions']),
                 'horsCarte' => $horsCarte ?: null,
             ], fn ($v) => null !== $v) ?: null);
     }

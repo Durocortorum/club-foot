@@ -261,6 +261,12 @@ class But implements AppartientAuClub
         return $this;
     }
 
+    /** Corner, coup franc direct ou indirect, penalty (codes du direct, ActionMatch::SITUATIONS_BUT), d'après la situation. */
+    public function getSituationCpa(): ?string
+    {
+        return ActionMatch::situationDeConditions($this->conditions);
+    }
+
     public function getPhase(): ?string
     {
         return $this->phase;

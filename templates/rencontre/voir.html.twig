@@ -112,8 +112,8 @@
                 {# Buts placés sur le terrain (feuille de match ou match en direct) : départ du ballon, entrée dans le but. #}
                 {% set places = rencontre.buts|filter(b => b.trace) %}
                 {% if places|length %}
-                    {% set marques = places|filter(b => not b.adverse)|map(b => {minute: b.temps ?? '', nom: b.buteur ? b.buteur.prenom ~ ' ' ~ b.buteur.nom : '', geste: b.geste, depart: b.trace.depart, arrivee: b.trace.arrivee}) %}
-                    {% set encaisses = places|filter(b => b.adverse)|map(b => {minute: b.temps ?? '', nom: '', geste: b.geste, depart: b.trace.depart, arrivee: b.trace.arrivee}) %}
+                    {% set marques = places|filter(b => not b.adverse)|map(b => {minute: b.temps ?? '', nom: b.buteur ? b.buteur.prenom ~ ' ' ~ b.buteur.nom : '', geste: b.geste, depart: b.trace.depart, arrivee: b.trace.arrivee, situation: b.situationCpa, passeur: b.passeur ? b.passeur.prenom ~ ' ' ~ b.passeur.nom : null}) %}
+                    {% set encaisses = places|filter(b => b.adverse)|map(b => {minute: b.temps ?? '', nom: '', geste: b.geste, depart: b.trace.depart, arrivee: b.trace.arrivee, situation: b.situationCpa, passeur: null}) %}
                     <div class="buts-schemas buts-match">
                         {% if marques|length %}
                             <figure>

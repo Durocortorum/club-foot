@@ -27,11 +27,24 @@
     <circle cx="{{ bx }}" cy="37.66" r="0.45" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
     {% for b in buts %}
         <g>
-            <title>{{ b.minute }}' {{ b.nom }}{{ b.geste ? ' · ' ~ b.geste }}</title>
+            <title>{{ b.minute }}' {{ b.nom }}{{ b.geste ? ' · ' ~ b.geste }}{{ b.situation ? ' · sur ' ~ {corner: 'corner', cfd: 'coup franc direct', cfi: 'coup franc indirect', penalty: 'penalty'}[b.situation] ~ (b.passeur and b.situation in ['corner', 'cfi'] ? ' de ' ~ b.passeur) }}</title>
+            {# But sur corner : le centre part du drapeau (côté du tir), en pointillés fins, jusqu'au départ du tir. #}
+            {% if b.situation == 'corner' %}
+                {% set cy = b.depart[1] < 34 ? 0 : 68 %}
+                <line x1="{{ bx }}" y1="{{ cy }}" x2="{{ b.depart[0] }}" y2="{{ b.depart[1] }}" stroke="{{ couleur }}" stroke-width="0.3" stroke-dasharray="0.8 0.8" opacity="0.8"/>
+                {% set haut = cy ? cy - 3.2 : 3.2 %}
+                <path d="M{{ bx }},{{ cy }} V{{ haut }}" stroke="#1d1d1f" stroke-width="0.25"/>
+                <path d="M{{ bx }},{{ haut }} l{{ s * 2.2 }},{{ cy ? 0.8 : -0.8 }} l{{ -s * 2.2 }},{{ cy ? 0.8 : -0.8 }} z" fill="{{ couleur }}"/>
+            {% endif %}
             <line x1="{{ b.depart[0] }}" y1="{{ b.depart[1] }}" x2="{{ b.arrivee[0] }}" y2="{{ b.arrivee[1] }}" stroke="{{ couleur }}" stroke-width="0.45"
                   stroke-dasharray="{{ b.geste == 'Tête' ? '1 0.6' : 'none' }}" marker-end="url(#pointe-but-{{ cote }})"/>
             <circle cx="{{ b.depart[0] }}" cy="{{ b.depart[1] }}" r="0.9" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
             <text x="{{ b.depart[0] }}" y="{{ b.depart[1] - 1.6 }}" text-anchor="middle" font-size="1.9" font-weight="700" fill="#1d1d1f">{{ b.minute }}'</text>
+            {# Coup franc (CF) ou penalty (P) : pastille sous le ballon. #}
+            {% if b.situation in ['cfd', 'cfi', 'penalty'] %}
+                <rect x="{{ b.depart[0] - 1.7 }}" y="{{ b.depart[1] + 1.3 }}" width="3.4" height="2.1" rx="1" fill="{{ couleur }}"/>
+                <text x="{{ b.depart[0] }}" y="{{ b.depart[1] + 2.85 }}" text-anchor="middle" font-size="1.5" font-weight="800" fill="#fff">{{ b.situation == 'penalty' ? 'P' : 'CF' }}</text>
+            {% endif %}
         </g>
     {% endfor %}
 </svg>

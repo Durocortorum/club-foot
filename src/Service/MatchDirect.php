@@ -226,8 +226,12 @@ class MatchDirect
                 $details = ($trace ?? []) + array_filter([
                     'geste' => $csc ? 'csc' : ('Tête' === $b->getGeste() ? 'tete' : ($trace ? 'tir' : null)),
                     'passeur' => $b->isAdverse() ? null : $b->getPasseur()?->getId(),
+                    // Corner, coup franc, penalty : d'après la « Situation » de la feuille, sinon notée en direct.
+                    'situation' => ActionMatch::situationDeConditions($b->getConditions()) ?? $note?->getDetails()['situation'] ?? null,
                 ]);
-                $place = $trace['depart'] ?? ($note ? [($note->getZx() + 0.5) * 17.5, ($note->getZy() + 0.5) * 68 / 3] : null);
+                $place = $trace['depart'] ?? ($note ? [($note->getZx() + 0.5) * 17.5, ($note->getZy() + 0.5) * 68 / 3] : null)
+                    // Penalty : du point de penalty.
+                    ?? ('penalty' === ($details['situation'] ?? null) ? [$b->isAdverse() ? 11.0 : 94.0, 34.0] : null);
                 // Ni placé sur la feuille ni noté en direct : compté, mais pas sur la carte.
                 $actions[] = $nouvelle($type, $buteur, $minute, $place, $details ?: null);
             }

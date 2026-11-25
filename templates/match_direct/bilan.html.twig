@@ -67,20 +67,56 @@
         </section>
 
 
+        {# D'où viennent les buts : action de jeu ou coup de pied arrêté (corner, coup franc, penalty), pour les deux équipes. #}
+        {% if analyseButs %}
+            {% set a = analyseButs %}
+            <section class="carte bloc">
+                <h2>D'où viennent les buts</h2>
+                <div class="table-defile">
+                    <table class="liste chiffres origines-buts">
+                        <thead><tr><th></th><th>{{ nous }}</th><th>{{ rencontre.adversaire }}</th></tr></thead>
+                        <tbody>
+                            {% for code, libelle in a.libelles %}
+                                {% set pour = a.origines.nous[code] ?? 0 %}{% set contre = a.origines.eux[code] ?? 0 %}
+                                <tr class="{{ pour or contre ? '' : 'vide' }}"><th>{% if code != 'jeu' %}<span class="situation-but {{ code }}">{{ libelle }}</span>{% else %}{{ libelle }}{% endif %}</th>
+                                    <td>{{ pour ?: '–' }}</td><td>{{ contre ?: '–' }}</td></tr>
+                            {% endfor %}
+                            {% set cpaNous = (a.origines.nous|reduce((s, n) => s + n, 0)) - (a.origines.nous.jeu ?? 0) %}
+                            {% set cpaEux = (a.origines.eux|reduce((s, n) => s + n, 0)) - (a.origines.eux.jeu ?? 0) %}
+                            <tr class="total"><th>Sur coups de pied arrêtés</th><td>{{ cpaNous }}</td><td>{{ cpaEux }}</td></tr>
+                            {% if a.corners.nous or a.corners.eux %}
+                                <tr><th>Corners transformés</th>
+                                    {% for camp in ['nous', 'eux'] %}
+                                        {% set n = a.origines[camp].corner ?? 0 %}
+                                        <td>{{ n }} sur {{ a.corners[camp] }}{% if a.corners[camp] %} <span class="discret">({{ (100 * n / a.corners[camp])|round }} %)</span>{% endif %}</td>
+                                    {% endfor %}</tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if a.tireurs %}
+                    <p class="petit">Tireurs décisifs :
+                        {% for t in a.tireurs %}{{ t.joueur.prenom }} <b>{{ t.joueur.nom }}</b>
+                            ({{ [t.corner ? t.corner ~ ' corner' ~ (t.corner > 1 ? 's') : null, t.cfi ? t.cfi ~ ' coup' ~ (t.cfi > 1 ? 's') ~ ' franc' ~ (t.cfi > 1 ? 's') : null]|filter(x => x)|join(', ') }}){{ not loop.last ? ' · ' }}{% endfor %}</p>
+                {% endif %}
+                <p class="discret petit">À noter avec chaque but dans le Match Live (« Sur quelle action ? ») ou dans la colonne « Situation » de la feuille de match. Le passeur décisif d'un corner ou d'un coup franc indirect est le joueur qui l'a tiré.</p>
+            </section>
+        {% endif %}
+
         {% if traces.marques or traces.encaisses %}
             <section class="carte bloc">
                 <h2>Les buts</h2>
-                <p class="discret petit">D'où part le ballon (rond, avec la minute) et où il entre dans le but (flèche) ; pointillés : de la tête.</p>
+                <p class="discret petit">D'où part le ballon (rond, avec la minute) et où il entre dans le but (flèche) ; pointillés : de la tête. Coups de pied arrêtés : trajet du corner depuis le drapeau, pastille « CF » (coup franc) ou « P » (penalty).</p>
                 <div class="buts-schemas">
                     <figure>
                         <figcaption>Buts marqués ({{ traces.marques|length }})</figcaption>
                         {{ include('match_direct/_demi_terrain.html.twig', {buts: traces.marques, cote: 'eux'}) }}
-                        <ul class="buts-liste">{% for b in traces.marques %}<li><b>{{ m.min(b.periode, b.minute, mi) }}</b> {{ b.nom ?: '—' }}{{ b.passeur ? ', passe de ' ~ b.passeur }}{{ b.geste ? ' · ' ~ b.geste }}</li>{% endfor %}</ul>
+                        <ul class="buts-liste">{% for b in traces.marques %}<li><b>{{ m.min(b.periode, b.minute, mi) }}</b> {{ b.nom ?: '—' }}{% if b.situation %} <span class="situation-but {{ b.situation }}">{{ situations[b.situation] }}{{ b.passeur and b.situation in ['corner', 'cfi'] ? ' tiré par ' ~ b.passeur }}</span>{% elseif b.passeur %}, passe de {{ b.passeur }}{% endif %}{{ b.geste ? ' · ' ~ b.geste }}</li>{% endfor %}</ul>
                     </figure>
                     <figure>
                         <figcaption>Buts encaissés ({{ traces.encaisses|length }})</figcaption>
                         {{ include('match_direct/_demi_terrain.html.twig', {buts: traces.encaisses, cote: 'nous'}) }}
-                        <ul class="buts-liste">{% for b in traces.encaisses %}<li><b>{{ m.min(b.periode, b.minute, mi) }}</b> {{ b.geste ?: 'adversaire' }}</li>{% endfor %}</ul>
+                        <ul class="buts-liste">{% for b in traces.encaisses %}<li><b>{{ m.min(b.periode, b.minute, mi) }}</b> {{ b.geste ?: 'adversaire' }}{% if b.situation %} <span class="situation-but {{ b.situation }}">{{ situations[b.situation] }}</span>{% endif %}</li>{% endfor %}</ul>
                     </figure>
                 </div>
             </section>

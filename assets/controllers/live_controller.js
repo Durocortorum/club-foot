@@ -24,6 +24,8 @@ const HORS_CARTE = { horsCarte: true };
 // Actions de jeu de l'adversaire (le reste est à nous).
 const ADVERSES = ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA'];
 const BUTS = ['B', 'BA'];
+// D'où vient un but quand ce n'est pas une action de jeu (comme ActionMatch::SITUATIONS_BUT).
+const SITUATIONS = { corner: 'Corner', cfd: 'Coup franc direct', cfi: 'Coup franc indirect', penalty: 'Penalty' };
 // Lignes de l'équipe, d'après l'abréviation du poste (G ; DEF, DC, LD… ; MIL, MDC, MOG… ; AT).
 const LIGNES = [['gardien', 'Gardiens'], ['defense', 'Défenseurs'], ['milieu', 'Milieux'], ['attaque', 'Attaquants'], ['autre', 'Sans poste']];
 function ligneDuPoste(poste) {
@@ -628,12 +630,14 @@ export default class extends Controller {
         const { type } = this.saisie;
         const nous = this.camp() === 'nous';
         let html = '';
+        // Sur quelle action : de jeu, ou coup de pied arrêté (corner, coup franc, penalty) pour l'analyse des buts.
+        const situation = `<p class="live-libelle">Sur quelle action ?</p>${this.choix('situation', [['jeu', 'Action de jeu'], ['corner', '🚩 Corner'], ['cfd', 'Coup franc direct'], ['cfi', 'Coup franc indirect'], ['penalty', 'Penalty']])}`;
         if (type === 'but' && nous) {
-            html = this.choix('geste', [['tir', 'Tir'], ['tete', 'Tête'], ['csc', 'Contre son camp (adversaire)']])
+            html = this.choix('geste', [['tir', 'Tir'], ['tete', 'Tête'], ['csc', 'Contre son camp (adversaire)']]) + situation
                 + `<div class="si-joueur">${this.grilleJoueurs('joueur', this.joueursTries(), 'Buteur')}
-                    <label class="live-libelle">Passeur décisif <select name="passeur"><option value="">Aucun</option>${this.joueursTries().map((id) => this.joueur(id)).map((j) => `<option value="${j.id}">${j.numero ? `${j.numero} · ` : ''}${this.echapper(this.nom(j))}</option>`).join('')}</select></label></div>`;
+                    <label class="live-libelle">Passeur décisif <small class="discret">(corner ou coup franc indirect : celui qui l'a tiré)</small> <select name="passeur"><option value="">Aucun</option>${this.joueursTries().map((id) => this.joueur(id)).map((j) => `<option value="${j.id}">${j.numero ? `${j.numero} · ` : ''}${this.echapper(this.nom(j))}</option>`).join('')}</select></label></div>`;
         } else if (type === 'but') {
-            html = `<p class="discret">But de ${this.echapper(this.cfg.adversaire)}.</p>` + this.choix('geste', [['tir', 'Tir'], ['tete', 'Tête']]);
+            html = `<p class="discret">But de ${this.echapper(this.cfg.adversaire)}.</p>` + this.choix('geste', [['tir', 'Tir'], ['tete', 'Tête']]) + situation;
         }
         if (type === 'but') {
             // Facultatif : ballon au départ du tir et flèche jusqu'à l'entrée dans le but (comme sur la saisie détaillée).
@@ -704,13 +708,16 @@ export default class extends Controller {
             const geste = this.valeur('geste') || 'tir';
             if (nous && geste !== 'csc' && !joueur) return this.erreur('Touchez le buteur.');
             const passeur = Number(this.valeur('passeur'));
+            const situation = SITUATIONS[this.valeur('situation')] ? this.valeur('situation') : null;
             // Placé sur le terrain : départ et arrivée du ballon, zone du direct d'après le départ (en mètres).
-            const t = this.trace && this.traceTouchee ? this.trace : null;
+            // Penalty pas placé : tiré du point de penalty (11 m), vers le milieu du but.
+            const t = this.trace && this.traceTouchee ? this.trace
+                : (situation === 'penalty' ? { depart: [nous ? 94 : 11, 34], arrivee: [nous ? 105 : 0, 34] } : null);
             const place = t
                 ? { zx: Math.max(0, Math.min(5, Math.floor(t.depart[0] / 17.5))), zy: Math.max(0, Math.min(2, Math.floor(t.depart[1] / (68 / 3)))) }
                 : {};
             const ou = t ? { depart: arrondir(t.depart), arrivee: arrondir(t.arrivee) } : HORS_CARTE;
-            const details = { geste, ...ou, ...(nous && passeur && passeur !== joueur && geste !== 'csc' ? { passeur } : {}) };
+            const details = { geste, ...ou, ...(nous && passeur && passeur !== joueur && geste !== 'csc' ? { passeur } : {}), ...(situation ? { situation } : {}) };
             actions = [{ uuid, type: nous ? 'B' : 'BA', joueur: nous && geste !== 'csc' ? joueur : null, details, ...place }];
             // La frappe cadrée qui va avec (pas pour un contre son camp), à la même place que le but si elle est connue.
             const tir = t ? { ...place } : { details: HORS_CARTE };
@@ -853,8 +860,8 @@ export default class extends Controller {
         const j = this.joueur(a.joueur);
         const adv = this.cfg.adversaire;
         switch (a.type) {
-        case 'B': return `But – ${a.details?.geste === 'csc' ? `contre son camp (${adv})` : this.nom(j)}${a.details?.geste === 'tete' ? ' (tête)' : ''}`;
-        case 'BA': return `But – ${adv}`;
+        case 'B': return `But – ${a.details?.geste === 'csc' ? `contre son camp (${adv})` : this.nom(j)}${a.details?.geste === 'tete' ? ' (tête)' : ''}${this.texteSituation(a)}`;
+        case 'BA': return `But – ${adv}${this.texteSituation(a)}`;
         case 'TB': return `Tir au but – ${this.nom(j)} ${a.details?.reussi ? '✓' : '✗'}`;
         case 'ATB': return `Tir au but – ${adv} ${a.details?.reussi ? '✓' : '✗'}`;
         case 'CJ': return `Carton jaune – ${this.nom(j)}`;
@@ -868,6 +875,12 @@ export default class extends Controller {
             return j ? `${this.nom(j)} – ${quoi}` : quoi;
         }
         }
+    }
+
+    /** « , sur corner », « , sur penalty »… d'un but sur coup de pied arrêté (rien pour une action de jeu). */
+    texteSituation(a) {
+        const s = SITUATIONS[a.details?.situation];
+        return s ? `, sur ${s.toLowerCase()}` : '';
     }
 
     // ———————— Onglet « Actions » : joueur puis action, enregistrée aussitôt ————————
@@ -1301,7 +1314,9 @@ export default class extends Controller {
             if (a.type === 'B') score[0]++;
             if (a.type === 'BA') score[1]++;
             const sc = ['B', 'BA'].includes(a.type) ? ` <span class="sc">(${this.texteScore(score)})</span>` : '';
-            const passeur = a.type === 'B' && a.details?.passeur ? ` <span class="discret petit">passe de ${this.echapper(this.nom(this.joueur(a.details.passeur)))}</span>` : '';
+            // Corner ou coup franc indirect : le passeur est celui qui l'a tiré.
+            const tire = ['corner', 'cfi'].includes(a.details?.situation);
+            const passeur = a.type === 'B' && a.details?.passeur ? ` <span class="discret petit">${tire ? 'tiré par' : 'passe de'} ${this.echapper(this.nom(this.joueur(a.details.passeur)))}</span>` : '';
             const html = `<li class="${a.type === 'B' ? 'but-nous' : ''}${this.enAttente[a.uuid] ? ' en-attente' : ''}">
                 <span class="min">${this.texteMinute(a.periode, a.minute)}</span><span class="ico">${this.icone(a.type)}</span>
                 <span class="quoi">${this.echapper(this.libelle(a))}${sc}${passeur}</span>

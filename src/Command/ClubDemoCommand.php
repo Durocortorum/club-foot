@@ -754,16 +754,33 @@ class ClubDemoCommand extends Command
             $joueur = isset(ActionMatch::ADVERSES[$type]) ? null : $joueurs[mt_rand(0, \count($joueurs) - 1)];
             $ajouter($type, $joueur, mt_rand(1, $duree), $zx, $zy);
         }
+        $premier = ['B' => true, 'BA' => true];
         foreach ($r->getButs() as $but) {
             // Tracé du but : tir depuis la surface, entrée entre les poteaux (30,34 à 37,66 m).
             $adverse = $but->isAdverse();
             $x = $adverse ? mt_rand(40, 160) / 10 : 105 - mt_rand(40, 160) / 10;
             $y = mt_rand(220, 460) / 10;
             $arrivee = [$adverse ? 0 : 105, mt_rand(310, 370) / 10];
-            $ajouter($adverse ? 'BA' : 'B', $adverse ? null : $but->getButeur(), min($duree, (int) $but->getMinute()), $adverse ? 0 : 5, (int) min(2, floor($y / (68 / 3))), [
+            // Coups de pied arrêtés : notre 1er but de la tête sur corner (tiré par le passeur), le 1er but adverse sur penalty.
+            $situation = null;
+            if ($premier[$adverse ? 'BA' : 'B']) {
+                $premier[$adverse ? 'BA' : 'B'] = false;
+                $situation = $adverse ? 'penalty' : ($but->getPasseur() ? 'corner' : null);
+                if ('penalty' === $situation) {
+                    [$x, $y] = [11.0, 34.0];
+                } elseif ('corner' === $situation) {
+                    [$x, $y] = [105 - mt_rand(40, 70) / 10, mt_rand(270, 330) / 10];
+                    $but->setGeste('Tête');
+                }
+                if ($situation) {
+                    $but->setConditions(ActionMatch::conditionsDeSituation($situation, [$x, $y], $adverse))->setPhase('CPA');
+                }
+            }
+            $ajouter($adverse ? 'BA' : 'B', $adverse ? null : $but->getButeur(), min($duree, (int) $but->getMinute()), $adverse ? 0 : 5, (int) min(2, floor($y / (68 / 3))), array_filter([
                 'depart' => [$x, $y], 'arrivee' => $arrivee, 'geste' => 'Tête' === $but->getGeste() ? 'tete' : 'tir',
                 'passeur' => $adverse ? null : $but->getPasseur()?->getId(),
-            ]);
+                'situation' => $situation,
+            ], fn ($v) => null !== $v));
             // Même dessin sur la feuille de match (direct et feuille se tiennent à jour l'un l'autre).
             $but->setTrace(['depart' => [$x, $y], 'arrivee' => $arrivee]);
         }

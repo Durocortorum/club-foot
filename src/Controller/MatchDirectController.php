@@ -296,6 +296,19 @@ class MatchDirectController extends AbstractController
         return $u;
     }
 
+    /** « · sur corner de Paul Martin », « · sur penalty »… pour un but sur coup de pied arrêté (rien sinon). */
+    private function origineDuBut(ActionMatch $a): string
+    {
+        $d = $a->getDetails() ?? [];
+        if (!\in_array($a->getType(), ['B', 'BA'], true) || !isset(ActionMatch::SITUATIONS_BUT[$d['situation'] ?? ''])) {
+            return '';
+        }
+        $passeur = isset($d['passeur']) ? $this->em->find(Joueur::class, $d['passeur']) : null;
+
+        return ' · sur ' . mb_strtolower(ActionMatch::SITUATIONS_BUT[$d['situation']])
+            . ($passeur && \in_array($d['situation'], ['corner', 'cfi'], true) ? ' de ' . $passeur->getPrenom() . ' ' . $passeur->getNom() : '');
+    }
+
     /** Heure du serveur en millisecondes : les tablettes s'y alignent pour un chrono commun. */
     private static function maintenant(): int
     {
@@ -333,10 +346,45 @@ class MatchDirectController extends AbstractController
                 'zy' => $a->getZy(),
                 // Frappe cadrée ajoutée avec un but : le ballon du but la remplace sur le terrain.
                 'avecBut' => str_starts_with($a->getUuid(), 'ffffffff'),
-                'details' => ['point' => $point ? [round(max(0.0, min(105.0, (float) $point[0])), 1), round((float) $point[1], 1)] : null],
-                'libelle' => ActionMatch::libelleDe($a->getType()) . ($a->getJoueur() ? ' · ' . $a->getJoueur()->getPrenom() . ' ' . $a->getJoueur()->getNom() : ''),
+                'details' => array_filter([
+                    'point' => $point ? [round(max(0.0, min(105.0, (float) $point[0])), 1), round((float) $point[1], 1)] : null,
+                    // But sur corner, coup franc ou penalty : signalé sur le terrain (trajet du corner, pastille).
+                    'situation' => $d['situation'] ?? null,
+                ], fn ($v) => null !== $v) + ['point' => null],
+                'libelle' => ActionMatch::libelleDe($a->getType()) . ($a->getJoueur() ? ' · ' . $a->getJoueur()->getPrenom() . ' ' . $a->getJoueur()->getNom() : '')
+                    . $this->origineDuBut($a),
             ];
         }
+
+        // D'où viennent les buts (nous et l'adversaire) : jeu, corner, coup franc, penalty ; corners obtenus et
+        // transformés ; tireurs des corners et coups francs décisifs.
+        $origines = ['nous' => [], 'eux' => []];
+        $corners = ['nous' => 0, 'eux' => 0];
+        $tireurs = [];
+        $nbButs = 0;
+        foreach ($actions as $a) {
+            if (\in_array($a->getType(), ['CO', 'CA'], true)) {
+                ++$corners['CO' === $a->getType() ? 'nous' : 'eux'];
+            }
+            if (!\in_array($a->getType(), ['B', 'BA'], true)) {
+                continue;
+            }
+            ++$nbButs;
+            $situation = $a->getDetails()['situation'] ?? 'jeu';
+            $camp = 'BA' === $a->getType() ? 'eux' : 'nous';
+            $origines[$camp][$situation] = ($origines[$camp][$situation] ?? 0) + 1;
+            $passeur = $a->getDetails()['passeur'] ?? null;
+            if ('nous' === $camp && $passeur && \in_array($situation, ['corner', 'cfi'], true) && ($j = $this->em->find(Joueur::class, $passeur))) {
+                $tireurs[$passeur] ??= ['joueur' => $j, 'corner' => 0, 'cfi' => 0];
+                ++$tireurs[$passeur][$situation];
+            }
+        }
+        $analyseButs = $nbButs ? [
+            'origines' => $origines,
+            'corners' => $corners,
+            'tireurs' => array_values($tireurs),
+            'libelles' => ['jeu' => 'Action de jeu'] + ActionMatch::SITUATIONS_BUT,
+        ] : null;
 
         // Schémas des buts : départ du ballon et point d'entrée dans le but (sans tracé noté : milieu de la zone, centre du but).
         $traces = ['marques' => [], 'encaisses' => []];
@@ -353,6 +401,7 @@ class MatchDirectController extends AbstractController
                 'nom' => $a->getJoueur() ? $a->getJoueur()->getPrenom() . ' ' . $a->getJoueur()->getNom() : ('csc' === ($d['geste'] ?? null) ? 'CSC' : ''),
                 'geste' => ActionMatch::GESTES_BUT[$d['geste'] ?? ''] ?? null,
                 'passeur' => isset($d['passeur']) ? $this->em->find(Joueur::class, $d['passeur'])?->getPrenom() . ' ' . $this->em->find(Joueur::class, $d['passeur'])?->getNom() : null,
+                'situation' => $d['situation'] ?? null,
                 'depart' => $d['depart'] ?? [($a->getZx() + 0.5) * 17.5, ($a->getZy() + 0.5) * 68 / 3],
                 'arrivee' => $d['arrivee'] ?? [$adverse ? 0.0 : 105.0, 34.0],
             ];
@@ -374,6 +423,8 @@ class MatchDirectController extends AbstractController
             array_filter($actions, fn (ActionMatch $a) => $a->isTirAuBut())));
 
         return $this->render('match_direct/bilan.html.twig', [
+            'analyseButs' => $analyseButs,
+            'situations' => ActionMatch::SITUATIONS_BUT,
             'tirsAuBut' => $tirsAuBut,
             'changements' => $changements,
             'notees' => \count($notees),

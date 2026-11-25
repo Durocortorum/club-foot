@@ -63,12 +63,22 @@ export function rondsHtml(actions, vertical, sens, echapper, campDe = null) {
         const dy = haut > 50 ? '-100%' : '0';
         return `<span class="corner-terrain ${type === 'CO' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%;transform:translate(${dx},${dy})" title="${n} corner${n > 1 ? 's' : ''} ${type === 'CO' ? 'pour nous' : 'pour l\'adversaire'}">${DRAPEAU}${n}</span>`;
     }).join('');
-    return drapeaux + actions.filter((a) => a.type !== 'CO' && a.type !== 'CA').map((a, i, liste) => {
+    // But sur corner : trajet en pointillés du drapeau (côté du tir) jusqu'au départ du tir.
+    const trajets = actions.filter((a) => (a.type === 'B' || a.type === 'BA') && a.details?.situation === 'corner').map((a) => {
+        const [, y] = a.details.point;
+        const coin = placeEcran([a.type === 'B' ? LONGUEUR : 0, y < LARGEUR / 2 ? 0 : LARGEUR], vertical, sens);
+        const tir = placeEcran(a.details.point, vertical, sens);
+        return `<line class="${a.type === 'B' ? 'nous' : 'eux'}" x1="${coin.gauche}" y1="${coin.haut}" x2="${tir.gauche}" y2="${tir.haut}" vector-effect="non-scaling-stroke"/>`;
+    }).join('');
+    const svg = trajets ? `<svg class="trajets-cpa" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${trajets}</svg>` : '';
+    return svg + drapeaux + actions.filter((a) => a.type !== 'CO' && a.type !== 'CA').map((a, i, liste) => {
         const { gauche, haut } = placeEcran(a.details.point, vertical, sens);
         const dernier = i === liste.length - 1 ? ' dernier' : '';
-        // But (départ du tir) : un petit ballon, cerclé de rouge pour nous, de bleu pour l'adversaire.
+        // But (départ du tir) : un petit ballon, cerclé de rouge pour nous, de bleu pour l'adversaire ; coup de pied
+        // arrêté : pastille (drapeau pour un corner, « CF » pour un coup franc, « P » pour un penalty).
         if (a.type === 'B' || a.type === 'BA') {
-            return `<span class="but-terrain ${a.type === 'B' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%" title="${echapper(`${a.minute}' · ${a.libelle || ''}`)}">⚽</span>`;
+            const pastille = { corner: DRAPEAU, cfd: 'CF', cfi: 'CF', penalty: 'P' }[a.details?.situation] ?? '';
+            return `<span class="but-terrain ${a.type === 'B' ? 'nous' : 'eux'}" style="left:${gauche}%;top:${haut}%" title="${echapper(`${a.minute}' · ${a.libelle || ''}`)}">⚽${pastille ? `<span class="pastille-cpa">${pastille}</span>` : ''}</span>`;
         }
         // Tout le match : une couleur par équipe (campDe) au lieu d'une couleur par action.
         const couleur = campDe ? `camp-${campDe(a)}` : `action-${a.type}`;

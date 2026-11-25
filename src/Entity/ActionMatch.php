@@ -131,6 +131,42 @@ class ActionMatch implements AppartientAuClub
     private ?array $details = null;
 
     public const GESTES_BUT = ['tir' => 'Tir', 'tete' => 'Tête', 'csc' => 'Contre son camp'];
+    /**
+     * D'où vient un but (B ou BA) quand ce n'est pas une action de jeu : coup de pied arrêté. Le passeur décisif d'un but
+     * sur corner ou sur coup franc indirect est le joueur qui l'a tiré. Reporté sur la feuille de match (« Situation »).
+     */
+    public const SITUATIONS_BUT = ['corner' => 'Corner', 'cfd' => 'Coup franc direct', 'cfi' => 'Coup franc indirect', 'penalty' => 'Penalty'];
+
+    /** Situation du direct d'après la « Situation » écrite sur la feuille de match (Corner droit, CF direct, Pénalty…). */
+    public static function situationDeConditions(?string $conditions): ?string
+    {
+        $c = mb_strtolower(trim((string) $conditions));
+
+        return match (true) {
+            str_starts_with($c, 'corner') => 'corner',
+            str_contains($c, 'indirect') && (str_starts_with($c, 'cf') || str_starts_with($c, 'coup franc')) => 'cfi',
+            str_starts_with($c, 'cf') || str_starts_with($c, 'coup franc') => 'cfd',
+            str_starts_with($c, 'pénalty') || str_starts_with($c, 'penalty') || str_starts_with($c, 'penalti') => 'penalty',
+            default => null,
+        };
+    }
+
+    /**
+     * « Situation » de la feuille de match pour une situation du direct ; corner : côté d'où il est tiré (vu par l'équipe
+     * qui attaque) quand le départ du tir est connu.
+     *
+     * @param array{0: float, 1: float}|null $depart
+     */
+    public static function conditionsDeSituation(string $situation, ?array $depart, bool $adverse): ?string
+    {
+        return match ($situation) {
+            'corner' => null === $depart ? 'Corner' : (($depart[1] < 34) !== $adverse ? 'Corner gauche' : 'Corner droit'),
+            'cfd' => 'CF direct',
+            'cfi' => 'CF indirect',
+            'penalty' => 'Pénalty',
+            default => null,
+        };
+    }
 
     public function getDetails(): ?array
     {
@@ -179,8 +215,16 @@ class ActionMatch implements AppartientAuClub
             'geste' => isset(self::GESTES_BUT[$details['geste'] ?? '']) ? $details['geste'] : null,
             // Passeur décisif (id du joueur ; contrôlé par le contrôleur : joueur du match, autre que le buteur).
             'passeur' => 'B' === $this->type && is_numeric($details['passeur'] ?? null) && (int) $details['passeur'] > 0 ? (int) $details['passeur'] : null,
+            // Corner, coup franc, penalty (absent : action de jeu).
+            'situation' => isset(self::SITUATIONS_BUT[$details['situation'] ?? '']) ? $details['situation'] : null,
             'horsCarte' => $horsCarte && !isset($details['depart']) ? true : null,
         ], fn ($v) => null !== $v);
+        // Penalty : tiré du point de penalty, même sans place notée.
+        if ('penalty' === ($propre['situation'] ?? null) && !isset($propre['depart'])) {
+            $nous = 'B' === $this->type;
+            $propre = ['depart' => [$nous ? 94.0 : 11.0, 34.0], 'arrivee' => [$nous ? 105.0 : 0.0, 34.0]] + $propre;
+            unset($propre['horsCarte']);
+        }
         $this->details = $propre ?: null;
 
         return $this;

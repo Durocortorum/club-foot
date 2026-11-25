@@ -793,7 +793,7 @@ export default class extends Controller {
             uuid: b.uuid, type: b.type, periode: b.periode, minute: b.minute, zx, zy,
             // Contre son camp d'un adversaire : pas de buteur chez nous.
             joueur: b.type === 'B' && geste !== 'csc' ? b.joueur : null,
-            details: { depart: arrondir(b.depart), arrivee: arrondir(b.arrivee), geste },
+            details: { depart: arrondir(b.depart), arrivee: arrondir(b.arrivee), geste, ...(b.details?.situation ? { situation: b.details.situation } : {}) },
         };
         const passeur = Number(this.passeurButTarget.value);
         if (b.type === 'B' && passeur) action.details.passeur = passeur;
