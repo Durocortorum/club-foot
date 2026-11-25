@@ -7,16 +7,18 @@
  */
 
 /** Départ par défaut (milieu d'une zone du direct, ou devant le but) et point d'entrée au centre du but. */
-export function preparerBut(droite, depart = null, arrivee = null) {
+export function preparerBut(droite, depart = null, arrivee = null, situation = null) {
     const but = {
         droite,
+        situation,
         depart: depart ? [...depart] : [droite ? 94 : 11, 34],
         arrivee: arrivee ? [...arrivee] : [droite ? 105 : 0, 34],
     };
-    // Vue resserrée devant le but (le but paraît plus grand), élargie juste assez pour montrer le départ du tir.
+    // Vue resserrée devant le but (le but paraît plus grand), élargie juste assez pour montrer le départ du tir
+    // (et le drapeau d'où part un corner).
     const [dx, dy] = but.depart;
-    const y0 = Math.max(-2, Math.min(10, dy - 6));
-    const y1 = Math.min(70, Math.max(58, dy + 6));
+    const y0 = situation === 'corner' ? -2 : Math.max(-2, Math.min(10, dy - 6));
+    const y1 = situation === 'corner' ? 70 : Math.min(70, Math.max(58, dy + 6));
     but.vue = droite
         ? [Math.max(50.5, Math.min(78, dx - 6)), y0, 108.5, y1]
         : [-3.5, y0, Math.min(54.5, Math.max(27, dx + 6)), y1];
@@ -45,6 +47,7 @@ export function dessinerBut(svg, b) {
         <rect x="${droite ? 105 : -2.4}" y="30.34" width="2.4" height="7.32" fill="url(#filet-saisie)" stroke="#6b6e75" stroke-width="0.25"/>
         <circle cx="${bx}" cy="30.34" r="0.5" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
         <circle cx="${bx}" cy="37.66" r="0.5" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
+        ${b.situation === 'corner' ? coinDuCorner(b, bx, s, couleur) : ''}
         <line x1="${b.depart[0]}" y1="${b.depart[1]}" x2="${b.arrivee[0]}" y2="${b.arrivee[1]}" stroke="${couleur}" stroke-width="0.5" marker-end="url(#pointe-saisie-but)"/>
         <circle class="poignee-but" data-poignee="arrivee" cx="${b.arrivee[0]}" cy="${b.arrivee[1]}" r="1.6" fill="rgba(255,255,255,.35)" stroke="${couleur}" stroke-width="0.25"/>
         <g class="poignee-but" data-poignee="depart">
@@ -52,6 +55,22 @@ export function dessinerBut(svg, b) {
             <circle cx="${b.depart[0]}" cy="${b.depart[1]}" r="1.1" fill="#fff" stroke="#1d1d1f" stroke-width="0.2"/>
             <path d="M${b.depart[0]},${b.depart[1] - 0.45} l0.43,0.31 l-0.16,0.5 h-0.54 l-0.16,-0.5 z" fill="#1d1d1f"/>
         </g>`;
+}
+
+/** Corner : drapeau au coin le plus proche du ballon et centre en pointillés jusqu'au départ du tir. */
+function coinDuCorner(b, bx, s, couleur) {
+    const cy = b.depart[1] < 34 ? 0 : 68;
+    const haut = cy ? cy - 3.2 : 3.2;
+    const pente = cy ? 0.8 : -0.8;
+    return `<line x1="${bx}" y1="${cy}" x2="${b.depart[0]}" y2="${b.depart[1]}" stroke="#fff" stroke-width="0.35" stroke-dasharray="1 0.8" opacity="0.9"/>
+        <path d="M${bx},${cy} V${haut}" stroke="#1d1d1f" stroke-width="0.3"/>
+        <path d="M${bx},${haut} l${s * 2.4},${pente} l${-s * 2.4},${pente} z" fill="${couleur}" stroke="#fff" stroke-width="0.15"/>`;
+}
+
+/** Départ du tir par défaut selon la situation du but (dans le sens où l'on attaque ce but). */
+export function departDeSituation(droite, situation) {
+    const [x, y] = { corner: [5.5, 30], cfd: [22, 28], cfi: [8, 37], penalty: [11, 34] }[situation] ?? [13, 29];
+    return [droite ? 105 - x : x, y];
 }
 
 /** Ballon et pointe de la flèche déplaçables ; à appeler une fois par terrain. lire() renvoie le but en cours. */

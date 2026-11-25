@@ -1,6 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { confirmer } from '../confirmation.js';
-import { preparerBut, dessinerBut, ecouterBut, arrondir } from '../terrain_but.js';
+import { preparerBut, dessinerBut, ecouterBut, arrondir, departDeSituation } from '../terrain_but.js';
 import { pointTouche, zoneDuPoint, rondsHtml, placeEcran } from '../terrain_point.js';
 
 /*
@@ -665,12 +665,20 @@ export default class extends Controller {
         this.trace = null;
         if (svg) {
             // Nos buts vers le but adverse (à droite), ceux de l'adversaire vers le nôtre (à gauche).
-            this.trace = preparerBut(nous);
+            this.trace = preparerBut(nous, departDeSituation(nous, null));
             this.traceTouchee = false;
             // Ballon ou flèche déplacé : le but est placé ; sinon il reste « hors carte » (pas de place inventée).
             svg.addEventListener('pointerdown', (e) => { if (e.target.closest('[data-poignee]')) this.traceTouchee = true; });
             ecouterBut(svg, () => this.trace);
             dessinerBut(svg, this.trace);
+            // Situation choisie : ballon replacé là où part d'habitude ce tir (corner : près du but, avec le drapeau et le
+            // centre en pointillés ; penalty : au point de penalty), tant qu'on ne l'a pas déplacé soi-même.
+            this.dialogueTarget.querySelectorAll('input[name=situation]').forEach((r) => r.addEventListener('change', () => {
+                const situation = this.valeur('situation');
+                const t = this.trace;
+                this.trace = preparerBut(nous, this.traceTouchee ? t.depart : departDeSituation(nous, situation), this.traceTouchee ? t.arrivee : null, situation);
+                dessinerBut(svg, this.trace);
+            }));
         }
     }
 
