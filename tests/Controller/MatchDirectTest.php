@@ -99,10 +99,10 @@ class MatchDirectTest extends WebTestCase
 
         // Bilan : score avec la séance, tirs au but à part, pas dans les statistiques de Tom (1 but, pas 3).
         $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
-        self::assertSelectorTextContains('.titre-page', '1 – 1 (2 – 1 t.a.b.)');
+        self::assertSelectorTextContains('.titre-page', '1 – 1 (2 – 1 aux tirs au but, qualifié)');
         self::assertStringContainsString('Tirs au but : 2 – 1', implode(' | ', $crawler->filter('section h2')->each(fn ($h) => $h->text())));
         self::assertStringContainsString('Tom', $crawler->filter('.tab-liste')->first()->text(), 'tireur nommé');
-        self::assertStringContainsString('Qualifié', $crawler->filter('.tab-issue')->text());
+        self::assertStringContainsString('Qualifié aux tirs au but', $crawler->filter('.tab-issue')->text());
         self::assertSame([], array_values(array_filter($this->carte($crawler), fn ($a) => \in_array($a['type'], ['TB', 'ATB'], true))), 'pas sur la carte');
 
         // Un tir supprimé : séance recalculée.
@@ -112,7 +112,7 @@ class MatchDirectTest extends WebTestCase
 
         // Liste des matchs : le score avec la séance.
         $client->request('GET', '/matchs');
-        self::assertSelectorTextContains('.score-tab', '(1 – 1 t.a.b.)');
+        self::assertSelectorTextContains('.score-tab', '(1 – 1 aux tirs au but)');
     }
 
     public function testSaisieEnDirectEtBilan(): void

@@ -14,7 +14,7 @@
 {% endmacro %}
 
 {# « 3 – 1 » vu du club, coloré selon le résultat. #}
-{% macro score(r) %}<span class="score-pastille resultat-{{ r.resultat }}">{{ r.butsPour }} – {{ r.butsContre }}{% if r.hasTab %} <small>({{ r.tabPour }}–{{ r.tabContre }} t.a.b.)</small>{% endif %}</span>{% endmacro %}
+{% macro score(r) %}<span class="score-pastille resultat-{{ r.resultat }}">{{ r.butsPour }} – {{ r.butsContre }}{% if r.hasTab %} <small>({{ r.tabPour }}–{{ r.tabContre }} aux tirs au but)</small>{% endif %}</span>{% endmacro %}
 
 {% block body %}
     {% import _self as a %}
@@ -72,7 +72,7 @@
         {% set fil = fil|merge([{genre: 'match', icone: '⚽', lien: path('app_rencontre_voir', {id: r.id}), texte: a.jour(r.date) ~ (r.heure ? ' ' ~ r.heure|replace({':': 'h'})) ~ ' · ' ~ r.equipeAffichee ~ ' – ' ~ r.adversaire ~ (r.plateau ? '' : (r.aDomicile ? ' (dom.)' : ' (ext.)'))}]) %}
     {% endfor %}
     {% for r in resultats %}
-        {% set fil = fil|merge([{genre: 'resultat resultat-' ~ r.resultat, icone: {V: '🏆', N: '🤝', D: '📉'}[r.resultat], lien: path('app_rencontre_voir', {id: r.id}), texte: r.equipeAffichee ~ ' ' ~ r.butsPour ~ ' – ' ~ r.butsContre ~ (r.hasTab ? ' (' ~ r.tabPour ~ '–' ~ r.tabContre ~ ' t.a.b.)' : '') ~ ' ' ~ r.adversaire}]) %}
+        {% set fil = fil|merge([{genre: 'resultat resultat-' ~ r.resultat, icone: {V: '🏆', N: '🤝', D: '📉'}[r.resultat], lien: path('app_rencontre_voir', {id: r.id}), texte: r.equipeAffichee ~ ' ' ~ r.butsPour ~ ' – ' ~ r.butsContre ~ (r.hasTab ? ' (' ~ r.tabPour ~ '–' ~ r.tabContre ~ ' aux tirs au but)' : '') ~ ' ' ~ r.adversaire}]) %}
     {% endfor %}
     {% for an in anniversaires %}
         {% set fil = fil|merge([{genre: 'anniversaire', icone: '🎂', lien: path('app_joueur_voir', {id: an.joueur.id}), texte: an.joueur.prenom ~ ' ' ~ an.joueur.nom ~ ' (' ~ an.joueur.categorie.nom ~ ') ' ~ (an.dans == 0 ? 'fête ses ' ~ an.age ~ ' ans aujourd\'hui !' : 'aura ' ~ an.age ~ ' ans ' ~ (an.dans == 1 ? 'demain' : a.jour(an.date)|lower))}]) %}

@@ -15,7 +15,7 @@
     <div class="titre-page">
         <div>
             <h1>Statistiques du match</h1>
-            <p class="discret">{{ nous }} {{ stats.pour }} – {{ stats.contre }}{% if rencontre.hasTab %} ({{ rencontre.tabPour }} – {{ rencontre.tabContre }} t.a.b.){% endif %} {{ rencontre.adversaire }} · {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }} · {{ notees }} action{{ notees > 1 ? 's' }} notée{{ notees > 1 ? 's' }} en direct{% if actions|length > notees %}, complétée{{ notees > 1 ? 's' }} par la feuille de match (buts, cartons, remplacements){% endif %}</p>
+            <p class="discret">{{ nous }} {{ stats.pour }} – {{ stats.contre }}{% if rencontre.hasTab %} ({{ rencontre.tabPour }} – {{ rencontre.tabContre }} aux tirs au but{{ rencontre.qualifie is not null ? (rencontre.qualifie ? ', qualifié' : ', éliminé') }}){% endif %} {{ rencontre.adversaire }} · {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }} · {{ notees }} action{{ notees > 1 ? 's' }} notée{{ notees > 1 ? 's' }} en direct{% if actions|length > notees %}, complétée{{ notees > 1 ? 's' }} par la feuille de match (buts, cartons, remplacements){% endif %}</p>
         </div>
         <span class="actions">
             {% if modifiable %}<a class="bouton principal bilan-saisie" href="{{ path('app_match_live', {id: rencontre.id}) }}" data-turbo-frame="_top">Saisie en direct</a>{% endif %}
@@ -92,7 +92,7 @@
             {% set tabEux = tirsAuBut|filter(t => not t.nous and t.reussi)|length %}
             <section class="carte bloc">
                 <h2>Tirs au but : {{ tabNous }} – {{ tabEux }}
-                    {% if tabNous != tabEux %}<span class="tab-issue {{ tabNous > tabEux ? 'qualifie' : 'elimine' }}">{{ tabNous > tabEux ? 'Qualifié' : 'Éliminé' }}</span>{% endif %}</h2>
+                    {% if tabNous != tabEux %}<span class="tab-issue {{ tabNous > tabEux ? 'qualifie' : 'elimine' }}">{{ tabNous > tabEux ? 'Qualifié aux tirs au but' : 'Éliminé aux tirs au but' }}</span>{% endif %}</h2>
                 <p class="discret petit">Dans l'ordre de la séance. Les tirs au but ne comptent ni dans le score, ni dans les buts des joueurs : le match reste un nul.</p>
                 <div class="tab-colonnes">
                     {% for camp, nom in {nous: nous, eux: rencontre.adversaire} %}

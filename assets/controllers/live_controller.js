@@ -163,7 +163,7 @@ export default class extends Controller {
 
     /** Minute à afficher : temps additionnel comme à la télévision (« 45+2' », « 90+3' », « 105+1' »). */
     texteMinute(periode, minute) {
-        if (periode >= TAB) return 'T.a.b.';
+        if (periode >= TAB) return 'Tirs au but';
         const fin = this.debutPeriode(periode) + this.dureePeriode(periode);
         return minute > fin ? `${fin}+${minute - fin}'` : `${minute}'`;
     }
@@ -1112,7 +1112,7 @@ export default class extends Controller {
         const scoreTab = this.ordre(marques.nous, marques.eux).join(' – ');
         let bas = '';
         if (gagnant) {
-            bas = `<p class="tab-resultat ${gagnant === 'nous' ? 'qualifie' : 'elimine'}">${gagnant === 'nous' ? '🎉 Qualifié !' : 'Éliminé'}
+            bas = `<p class="tab-resultat ${gagnant === 'nous' ? 'qualifie' : 'elimine'}">${gagnant === 'nous' ? '🎉 Qualifié aux tirs au but !' : 'Éliminé aux tirs au but'}
                 <span>${this.echapper(this.texteScore())} (${scoreTab} aux tirs au but)</span></p>`;
         } else if (c.periode === TAB && !c.premier) {
             bas = `<p class="tab-question">Qui tire en premier ?</p><div class="tab-choix">${['nous', 'eux'].map((camp) => `<button type="button" class="bouton" data-camp="${camp}" data-action="live#premierTab">${this.echapper(camp === 'nous' ? this.cfg.nous : this.cfg.adversaire)}</button>`).join('')}</div>`;
