@@ -40,6 +40,81 @@ class MatchDirectTest extends WebTestCase
         parent::tearDown();
     }
 
+    /**
+     * Coupe : prolongations et tirs au but notés en direct. La séance donne le score des tirs au but du match
+     * (côté domicile / extérieur), sans compter dans le score, les buts ni les statistiques ; le match reste un nul.
+     */
+    public function testCoupeTirsAuBut(): void
+    {
+        $client = static::createClient();
+        $id = bin2hex(random_bytes(4));
+        $admin = (new Utilisateur())->setEmail("admin-$id@exemple.test")->setNom('Test')->setPrenom('Admin');
+        $club = (new Club())->setNom("FC Coupe $id");
+        static::getContainer()->get(CreationClub::class)->creer($club, $admin, 'motdepasse-admin');
+        $this->clubId = $club->getId();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $u15 = $em->getRepository(Categorie::class)->findOneBy(['club' => $club, 'nom' => 'U15']);
+        $tom = (new Joueur())->setClub($club)->setCategorie($u15)->setNom('Petit')->setPrenom('Tom');
+        // Nous jouons à l'extérieur : la séance est rangée côté extérieur pour nous.
+        $match = (new Rencontre())->setClub($club)->setCategorie($u15)->setDate(new \DateTimeImmutable('today'))
+            ->setDomicile('AS ADVERSE')->setExterieur("FC COUPE $id")->setCompetition('Coupe')->setEgalite('prolongations');
+        foreach ([$tom, $match] as $e) {
+            $em->persist($e);
+        }
+        $em->flush();
+        [$matchId, $tomId] = [$match->getId(), $tom->getId()];
+        $client->loginUser($admin);
+
+        $crawler = $client->request('GET', "/matchs/$matchId/live");
+        self::assertResponseIsSuccessful();
+        $config = json_decode($crawler->filter('[data-controller="live"]')->attr('data-live-config-value'), true);
+        self::assertTrue($config['coupe']);
+        self::assertSame('prolongations', $config['egalite']);
+
+        $envoyer = fn (array $donnees) => $client->request('POST', "/matchs/$matchId/direct/enregistrer", [], [], ['CONTENT_TYPE' => 'application/json'],
+            json_encode($donnees + ['jeton' => $config['jeton']]));
+        // 1 – 1 après prolongations (but de Tom à la 95e, en 1re prolongation), puis tirs au but : 2 – 1 pour nous.
+        $tir = fn (string $uuid, string $type, ?int $joueur, bool $reussi, int $ordre) => ['uuid' => $uuid, 'joueur' => $joueur, 'type' => $type, 'periode' => 5, 'minute' => 106, 'details' => ['reussi' => $reussi, 'ordre' => $ordre, 'pirate' => 1]];
+        $envoyer(['actions' => [
+            ['uuid' => 'a1111111-1111-4111-8111-111111111111', 'joueur' => null, 'type' => 'BA', 'periode' => 1, 'minute' => 20, 'details' => ['horsCarte' => true]],
+            ['uuid' => 'a2222222-2222-4222-8222-222222222222', 'joueur' => $tomId, 'type' => 'B', 'periode' => 3, 'minute' => 95, 'details' => ['geste' => 'tir', 'horsCarte' => true]],
+            $tir('b1111111-1111-4111-8111-111111111111', 'TB', $tomId, true, 1),
+            $tir('b2222222-2222-4222-8222-222222222222', 'ATB', null, false, 2),
+            $tir('b3333333-3333-4333-8333-333333333333', 'TB', $tomId, true, 3),
+            $tir('b4444444-4444-4444-8444-444444444444', 'ATB', null, true, 4),
+        ], 'chrono' => ['periode' => 5, 'enCours' => false, 'cumul' => 0, 'fini' => true, 'premier' => 'nous', 'maj' => 10]]);
+        self::assertResponseIsSuccessful();
+        $retour = json_decode($client->getResponse()->getContent(), true);
+        self::assertSame(5, $retour['chrono']['periode'], 'période des tirs au but gardée');
+        self::assertSame('nous', $retour['chrono']['premier']);
+
+        $em->clear();
+        $match = $em->find(Rencontre::class, $matchId);
+        self::assertSame([1, 1], [$match->getButsPour(), $match->getButsContre()], 'tirs au but hors du score');
+        self::assertSame([1, 2], [$match->getTabDomicile(), $match->getTabExterieur()], 'séance côté domicile / extérieur');
+        self::assertSame('N', $match->getResultat(), 'un nul dans le bilan');
+        self::assertTrue($match->getQualifie());
+        $tirTom = $em->getRepository(ActionMatch::class)->findOneBy(['uuid' => 'b1111111-1111-4111-8111-111111111111']);
+        self::assertEquals(['reussi' => true, 'ordre' => 1], $tirTom->getDetails(), 'marqué, 1er tir, champ inconnu écarté');
+
+        // Bilan : score avec la séance, tirs au but à part, pas dans les statistiques de Tom (1 but, pas 3).
+        $crawler = $client->request('GET', "/matchs/$matchId/direct/bilan");
+        self::assertSelectorTextContains('.titre-page', '1 – 1 (2 – 1 t.a.b.)');
+        self::assertStringContainsString('Tirs au but : 2 – 1', implode(' | ', $crawler->filter('section h2')->each(fn ($h) => $h->text())));
+        self::assertStringContainsString('Tom', $crawler->filter('.tab-liste')->first()->text(), 'tireur nommé');
+        self::assertStringContainsString('Qualifié', $crawler->filter('.tab-issue')->text());
+        self::assertSame([], array_values(array_filter($this->carte($crawler), fn ($a) => \in_array($a['type'], ['TB', 'ATB'], true))), 'pas sur la carte');
+
+        // Un tir supprimé : séance recalculée.
+        $envoyer(['supprimes' => ['b3333333-3333-4333-8333-333333333333']]);
+        $em->clear();
+        self::assertSame([1, 1], [$em->find(Rencontre::class, $matchId)->getTabDomicile(), $em->find(Rencontre::class, $matchId)->getTabExterieur()]);
+
+        // Liste des matchs : le score avec la séance.
+        $client->request('GET', '/matchs');
+        self::assertSelectorTextContains('.score-tab', '(1 – 1 t.a.b.)');
+    }
+
     public function testSaisieEnDirectEtBilan(): void
     {
         $client = static::createClient();

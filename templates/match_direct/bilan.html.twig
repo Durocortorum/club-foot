@@ -3,7 +3,7 @@
 {% block title %}Bilan du direct · {{ rencontre.domicile }} – {{ rencontre.exterieur }}{% endblock %}
 
 {% macro pct(v) %}{% if v is not null %}<span class="pct {{ v >= 70 ? 'bon' : (v < 50 ? 'faible') }}">{{ v }} %</span>{% else %}<span class="discret">–</span>{% endif %}{% endmacro %}
-{% macro min(periode, minute, mi) %}{% set fin = (periode == 1 ? 1 : 2) * mi %}{{ minute > fin ? fin ~ '+' ~ (minute - fin) : minute }}'{% endmacro %}
+{% macro min(periode, minute, mi) %}{% set fin = periode == 1 ? mi : (periode == 2 ? 2 * mi : (periode == 3 ? 2 * mi + mi // 3 : 2 * mi + 2 * (mi // 3))) %}{{ minute > fin ? fin ~ '+' ~ (minute - fin) : minute }}'{% endmacro %}
 {% import _self as m %}
 
 {% block body %}
@@ -15,7 +15,7 @@
     <div class="titre-page">
         <div>
             <h1>Statistiques du match</h1>
-            <p class="discret">{{ nous }} {{ stats.pour }} – {{ stats.contre }} {{ rencontre.adversaire }} · {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }} · {{ notees }} action{{ notees > 1 ? 's' }} notée{{ notees > 1 ? 's' }} en direct{% if actions|length > notees %}, complétée{{ notees > 1 ? 's' }} par la feuille de match (buts, cartons, remplacements){% endif %}</p>
+            <p class="discret">{{ nous }} {{ stats.pour }} – {{ stats.contre }}{% if rencontre.hasTab %} ({{ rencontre.tabPour }} – {{ rencontre.tabContre }} t.a.b.){% endif %} {{ rencontre.adversaire }} · {{ rencontre.categorie }} · {{ rencontre.date|date('d/m/Y') }} · {{ notees }} action{{ notees > 1 ? 's' }} notée{{ notees > 1 ? 's' }} en direct{% if actions|length > notees %}, complétée{{ notees > 1 ? 's' }} par la feuille de match (buts, cartons, remplacements){% endif %}</p>
         </div>
         <span class="actions">
             {% if modifiable %}<a class="bouton principal bilan-saisie" href="{{ path('app_match_live', {id: rencontre.id}) }}" data-turbo-frame="_top">Saisie en direct</a>{% endif %}
@@ -82,6 +82,30 @@
                         {{ include('match_direct/_demi_terrain.html.twig', {buts: traces.encaisses, cote: 'nous'}) }}
                         <ul class="buts-liste">{% for b in traces.encaisses %}<li><b>{{ m.min(b.periode, b.minute, mi) }}</b> {{ b.geste ?: 'adversaire' }}</li>{% endfor %}</ul>
                     </figure>
+                </div>
+            </section>
+        {% endif %}
+
+        {# Séance de tirs au but (coupe) : tir par tir ; ne compte ni dans le score, ni dans les buts. #}
+        {% if tirsAuBut %}
+            {% set tabNous = tirsAuBut|filter(t => t.nous and t.reussi)|length %}
+            {% set tabEux = tirsAuBut|filter(t => not t.nous and t.reussi)|length %}
+            <section class="carte bloc">
+                <h2>Tirs au but : {{ tabNous }} – {{ tabEux }}
+                    {% if tabNous != tabEux %}<span class="tab-issue {{ tabNous > tabEux ? 'qualifie' : 'elimine' }}">{{ tabNous > tabEux ? 'Qualifié' : 'Éliminé' }}</span>{% endif %}</h2>
+                <p class="discret petit">Dans l'ordre de la séance. Les tirs au but ne comptent ni dans le score, ni dans les buts des joueurs : le match reste un nul.</p>
+                <div class="tab-colonnes">
+                    {% for camp, nom in {nous: nous, eux: rencontre.adversaire} %}
+                        <div>
+                            <h3>{{ nom }}</h3>
+                            <ol class="tab-liste">
+                                {% for t in tirsAuBut|filter(t => t.nous == (camp == 'nous')) %}
+                                    <li class="{{ t.reussi ? 'reussi' : 'rate' }}"><span class="tab-rond">{{ t.reussi ? '✓' : '✗' }}</span>
+                                        {% if t.joueur %}{{ t.joueur.prenom }} <b>{{ t.joueur.nom }}</b>{% else %}Tir {{ loop.index }}{% endif %}</li>
+                                {% endfor %}
+                            </ol>
+                        </div>
+                    {% endfor %}
                 </div>
             </section>
         {% endif %}

@@ -76,6 +76,23 @@
                     <div class="champ">{{ form_label(form[nom]) }}{{ form_widget(form[nom]) }}{{ form_errors(form[nom]) }}</div>
                 {% endfor %}
             </div>
+            {# Coupe seulement (affiché quand la compétition est « Coupe ») : égalité à la fin et tirs au but. #}
+            <div class="champs coupe-match">
+                <div class="champ">{{ form_label(form.egalite) }}{{ form_widget(form.egalite) }}{{ form_errors(form.egalite) }}
+                    <p class="discret petit">Le Match Live propose ensuite les prolongations ou les tirs au but si le score est à égalité.</p></div>
+                <div class="champ">
+                    <label for="{{ form.tabDomicile.vars.id }}">Tirs au but marqués</label>
+                    <div class="score-tab-cases">
+                        <span class="discret petit">{{ rencontre.domicile ?: 'Domicile' }}</span>
+                        {{ form_widget(form.tabDomicile, {attr: {'aria-label': 'Tirs au but marqués par ' ~ (rencontre.domicile ?: 'l\'équipe qui reçoit')}}) }}
+                        <span class="tiret">–</span>
+                        {{ form_widget(form.tabExterieur, {attr: {'aria-label': 'Tirs au but marqués par ' ~ (rencontre.exterieur ?: 'l\'équipe qui se déplace')}}) }}
+                        <span class="discret petit">{{ rencontre.exterieur ?: 'Extérieur' }}</span>
+                    </div>
+                    {{ form_errors(form.tabDomicile) }}{{ form_errors(form.tabExterieur) }}
+                    <p class="discret petit">Seulement si le match s'est fini à égalité. Ne compte pas dans le score : le match reste un nul, avec « qualifié » ou « éliminé ».</p>
+                </div>
+            </div>
 
             {# Score : tiré des buts du rapport de match (bloc « Buts »), non modifiable (score_controller.js). #}
             {% for champ in [form.butsDomicileMiTemps, form.butsExterieurMiTemps, form.butsDomicile, form.butsExterieur] %}

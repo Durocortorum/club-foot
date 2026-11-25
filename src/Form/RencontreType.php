@@ -76,6 +76,10 @@ class RencontreType extends AbstractType
                 'attr' => ['data-feuille-target' => 'categorie', 'data-score-target' => 'categorie', 'data-action' => 'feuille#filtrer score#changerCategorie'],
             ])
             ->add('competition', ChoiceType::class, ['label' => 'Compétition', 'choices' => $choix(Rencontre::COMPETITIONS), 'required' => false, 'placeholder' => '—'])
+            // Match de coupe : ce qui suit une égalité, et le score de la séance de tirs au but (s'il y en a eu une).
+            ->add('egalite', ChoiceType::class, ['label' => 'En cas d\'égalité à la fin', 'choices' => array_flip(Rencontre::EGALITES), 'required' => false, 'placeholder' => 'À choisir le jour du match'])
+            ->add('tabDomicile', IntegerType::class, ['label' => 'Tirs au but (domicile)', 'required' => false, 'attr' => ['min' => 0, 'max' => 30, 'inputmode' => 'numeric', 'class' => 'court']])
+            ->add('tabExterieur', IntegerType::class, ['label' => 'Tirs au but (extérieur)', 'required' => false, 'attr' => ['min' => 0, 'max' => 30, 'inputmode' => 'numeric', 'class' => 'court']])
             ->add('butsDomicileMiTemps', IntegerType::class, $score('mt1Dom'))
             ->add('butsExterieurMiTemps', IntegerType::class, $score('mt1Ext'))
             ->add('butsDomicile', IntegerType::class, $score('finDom'))

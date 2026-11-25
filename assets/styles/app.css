@@ -2524,3 +2524,53 @@ html.sans-defilement, html.sans-defilement body { overflow: hidden; }
 .coin-corner { width: auto; min-width: 1.9rem; padding: 0 .45rem; border-radius: 99px; gap: .15rem; background: #fff !important; }
 .coin-corner.nous { color: #d62839; border: 3px solid #d62839; }
 .coin-corner.eux { color: #1f5fd1; border: 3px solid #1f5fd1; }
+
+/* ———— Coupe : égalité, prolongations, tirs au but ———— */
+.score-tab { font-size: .78rem; font-weight: 600; color: var(--gris); white-space: nowrap; }
+.score-tab.qualifie { color: var(--succes); }
+.score-tab.elimine { color: var(--danger-fonce); }
+/* Formulaire du match : bloc « coupe » affiché seulement quand la compétition est « Coupe ». */
+.coupe-match { display: none; }
+form:has(select[name$="[competition]"] option[value="Coupe"]:checked) .coupe-match { display: grid; }
+.score-tab-cases { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.score-tab-cases input { width: 4rem; text-align: center; }
+/* Bilan : séance tir par tir. */
+.tab-issue { margin-left: .5rem; padding: .15rem .6rem; border-radius: 99px; font-size: .8rem; vertical-align: middle; }
+.tab-issue.qualifie { background: #e5f4ea; color: var(--succes); }
+.tab-issue.elimine { background: #fde8ea; color: var(--danger-fonce); }
+.tab-colonnes { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; }
+.tab-colonnes h3 { margin: 0 0 .4rem; font-size: .95rem; }
+.tab-liste { margin: 0; padding-left: 1.4rem; display: grid; gap: .3rem; }
+.tab-liste li { display: flex; align-items: center; gap: .45rem; }
+.tab-rond { display: inline-flex; align-items: center; justify-content: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; color: #fff; font-weight: 800; font-size: .8rem; flex: none; }
+.tab-liste .reussi .tab-rond { background: #1f9d55; }
+.tab-liste .rate .tab-rond { background: #d62839; }
+/* Match Live : séance de tirs au but. */
+.live-tab { margin: .8rem 0; padding: .9rem 1rem; background: #fff; border: 2px solid #1f2937; border-radius: 16px; box-shadow: var(--ombre); }
+.live-tab[hidden] { display: none; }
+.live-tab h2 { display: flex; align-items: center; justify-content: space-between; margin: 0 0 .6rem; font-size: 1.1rem; }
+.live-tab .tab-score { font-size: 1.6rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.tab-lignes { display: grid; gap: .45rem; margin-bottom: .6rem; }
+.tab-ligne { display: grid; grid-template-columns: minmax(0, 7rem) 1fr 2rem; align-items: center; gap: .5rem; }
+.tab-equipe { font-size: .8rem; font-weight: 700; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab-ligne.nous .tab-equipe { color: #d62839; }
+.tab-ligne.eux .tab-equipe { color: #1f5fd1; }
+.tab-ronds { display: flex; flex-wrap: wrap; gap: .3rem; }
+.tab-ronds .tab-rond { width: 1.9rem; height: 1.9rem; font-size: 1rem; }
+.tab-rond.reussi { background: #1f9d55; }
+.tab-rond.rate { background: #d62839; }
+.tab-rond.attente { background: #fff; color: var(--gris); border: 2px dashed #c4c8d0; font-size: .75rem; font-weight: 700; }
+.tab-total { font-size: 1.3rem; text-align: right; font-variant-numeric: tabular-nums; }
+.tab-question { margin: .6rem 0 .4rem; font-weight: 600; }
+.tab-choix { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin: .5rem 0; }
+.tab-choix .bouton { min-height: 3rem; font-size: 1rem; font-weight: 700; }
+.tab-choix .tab-marque:not(:disabled) { background: #1f9d55; border-color: #1f9d55; color: #fff; }
+.tab-choix .tab-rate:not(:disabled) { background: #d62839; border-color: #d62839; color: #fff; }
+.tab-tireurs .a-tire { opacity: .5; }
+.tab-resultat { margin: .6rem 0 .2rem; padding: .8rem; border-radius: 12px; text-align: center; font-size: 1.5rem; font-weight: 900; }
+.tab-resultat span { display: block; font-size: .85rem; font-weight: 600; margin-top: .2rem; }
+.tab-resultat.qualifie { background: #e5f4ea; color: #157a40; }
+.tab-resultat.elimine { background: #fde8ea; color: #a51d2d; }
+.tab-annuler { margin: .3rem 0 0; text-align: right; }
+.live-suites { display: grid; gap: .5rem; margin: .6rem 0; }
+.live-suites .bouton { min-height: 3rem; text-align: left; }

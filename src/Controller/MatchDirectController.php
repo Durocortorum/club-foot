@@ -105,6 +105,10 @@ class MatchDirectController extends AbstractController
             'titulaires' => $rencontre->titulairesPourLeDirect(),
             'maxTitulaires' => $rencontre->joueursSurLeTerrain(),
             'maintenant' => self::maintenant(),
+            // Match de coupe : ce qui suit une égalité à la fin (tirs au but, prolongations, nul ; null : à choisir).
+            'coupe' => $rencontre->isCoupe(),
+            'egalite' => $rencontre->getEgalite(),
+            'egalites' => Rencontre::EGALITES,
         ];
     }
 
@@ -134,8 +138,11 @@ class MatchDirectController extends AbstractController
         $moi = $this->moi();
         // Buts, cartons et changements ajoutés, corrigés ou supprimés : repris ensuite sur la feuille de match.
         $pourLaFeuille = [];
+        // Tirs au but notés, corrigés ou supprimés : score de la séance recalculé.
+        $tabChangee = false;
         foreach ((array) ($donnees['supprimes'] ?? []) as $uuid) {
             if (isset($existantes[$uuid]) && $existantes[$uuid]->modifiablePar($moi)) {
+                $tabChangee = $tabChangee || $existantes[$uuid]->isTirAuBut();
                 $pourLaFeuille[] = [SynchroFeuille::photoAction($existantes[$uuid]), null];
                 $this->em->remove($existantes[$uuid]);
                 unset($existantes[$uuid]);
@@ -182,10 +189,14 @@ class MatchDirectController extends AbstractController
                 unset($details['passeur']);
                 $action->setDetails($details ?: null);
             }
+            $tabChangee = $tabChangee || $action->isTirAuBut();
             // Renvoyée telle quelle (réseau revenu) : rien de nouveau pour la feuille.
             if ($photo !== SynchroFeuille::photoAction($action)) {
                 $pourLaFeuille[] = [$photo, $action];
             }
+        }
+        if ($tabChangee) {
+            $this->compterTab($rencontre, array_values($existantes));
         }
         $infos = (array) ($donnees['infos'] ?? []);
         if (\in_array($infos['meteo'] ?? null, Rencontre::METEOS, true)) {
@@ -202,6 +213,10 @@ class MatchDirectController extends AbstractController
         }
         if (\is_array($donnees['chrono'] ?? null)) {
             $rencontre->majChronoDirect($donnees['chrono']);
+        }
+        // Coupe : suite d'une égalité choisie sur place (tirs au but directement, prolongations, nul).
+        if (isset(Rencontre::EGALITES[(string) ($donnees['egalite'] ?? '')])) {
+            $rencontre->setEgalite($donnees['egalite']);
         }
         // Titulaires choisis sur la tablette (joueurs du match seulement) ; la dernière tablette qui les change l'emporte.
         if (\is_array($donnees['titulaires'] ?? null)) {
@@ -237,6 +252,25 @@ class MatchDirectController extends AbstractController
             'titulaires' => $rencontre->titulairesPourLeDirect(),
             'maintenant' => self::maintenant(),
         ]);
+    }
+
+    /**
+     * Score de la séance de tirs au but d'après les tirs notés en direct (marqués seulement), reporté sur le match
+     * (côté domicile / extérieur) ; plus aucun tir : séance effacée.
+     *
+     * @param list<ActionMatch> $actions
+     */
+    private function compterTab(Rencontre $rencontre, array $actions): void
+    {
+        $tirs = array_filter($actions, fn (ActionMatch $a) => $a->isTirAuBut());
+        if (!$tirs) {
+            $rencontre->setTabDomicile(null)->setTabExterieur(null);
+
+            return;
+        }
+        $nous = \count(array_filter($tirs, fn (ActionMatch $a) => 'TB' === $a->getType() && $a->isReussi()));
+        $eux = \count(array_filter($tirs, fn (ActionMatch $a) => 'ATB' === $a->getType() && $a->isReussi()));
+        $rencontre->setTabDomicile($rencontre->isADomicile() ? $nous : $eux)->setTabExterieur($rencontre->isADomicile() ? $eux : $nous);
     }
 
     /**
@@ -280,7 +314,7 @@ class MatchDirectController extends AbstractController
         $carteActions = [];
         foreach ($actions as $a) {
             // Pas sur la carte : changements, cartons blancs, et ce que la feuille ne place pas sur le terrain.
-            if (isset(ActionMatch::HORS_JEU[$a->getType()]) || str_starts_with($a->getUuid(), MatchDirect::SANS_ZONE) || $a->isHorsCarte()) {
+            if (isset(ActionMatch::HORS_JEU[$a->getType()]) || $a->isTirAuBut() || str_starts_with($a->getUuid(), MatchDirect::SANS_ZONE) || $a->isHorsCarte()) {
                 continue;
             }
             $d = $a->getDetails() ?? [];
@@ -335,7 +369,12 @@ class MatchDirectController extends AbstractController
             }
         }
 
+        // Séance de tirs au but : chaque tir dans l'ordre, qui tire (nous) et s'il est marqué.
+        $tirsAuBut = array_values(array_map(fn (ActionMatch $a) => ['nous' => 'TB' === $a->getType(), 'joueur' => $a->getJoueur(), 'reussi' => $a->isReussi()],
+            array_filter($actions, fn (ActionMatch $a) => $a->isTirAuBut())));
+
         return $this->render('match_direct/bilan.html.twig', [
+            'tirsAuBut' => $tirsAuBut,
             'changements' => $changements,
             'notees' => \count($notees),
             'traces' => $traces,

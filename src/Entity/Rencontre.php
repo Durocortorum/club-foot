@@ -248,6 +248,95 @@ class Rencontre implements AppartientAuClub
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $chronoDirect = null;
 
+    /** Match de coupe à égalité à la fin du temps réglementaire : ce qui suit. */
+    public const EGALITES = [
+        'tab' => 'Tirs au but directement',
+        'prolongations' => 'Prolongations, puis tirs au but',
+        'nul' => 'Match nul possible',
+    ];
+
+    #[ORM\Column(length: 15, nullable: true)]
+    private ?string $egalite = null;
+
+    /** Tirs au but marqués (séance), du côté de l'équipe qui reçoit et de celle qui se déplace. */
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    #[Assert\Range(min: 0, max: 30)]
+    private ?int $tabDomicile = null;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    #[Assert\Range(min: 0, max: 30)]
+    private ?int $tabExterieur = null;
+
+    public function getEgalite(): ?string
+    {
+        return $this->egalite;
+    }
+
+    public function setEgalite(?string $egalite): static
+    {
+        $this->egalite = isset(self::EGALITES[(string) $egalite]) ? $egalite : null;
+
+        return $this;
+    }
+
+    public function isCoupe(): bool
+    {
+        return 'Coupe' === $this->competition;
+    }
+
+    public function getTabDomicile(): ?int
+    {
+        return $this->tabDomicile;
+    }
+
+    public function setTabDomicile(?int $tab): static
+    {
+        $this->tabDomicile = $tab;
+
+        return $this;
+    }
+
+    public function getTabExterieur(): ?int
+    {
+        return $this->tabExterieur;
+    }
+
+    public function setTabExterieur(?int $tab): static
+    {
+        $this->tabExterieur = $tab;
+
+        return $this;
+    }
+
+    /** Séance de tirs au but jouée (les deux scores notés). */
+    public function hasTab(): bool
+    {
+        return null !== $this->tabDomicile && null !== $this->tabExterieur;
+    }
+
+    public function getTabPour(): ?int
+    {
+        return $this->isADomicile() ? $this->tabDomicile : $this->tabExterieur;
+    }
+
+    public function getTabContre(): ?int
+    {
+        return $this->isADomicile() ? $this->tabExterieur : $this->tabDomicile;
+    }
+
+    /**
+     * Match de coupe : qualifié (true), éliminé (false), ou inconnu (null). Aux tirs au but si le match finit à égalité ;
+     * le match reste un nul dans le bilan (règle FFF).
+     */
+    public function getQualifie(): ?bool
+    {
+        if (!$this->isCoupe() || 'N' !== $this->getResultat()) {
+            return $this->isCoupe() && $this->getResultat() ? 'V' === $this->getResultat() : null;
+        }
+
+        return $this->hasTab() && $this->getTabPour() !== $this->getTabContre() ? $this->getTabPour() > $this->getTabContre() : null;
+    }
+
     /**
      * Numéros de maillot donnés sur la tablette (match en direct) aux joueurs pas encore sur la feuille de match :
      * id du joueur => numéro. Repris quand la feuille est préremplie depuis la convocation.
@@ -346,12 +435,15 @@ class Rencontre implements AppartientAuClub
             return false;
         }
         $this->chronoDirect = [
-            'periode' => 2 === (int) ($chrono['periode'] ?? 1) ? 2 : 1,
+            // 1 et 2 : mi-temps ; 3 et 4 : prolongations ; 5 : tirs au but.
+            'periode' => max(1, min(ActionMatch::PERIODE_TAB, (int) ($chrono['periode'] ?? 1))),
             'enCours' => (bool) ($chrono['enCours'] ?? false),
             'debut' => isset($chrono['debut']) ? (int) $chrono['debut'] : null,
             'cumul' => max(0.0, min(10800.0, (float) ($chrono['cumul'] ?? 0))),
             'fini' => (bool) ($chrono['fini'] ?? false),
             'sens' => -1 === (int) ($chrono['sens'] ?? 1) ? -1 : 1,
+            // Tirs au but : équipe qui tire la première.
+            'premier' => \in_array($chrono['premier'] ?? null, ['nous', 'eux'], true) ? $chrono['premier'] : null,
             'maj' => $maj,
         ];
 

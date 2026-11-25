@@ -17,7 +17,9 @@ import { pointTouche, zoneDuPoint, rondsHtml, placeEcran } from '../terrain_poin
  * Un but noté ici ajoute aussi la frappe (ou la tête) cadrée qui va avec, comme sur la tablette, pour que les tirs
  * cadrés le comptent ; elle porte un identifiant dérivé de celui du but, et part avec lui s'il est supprimé.
  */
-const EVENEMENTS = ['B', 'BA', 'CJ', 'CR', 'JA', 'RA', 'RP', 'EX'];
+// Tirs au but : ni actions de jeu, ni événements du match (résumés en une ligne), ni buts.
+const TIRS = ['TB', 'ATB'];
+const EVENEMENTS = ['B', 'BA', 'CJ', 'CR', 'JA', 'RA', 'RP', 'EX', ...TIRS];
 const HORS_CARTE = { horsCarte: true };
 // Actions de jeu de l'adversaire (le reste est à nous).
 const ADVERSES = ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA'];
@@ -32,6 +34,8 @@ function ligneDuPoste(poste) {
     if (poste.startsWith('M')) return 'milieu';
     return 'autre';
 }
+// Période des tirs au but (après les deux mi-temps, 1 et 2, et les deux prolongations, 3 et 4).
+const TAB = 5;
 // Minutes sans action, après le temps réglementaire, avant d'arrêter la période toute seule.
 const ATTENTE_FIN = 10;
 /** Notés par les gros boutons (But, Carton, Rempl.) : pas dans l'onglet « Actions ». */
@@ -43,7 +47,7 @@ const DELAI_ZONE = 8000;
 
 export default class extends Controller {
     static values = { config: Object };
-    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'analyse','evenements', 'stats', 'statsJoueurs', 'filtresTerrain', 'avis',
+    static targets = ['score', 'minute', 'periode', 'chrono', 'pause', 'etat', 'boutonPeriode', 'boutonFin', 'analyse','evenements', 'stats', 'statsJoueurs', 'filtresTerrain', 'avis', 'tab',
         'compo', 'boutonTitulaires', 'dialogue',
         'boutonAnnulerAction', 'consigneAction', 'joueursAction', 'typesAction', 'dernieresActions',
         'boutonZones', 'zoneAction', 'sensAction', 'terrainAction', 'choixActions',
@@ -138,14 +142,61 @@ export default class extends Controller {
         return Math.floor(this.cfg.duree / 2);
     }
 
-    minuteCourante() {
-        return (this.chrono.periode - 1) * this.mi() + Math.floor(this.secondes() / 60) + 1;
+    /** Une prolongation (il y en a deux) : un sixième de la durée du match (2 × 15 min pour 90 min). */
+    dp() {
+        return Math.max(1, Math.floor(this.cfg.duree / 6));
     }
 
-    /** Minute à afficher : temps additionnel comme à la télévision (« 45+2' », « 90+3' »). */
+    /** Périodes : 1 et 2 (mi-temps), 3 et 4 (prolongations), 5 (tirs au but). */
+    dureePeriode(p) {
+        return p <= 2 ? this.mi() : this.dp();
+    }
+
+    /** Minutes déjà jouées au début de la période p. */
+    debutPeriode(p) {
+        return p <= 2 ? (p - 1) * this.mi() : 2 * this.mi() + (Math.min(p, 5) - 3) * this.dp();
+    }
+
+    minuteCourante() {
+        return this.debutPeriode(this.chrono.periode) + Math.floor(this.secondes() / 60) + 1;
+    }
+
+    /** Minute à afficher : temps additionnel comme à la télévision (« 45+2' », « 90+3' », « 105+1' »). */
     texteMinute(periode, minute) {
-        const fin = (periode === 1 ? 1 : 2) * this.mi();
+        if (periode >= TAB) return 'T.a.b.';
+        const fin = this.debutPeriode(periode) + this.dureePeriode(periode);
         return minute > fin ? `${fin}+${minute - fin}'` : `${minute}'`;
+    }
+
+    nomPeriode(p) {
+        return ['', '1re période', '2e période', '1re prolongation', '2e prolongation', 'Tirs au but'][p] ?? '';
+    }
+
+    /** Pause avant la période p (pas encore lancée). */
+    nomPause(p) {
+        return p === 2 ? 'Mi-temps' : (p === 3 ? 'Avant les prolongations' : 'Pause des prolongations');
+    }
+
+    /** Bouton qui relance le chrono après la pause avant la période p. */
+    texteReprise(p) {
+        return p === 2 ? '2e période' : (p === 3 ? 'Prolongations' : '2e prolong.');
+    }
+
+    /**
+     * Fin de la 2e période (ou de la 2e prolongation) : « fin » (pas une coupe, ou pas d'égalité), « prolongations »,
+     * « tab » (tirs au but), « nul » (coupe où le nul est possible), ou null (coupe à égalité, suite pas encore choisie).
+     */
+    suiteEgalite() {
+        const [nous, eux] = this.compter();
+        if (!this.cfg.coupe || nous !== eux) return 'fin';
+        if (this.chrono.periode >= 4) return 'tab';
+        return this.cfg.egalite ?? null;
+    }
+
+    /** Passe à la période p (pause avant elle : le chrono attend « ▶ »). */
+    nouvellePeriode(p) {
+        const c = this.chrono;
+        this.chrono = { periode: p, enCours: false, debut: null, cumul: 0, fini: false, sens: -c.sens, maj: c.maj, premier: null };
     }
 
     /**
@@ -155,24 +206,37 @@ export default class extends Controller {
      */
     verifierFinAuto() {
         const c = this.chrono;
-        if (!c.enCours || c.fini) return;
-        const mi = this.mi();
-        const reglementaire = c.periode * mi;
+        if (!c.enCours || c.fini || c.periode >= TAB) return;
+        const p = c.periode;
+        const reglementaire = this.debutPeriode(p) + this.dureePeriode(p);
         const minute = this.minuteCourante();
         if (minute - reglementaire < ATTENTE_FIN) return;
         const derniere = Math.max(reglementaire, ...[...this.actions.values()]
-            .filter((a) => a.periode === c.periode && !a.uuid.startsWith('feuille')).map((a) => a.minute));
+            .filter((a) => a.periode === p && !a.uuid.startsWith('feuille')).map((a) => a.minute));
         if (minute - derniere < ATTENTE_FIN) return;
-        const texte = this.texteMinute(c.periode, derniere);
-        if (c.periode === 1) {
-            this.chrono = { periode: 2, enCours: false, debut: null, cumul: 0, fini: false, sens: -c.sens, maj: c.maj };
-            this.avis = `⏸ Mi-temps sifflée automatiquement (${texte}) : aucune action depuis ${ATTENTE_FIN} minutes après le temps réglementaire. Touchez « ▶ 2e période » à la reprise.`;
+        const texte = this.texteMinute(p, derniere);
+        const pourquoi = `aucune action depuis ${ATTENTE_FIN} minutes après le temps réglementaire`;
+        // Arrêt à la dernière action (ou à la fin du temps réglementaire).
+        c.enCours = false;
+        c.debut = null;
+        c.cumul = (derniere - this.debutPeriode(p)) * 60;
+        if (p === 1 || p === 3) {
+            this.nouvellePeriode(p + 1);
+            this.avis = `⏸ ${p === 1 ? 'Mi-temps' : 'Pause des prolongations'} sifflée automatiquement (${texte}) : ${pourquoi}. Touchez « ▶ ${this.texteReprise(p + 1)} » à la reprise.`;
         } else {
-            c.enCours = false;
-            c.debut = null;
-            c.cumul = (derniere - mi) * 60;
-            c.fini = true;
-            this.avis = `🏁 Fin du match sifflée automatiquement (${texte}) : aucune action depuis ${ATTENTE_FIN} minutes après le temps réglementaire.`;
+            const suite = this.suiteEgalite();
+            if (suite === 'prolongations') {
+                this.nouvellePeriode(3);
+                this.avis = `⏱ Fin du temps réglementaire sifflée automatiquement (${texte}) : ${pourquoi}. Égalité : touchez « ▶ Prolongations » à la reprise.`;
+            } else if (suite === 'tab') {
+                this.nouvellePeriode(TAB);
+                this.avis = `🎯 Fin du temps de jeu sifflée automatiquement (${texte}) : ${pourquoi}. Égalité : place aux tirs au but.`;
+            } else if (suite === null) {
+                this.avis = `⏱ Chrono arrêté automatiquement (${texte}) : ${pourquoi}. Égalité : touchez « Fin » pour choisir la suite (prolongations ou tirs au but).`;
+            } else {
+                c.fini = true;
+                this.avis = `🏁 Fin du match sifflée automatiquement (${texte}) : ${pourquoi}.`;
+            }
         }
         this.verrou?.release?.();
         this.chronoChange();
@@ -188,15 +252,18 @@ export default class extends Controller {
         const c = this.chrono;
         const s = Math.floor(this.secondes());
         this.chronoTarget.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-        const avant = c.periode === 1 && !this.commencee();
-        const pause = c.periode === 2 && !this.commencee();
+        const p = c.periode;
+        const avant = p === 1 && !this.commencee();
+        const pause = p >= 2 && p < TAB && !this.commencee();
+        const tab = p === TAB;
         // Temps réglementaire de la période passé : minute et chrono en orange, qui clignotent.
-        const depasse = !c.fini && !avant && !pause && s >= this.mi() * 60;
-        this.minuteTarget.textContent = c.fini ? 'Terminé' : (avant ? 'À venir' : (pause ? 'Mi-temps' : this.texteMinute(c.periode, this.minuteCourante())));
+        const depasse = !c.fini && !avant && !pause && !tab && s >= this.dureePeriode(p) * 60;
+        this.minuteTarget.textContent = c.fini ? 'Terminé' : (avant ? 'À venir' : (pause ? this.nomPause(p) : (tab ? 'Tirs au but' : this.texteMinute(p, this.minuteCourante()))));
         this.minuteTarget.classList.toggle('arrete', !c.enCours);
         this.minuteTarget.classList.toggle('depasse', depasse);
         this.chronoTarget.classList.toggle('depasse', depasse);
-        this.periodeTarget.textContent = c.fini ? 'Match terminé' : (avant ? 'Avant le match' : (pause ? 'Mi-temps' : `${c.periode === 1 ? '1re période' : '2e période'}${depasse ? ' · temps additionnel' : ''}`));
+        this.periodeTarget.textContent = c.fini ? 'Match terminé' : (avant ? 'Avant le match' : (pause ? this.nomPause(p) : `${this.nomPeriode(p)}${depasse ? ' · temps additionnel' : ''}`));
+        this.element.classList.toggle('mode-tab', tab || this.tirsAuBut().length > 0);
         // Saisie impossible (chrono pas parti, mi-temps, match fini) : boutons de saisie grisés.
         this.element.classList.toggle('saisie-bloquee', !!this.blocage());
         this.element.classList.toggle('rempl-bloque', !!this.blocage('rempl'));
@@ -205,14 +272,22 @@ export default class extends Controller {
             this.avisTarget.hidden = !this.avis;
         }
         this.pauseTarget.textContent = c.enCours ? '⏸' : '▶';
-        this.pauseTarget.disabled = !!c.fini || avant || pause;
-        // Bouton de période : coup d'envoi → mi-temps → 2e période ; « Fin » pendant la 2e période.
-        const [icone, texte, actif] = c.fini ? ['✓', 'Terminé', false]
-            : (avant ? ['▶', 'Coup d\'envoi', true] : (c.periode === 1 ? ['⏸', 'Mi-temps', true] : (pause ? ['▶', '2e période', true] : ['✓', 'Mi-temps', false])));
+        this.pauseTarget.disabled = !!c.fini || avant || pause || tab;
+        // Bouton de période : coup d'envoi → mi-temps → 2e période ; en coupe : prolongations → pause → 2e prolongation ;
+        // « Fin » pendant la 2e période et la 2e prolongation.
+        let bouton;
+        if (c.fini) bouton = ['✓', 'Terminé', false];
+        else if (avant) bouton = ['▶', 'Coup d\'envoi', true];
+        else if (tab) bouton = ['🎯', 'Tirs au but', false];
+        else if (pause) bouton = ['▶', this.texteReprise(p), true];
+        else if (p === 1) bouton = ['⏸', 'Mi-temps', true];
+        else if (p === 3) bouton = ['⏸', 'Pause', true];
+        else bouton = ['✓', p === 2 ? 'Mi-temps' : 'Pause', false];
+        const [icone, texte, actif] = bouton;
         this.boutonPeriodeTarget.innerHTML = `<span class="icone" aria-hidden="true">${icone}</span>${texte}`;
         this.boutonPeriodeTarget.disabled = !actif;
         this.boutonPeriodeTarget.classList.toggle('a-faire', actif && (avant || pause));
-        this.boutonFinTarget.disabled = !!c.fini || c.periode !== 2 || pause;
+        this.boutonFinTarget.disabled = !!c.fini || tab || (p !== 2 && p !== 4) || pause;
         if (this.hasAnalyseTarget) this.analyseTarget.hidden = !c.fini;
     }
 
@@ -269,27 +344,66 @@ export default class extends Controller {
             this.chronoChange();
             return;
         }
-        if (c.periode !== 1) return;
-        const m = this.minuteCourante();
-        if (!await confirmer('Score à la pause', {
-            titre: '⏸ Mi-temps ?', bouton: 'Siffler la mi-temps', style: 'principal', classe: 'dialogue-periode', score: this.scoreTableau(),
-            detail: `Fin de la 1re période à la ${m}${m === 1 ? 're' : 'e'} minute. « ▶ 2e période » relancera le chrono.`,
+        if (c.periode !== 1 && c.periode !== 3) return;
+        const m = this.texteMinute(c.periode, this.minuteCourante());
+        const premiere = c.periode === 1;
+        if (!await confirmer(premiere ? 'Score à la pause' : 'Score après la 1re prolongation', {
+            titre: premiere ? '⏸ Mi-temps ?' : '⏸ Fin de la 1re prolongation ?', bouton: premiere ? 'Siffler la mi-temps' : 'Siffler la pause',
+            style: 'principal', classe: 'dialogue-periode', score: this.scoreTableau(),
+            detail: `${premiere ? 'Fin de la 1re période' : 'Fin de la 1re prolongation'} (${m}). « ▶ ${this.texteReprise(c.periode + 1)} » relancera le chrono.`,
         })) return;
-        this.chrono = { periode: 2, enCours: false, debut: null, cumul: 0, fini: false, sens: -c.sens, maj: c.maj };
+        this.nouvellePeriode(c.periode + 1);
         this.chronoChange();
     }
 
+    /**
+     * Fin de la 2e période (ou de la 2e prolongation). Match de coupe à égalité : prolongations ou tirs au but
+     * (suite choisie sur la fiche du match, sinon ici), au lieu de la fin du match.
+     */
     async fin() {
         const c = this.chrono;
-        if (c.fini || c.periode !== 2) return;
-        const m = this.minuteCourante();
-        if (!await confirmer('Score final', {
-            titre: '🏁 Fin du match ?', bouton: 'Siffler la fin du match', style: 'principal', classe: 'dialogue-periode', score: this.scoreTableau(),
-            detail: `Fin du match à la ${m}e minute. La feuille de match est mise à jour (buts, cartons, changements).`,
-        })) return;
+        if (c.fini || (c.periode !== 2 && c.periode !== 4)) return;
+        const m = this.texteMinute(c.periode, this.minuteCourante());
+        let suite = this.suiteEgalite();
+        if (suite === null) {
+            suite = await this.choisirSuite();
+            if (!suite) return;
+            this.cfg.egalite = suite;
+            this.egaliteAEnvoyer = suite;
+        } else {
+            const textes = {
+                fin: ['Score final', '🏁 Fin du match ?', 'Siffler la fin du match', `Fin du match (${m}). La feuille de match est mise à jour (buts, cartons, changements).`],
+                nul: ['Score final', '🏁 Fin du match ?', 'Siffler la fin du match', `Fin du match (${m}) sur un nul. La feuille de match est mise à jour.`],
+                prolongations: ['Égalité à la fin du temps réglementaire', '⏱ Prolongations ?', 'Siffler la fin du temps réglementaire',
+                    `Égalité (${m}) : ${2 * this.dp()} minutes de prolongations (2 × ${this.dp()} min). « ▶ Prolongations » relancera le chrono.`],
+                tab: ['Égalité à la fin', '🎯 Tirs au but ?', 'Passer aux tirs au but',
+                    `Égalité (${m}) : séance de tirs au but. Les tirs au but ne comptent pas dans le score : le match reste un nul.`],
+            }[suite];
+            if (!await confirmer(textes[0], { titre: textes[1], bouton: textes[2], style: 'principal', classe: 'dialogue-periode', score: this.scoreTableau(), detail: textes[3] })) return;
+        }
         this.arreter();
-        c.fini = true;
+        if (suite === 'prolongations') this.nouvellePeriode(3);
+        else if (suite === 'tab') this.nouvellePeriode(TAB);
+        else c.fini = true;
+        this.avis = null;
         this.chronoChange();
+    }
+
+    /** Coupe à égalité, suite pas encore choisie : prolongations, tirs au but directement, ou fin sur un nul. */
+    choisirSuite() {
+        return new Promise((resolve) => {
+            const d = this.dialogueTarget;
+            const libelles = { tab: '🎯 Tirs au but directement', prolongations: `⏱ Prolongations (2 × ${this.dp()} min), puis tirs au but`, nul: '🏁 Fin du match : match nul' };
+            d.innerHTML = `<form method="dialog" class="live-form">
+                <h2 class="dialogue-titre">Égalité ${this.echapper(this.texteScore())} : et maintenant ?</h2>
+                <p class="discret petit">Match de coupe : choisissez ce que prévoit le règlement (gardé pour ce match).</p>
+                <div class="live-suites">${Object.keys(libelles).map((v) => `<button value="${v}" class="bouton${v === 'tab' ? ' principal' : ''}">${libelles[v]}</button>`).join('')}</div>
+                <div class="dialogue-actions"><button value="annuler" class="bouton" formnovalidate>Annuler</button></div>
+            </form>`;
+            d.returnValue = '';
+            d.addEventListener('close', () => resolve(['tab', 'prolongations', 'nul'].includes(d.returnValue) ? d.returnValue : null), { once: true });
+            d.showModal();
+        });
     }
 
     async garderEcranAllume() {
@@ -371,7 +485,10 @@ export default class extends Controller {
         const c = this.chrono;
         if (c.fini) return 'Le match est terminé : plus rien à noter. Une action se corrige avec « Modifier » dans les dernières actions.';
         if (c.periode === 1 && !this.commencee()) return 'Le match n\'a pas commencé : touchez « ▶ Coup d\'envoi » pour lancer le chrono, puis notez les actions.';
-        if (c.periode === 2 && !this.commencee() && quoi !== 'rempl') return 'C\'est la mi-temps : touchez « ▶ 2e période » à la reprise pour noter les actions. Les remplacements restent possibles.';
+        if (c.periode === TAB) return quoi === 'tab' ? null : 'Séance de tirs au but : notez chaque tir dans le cadre « Tirs au but » (onglet Actions).';
+        if (c.periode >= 2 && !this.commencee() && quoi !== 'rempl') {
+            return `${this.nomPause(c.periode)} : touchez « ▶ ${this.texteReprise(c.periode)} » à la reprise pour noter les actions. Les remplacements restent possibles.`;
+        }
         return null;
     }
 
@@ -738,6 +855,8 @@ export default class extends Controller {
         switch (a.type) {
         case 'B': return `But – ${a.details?.geste === 'csc' ? `contre son camp (${adv})` : this.nom(j)}${a.details?.geste === 'tete' ? ' (tête)' : ''}`;
         case 'BA': return `But – ${adv}`;
+        case 'TB': return `Tir au but – ${this.nom(j)} ${a.details?.reussi ? '✓' : '✗'}`;
+        case 'ATB': return `Tir au but – ${adv} ${a.details?.reussi ? '✓' : '✗'}`;
         case 'CJ': return `Carton jaune – ${this.nom(j)}`;
         case 'CR': return `Carton rouge – ${this.nom(j)}`;
         case 'JA': return `Carton jaune – ${adv}`;
@@ -937,6 +1056,139 @@ export default class extends Controller {
         setTimeout(() => this.zoneActionTarget.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     }
 
+    // ———————— Tirs au but (coupe) ————————
+
+    /** Tirs au but notés, dans l'ordre de la séance. */
+    tirsAuBut() {
+        return [...this.actions.values()].filter((a) => a.type === 'TB' || a.type === 'ATB')
+            .sort((a, b) => (a.details?.ordre ?? 0) - (b.details?.ordre ?? 0));
+    }
+
+    /**
+     * Séance gagnée ? « nous », « eux » ou null (pas fini). Cinq tirs chacun, arrêtée dès qu'une équipe ne peut plus
+     * être rattrapée ; puis mort subite, tir par tir, jusqu'à ce qu'une équipe marque et pas l'autre.
+     */
+    issueTab(nous, eux) {
+        const a = nous.filter(Boolean).length;
+        const b = eux.filter(Boolean).length;
+        if (nous.length <= 5 && eux.length <= 5) {
+            if (a > b + (5 - eux.length)) return 'nous';
+            if (b > a + (5 - nous.length)) return 'eux';
+            if (nous.length < 5 || eux.length < 5) return null;
+        }
+        return nous.length === eux.length && a !== b ? (a > b ? 'nous' : 'eux') : null;
+    }
+
+    /** Équipe qui tire maintenant : celle qui a commencé, puis chacune son tour. */
+    aQuiTab(nous, eux) {
+        const premier = this.chrono.premier;
+        if (!premier) return null;
+        if (nous.length === eux.length) return premier;
+        return nous.length < eux.length ? 'nous' : 'eux';
+    }
+
+    dessinerTab() {
+        if (!this.hasTabTarget) return;
+        const c = this.chrono;
+        const tirs = this.tirsAuBut();
+        const visible = c.periode === TAB || tirs.length > 0;
+        this.tabTarget.hidden = !visible;
+        if (!visible) return;
+        const nous = tirs.filter((t) => t.type === 'TB');
+        const eux = tirs.filter((t) => t.type === 'ATB');
+        const reussi = (t) => t.details?.reussi === true;
+        const gagnant = this.issueTab(nous.map(reussi), eux.map(reussi));
+        const marques = { nous: nous.filter(reussi).length, eux: eux.filter(reussi).length };
+        const n = Math.max(5, nous.length, eux.length);
+        const ronds = (liste) => Array.from({ length: n }, (_, i) => {
+            const t = liste[i];
+            if (!t) return `<span class="tab-rond attente" title="${i + 1}e tir : à tirer">${i + 1}</span>`;
+            const qui = t.joueur ? ` · ${this.nom(this.joueur(t.joueur))}` : '';
+            return `<span class="tab-rond ${reussi(t) ? 'reussi' : 'rate'}" title="${i + 1}e tir${this.echapper(qui)} : ${reussi(t) ? 'marqué' : 'raté'}">${reussi(t) ? '✓' : '✗'}</span>`;
+        }).join('');
+        const ligne = (camp) => `<div class="tab-ligne ${camp}"><span class="tab-equipe">${this.echapper(camp === 'nous' ? this.cfg.nous : this.cfg.adversaire)}</span>
+            <span class="tab-ronds">${ronds(camp === 'nous' ? nous : eux)}</span><b class="tab-total">${marques[camp]}</b></div>`;
+        const [gauche, droite] = this.ordre('nous', 'eux');
+        const scoreTab = this.ordre(marques.nous, marques.eux).join(' – ');
+        let bas = '';
+        if (gagnant) {
+            bas = `<p class="tab-resultat ${gagnant === 'nous' ? 'qualifie' : 'elimine'}">${gagnant === 'nous' ? '🎉 Qualifié !' : 'Éliminé'}
+                <span>${this.echapper(this.texteScore())} (${scoreTab} aux tirs au but)</span></p>`;
+        } else if (c.periode === TAB && !c.premier) {
+            bas = `<p class="tab-question">Qui tire en premier ?</p><div class="tab-choix">${['nous', 'eux'].map((camp) => `<button type="button" class="bouton" data-camp="${camp}" data-action="live#premierTab">${this.echapper(camp === 'nous' ? this.cfg.nous : this.cfg.adversaire)}</button>`).join('')}</div>`;
+        } else if (c.periode === TAB) {
+            const qui = this.aQuiTab(nous, eux);
+            const boutons = `<div class="tab-choix"><button type="button" class="bouton tab-marque" data-reussi="1" data-action="live#noterTir"${qui === 'nous' && !this.tireurTab ? ' disabled' : ''}>✓ Marqué</button>
+                <button type="button" class="bouton tab-rate" data-reussi="0" data-action="live#noterTir"${qui === 'nous' && !this.tireurTab ? ' disabled' : ''}>✗ Raté</button></div>`;
+            if (qui === 'nous') {
+                // Tireurs : les joueurs sur le terrain à la fin (tous si on ne le sait pas), rangés par ligne ; ceux qui ont déjà tiré, en pâle.
+                const { etat, exclus, connu } = this.terrain();
+                const ordreLigne = (j) => LIGNES.findIndex(([code]) => code === ligneDuPoste(j.poste));
+                const possibles = this.cfg.joueurs.filter((j) => (!connu || etat.get(j.id)) && !exclus.has(j.id))
+                    .sort((a, b) => ordreLigne(a) - ordreLigne(b) || (a.numero ?? 999) - (b.numero ?? 999) || a.nom.localeCompare(b.nom));
+                const ontTire = new Set(nous.map((t) => t.joueur));
+                bas = `<p class="tab-question">${nous.length + 1}e tir de ${this.echapper(this.cfg.nous)} : touchez le tireur, puis le résultat.</p>
+                    <div class="live-tuiles-joueurs tab-tireurs">${possibles.map((j) => `<button type="button" class="live-tuile-joueur ligne-${ligneDuPoste(j.poste)}${j.id === this.tireurTab ? ' choisi' : ''}${ontTire.has(j.id) ? ' a-tire' : ''}" data-joueur="${j.id}" data-action="live#choisirTireur" aria-pressed="${j.id === this.tireurTab}">
+                        <span class="num">${j.numero ?? ''}</span><span class="qui"><b>${this.echapper(j.nom)}</b><small>${this.echapper(j.prenom)}</small></span>${j.poste ? `<span class="tuile-poste">${this.echapper(j.poste)}</span>` : ''}</button>`).join('')}</div>${boutons}`;
+            } else {
+                bas = `<p class="tab-question">${eux.length + 1}e tir de ${this.echapper(this.cfg.adversaire)} :</p>${boutons}`;
+            }
+        }
+        if (tirs.some((t) => this.aMoi(t))) bas += '<p class="tab-annuler"><button type="button" class="lien-bouton petit" data-action="live#annulerTir">↶ Annuler le dernier tir</button></p>';
+        this.tabTarget.innerHTML = `<h2>🎯 Tirs au but <span class="tab-score">${scoreTab}</span></h2>
+            <div class="tab-lignes">${ligne(gauche)}${ligne(droite)}</div>
+            ${n > 5 && !gagnant ? '<p class="discret petit">Mort subite : le premier qui marque quand l\'autre rate l\'emporte.</p>' : ''}${bas}
+            <p class="discret petit">Les tirs au but ne comptent pas dans le score ni dans les buts : le match reste un nul.</p>`;
+        // Séance gagnée : le match est fini (une seule fois).
+        if (gagnant && c.periode === TAB && !c.fini) {
+            c.fini = true;
+            setTimeout(() => this.chronoChange(), 0);
+        }
+    }
+
+    premierTab(event) {
+        this.chrono.premier = event.currentTarget.dataset.camp;
+        this.chronoChange();
+    }
+
+    choisirTireur(event) {
+        const id = Number(event.currentTarget.dataset.joueur);
+        this.tireurTab = this.tireurTab === id ? null : id;
+        this.dessinerTab();
+    }
+
+    noterTir(event) {
+        const tirs = this.tirsAuBut();
+        const qui = this.aQuiTab(tirs.filter((t) => t.type === 'TB'), tirs.filter((t) => t.type === 'ATB'));
+        if (!qui || this.chrono.periode !== TAB || this.chrono.fini) return;
+        if (qui === 'nous' && !this.tireurTab) return;
+        const reussi = event.currentTarget.dataset.reussi === '1';
+        const action = { uuid: this.nouvelUuid(), type: qui === 'nous' ? 'TB' : 'ATB', joueur: qui === 'nous' ? this.tireurTab : null, zx: 0, zy: 1,
+            details: { reussi, ordre: (tirs[tirs.length - 1]?.details?.ordre ?? 0) + 1 } };
+        this.tireurTab = null;
+        this.mesActions.push(action.uuid);
+        navigator.vibrate?.(reussi ? 30 : [30, 50, 30]);
+        this.noter([action], this.debutPeriode(TAB));
+    }
+
+    /** Dernier tir noté ici, effacé (séance rouverte si elle était finie). */
+    annulerTir() {
+        const miens = this.tirsAuBut().filter((x) => this.aMoi(x));
+        const t = miens[miens.length - 1];
+        if (!t) return;
+        this.actions.delete(t.uuid);
+        delete this.enAttente[t.uuid];
+        this.supprimes.push(t.uuid);
+        if (this.chrono.periode === TAB && this.chrono.fini) {
+            this.chrono.fini = false;
+            this.chronoChange();
+        } else {
+            this.garder();
+            this.afficher();
+            this.envoyer();
+        }
+    }
+
     annulerAction() {
         while (this.mesActions.length) {
             const uuid = this.mesActions.pop();
@@ -1037,12 +1289,13 @@ export default class extends Controller {
         this.dessinerStats(liste);
         this.dessinerCompo(liste);
         this.dessinerActions(liste);
+        this.dessinerTab();
         this.etatEnvoi();
     }
 
     /** Événements, du plus récent au plus ancien, avec le score après chaque but et les repères de période. */
     dessinerEvenements(liste) {
-        const tries = liste.filter((a) => EVENEMENTS.includes(a.type)).sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute));
+        const tries = liste.filter((a) => EVENEMENTS.includes(a.type) && !TIRS.includes(a.type)).sort((a, b) => (a.periode - b.periode) || (a.minute - b.minute));
         const score = [0, 0];
         const lignes = tries.map((a) => {
             if (a.type === 'B') score[0]++;
@@ -1060,16 +1313,22 @@ export default class extends Controller {
         const miTemps = repere(`Mi-temps · ${this.texteScore(this.compter(liste.filter((x) => x.periode === 1)))}`);
         // Dans l'ordre du match, puis retourné (le plus récent en haut).
         const html = [];
-        if (this.commencee() || c.periode === 2) html.push(repere('Coup d\'envoi'));
-        let miTempsPlacee = c.periode !== 2;
+        if (this.commencee() || c.periode >= 2) html.push(repere('Coup d\'envoi'));
+        let miTempsPlacee = c.periode < 2;
         lignes.forEach(({ a, html: h }) => {
-            if (!miTempsPlacee && a.periode === 2) {
+            if (!miTempsPlacee && a.periode >= 2) {
                 html.push(miTemps);
                 miTempsPlacee = true;
             }
             html.push(h);
         });
         if (!miTempsPlacee) html.push(miTemps);
+        // Séance de tirs au but : une ligne avec son score.
+        const tirs = liste.filter((a) => TIRS.includes(a.type));
+        if (tirs.length) {
+            const ok = (t) => tirs.filter((a) => a.type === t && a.details?.reussi).length;
+            html.push(repere(`🎯 Tirs au but · ${this.ordre(ok('TB'), ok('ATB')).join(' – ')}`));
+        }
         if (c.fini) html.push(repere(`🏁 Fin du match · ${this.texteScore()}`));
         this.evenementsTarget.innerHTML = html.reverse().join('') || '<li class="vide discret">Aucun événement pour l\'instant. Touchez « Coup d\'envoi » au début du match.</li>';
     }
@@ -1280,7 +1539,7 @@ export default class extends Controller {
             const reponse = await fetch(this.cfg.url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({ jeton: this.cfg.jeton, actions, supprimes, chrono, numeros: {}, ...(titulaires ? { titulaires } : {}), infos: {} }),
+                body: JSON.stringify({ jeton: this.cfg.jeton, actions, supprimes, chrono, numeros: {}, ...(titulaires ? { titulaires } : {}), ...(this.egaliteAEnvoyer ? { egalite: this.egaliteAEnvoyer } : {}), infos: {} }),
             });
             if (reponse.status === 404) {
                 clearInterval(this.relance);
@@ -1294,6 +1553,7 @@ export default class extends Controller {
             const donnees = await reponse.json();
             this.decalage = donnees.maintenant - (avant + Date.now()) / 2;
             actions.forEach((a) => { if (this.enAttente[a.uuid] === a) delete this.enAttente[a.uuid]; });
+            this.egaliteAEnvoyer = null;
             this.supprimes = this.supprimes.filter((u) => !supprimes.includes(u));
             if (chrono && this.chrono.maj === chrono.maj) this.chronoAEnvoyer = false;
             if (donnees.chrono && donnees.chrono.maj > (this.chrono.maj ?? 0) && !this.chronoAEnvoyer) {

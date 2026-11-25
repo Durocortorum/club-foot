@@ -44,6 +44,8 @@
         <span class="score score-plateau" title="Plateau : petits matchs sans classement">{{ n ? n ~ ' match' ~ (n > 1 ? 's') : 'plateau' }}</span>
     {% elseif r.butsDomicile is not null and r.butsExterieur is not null %}
         <span class="score resultat-{{ r.resultat }}">{{ r.butsDomicile }} – {{ r.butsExterieur }}</span>
+        {#- Coupe gagnée ou perdue aux tirs au but (le match reste un nul). -#}
+        {% if r.hasTab %} <span class="score-tab{{ r.qualifie is same as(true) ? ' qualifie' : (r.qualifie is same as(false) ? ' elimine') }}" title="Tirs au but{{ r.qualifie is same as(true) ? ' : qualifié' : (r.qualifie is same as(false) ? ' : éliminé') }}">({{ r.tabDomicile }} – {{ r.tabExterieur }} t.a.b.)</span>{% endif %}
     {% else %}
         <span class="score">–</span>
     {% endif %}

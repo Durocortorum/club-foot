@@ -76,6 +76,12 @@ class ActionMatch implements AppartientAuClub
         'Changements' => ['RP', 'EX'],
         'Adversaire' => ['AC', 'AH', 'ATC', 'ATH', 'CA', 'BA', 'JA', 'RA'],
     ];
+    /**
+     * Tirs au but (séance après un match de coupe à égalité) : période 5, details : reussi. Ils ne comptent ni dans le
+     * score, ni dans les buts, ni dans les statistiques du match (règle FFF) ; seulement dans le résultat de la séance.
+     */
+    public const TIRS_AU_BUT = ['TB' => 'Tir au but', 'ATB' => 'Tir au but adverse'];
+    public const PERIODE_TAB = 5;
     public const COLONNES = 6;
     public const COULOIRS = 3;
 
@@ -148,6 +154,14 @@ class ActionMatch implements AppartientAuClub
 
             return $this;
         }
+        // Tir au but : marqué ou raté, rien d'autre.
+        if (isset(self::TIRS_AU_BUT[$this->type ?? ''])) {
+            // Ordre dans la séance (1, 2, 3…) : les tirs s'affichent dans l'ordre où ils ont été tirés.
+            $ordre = is_numeric($details['ordre'] ?? null) ? max(1, min(99, (int) $details['ordre'])) : null;
+            $this->details = array_filter(['reussi' => true === ($details['reussi'] ?? null), 'ordre' => $ordre], fn ($v) => null !== $v);
+
+            return $this;
+        }
         // « Hors carte » : venue de la feuille de match sans place sur le terrain (pas dessinée sur la carte).
         $horsCarte = true === ($details['horsCarte'] ?? null);
         $point = fn ($p) => \is_array($p) && \count($p) >= 2 && is_numeric($p[0]) && is_numeric($p[1])
@@ -204,18 +218,18 @@ class ActionMatch implements AppartientAuClub
 
     public static function existe(string $type): bool
     {
-        return isset(self::ACTIONS[$type]) || isset(self::ADVERSES[$type]) || isset(self::HORS_JEU[$type]);
+        return isset(self::ACTIONS[$type]) || isset(self::ADVERSES[$type]) || isset(self::HORS_JEU[$type]) || isset(self::TIRS_AU_BUT[$type]);
     }
 
     /** Action d'un joueur du club (bouton d'action, changement, exclusion temporaire). */
     public static function deJoueur(string $type): bool
     {
-        return isset(self::ACTIONS[$type]) || isset(self::HORS_JEU[$type]);
+        return isset(self::ACTIONS[$type]) || isset(self::HORS_JEU[$type]) || 'TB' === $type;
     }
 
     public static function libelleDe(string $type): string
     {
-        return self::ACTIONS[$type][0] ?? self::ADVERSES[$type] ?? self::HORS_JEU[$type] ?? $type;
+        return self::ACTIONS[$type][0] ?? self::ADVERSES[$type] ?? self::HORS_JEU[$type] ?? self::TIRS_AU_BUT[$type] ?? $type;
     }
 
     public function getId(): ?int
@@ -259,7 +273,18 @@ class ActionMatch implements AppartientAuClub
 
     public function isAdverse(): bool
     {
-        return isset(self::ADVERSES[$this->type]);
+        return isset(self::ADVERSES[$this->type]) || 'ATB' === $this->type;
+    }
+
+    public function isTirAuBut(): bool
+    {
+        return isset(self::TIRS_AU_BUT[$this->type]);
+    }
+
+    /** Tir au but marqué. */
+    public function isReussi(): bool
+    {
+        return true === ($this->details['reussi'] ?? null);
     }
 
     public function getLibelle(): string
@@ -279,7 +304,7 @@ class ActionMatch implements AppartientAuClub
 
     public function placer(int $periode, int $minute, int $zx, int $zy): static
     {
-        $this->periode = max(1, min(4, $periode));
+        $this->periode = max(1, min(self::PERIODE_TAB, $periode));
         $this->minute = max(0, min(130, $minute));
         $this->zx = max(0, min(self::COLONNES - 1, $zx));
         $this->zy = max(0, min(self::COULOIRS - 1, $zy));

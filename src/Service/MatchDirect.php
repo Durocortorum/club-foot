@@ -141,6 +141,10 @@ class MatchDirect
         }
         foreach ($actions as $a) {
             $type = $a->getType();
+            // Tirs au but : pas des buts ni des actions de jeu (règle FFF), seulement le résultat de la séance.
+            if ($a->isTirAuBut()) {
+                continue;
+            }
             // Changement, exclusion temporaire : comptés pour l'équipe seulement (pas une action de jeu : ni zone, ni quart d'heure, ni joueur).
             if (isset(ActionMatch::HORS_JEU[$type])) {
                 $equipe[$type] = ($equipe[$type] ?? 0) + 1;
