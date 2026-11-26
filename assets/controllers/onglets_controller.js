@@ -15,6 +15,8 @@ export default class extends Controller {
 
     choisir(event) {
         event.preventDefault();
+        // Changer d'onglet referme le formulaire « Modifier / compléter » : on voit le contenu de l'onglet.
+        if (this.hasFormulaireTarget) this.formulaireTarget.open = false;
         this.montrer(event.currentTarget.dataset.onglet);
         history.replaceState(null, '', `#${event.currentTarget.dataset.onglet}`);
     }
