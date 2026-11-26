@@ -7,16 +7,19 @@ import { Controller } from '@hotwired/stimulus';
  * - décoché : la colonne est vidée des « présents » (les absences et les autres équipes restent).
  */
 export default class extends Controller {
-    static values = { equipe: String, seuils: Object };
+    static values = { equipe: String, seuils: Object, formes: Object };
     static targets = ['grille', 'bascule'];
 
     /** Note de la semaine tapée : la forme de la ligne suit (🔥 à partir de 7,5, 🙂 6, 😐 5, 😟 en dessous). */
     formeDeLaNote(event) {
-        const forme = event.target.closest('tr')?.querySelector('select.forme-semaine');
+        const forme = event.target.closest('tr')?.querySelector('[data-forme-auto]');
         if (!forme) return;
         const note = parseFloat(String(event.target.value).replace(',', '.'));
         const s = this.seuilsValue;
-        forme.value = Number.isNaN(note) ? '' : (note >= s.top ? 'top' : (note >= s.bien ? 'bien' : (note >= s.moyen ? 'moyen' : 'faible')));
+        const cle = Number.isNaN(note) ? '' : (note >= s.top ? 'top' : (note >= s.bien ? 'bien' : (note >= s.moyen ? 'moyen' : 'faible')));
+        const f = this.formesValue[cle];
+        forme.className = `forme-auto ${cle}`;
+        forme.textContent = f ? `${f[1]} ${f[0]}` : '—';
     }
 
     /** Demi-journées sans entraînement de l'équipe : montrées sur demande (séance exceptionnelle), puis cachées. */

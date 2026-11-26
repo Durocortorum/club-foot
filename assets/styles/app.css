@@ -2705,3 +2705,9 @@ form:has(select[name$="[competition]"] option[value^="Coupe" i]:checked) .coupe-
 .ass-avertissement { padding: .7rem 1rem; border-radius: var(--rayon); background: #e8f4fd; border: 1px solid #b6dcf5; color: #134e6f; }
 /* Grille des présences : demi-journées sans entraînement de l'équipe cachées (affichables à la demande). */
 .grille-presence:not(.tout-voir) .creneau-cache { display: none; }
+/* Forme de la semaine, d'après la note : étiquette colorée (rien à choisir). */
+.forme-auto { display: inline-block; min-width: 9rem; padding: .3rem .6rem; border-radius: 8px; background: var(--fond); color: var(--gris); font-size: .9rem; white-space: nowrap; }
+.forme-auto.top { background: #fff1e6; color: #b45309; font-weight: 700; }
+.forme-auto.bien { background: #e6f4ea; color: var(--succes); }
+.forme-auto.moyen { background: #f3f4f6; color: var(--encre); }
+.forme-auto.faible { background: var(--danger-clair); color: var(--danger-fonce); }

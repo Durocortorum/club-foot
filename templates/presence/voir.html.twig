@@ -19,10 +19,10 @@
 
     <p class="discret petit">
         Pour chaque demi-journée : l'équipe avec laquelle le joueur s'est entraîné, ou le motif d'absence.
-        Laissez vide s'il n'y avait pas de séance. Notez aussi la semaine de chaque joueur (note sur 10) : la forme se met toute seule d'après la note (7,5 et plus 🔥, 6 🙂, 5 😐, moins 😟), modifiable ; elles apparaissent dans la convocation et dans « Composer le onze ». Le bouton ✓ sous un créneau marque présents tous les joueurs encore vides ; un second clic le décoche et vide les présents de la colonne (les absences restent).
+        Laissez vide s'il n'y avait pas de séance. Notez aussi la semaine de chaque joueur (note sur 10) : la forme en découle toute seule (7,5 et plus 🔥, 6 🙂, 5 😐, moins 😟) ; elles apparaissent dans la convocation et dans « Composer le onze ». Le bouton ✓ sous un créneau marque présents tous les joueurs encore vides ; un second clic le décoche et vide les présents de la colonne (les absences restent).
     </p>
 
-    <form method="post" data-controller="presence" data-presence-equipe-value="{{ equipe }}" data-presence-seuils-value="{{ seuils_forme|json_encode }}">
+    <form method="post" data-controller="presence" data-presence-equipe-value="{{ equipe }}" data-presence-seuils-value="{{ seuils_forme|json_encode }}" data-presence-formes-value="{{ formes|json_encode }}">
         <input type="hidden" name="_token" value="{{ csrf_token('presences' ~ semaine.id) }}">
         {# Seules les demi-journées d'entraînement de l'équipe sont affichées ; les autres sur demande (séance en plus). #}
         {% set caches = creneaux|length - creneaux_entrainement|length %}
@@ -59,10 +59,9 @@
                             <td class="avec-vignette nowrap">{{ m.avatar(j, 'mini') }} <a href="{{ path('app_joueur_voir', {id: j.id}) }}"><strong>{{ j.nom }}</strong> {{ j.prenom }}</a></td>
                             <td class="col-semaine"><input type="number" class="note-semaine" name="note[{{ j.id }}]" min="0" max="10" step="0.5" value="{{ p.noteSemaine }}" aria-label="Note de la semaine de {{ j.prenom }} {{ j.nom }}" placeholder="/10" data-action="input->presence#formeDeLaNote"></td>
                             <td class="col-semaine">
-                                <select name="forme[{{ j.id }}]" class="forme-semaine" aria-label="Forme de la semaine de {{ j.prenom }} {{ j.nom }}">
-                                    <option value=""></option>
-                                    {% for cle, f in formes %}<option value="{{ cle }}" {{ p.forme == cle ? 'selected' }}>{{ f[1] }} {{ f[0] }}</option>{% endfor %}
-                                </select>
+                                {# Forme : calculée d'après la note (rien à choisir), mise à jour pendant la saisie. #}
+                                {% set f = formes[p.forme] ?? null %}
+                                <span class="forme-auto {{ p.forme }}" data-forme-auto aria-live="polite">{{ f ? f[1] ~ ' ' ~ f[0] : '—' }}</span>
                             </td>
                             {% for cle, libelle in creneaux %}
                                 {% set valeur = p.creneau(cle) %}

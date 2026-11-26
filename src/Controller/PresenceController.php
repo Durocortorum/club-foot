@@ -103,16 +103,13 @@ class PresenceController extends AbstractController
             $saisie = $request->getPayload()->all('creneaux');
             // Note et forme de la semaine d'entraînement (avant les convocations).
             $notes = $request->getPayload()->all('note');
-            $formes = $request->getPayload()->all('forme');
             foreach ($semaine->getPresences() as $presence) {
                 $id = $presence->getJoueur()->getId();
                 $presence->setCreneaux(array_map('strval', (array) ($saisie[$id] ?? [])));
-                if (\array_key_exists($id, $notes) || \array_key_exists($id, $formes)) {
-                    $presence->setNoteSemaine($notes[$id] ?? null)->setForme(\is_string($formes[$id] ?? null) ? $formes[$id] : null);
-                    // Forme laissée vide : celle qui va avec la note.
-                    if (null === $presence->getForme()) {
-                        $presence->setForme(Presence::formeDeNote($presence->getNoteSemaine()));
-                    }
+                if (\array_key_exists($id, $notes)) {
+                    // La forme découle de la note (plus de choix à la main).
+                    $presence->setNoteSemaine($notes[$id]);
+                    $presence->setForme(Presence::formeDeNote($presence->getNoteSemaine()));
                 }
             }
             if ($ajout = $request->getPayload()->getInt('ajouter')) {
