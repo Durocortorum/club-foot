@@ -1,0 +1,8 @@
+{# Rubrique Calendrier sur téléphone : calendrier du mois, événements du club, stages, tournois. #}
+{% set route = app.request.attributes.get('_route') %}
+{{ include('commun/_barre_bas.html.twig', {onglets: [
+    {url: path('app_calendrier'), icone: 'calendrier', libelle: 'Calendrier', actif: route == 'app_calendrier'},
+    {url: path('app_evenement_index'), icone: 'evenements', libelle: 'Événements', actif: route starts with 'app_evenement'},
+    {url: path('app_stage_index'), icone: 'stages', libelle: 'Stages', actif: route starts with 'app_stage'},
+    {url: path('app_tournoi_index'), icone: 'tournoi', libelle: 'Tournois', actif: route starts with 'app_tournoi'},
+]}) }}

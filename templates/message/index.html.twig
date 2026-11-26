@@ -5,7 +5,7 @@
 {% block body %}
     <div class="titre-page">
         <h1 data-liste-messages>Messages</h1>
-        <a class="bouton principal" href="{{ path('app_message_nouveau') }}">+ Nouveau message</a>
+        <a class="bouton principal doublon-barre" href="{{ path('app_message_nouveau') }}">+ Nouveau message</a>
     </div>
 
     {% if recus %}
@@ -64,3 +64,5 @@
         <p class="discret">Aucun message pour l'instant. Écrivez aux familles d'une catégorie, aux convoqués d'un match ou à quelques joueurs : elles lisent le message dans leur espace et peuvent vous répondre.</p>
     {% endif %}
 {% endblock %}
+
+{% block barre_bas %}{{ include('message/_barre_bas.html.twig') }}{% endblock %}

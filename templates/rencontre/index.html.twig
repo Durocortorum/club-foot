@@ -12,8 +12,8 @@
         {% if peut_creer %}
             <span class="actions">
                 {% if not en_plateaux %}
-                    <a class="bouton" href="{{ path('app_championnat', filtres.categorie ? {categorie: filtres.categorie} : {}) }}">Championnat</a>
-                    <a class="bouton" href="{{ path('app_tournoi_index') }}">Tournois</a>
+                    <a class="bouton doublon-barre" href="{{ path('app_championnat', filtres.categorie ? {categorie: filtres.categorie} : {}) }}">Championnat</a>
+                    <a class="bouton doublon-barre" href="{{ path('app_tournoi_index') }}">Tournois</a>
                 {% endif %}
                 {% if peut_creer_plateau and (en_plateaux or not equipe) %}
                     <a class="bouton {{ en_plateaux or not peut_creer_match ? 'principal' }}" href="{{ path('app_plateau_nouveau', en_plateaux ? {categorie: equipe.id} : {}) }}" title="Rassemblement de plusieurs clubs avec de petits matchs, sans classement (école de foot)">+ Nouveau plateau</a>
@@ -88,3 +88,5 @@
 
     {{ m.pagination('app_rencontre_index', filtres|merge({saison: filtres.saison ?? ''}), page, pages) }}
 {% endblock %}
+
+{% block barre_bas %}{{ include('rencontre/_barre_bas.html.twig') }}{% endblock %}

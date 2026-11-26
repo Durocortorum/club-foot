@@ -1,6 +1,12 @@
-{# Onglets de l'Infirmerie ; « actif » : blessures, dossiers ou contacts. #}
-<nav class="onglets">
-    {% if is_granted('ROLE_INFIRMERIE_LECTURE') %}<a href="{{ path('app_infirmerie_index') }}" class="{{ actif == 'blessures' ? 'actif' }}">Blessures</a>{% endif %}
+{# Onglets de l'Infirmerie ; « actif » : blessures, dossiers ou contacts. Sur téléphone : dans la barre du bas. #}
+{% set lecture = is_granted('ROLE_INFIRMERIE_LECTURE') %}
+<nav class="onglets doublon-barre">
+    {% if lecture %}<a href="{{ path('app_infirmerie_index') }}" class="{{ actif == 'blessures' ? 'actif' }}">Blessures</a>{% endif %}
     <a href="{{ path('app_dossier_medical_index') }}" class="{{ actif == 'dossiers' ? 'actif' }}">Dossiers médicaux</a>
-    {% if is_granted('ROLE_INFIRMERIE_LECTURE') %}<a href="{{ path('app_contact_index') }}" class="{{ actif == 'contacts' ? 'actif' }}">Contacts médicaux</a>{% endif %}
+    {% if lecture %}<a href="{{ path('app_contact_index') }}" class="{{ actif == 'contacts' ? 'actif' }}">Contacts médicaux</a>{% endif %}
 </nav>
+{{ include('commun/_barre_bas.html.twig', {onglets: [
+    lecture ? {url: path('app_infirmerie_index'), icone: 'infirmerie', libelle: 'Blessures', actif: actif == 'blessures'} : null,
+    {url: path('app_dossier_medical_index'), icone: 'dossiers', libelle: 'Dossiers', actif: actif == 'dossiers'},
+    lecture ? {url: path('app_contact_index'), icone: 'contacts', libelle: 'Contacts', actif: actif == 'contacts'} : null,
+]|filter(o => o)}) }}

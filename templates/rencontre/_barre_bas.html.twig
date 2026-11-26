@@ -1,0 +1,7 @@
+{# Rubrique Matchs sur téléphone : liste des matchs, championnat, tournois. #}
+{% set route = app.request.attributes.get('_route') %}
+{{ include('commun/_barre_bas.html.twig', {onglets: [
+    {url: path('app_rencontre_index'), icone: 'ballon', libelle: 'Matchs', actif: route == 'app_rencontre_index'},
+    {url: path('app_championnat'), icone: 'trophee', libelle: 'Championnat', actif: route starts with 'app_championnat'},
+    {url: path('app_tournoi_index'), icone: 'tournoi', libelle: 'Tournois', actif: route starts with 'app_tournoi'},
+]}) }}

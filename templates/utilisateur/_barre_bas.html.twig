@@ -1,0 +1,9 @@
+{# Utilisateurs (administrateur) sur téléphone : comptes, tableau des droits d'accès, nouveau compte. #}
+{% if is_granted('ROLE_ADMIN') %}
+    {% set route = app.request.attributes.get('_route') %}
+    {{ include('commun/_barre_bas.html.twig', {onglets: [
+        {url: path('app_utilisateur_index'), icone: 'joueurs', libelle: 'Comptes', actif: route == 'app_utilisateur_index'},
+        {url: path('app_utilisateur_droits'), icone: 'cle', libelle: 'Droits', actif: route == 'app_utilisateur_droits'},
+        {url: path('app_utilisateur_nouveau'), icone: 'ecrire', libelle: 'Nouveau compte', actif: route == 'app_utilisateur_nouveau'},
+    ]}) }}
+{% endif %}

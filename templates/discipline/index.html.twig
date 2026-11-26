@@ -8,7 +8,7 @@
 
     <div class="titre-page">
         <h1>Discipline <span class="compteur">{{ sanctions|length }}</span></h1>
-        {% if modif %}<a class="bouton principal" href="{{ path('app_sanction_nouvelle') }}">+ Nouvel incident</a>{% endif %}
+        {% if modif %}<a class="bouton principal doublon-barre" href="{{ path('app_sanction_nouvelle') }}">+ Nouvel incident</a>{% endif %}
     </div>
 
     {% if amendes.infligees or amendes.a_payer %}
@@ -60,4 +60,13 @@
             </tbody>
         </table>
     </div>
+{% endblock %}
+
+{# Sur téléphone : incidents, amendes à payer et nouvel incident dans la barre du bas. #}
+{% block barre_bas %}
+    {{ include('commun/_barre_bas.html.twig', {onglets: [
+        {url: path('app_discipline_index'), icone: 'carton', libelle: 'Incidents', actif: not filtre},
+        {url: path('app_discipline_index', {amendes: 'a_payer'}), icone: 'cotisations', libelle: 'Amendes', actif: filtre, pastille: amendes.nb_a_payer ?? null},
+        is_granted('ROLE_DISCIPLINE') ? {url: path('app_sanction_nouvelle'), icone: 'ecrire', libelle: 'Nouvel incident', actif: false} : null,
+    ]|filter(o => o)}) }}
 {% endblock %}

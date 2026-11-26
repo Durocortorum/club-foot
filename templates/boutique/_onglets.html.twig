@@ -1,4 +1,9 @@
-<nav class="onglets">
+<nav class="onglets doublon-barre">
     <a href="{{ path('app_boutique') }}" class="{{ actif == 'commandes' ? 'actif' }}">Commandes</a>
     <a href="{{ path('app_boutique_articles') }}" class="{{ actif == 'articles' ? 'actif' }}">Articles</a>
 </nav>
+{# Sur téléphone : ces onglets dans la barre du bas. #}
+{{ include('commun/_barre_bas.html.twig', {onglets: [
+    {url: path('app_boutique'), icone: 'commandes', libelle: 'Commandes', actif: actif == 'commandes'},
+    {url: path('app_boutique_articles'), icone: 'articles', libelle: 'Articles', actif: actif == 'articles'},
+]}) }}

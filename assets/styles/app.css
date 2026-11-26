@@ -113,6 +113,11 @@ h2.titre-leger { font-weight: 400; }
     body:has(.barre-app) .aide { bottom: 5.6rem; }
     /* Les boutons qui font doublon avec la barre de rubrique sont cachés. */
     body:has(.barre-bas) .doublon-barre { display: none; }
+    /* Rubrique de plus de quatre onglets : la barre défile au doigt, « Plus » reste visible au bout. */
+    .barre-app.defile { display: flex; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .barre-app.defile::-webkit-scrollbar { display: none; }
+    .barre-app.defile > a { flex: 0 0 4.8rem; }
+    .barre-app.defile > .barre-plus { flex: 0 0 4.4rem; position: sticky; right: 0; background: #0f1626; box-shadow: -10px 0 12px #0f1626; }
     /* Page de rubrique : ses onglets (déplacés par menu_controller.js) remplacent les raccourcis dans la barre. */
     body:has(.barre-bas) .barre-app > a:not(.onglet-rubrique) { display: none; }
     /* Match Live et saisie détaillée : leur propre barre, pas la barre générale. */

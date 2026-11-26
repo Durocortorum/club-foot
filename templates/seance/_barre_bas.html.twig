@@ -1,0 +1,16 @@
+{#
+    Rubrique Entraînements sur téléphone : séances, planning et absences, état de forme, tests, coups de pied arrêtés,
+    effort ressenti, progression, bibliothèque d'exercices (la barre défile au doigt au-delà de quatre onglets).
+#}
+{% set route = app.request.attributes.get('_route') %}
+{% set tests = is_granted('ROLE_TESTS_PHYSIQUES_LECTURE') %}
+{{ include('commun/_barre_bas.html.twig', {onglets: [
+    {url: path('app_seance_index'), icone: 'seance', libelle: 'Séances', actif: route == 'app_seance_index'},
+    {url: path('app_planning'), icone: 'planning', libelle: 'Planning', actif: route starts with 'app_planning'},
+    {url: path('app_etat_forme'), icone: 'forme', libelle: 'Forme', actif: route == 'app_etat_forme'},
+    tests ? {url: path('app_tests'), icone: 'chrono', libelle: 'Tests', actif: route == 'app_tests'} : null,
+    {url: path('app_cpa'), icone: 'drapeau', libelle: 'CPA', actif: route starts with 'app_cpa'},
+    {url: path('app_ressenti'), icone: 'ressenti', libelle: 'Ressenti', actif: route starts with 'app_ressenti'},
+    tests ? {url: path('app_progression_equipe'), icone: 'actions', libelle: 'Progression', actif: route == 'app_progression_equipe'} : null,
+    {url: path('app_bibliotheque'), icone: 'bibliotheque', libelle: 'Bibliothèque', actif: route starts with 'app_bibliotheque'},
+]|filter(o => o)}) }}

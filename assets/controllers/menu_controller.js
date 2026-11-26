@@ -29,10 +29,16 @@ export default class extends Controller {
         const plus = barre?.querySelector('.barre-plus');
         if (!barre || !rubrique || !plus || barre.querySelector('.onglet-rubrique')) return;
         barre.querySelectorAll(':scope > a').forEach((a) => a.remove());
-        rubrique.querySelectorAll('a').forEach((a) => {
+        const onglets = [...rubrique.querySelectorAll('a')];
+        onglets.forEach((a) => {
             a.classList.add('onglet-rubrique');
             barre.insertBefore(a, plus);
         });
+        // Plus de quatre onglets (ex. Entraînements) : la barre défile au doigt, l'onglet en cours est montré.
+        if (onglets.length > 4) {
+            barre.classList.add('defile');
+            barre.querySelector('a.actif')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+        }
     }
 
     /**

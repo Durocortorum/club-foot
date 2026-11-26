@@ -1,0 +1,6 @@
+{# Rubrique Présences sur téléphone : semaines de présence, planning et absences. #}
+{% set route = app.request.attributes.get('_route') %}
+{{ include('commun/_barre_bas.html.twig', {onglets: [
+    {url: path('app_presence_index'), icone: 'presences', libelle: 'Présences', actif: route starts with 'app_presence'},
+    {url: path('app_planning'), icone: 'planning', libelle: 'Planning', actif: route starts with 'app_planning'},
+]}) }}

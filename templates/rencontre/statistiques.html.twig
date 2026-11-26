@@ -31,7 +31,14 @@
         <noscript><button type="submit" class="bouton">Filtrer</button></noscript>
     </form>
 
-    <nav class="onglets">
+    {# Sur téléphone : ces onglets dans la barre du bas (ceux du haut sont cachés). #}
+    {{ include('commun/_barre_bas.html.twig', {onglets: [
+        {url: path('app_statistiques', lien|merge({vue: 'equipe'})), icone: 'equipe', libelle: 'Équipe', actif: filtres.vue == 'equipe'},
+        {url: path('app_statistiques', lien|merge({vue: 'joueurs'})), icone: 'joueurs', libelle: 'Joueurs', actif: filtres.vue == 'joueurs'},
+        {url: path('app_statistiques', lien|merge({vue: 'actions'})), icone: 'actions', libelle: 'Actions', actif: filtres.vue == 'actions'},
+        {url: path('app_statistiques', lien|merge({vue: 'discipline'})), icone: 'carton', libelle: 'Discipline', actif: filtres.vue == 'discipline'},
+    ]}) }}
+    <nav class="onglets doublon-barre">
         <a href="{{ path('app_statistiques', lien|merge({vue: 'equipe'})) }}" class="{{ filtres.vue == 'equipe' ? 'actif' }}">Équipe</a>
         <a href="{{ path('app_statistiques', lien|merge({vue: 'joueurs'})) }}" class="{{ filtres.vue == 'joueurs' ? 'actif' }}">Joueurs</a>
         <a href="{{ path('app_statistiques', lien|merge({vue: 'actions'})) }}" class="{{ filtres.vue == 'actions' ? 'actif' }}" title="Passes, duels, contrôles, frappes… notés en direct">Actions</a>

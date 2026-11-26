@@ -1,7 +1,13 @@
-<nav class="onglets">
+{# Onglets du Recrutement (variable onglet). Sur téléphone : dans la barre du bas. #}
+<nav class="onglets doublon-barre">
     <a href="{{ path('app_detection_index') }}" class="{{ onglet == 'detections' ? 'actif' }}">Détections</a>
     <a href="{{ path('app_observe_index') }}" class="{{ onglet == 'observes' ? 'actif' }}">Joueurs observés</a>
     {% if is_granted('ROLE_ADMIN') %}
         <a href="{{ path('app_candidature_index') }}" class="{{ onglet == 'candidatures' ? 'actif' }}">Candidatures encadrement</a>
     {% endif %}
 </nav>
+{{ include('commun/_barre_bas.html.twig', {onglets: [
+    {url: path('app_detection_index'), icone: 'detections', libelle: 'Détections', actif: onglet == 'detections'},
+    {url: path('app_observe_index'), icone: 'observes', libelle: 'Observés', actif: onglet == 'observes'},
+    is_granted('ROLE_ADMIN') ? {url: path('app_candidature_index'), icone: 'candidatures', libelle: 'Candidatures', actif: onglet == 'candidatures'} : null,
+]|filter(o => o)}) }}

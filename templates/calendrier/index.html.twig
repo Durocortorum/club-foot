@@ -6,9 +6,9 @@
     <div class="titre-page">
         <h1>Calendrier</h1>
         <span class="actions">
-            <a class="bouton" href="{{ path('app_evenement_index') }}">Événements</a>
-            <a class="bouton" href="{{ path('app_stage_index') }}">Stages</a>
-            <a class="bouton" href="{{ path('app_tournoi_index') }}">Tournois</a>
+            <a class="bouton doublon-barre" href="{{ path('app_evenement_index') }}">Événements</a>
+            <a class="bouton doublon-barre" href="{{ path('app_stage_index') }}">Stages</a>
+            <a class="bouton doublon-barre" href="{{ path('app_tournoi_index') }}">Tournois</a>
             <a class="bouton" href="{{ path('app_rencontre_index') }}">Matchs</a>
             {% if peut_planifier %}<a class="bouton" href="{{ path('app_planning') }}">Planning des entraînements</a>{% endif %}
         </span>
@@ -47,3 +47,5 @@
         <p class="vide">Aucun match ni entraînement ce mois-ci{{ choisie ? ' pour ' ~ choisie.nom }}.</p>
     {% endif %}
 {% endblock %}
+
+{% block barre_bas %}{{ include('calendrier/_barre_bas.html.twig') }}{% endblock %}

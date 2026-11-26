@@ -6,8 +6,8 @@
     <div class="titre-page">
         <h1>Utilisateurs <span class="compteur">{{ utilisateurs|length }}</span></h1>
         <span>
-            <a class="bouton" href="{{ path('app_utilisateur_droits') }}">Tableau des droits d'accès</a>
-            <a class="bouton principal" href="{{ path('app_utilisateur_nouveau') }}">+ Nouveau compte</a>
+            <a class="bouton doublon-barre" href="{{ path('app_utilisateur_droits') }}">Tableau des droits d'accès</a>
+            <a class="bouton principal doublon-barre" href="{{ path('app_utilisateur_nouveau') }}">+ Nouveau compte</a>
         </span>
     </div>
 
@@ -49,3 +49,5 @@
         </table>
     </div>
 {% endblock %}
+
+{% block barre_bas %}{{ include('utilisateur/_barre_bas.html.twig') }}{% endblock %}

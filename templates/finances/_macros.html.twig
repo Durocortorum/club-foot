@@ -3,12 +3,19 @@
 
 {# Onglets des finances et choix de la saison (sauf pour les contrats, qui ne dépendent pas d'une saison). #}
 {% macro entete(actif, saison = null, saisons = [], extra = {}) %}
-    <nav class="onglets">
+    <nav class="onglets doublon-barre">
         <a href="{{ path('app_finances', saison ? {saison: saison} : {}) }}" class="{{ actif == 'synthese' ? 'actif' }}">Synthèse</a>
         <a href="{{ path('app_finances_cotisations', saison ? {saison: saison} : {}) }}" class="{{ actif == 'cotisations' ? 'actif' }}">Cotisations</a>
         <a href="{{ path('app_finances_operations', saison ? {saison: saison} : {}) }}" class="{{ actif == 'operations' ? 'actif' }}">Recettes et dépenses</a>
         <a href="{{ path('app_finances_contrats') }}" class="{{ actif == 'contrats' ? 'actif' }}">Contrats</a>
     </nav>
+    {# Sur téléphone : ces onglets dans la barre du bas. #}
+    {{ include('commun/_barre_bas.html.twig', {onglets: [
+        {url: path('app_finances', saison ? {saison: saison} : {}), icone: 'synthese', libelle: 'Synthèse', actif: actif == 'synthese'},
+        {url: path('app_finances_cotisations', saison ? {saison: saison} : {}), icone: 'cotisations', libelle: 'Cotisations', actif: actif == 'cotisations'},
+        {url: path('app_finances_operations', saison ? {saison: saison} : {}), icone: 'operations', libelle: 'Opérations', actif: actif == 'operations'},
+        {url: path('app_finances_contrats'), icone: 'contrats', libelle: 'Contrats', actif: actif == 'contrats'},
+    ]}) }}
 {% endmacro %}
 
 {% macro choix_saison(saison, saisons, extra = {}) %}

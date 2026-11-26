@@ -8,7 +8,7 @@
         <h1>Présences <span class="compteur">{{ total }} {{ accord(total, 'semaine') }}</span></h1>
         {% if peut_creer %}
             <span class="actions">
-                <a class="bouton" href="{{ path('app_planning') }}">Planning et absences</a>
+                <a class="bouton doublon-barre" href="{{ path('app_planning') }}">Planning et absences</a>
                 <a class="bouton principal" href="{{ path('app_presence_nouvelle') }}">+ Nouvelle semaine</a>
             </span>
         {% endif %}
@@ -49,3 +49,5 @@
 
     {{ m.pagination('app_presence_index', filtres|merge({saison: filtres.saison ?? ''}), page, pages) }}
 {% endblock %}
+
+{% block barre_bas %}{{ include('presence/_barre_bas.html.twig') }}{% endblock %}

@@ -1,0 +1,6 @@
+{# Messagerie (encadrement) sur téléphone : boîte des messages, écrire un nouveau message. #}
+{% set route = app.request.attributes.get('_route') %}
+{{ include('commun/_barre_bas.html.twig', {onglets: [
+    {url: path('app_message_index'), icone: 'messages', libelle: 'Messages', actif: route == 'app_message_index'},
+    {url: path('app_message_nouveau'), icone: 'ecrire', libelle: 'Nouveau message', actif: route == 'app_message_nouveau'},
+]}) }}

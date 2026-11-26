@@ -4,7 +4,7 @@
 {% block title %}Tâches{% endblock %}
 
 {% block body %}
-    <nav class="onglets">
+    <nav class="onglets doublon-barre">
         <a href="{{ path('app_tache_index', {vue: 'miennes'}) }}" class="{{ filtres.vue == 'miennes' ? 'actif' }}">Mes tâches{% if compteurs.miennes %} <span class="pastille">{{ compteurs.miennes }}</span>{% endif %}</a>
         <a href="{{ path('app_tache_index', {vue: 'donnees'}) }}" class="{{ filtres.vue == 'donnees' ? 'actif' }}">Confiées par moi{% if compteurs.donnees %} <span class="pastille">{{ compteurs.donnees }}</span>{% endif %}</a>
         <a href="{{ path('app_tache_index', {vue: 'toutes'}) }}" class="{{ filtres.vue == 'toutes' ? 'actif' }}">Toutes les tâches{% if compteurs.toutes %} <span class="pastille">{{ compteurs.toutes }}</span>{% endif %}</a>
@@ -12,7 +12,7 @@
 
     <div class="titre-page">
         <h1>{{ {miennes: 'Mes tâches', donnees: 'Tâches confiées par moi', toutes: 'Toutes les tâches'}[filtres.vue] }} <span class="compteur">{{ taches|length }}</span></h1>
-        <a class="bouton principal" href="{{ path('app_tache_nouvelle') }}">+ Confier une tâche</a>
+        <a class="bouton principal doublon-barre" href="{{ path('app_tache_nouvelle') }}">+ Confier une tâche</a>
     </div>
 
     <form class="filtres" method="get">
@@ -68,4 +68,14 @@
             </tbody>
         </table>
     </div>
+{% endblock %}
+
+{# Sur téléphone : vues des tâches et « Confier » dans la barre du bas. #}
+{% block barre_bas %}
+    {{ include('commun/_barre_bas.html.twig', {onglets: [
+        {url: path('app_tache_index', {vue: 'miennes'}), icone: 'planning', libelle: 'Mes tâches', actif: filtres.vue == 'miennes', pastille: compteurs.miennes},
+        {url: path('app_tache_index', {vue: 'donnees'}), icone: 'operations', libelle: 'Confiées', actif: filtres.vue == 'donnees', pastille: compteurs.donnees},
+        {url: path('app_tache_index', {vue: 'toutes'}), icone: 'effectifs', libelle: 'Toutes', actif: filtres.vue == 'toutes', pastille: compteurs.toutes},
+        {url: path('app_tache_nouvelle'), icone: 'ecrire', libelle: 'Confier', actif: false},
+    ]}) }}
 {% endblock %}

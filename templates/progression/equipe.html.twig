@@ -51,3 +51,5 @@
         <p class="vide">Aucun test pour les joueurs de {{ categorie }}.{% if is_granted('ROLE_TESTS_PHYSIQUES') %} <a href="{{ path('app_test_seance', {categorie: categorie.id}) }}">Faire passer des tests</a> à l'équipe.{% endif %}</p>
     {% endif %}
 {% endblock %}
+
+{% block barre_bas %}{{ include('seance/_barre_bas.html.twig') }}{% endblock %}
