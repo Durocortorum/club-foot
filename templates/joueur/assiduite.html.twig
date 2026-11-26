@@ -1,0 +1,142 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Assiduité et performance de {{ joueur.nomComplet }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_joueur_voir', {id: joueur.id}) ~ '#presences', 'Fiche de ' ~ joueur.prenom) }}
+
+    {# ---------- En-tête : photo, nom, saison ---------- #}
+    <section class="carte perf-entete">
+        {{ m.avatar(joueur, 'grand') }}
+        <div class="perf-identite">
+            <h1>{{ joueur.prenom }} <strong>{{ joueur.nom }}</strong></h1>
+            <p class="discret">{{ joueur.categorie ?? 'Sans catégorie' }}{% if joueur.age %} · {{ joueur.age }} ans{% endif %}</p>
+            <span class="pastille">Assiduité et performance</span>
+        </div>
+        <div class="perf-saison">
+            {% if a.saisons|length > 1 %}
+                <form method="get">
+                    <select name="saison" onchange="this.form.requestSubmit()" aria-label="Saison">
+                        {% for s in a.saisons %}<option value="{{ s }}" {{ s == a.saison ? 'selected' }}>Saison {{ s|replace({'/': ' – '}) }}</option>{% endfor %}
+                    </select>
+                </form>
+            {% else %}
+                <p class="perf-saison-texte">Saison<br><strong>{{ a.saison|replace({'/': ' – '}) }}</strong></p>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ---------- Chiffres clés ---------- #}
+    <div class="tuiles bilan ass-tuiles">
+        <div class="tuile"><span class="tuile-libelle">📅 Présences</span>
+            <span class="tuile-valeur">{{ a.taux is not null ? a.taux ~ ' %' : '–' }}</span>
+            <span class="tuile-libelle">{{ a.presents }} / {{ a.seances }} séance{{ a.seances > 1 ? 's' }}</span></div>
+        <div class="tuile"><span class="tuile-libelle">⏱ Minutes jouées</span>
+            <span class="tuile-valeur">{{ a.minutes|number_format(0, ',', ' ') }} min</span>
+            <span class="tuile-libelle">{{ a.matchs }} match{{ a.matchs > 1 ? 's' }}</span></div>
+        <div class="tuile"><span class="tuile-libelle">⭐ Note moyenne</span>
+            <span class="tuile-valeur">{{ a.note is not null ? a.note|number_format(1, ',') : '–' }}<small> /10</small></span>
+            <span class="tuile-libelle">{{ a.notes }} match{{ a.notes > 1 ? 's' }} noté{{ a.notes > 1 ? 's' }}</span></div>
+        {% if voit_tests %}
+            <div class="tuile"><span class="tuile-libelle">🏃 Tests (moyenne)</span>
+                <span class="tuile-valeur {{ a.progres_tests is not null ? (a.progres_tests >= 0 ? 'ass-mieux' : 'ass-moins') }}">{{ a.progres_tests is not null ? (a.progres_tests > 0 ? '+') ~ a.progres_tests|number_format(1, ',') ~ ' %' : '–' }}</span>
+                <span class="tuile-libelle">{{ a.progres_tests is not null ? 'progression' : 'pas encore deux résultats d\'un même test' }}</span></div>
+        {% endif %}
+    </div>
+
+    <div class="ass-grille">
+        {# ---------- Évolution mois par mois : présence et note de match sur la même échelle ---------- #}
+        <section class="carte">
+            <h2>Évolution sur la saison</h2>
+            {% set e = a.evolution %}
+            {% if e %}
+                <p class="ass-legende"><span class="ass-puce presence"></span> Assiduité (%) <span class="ass-puce note"></span> Note de match (/10)</p>
+                <svg class="ass-graphique" viewBox="0 0 {{ largeur }} {{ hauteur }}" role="img" aria-label="Assiduité et note de match, mois par mois">
+                    {% for g in e.graduations %}
+                        <line x1="{{ e.gauche }}" x2="{{ e.droite }}" y1="{{ g.y }}" y2="{{ g.y }}" class="ass-grille-ligne"/>
+                        <text x="{{ e.gauche - 6 }}" y="{{ g.y + 4 }}" text-anchor="end" class="ass-texte">{{ g.valeur }} %</text>
+                        <text x="{{ e.droite + 6 }}" y="{{ g.y + 4 }}" class="ass-texte">{{ (g.valeur / 10)|number_format(0) }}</text>
+                    {% endfor %}
+                    {% for mo in e.mois %}<text x="{{ mo.x }}" y="{{ e.bas + 20 }}" text-anchor="middle" class="ass-texte">{{ mo.libelle }}</text>{% endfor %}
+                    <polyline points="{{ e.trace_presence }}" class="ass-courbe presence"/>
+                    <polyline points="{{ e.trace_note }}" class="ass-courbe note"/>
+                    {% for mo in e.mois %}
+                        {% if mo.y_taux is not null %}<circle cx="{{ mo.x }}" cy="{{ mo.y_taux }}" r="5" class="ass-point presence"><title>{{ mo.libelle }} : {{ mo.taux }} % de présence</title></circle>{% endif %}
+                        {% if mo.y_note is not null %}<circle cx="{{ mo.x }}" cy="{{ mo.y_note }}" r="5" class="ass-point note"><title>{{ mo.libelle }} : {{ mo.note|number_format(1, ',') }}/10 en match</title></circle>{% endif %}
+                    {% endfor %}
+                </svg>
+            {% else %}
+                <p class="discret">Pas encore de présences ni de notes de match cette saison.</p>
+            {% endif %}
+        </section>
+
+        {# ---------- Tests de la saison ---------- #}
+        {% if voit_tests %}
+            <section class="carte">
+                <h2>Résultats des tests</h2>
+                {% if a.tests %}
+                    <ul class="ass-tests">
+                        {% for t in a.tests %}
+                            <li>
+                                <span class="ass-test-nom">{{ t.nom }}</span>
+                                <strong>{{ t.dernier|number_format(t.dernier == t.dernier|round ? 0 : 2, ',', ' ') }} {{ t.unite }}</strong>
+                                {% if t.progres is not null %}<span class="ass-progres {{ t.progres >= 0 ? 'mieux' : 'moins' }}">{{ t.progres > 0 ? '+' }}{{ t.progres|number_format(1, ',') }} %</span>{% else %}<span class="discret petit">1 résultat</span>{% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <p class="discret petit">Dernier résultat de la saison et progrès depuis le premier (positif = mieux, même pour un sprint où le temps baisse).</p>
+                {% else %}
+                    <p class="discret">Pas de test passé cette saison.</p>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        {# ---------- Relation observée : présence des 4 semaines d'avant et note du match ---------- #}
+        <section class="carte ass-relation">
+            <h2>📈 Relation observée (tendance)</h2>
+            {% set r = a.relation %}
+            {% if r.points %}
+                <p class="ass-lecture {{ r.lecture.classe }}"><strong>{{ r.lecture.force }}</strong>{{ r.r is not null ? ' (coefficient ' ~ r.r|number_format(2, ',') ~ ')' }} : {{ r.lecture.texte }}</p>
+                <svg class="ass-graphique" viewBox="0 0 {{ largeur }} {{ hauteur }}" role="img" aria-label="Note de match selon le taux de présence avant le match">
+                    {% for g in r.axe_y %}
+                        <line x1="{{ r.gauche }}" x2="{{ r.droite_x }}" y1="{{ g.y }}" y2="{{ g.y }}" class="ass-grille-ligne"/>
+                        <text x="{{ r.gauche - 6 }}" y="{{ g.y + 4 }}" text-anchor="end" class="ass-texte">{{ g.valeur|number_format(0) }}</text>
+                    {% endfor %}
+                    {% for g in r.axe_x %}<text x="{{ g.x }}" y="{{ r.bas + 20 }}" text-anchor="middle" class="ass-texte">{{ g.valeur }} %</text>{% endfor %}
+                    <line x1="{{ r.droite.x1 }}" y1="{{ r.droite.y1 }}" x2="{{ r.droite.x2 }}" y2="{{ r.droite.y2 }}" class="ass-tendance"/>
+                    {% for p in r.points %}<circle cx="{{ p.px }}" cy="{{ p.py }}" r="6" class="ass-point presence"><title>{{ p.match }} : {{ p.x|number_format(0) }} % de présence avant, note {{ p.y|number_format(1, ',') }}</title></circle>{% endfor %}
+                </svg>
+                <p class="discret petit">Chaque point est un match noté : sa présence aux séances des {{ jours_avant }} jours d'avant (en bas) et sa note de match (à gauche). La ligne montre la tendance ({{ r.n }} matchs).</p>
+            {% else %}
+                <p class="discret">Il faut au moins {{ matchs_mini }} matchs notés, avec des présences notées les semaines d'avant, pour dégager une tendance ({{ r.n }} pour l'instant).</p>
+            {% endif %}
+        </section>
+
+        {# ---------- Calendrier des présences ---------- #}
+        <section class="carte">
+            <h2>📅 Présences aux entraînements</h2>
+            {% if a.calendrier %}
+                <div class="ass-calendriers">
+                    {% for mo in a.calendrier %}
+                        <div class="ass-mois">
+                            <h3>{{ mo.titre }}</h3>
+                            <div class="ass-jours">
+                                {% for l in ['L', 'Ma', 'Me', 'J', 'V', 'S', 'D'] %}<span class="ass-entete">{{ l }}</span>{% endfor %}
+                                {% for i in 1..mo.vides %}{% if mo.vides %}<span></span>{% endif %}{% endfor %}
+                                {% for j in mo.jours %}
+                                    <span class="ass-jour {{ j.etat }}" title="{{ j.jour }} : {{ j.etat == 'present' ? 'présent' : (j.etat == 'absent' ? 'absent (' ~ j.motif ~ ')' : 'pas de séance') }}">{{ j.etat == 'present' ? '✓' : (j.etat == 'absent' ? '✗' : j.jour) }}</span>
+                                {% endfor %}
+                            </div>
+                            <p class="ass-mois-taux"><strong>{{ mo.taux }} %</strong> · {{ mo.presents }} / {{ mo.seances }} séance{{ mo.seances > 1 ? 's' }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="discret">Aucune présence notée cette saison (page « Présences »).</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <p class="ass-avertissement">ℹ️ Ces analyses montrent des <strong>tendances</strong> et des liens possibles entre la présence à l'entraînement et les performances, <strong>sans en déduire automatiquement une cause</strong> : blessures, poste, adversaires ou temps de jeu comptent aussi.</p>
+{% endblock %}

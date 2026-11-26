@@ -89,6 +89,18 @@ class PresenceRepository extends ServiceEntityRepository
     }
 
     /**
+     * Toutes les semaines de présence d'un joueur, de la plus ancienne à la plus récente.
+     *
+     * @return list<Presence>
+     */
+    public function duJoueur(Joueur $joueur): array
+    {
+        return $this->createQueryBuilder('p')->addSelect('s')->join('p.semaine', 's')
+            ->andWhere('p.joueur = :j')->setParameter('j', $joueur)
+            ->orderBy('s.lundi', 'ASC')->getQuery()->getResult();
+    }
+
+    /**
      * Bilan des présences d'un joueur par saison, de la plus récente à la plus ancienne.
      *
      * @return array<string, array{seances: int, presences: int, taux: float|null, absences: array<string, int>}>

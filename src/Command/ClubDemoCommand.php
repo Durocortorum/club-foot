@@ -176,6 +176,7 @@ class ClubDemoCommand extends Command
         $this->suiviSportif($matchs);
         $this->objectifsIndividuels();
         $this->semainesEntrainement();
+        $this->presencesSaison();
         $this->etatsDeForme();
         $this->bibliothequeCpa();
         $this->actionsEnDirect($matchs);
@@ -909,6 +910,53 @@ class ClubDemoCommand extends Command
      * Présences de la semaine d'entraînement en cours (U15 et U19), avec la note et la forme de chaque joueur :
      * visibles dans la convocation et dans « Composer le onze » des matchs du week-end.
      */
+    /**
+     * Présences de toute la saison en cours (U15 et U19), de la rentrée à la semaine dernière, hors vacances de la
+     * Toussaint et de Noël : chaque joueur a sa régularité, un peu meilleure les semaines qui précèdent ses bons
+     * matchs (données inventées, pour que la page « Assiduité et performance » montre une tendance).
+     */
+    private function presencesSaison(): void
+    {
+        $this->em->flush();
+        $aujourdhui = new \DateTimeImmutable('today');
+        [$debutSaison] = Rencontre::bornesSaison(Rencontre::saisonDe($aujourdhui));
+        $lundi = (new \DateTimeImmutable($debutSaison->format('Y') . '-09-01'))->modify('monday this week');
+        $finSemaines = new \DateTimeImmutable('monday this week');
+        $regularites = [.95, .88, .8, .92, .7, .85, .62, .9, .78, .97, .68, .84, .9, .75, .86, .93];
+        $motifs = ['Excusé', 'Blessé', 'Malade', 'Absent', 'Excusé'];
+        foreach (['U15' => ['mar_a', 'jeu_a'], 'U19' => ['mar_a', 'mer_a', 'ven_a']] as $cat => $creneaux) {
+            $joueurs = $this->joueurs[$cat];
+            // Note de chaque joueur à chaque match de la saison, par date.
+            $notes = [];
+            foreach ($this->em->createQueryBuilder()->select('p', 'r')->from(Participation::class, 'p')->join('p.rencontre', 'r')
+                ->andWhere('p.joueur IN (:j)')->setParameter('j', $joueurs)->andWhere('p.note IS NOT NULL')
+                ->andWhere('r.date >= :d')->setParameter('d', $debutSaison)->getQuery()->getResult() as $p) {
+                $notes[$p->getJoueur()->getId()][$p->getRencontre()->getDate()->format('Y-m-d')] = $p->getNote();
+            }
+            for ($l = $lundi; $l < $finSemaines; $l = $l->modify('+1 week')) {
+                $md = $l->format('m-d');
+                if (($md >= '10-19' && $md <= '11-02') || $md >= '12-20' || $md <= '01-03') {
+                    continue; // vacances
+                }
+                $semaine = (new SemainePresence())->setLundi($l)->setCategorie($this->categories[$cat]);
+                foreach ($joueurs as $i => $j) {
+                    // Le match du week-end qui suit la semaine (jusqu'au lundi suivant).
+                    $note = null;
+                    for ($k = 0; $k <= 7 && null === $note; ++$k) {
+                        $note = $notes[$j->getId()][$l->modify("+$k days")->format('Y-m-d')] ?? null;
+                    }
+                    $chance = max(.25, min(1, $regularites[$i % \count($regularites)] + (null !== $note ? ($note - 6.3) * .07 : 0)));
+                    $valeurs = [];
+                    foreach ($creneaux as $c) {
+                        $valeurs[$c] = mt_rand(0, 99) < $chance * 100 ? $semaine->getEquipeAffichee() : $motifs[mt_rand(0, \count($motifs) - 1)];
+                    }
+                    $semaine->addPresence((new Presence())->setJoueur($j)->setCreneaux($valeurs));
+                }
+                $this->em->persist($semaine);
+            }
+        }
+    }
+
     private function semainesEntrainement(): void
     {
         $lundi = new \DateTimeImmutable('monday this week');

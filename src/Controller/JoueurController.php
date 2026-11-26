@@ -186,6 +186,28 @@ class JoueurController extends AbstractController
         ]);
     }
 
+    /**
+     * Assiduité et performance sur une saison : présence aux entraînements, temps de jeu, notes de match, tests, et la
+     * tendance entre la présence d'avant match et la note (tendance observée, pas une cause).
+     */
+    #[Route('/{id}/assiduite', name: 'app_joueur_assiduite', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted(JoueurVoter::VOIR, 'joueur')]
+    public function assiduite(Request $request, Joueur $joueur, ParticipationRepository $participations, PresenceRepository $presences,
+        ResultatTestRepository $resultatsTests, \App\Service\AssiduitePerformance $assiduite): Response
+    {
+        $tests = $this->isGranted('ROLE_TESTS_PHYSIQUES_LECTURE') ? $resultatsTests->findBy(['joueur' => $joueur], ['date' => 'ASC']) : [];
+
+        return $this->render('joueur/assiduite.html.twig', [
+            'joueur' => $joueur,
+            'voit_tests' => $this->isGranted('ROLE_TESTS_PHYSIQUES_LECTURE'),
+            'a' => $assiduite->calculer($presences->duJoueur($joueur), $participations->parJoueur($joueur), $tests, $request->query->getString('saison') ?: null),
+            'largeur' => \App\Service\AssiduitePerformance::LARGEUR,
+            'hauteur' => \App\Service\AssiduitePerformance::HAUTEUR,
+            'jours_avant' => \App\Service\AssiduitePerformance::JOURS_AVANT_MATCH,
+            'matchs_mini' => \App\Service\AssiduitePerformance::MATCHS_MINI,
+        ]);
+    }
+
     #[Route('/{id}/modifier', name: 'app_joueur_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     #[IsGranted(JoueurVoter::MODIFIER, 'joueur')]
     public function modifier(Request $request, Joueur $joueur, EntityManagerInterface $em): Response

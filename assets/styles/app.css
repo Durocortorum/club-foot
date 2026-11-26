@@ -2660,3 +2660,46 @@ form:has(select[name$="[competition]"] option[value^="Coupe" i]:checked) .coupe-
 .tab-annuler { margin: .3rem 0 0; text-align: right; }
 .live-suites { display: grid; gap: .5rem; margin: .6rem 0; }
 .live-suites .bouton { min-height: 3rem; text-align: left; }
+
+/* Assiduité et performance (fiche du joueur) : chiffres clés, évolution, tests, tendance, calendrier des présences. */
+.ass-tuiles .tuile { gap: .15rem; }
+.ass-tuiles .tuile-valeur small { font-size: .55em; color: var(--gris); }
+.ass-mieux { color: var(--succes); }
+.ass-moins { color: #b45309; }
+.ass-grille { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1rem; margin: 1rem 0; }
+.ass-grille > .carte { margin: 0; }
+@media (max-width: 860px) { .ass-grille { grid-template-columns: 1fr; } }
+.ass-legende { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .5rem; margin: 0 0 .4rem; font-size: .85rem; color: var(--gris); }
+.ass-puce { display: inline-block; width: .8rem; height: .8rem; border-radius: 50%; }
+.ass-puce.presence { background: var(--rouge); }
+.ass-puce.note { background: #14b8a6; margin-left: .6rem; }
+.ass-graphique { width: 100%; height: auto; display: block; }
+.ass-grille-ligne { stroke: var(--bordure); stroke-width: 1; }
+.ass-texte { font-size: 12px; fill: var(--gris); }
+.ass-courbe { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.ass-courbe.presence { stroke: var(--rouge); }
+.ass-courbe.note { stroke: #14b8a6; }
+.ass-point { stroke: #fff; stroke-width: 2; }
+.ass-point.presence { fill: var(--rouge); }
+.ass-point.note { fill: #14b8a6; }
+.ass-tendance { stroke: var(--encre); stroke-width: 2; stroke-dasharray: 6 5; opacity: .6; }
+.ass-tests { list-style: none; margin: 0 0 .5rem; padding: 0; display: grid; gap: .5rem; }
+.ass-tests li { display: flex; align-items: center; gap: .6rem; padding-bottom: .45rem; border-bottom: 1px solid var(--bordure); }
+.ass-test-nom { flex: 1; }
+.ass-progres { padding: .1rem .45rem; border-radius: 99px; font-size: .8rem; font-weight: 700; }
+.ass-progres.mieux { background: #e6f4ea; color: var(--succes); }
+.ass-progres.moins { background: #fff1d6; color: #8a5a00; }
+.ass-graphique { max-height: 20rem; }
+.ass-lecture { margin: 0 0 .5rem; padding: .5rem .7rem; border-radius: 8px; background: var(--fond); border-left: 4px solid var(--gris); }
+.ass-lecture.positive { border-left-color: var(--succes); background: #eef7f0; }
+.ass-lecture.negative { border-left-color: #f0a500; background: #fff7e6; }
+.ass-calendriers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr)); gap: 1rem 1.4rem; max-height: 36rem; overflow-y: auto; }
+.ass-mois { max-width: 16rem; }
+.ass-mois h3 { margin: 0 0 .4rem; font-size: .95rem; }
+.ass-jours { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; font-size: .75rem; }
+.ass-entete { color: var(--gris); font-weight: 700; }
+.ass-jour { display: grid; place-items: center; aspect-ratio: 1; border-radius: 50%; color: #b7b9c0; }
+.ass-jour.present { background: var(--succes); color: #fff; font-weight: 800; }
+.ass-jour.absent { background: var(--danger); color: #fff; font-weight: 800; }
+.ass-mois-taux { margin: .4rem 0 0; font-size: .85rem; color: var(--gris); }
+.ass-avertissement { padding: .7rem 1rem; border-radius: var(--rayon); background: #e8f4fd; border: 1px solid #b6dcf5; color: #134e6f; }

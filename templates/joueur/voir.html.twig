@@ -193,7 +193,8 @@
     <section class="bloc" id="matchs">
         <div class="titre-page">
             <h2 class="titre-bloc">Matchs</h2>
-            {% if bilan %}<a class="bouton" href="{{ path('app_joueur_performances', {id: joueur.id}) }}">📊 Performances par poste</a>{% endif %}
+            {% if bilan %}<span class="actions-ligne"><a class="bouton" href="{{ path('app_joueur_performances', {id: joueur.id}) }}">📊 Performances par poste</a>
+                <a class="bouton" href="{{ path('app_joueur_assiduite', {id: joueur.id}) }}">📈 Assiduité et performance</a></span>{% endif %}
         </div>
         {% if bilan %}
             <div class="table-defile">
@@ -314,7 +315,10 @@
 
     {# ---------- Présences ---------- #}
     <section class="bloc" id="presences">
-        <h2 class="titre-bloc">Présences à l'entraînement</h2>
+        <div class="titre-page">
+            <h2 class="titre-bloc">Présences à l'entraînement</h2>
+            <a class="bouton" href="{{ path('app_joueur_assiduite', {id: joueur.id}) }}">📈 Assiduité et performance</a>
+        </div>
         {% if presences %}
             <div class="table-defile">
                 <table class="liste chiffres liste-fiches">
