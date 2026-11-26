@@ -270,28 +270,17 @@
             <form method="post" class="formulaire">
                 <input type="hidden" name="_token" value="{{ csrf_token('adversaire' ~ rencontre.id) }}">
 
-                <h3>Organisation</h3>
+                <h3>Système habituel <small class="discret">(onglet Analyse)</small></h3>
                 <div class="champs">
-                    <div class="champ"><label for="systeme_habituel">Système habituel</label>
+                    <div class="champ"><label for="systeme_habituel">Celui qu'il joue le plus souvent</label>
                         <select id="systeme_habituel" name="systeme_habituel">
-                            <option value="">—</option>
+                            <option value="">{{ systeme_deduit ? 'D\'après nos matchs contre lui (' ~ systeme_habituel ~ ')' : '—' }}</option>
                             {% for format, liste in systemes_choix %}
                                 <optgroup label="{{ format }}">
-                                    {% for s in liste %}<option value="{{ s }}" {{ systeme_habituel == s ? 'selected' }}>{{ s }}</option>{% endfor %}
+                                    {% for s in liste %}<option value="{{ s }}" {{ fiche and fiche.systemeHabituel == s ? 'selected' }}>{{ s }}</option>{% endfor %}
                                 </optgroup>
                             {% endfor %}
                         </select></div>
-                    {% if video_modifiable %}
-                        <div class="champ"><label for="systeme_adverse">Son organisation au dernier match ({{ derniere.date|date('d/m/Y') }})</label>
-                            <select id="systeme_adverse" name="systeme_adverse">
-                                <option value="">—</option>
-                                {% for format, liste in systemes_choix %}
-                                    <optgroup label="{{ format }}">
-                                        {% for s in liste %}<option value="{{ s }}" {{ derniere.systemeAdverse == s ? 'selected' }}>{{ s }}</option>{% endfor %}
-                                    </optgroup>
-                                {% endfor %}
-                            </select></div>
-                    {% endif %}
                 </div>
 
                 <h3>Forces et faiblesses <small class="discret">(une ligne = un point)</small></h3>
@@ -339,13 +328,24 @@
                         <textarea id="preparation" name="preparation" rows="4" placeholder="Défendre plus bas sur leurs côtés&#10;Être vigilant sur les corners&#10;Exploiter les espaces en transition">{{ fiche.preparation ?? '' }}</textarea></div>
                 </div>
 
-                <h3>Vidéos</h3>
-                <div class="champs">
-                    {% if video_modifiable %}
-                        <div class="champ large"><label for="lien_video">Vidéo du dernier match ({{ derniere.date|date('d/m/Y') }} : Veo, YouTube…)</label>
+                {% if video_modifiable %}
+                    <h3>Dernier match contre lui, le {{ derniere.date|date('d/m/Y') }} <small class="discret">(onglets Historique et Vidéo)</small></h3>
+                    <div class="champs">
+                        <div class="champ"><label for="systeme_adverse">Son organisation ce jour-là</label>
+                            <select id="systeme_adverse" name="systeme_adverse">
+                                <option value="">—</option>
+                                {% for format, liste in systemes_choix %}
+                                    <optgroup label="{{ format }}">
+                                        {% for s in liste %}<option value="{{ s }}" {{ derniere.systemeAdverse == s ? 'selected' }}>{{ s }}</option>{% endfor %}
+                                    </optgroup>
+                                {% endfor %}
+                            </select></div>
+                        <div class="champ large"><label for="lien_video">Vidéo du match (Veo, YouTube…)</label>
                             <input type="url" id="lien_video" name="lien_video" value="{{ derniere.lienVideo }}" placeholder="https://app.veo.co/matches/…"></div>
-                    {% endif %}
-                </div>
+                    </div>
+                {% endif %}
+
+                <h3>Autres vidéos <small class="discret">(onglet Vidéo)</small></h3>
                 {% set vids = fiche ? fiche.videos : [] %}
                 <div class="adv-form-videos">
                     <span class="discret petit">Autre vidéo (extraits, match contre un autre club)</span><span class="discret petit">Lien</span>
