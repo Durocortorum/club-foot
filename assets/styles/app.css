@@ -84,6 +84,28 @@ h2.titre-leger { font-weight: 400; }
     }
     .menu a, .compte a { padding: .6rem .8rem; border-radius: 6px; }
 }
+/* Menus courts (famille, médical) : icônes seulement sur téléphone ; libellé court ou long selon la place. */
+.menu-court .ico { display: none; }
+@media (max-width: 900px) {
+    /* Sur téléphone : barre d'onglets fixée en bas (comme le Match Live), toujours visible, menu ouvert ou non. */
+    .entete .menu.menu-court, .entete.ouvert .menu.menu-court {
+        position: fixed; z-index: 30; left: 50%; bottom: max(.6rem, env(safe-area-inset-bottom)); transform: translateX(-50%);
+        width: min(480px, calc(100vw - 1.2rem)); display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: .2rem; padding: .3rem;
+        flex-direction: row; background: #0f1626; border-radius: 18px; box-shadow: 0 8px 24px rgb(0 0 0 / .25);
+    }
+    .menu-court a { position: relative; display: flex; flex-direction: column; align-items: center; gap: .05rem; padding: .45rem .2rem; border-radius: 14px;
+        color: #c9cdd6; opacity: 1; font-size: .78rem; font-weight: 600; text-align: center; white-space: nowrap; }
+    .menu-court a:hover { background: rgb(255 255 255 / .08); }
+    .menu-court a.actif { background: var(--rouge); color: var(--sur-rouge); }
+    .menu-court .ico { display: block; font-size: 1.15rem; line-height: 1.1; }
+    /* Libellé court (data-court) à la place du long, trop large pour la barre. */
+    .menu-court .libelle[data-court] { font-size: 0; }
+    .menu-court .libelle[data-court]::after { content: attr(data-court); font-size: .78rem; }
+    .menu-court .pastille { position: absolute; top: .15rem; right: 18%; min-width: 1.1rem; padding: 0 .3rem; font-size: .7rem; }
+    /* La page s'arrête au-dessus de la barre ; le bouton d'aide « ? » remonte au-dessus. */
+    body:has(.menu-court) { padding-bottom: 5.5rem; }
+    body:has(.menu-court) .aide { bottom: 5.6rem; }
+}
 /* Écusson du club : rouge sur fond transparent, posé dans une pastille blanche sur le bandeau rouge */
 .blason {
     display: inline-block; width: 38px; height: 38px; padding: 5px; object-fit: contain;

@@ -259,7 +259,8 @@ class AccesMedicalTest extends WebTestCase
         $this->ouvrirMedical($this->client);
         $crawler = $this->client->request('GET', '/infirmerie/dossiers');
         self::assertResponseIsSuccessful();
-        self::assertSame(['Infirmerie', 'Dossiers médicaux', 'Messages'], $crawler->filter('nav.menu a')->each(fn ($a) => trim($a->text())));
+        // (Sans l'icône, montrée seulement sur téléphone dans la barre d'onglets du bas.)
+        self::assertSame(['Infirmerie', 'Dossiers médicaux', 'Messages'], $crawler->filter('nav.menu a')->each(fn ($a) => trim(str_replace($a->filter('.ico')->text(''), '', $a->text()))));
         $crawler = $this->client->click($crawler->selectLink('MARTIN')->link());
         self::assertSelectorTextContains('#infirmerie', 'Entorse');
         self::assertSelectorExists('#visite-medicale');
