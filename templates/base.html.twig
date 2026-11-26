@@ -32,14 +32,16 @@
                     <img class="blason" src="{{ logo_club }}" alt="">
                     {{ club.nom }}
                 </a>
-                {# Petits écrans : le menu et le compte sont repliés derrière ce bouton. #}
+                {# Écrans moyens (tablette) : le menu et le compte sont repliés derrière ce bouton ; sur téléphone, « Plus » de la barre du bas. #}
                 <button type="button" class="burger" aria-expanded="false" aria-controls="navigation" data-menu-target="bouton" data-action="menu#basculer">
                     <span aria-hidden="true">☰</span> Menu
                 </button>
                 {% set route = app.request.attributes.get('_route') %}
+                {# Tiroir : sur ordinateur, transparent (menu et compte dans l'en-tête) ; sur téléphone, panneau ouvert par « Plus ». #}
+                <div class="voile-menu"></div>
+                <div class="tiroir">
                 {% if is_granted('ROLE_MEDICAL_SEUL') %}
                 {# Compte médical seul (médecin, kiné...) : l'Infirmerie et les dossiers médicaux, rien d'autre. #}
-                {# Menus courts (médical, famille) : sur téléphone, barre d'onglets en bas de l'écran (comme le Match Live). #}
                 <nav class="menu menu-court" id="navigation">
                     {% if is_granted('ROLE_INFIRMERIE_LECTURE') %}<a href="{{ path('app_infirmerie_index') }}" class="{{ route starts with 'app_infirmerie' or route starts with 'app_blessure' or route starts with 'app_contact' ? 'actif' }}"><span class="ico" aria-hidden="true">🩹</span> Infirmerie</a>{% endif %}
                     <a href="{{ path('app_dossier_medical_index') }}" class="{{ route starts with 'app_dossier_medical' ? 'actif' }}"><span class="ico" aria-hidden="true">📁</span> <span class="libelle" data-court="Dossiers">Dossiers médicaux</span></a>
@@ -113,6 +115,8 @@
                     <a href="{{ path('app_mon_compte') }}" title="Mon compte : changer mon mot de passe">{{ app.user }}</a>
                     <a href="{{ path('app_deconnexion') }}">Déconnexion</a>
                 </div>
+                </div>
+                {{ include('commun/_barre_app.html.twig') }}
             </header>
         {% endif %}
 

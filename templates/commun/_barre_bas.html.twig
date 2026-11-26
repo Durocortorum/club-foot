@@ -1,9 +1,10 @@
 {#
-    Onglets d'une rubrique, affichés seulement sur téléphone en barre fixée en bas de l'écran (comme le Match Live).
-    Variables : onglets (liste de {url, icone, libelle, actif}).
+    Onglets d'une rubrique, affichés seulement sur téléphone, en barre fixée juste au-dessus de la barre principale
+    (même dessin). Variables : onglets (liste de {url, icone (nom dans commun/_icones), libelle, actif}).
 #}
+{% import 'commun/_icones.html.twig' as i %}
 <nav class="barre-bas" aria-label="Onglets de la rubrique">
     {% for o in onglets %}
-        <a href="{{ o.url }}" class="{{ o.actif ? 'actif' }}" {{ o.actif ? 'aria-current="page"' }}><span class="ico" aria-hidden="true">{{ o.icone }}</span>{{ o.libelle }}</a>
+        <a href="{{ o.url }}" class="{{ o.actif ? 'actif' }}" {{ o.actif ? 'aria-current="page"' }}>{{ i.icone(o.icone) }}<span>{{ o.libelle }}</span></a>
     {% endfor %}
 </nav>

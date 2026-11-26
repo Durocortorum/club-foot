@@ -1,0 +1,41 @@
+{#
+    Barre principale sur téléphone (fixée en bas, même dessin pour tous) : quatre raccourcis selon le compte, puis
+    « Plus » qui ouvre le reste du menu et le compte au-dessus de la barre (à la place du bouton « Menu »).
+    Encadrement : Accueil, Stats, Calendrier, Messagerie ; famille et joueur : Accueil, Calendrier, Boutique, Messages ;
+    compte médical seul : Infirmerie, Dossiers, Messages.
+#}
+{% import 'commun/_icones.html.twig' as i %}
+{% set route = app.request.attributes.get('_route') %}
+{% set non_lus = messages_non_lus() %}
+{% if is_granted('ROLE_MEDICAL_SEUL') %}
+    {% set raccourcis = [
+        is_granted('ROLE_INFIRMERIE_LECTURE') ? {url: path('app_infirmerie_index'), icone: 'infirmerie', libelle: 'Infirmerie', actif: route starts with 'app_infirmerie' or route starts with 'app_blessure'} : null,
+        {url: path('app_dossier_medical_index'), icone: 'dossiers', libelle: 'Dossiers', actif: route starts with 'app_dossier_medical'},
+        {url: path('app_message_index'), icone: 'messages', libelle: 'Messages', actif: route starts with 'app_message', messages: true},
+    ] %}
+{% elseif not is_granted('ROLE_ENCADREMENT') %}
+    {% set raccourcis = [
+        {url: path('app_espace'), icone: 'accueil', libelle: 'Accueil', actif: route == 'app_espace'},
+        {url: path('app_espace_calendrier'), icone: 'calendrier', libelle: 'Calendrier', actif: route == 'app_espace_calendrier'},
+        boutique_ouverte() ? {url: path('app_espace_boutique'), icone: 'boutique', libelle: 'Boutique', actif: route starts with 'app_espace_boutique'} : null,
+        {url: path('app_espace_messages'), icone: 'messages', libelle: 'Messages', actif: route starts with 'app_espace_message', messages: true},
+    ] %}
+{% else %}
+    {% set raccourcis = [
+        {url: path('app_accueil'), icone: 'accueil', libelle: 'Accueil', actif: route == 'app_accueil'},
+        {url: path('app_statistiques'), icone: 'stats', libelle: 'Stats', actif: route == 'app_statistiques'},
+        {url: path('app_calendrier'), icone: 'calendrier', libelle: 'Calendrier', actif: route == 'app_calendrier'},
+        {url: path('app_message_index'), icone: 'messages', libelle: 'Messagerie', actif: route starts with 'app_message', messages: true},
+    ] %}
+{% endif %}
+<nav class="barre-app" aria-label="Navigation principale">
+    {% for r in raccourcis|filter(r => r) %}
+        <a href="{{ r.url }}" class="{{ r.actif ? 'actif' }}" {{ r.actif ? 'aria-current="page"' }}>
+            {{ i.icone(r.icone) }}<span>{{ r.libelle }}</span>
+            {% if r.messages ?? false %}<span class="pastille alerte" data-controller="nouvelles" data-nouvelles-url-value="{{ path('app_messages_etat') }}" {{ non_lus ? '' : 'hidden' }}>{{ non_lus ?: '' }}</span>{% endif %}
+        </a>
+    {% endfor %}
+    <button type="button" class="barre-plus" aria-expanded="false" aria-controls="navigation" data-menu-target="bouton" data-action="menu#basculer">
+        {{ i.icone('plus') }}<span>Plus</span>
+    </button>
+</nav>
