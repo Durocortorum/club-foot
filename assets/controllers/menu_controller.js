@@ -15,7 +15,24 @@ export default class extends Controller {
         this.fermerSiEchap = (event) => { if (event.key === 'Escape' && this.element.classList.contains('ouvert')) this.basculer(); };
         document.addEventListener('click', this.fermerSiDehors);
         document.addEventListener('keydown', this.fermerSiEchap);
+        this.ongletsDeRubrique();
         this.indiquerRubrique();
+    }
+
+    /**
+     * Page d'une rubrique (Joueurs, Encadrement…) : ses onglets prennent la place des raccourcis dans la barre du bas,
+     * « Plus » reste au bout (les raccourcis sont dans le menu qu'il ouvre). Une seule barre.
+     */
+    ongletsDeRubrique() {
+        const barre = this.element.querySelector('.barre-app');
+        const rubrique = document.querySelector('.barre-bas');
+        const plus = barre?.querySelector('.barre-plus');
+        if (!barre || !rubrique || !plus || barre.querySelector('.onglet-rubrique')) return;
+        barre.querySelectorAll(':scope > a').forEach((a) => a.remove());
+        rubrique.querySelectorAll('a').forEach((a) => {
+            a.classList.add('onglet-rubrique');
+            barre.insertBefore(a, plus);
+        });
     }
 
     /**

@@ -85,39 +85,36 @@ h2.titre-leger { font-weight: 400; }
     .menu a, .compte a { padding: .6rem .8rem; border-radius: 6px; }
 }
 /* Navigation sur téléphone (jusqu'à 900 px) : barre principale fixée en bas (.barre-app : quatre raccourcis et
-   « Plus »), onglets de la rubrique juste au-dessus (.barre-bas), même dessin ; « Plus » ouvre le tiroir (reste du
+   « Plus ») ; sur une page de rubrique, ses onglets (.barre-bas) prennent la place des raccourcis ; « Plus » ouvre le tiroir (reste du
    menu et compte) au-dessus de la barre, sur un voile. Sur ordinateur, le tiroir est transparent et rien ne change. */
 .tiroir { display: contents; }
 .menu-court .ico, .voile-menu, .barre-app, .barre-bas { display: none; }
 @media (max-width: 900px) {
     .burger { display: none !important; }
-    .barre-app, .barre-bas {
+    .barre-app {
         position: fixed; left: 50%; transform: translateX(-50%); width: min(480px, calc(100vw - 1.2rem));
         display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: .2rem; padding: .3rem;
         background: #0f1626; border-radius: 18px; box-shadow: 0 8px 24px rgb(0 0 0 / .25);
     }
     .barre-app { z-index: 35; bottom: max(.6rem, env(safe-area-inset-bottom)); }
-    .barre-bas { z-index: 34; bottom: calc(max(.6rem, env(safe-area-inset-bottom)) + 4.3rem); width: min(440px, calc(100vw - 2.4rem)); padding: .2rem; background: #1c2436; border-radius: 14px; }
     .barre-app a, .barre-app button, .barre-bas a {
         position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; min-width: 0;
         padding: .45rem .15rem; border: 0; border-radius: 14px; background: transparent; color: #c9cdd6; font: inherit;
         font-size: .74rem; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer;
     }
     .barre-app span:not(.pastille), .barre-bas span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .barre-bas a { flex-direction: row; gap: .35rem; padding: .4rem .2rem; border-radius: 10px; font-size: .72rem; }
     .barre-app a.actif, .barre-app button.actif, .barre-bas a.actif { background: var(--rouge); color: var(--sur-rouge); }
     .barre-app a:hover, .barre-app button:hover, .barre-bas a:hover { text-decoration: none; }
     .icone-barre { width: 1.45rem; height: 1.45rem; flex: none; }
-    .barre-bas .icone-barre { width: 1.1rem; height: 1.1rem; }
     .barre-app .pastille { position: absolute; top: .2rem; right: 16%; min-width: 1.1rem; padding: 0 .3rem; font-size: .68rem; }
     .entete.ouvert .barre-plus { background: rgb(255 255 255 / .14); color: #fff; }
     /* La page s'arrête au-dessus des barres ; le bouton d'aide « ? » remonte au-dessus. */
     body:has(.barre-app) { padding-bottom: 5.5rem; }
     body:has(.barre-app) .aide { bottom: 5.6rem; }
-    body:has(.barre-bas) { padding-bottom: 8.6rem; }
-    body:has(.barre-bas) .aide { bottom: 8.7rem; }
     /* Les boutons qui font doublon avec la barre de rubrique sont cachés. */
     body:has(.barre-bas) .doublon-barre { display: none; }
+    /* Page de rubrique : ses onglets (déplacés par menu_controller.js) remplacent les raccourcis dans la barre. */
+    body:has(.barre-bas) .barre-app > a:not(.onglet-rubrique) { display: none; }
     /* Match Live et saisie détaillée : leur propre barre, pas la barre générale. */
     body:has(.live) .barre-app, body:has(.direct) .barre-app { display: none; }
     body:has(.live), body:has(.direct) { padding-bottom: 0; }
