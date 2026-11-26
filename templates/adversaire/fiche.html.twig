@@ -112,13 +112,6 @@
                 {% if fiche and fiche.aRetenir %}<p class="adv-retenir"><strong>À retenir :</strong> {{ fiche.aRetenir }}</p>{% endif %}
                 {% if fiche and fiche.preparation %}{{ a.puces(fiche.preparation, 'plan') }}
                 {% elseif not (fiche and fiche.aRetenir) %}<p class="discret">Rien de prévu pour l'instant.</p>{% endif %}
-                <div class="actions-ligne">
-                    {% if modifiable %}<a class="bouton principal" href="#modifier" data-action="onglets#modifier">✏️ Modifier / compléter</a>{% endif %}
-                    {% if prochain and modifiable %}
-                        <a class="bouton" href="{{ path('app_tactique', {id: prochain.id}) }}">📋 Tableau tactique</a>
-                        <a class="bouton" href="{{ path('app_rencontre_composition', {id: prochain.id}) }}">Composition</a>
-                    {% endif %}
-                </div>
             </section>
         </div>
     </div>
