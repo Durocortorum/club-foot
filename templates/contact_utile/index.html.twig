@@ -111,3 +111,5 @@
         <td class="sans-impression a-droite">{% if is_granted('ROLE_ADMIN') %}<a href="{{ path('app_numero_utile_modifier', {id: c.id}) }}">Modifier</a>{% endif %}</td>
     </tr>
 {% endblock %}
+
+{% block barre_bas %}{{ include('intervenant/_barre_bas.html.twig') }}{% endblock %}

@@ -5,6 +5,7 @@
     <a href="{{ path('app_intervenant_index', {type: 'administratifs'}) }}" class="{{ actif == 'administratifs' ? 'actif' }}">Administratifs</a>
     <a href="{{ path('app_intervenant_index', {type: 'benevoles'}) }}" class="{{ actif == 'benevoles' ? 'actif' }}">Bénévoles</a>
     <a href="{{ path('app_intervenant_index', {type: 'arbitres'}) }}" class="{{ actif == 'arbitres' ? 'actif' }}">Arbitres</a>
-    <a href="{{ path('app_organigramme') }}" class="{{ actif == 'organigramme' ? 'actif' }}">Organigramme</a>
-    <a href="{{ path('app_numero_utile_index') }}" class="{{ actif == 'numeros' ? 'actif' }}">Numéros utiles</a>
+    {# Sur téléphone, ces deux-là sont dans la barre du bas (intervenant/_barre_bas.html.twig). #}
+    <a href="{{ path('app_organigramme') }}" class="doublon-barre {{ actif == 'organigramme' ? 'actif' }}">Organigramme</a>
+    <a href="{{ path('app_numero_utile_index') }}" class="doublon-barre {{ actif == 'numeros' ? 'actif' }}">Numéros utiles</a>
 </nav>

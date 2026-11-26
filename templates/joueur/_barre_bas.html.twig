@@ -1,0 +1,11 @@
+{# Rubrique Joueurs sur téléphone : liste des joueurs, effectifs et listings, accès des familles. #}
+{% set route = app.request.attributes.get('_route') %}
+{% set onglets = [
+    {url: path('app_joueur_index'), icone: '👥', libelle: 'Joueurs', actif: route == 'app_joueur_index'},
+    {url: path('app_joueur_effectifs'), icone: '📋', libelle: 'Effectifs', actif: route == 'app_joueur_effectifs'},
+] %}
+{# Accès des familles : pour qui gère des joueurs. #}
+{% if gere_des_joueurs() %}
+    {% set onglets = onglets|merge([{url: path('app_famille_index'), icone: '🔑', libelle: 'Familles', actif: route starts with 'app_famille'}]) %}
+{% endif %}
+{{ include('commun/_barre_bas.html.twig', {onglets: onglets}) }}

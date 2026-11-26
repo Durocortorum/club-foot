@@ -1,0 +1,7 @@
+{# Rubrique Encadrement sur téléphone : recherche des personnes (liste avec filtre), organigramme, numéros utiles. #}
+{% set route = app.request.attributes.get('_route') %}
+{{ include('commun/_barre_bas.html.twig', {onglets: [
+    {url: path('app_intervenant_index', {type: type ?? 'educateurs'}), icone: '🔍', libelle: 'Recherche', actif: route starts with 'app_intervenant'},
+    {url: path('app_organigramme'), icone: '🏛️', libelle: 'Organigramme', actif: route starts with 'app_organigramme'},
+    {url: path('app_numero_utile_index'), icone: '📞', libelle: 'Numéros', actif: route starts with 'app_numero_utile'},
+]}) }}

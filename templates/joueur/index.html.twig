@@ -7,9 +7,9 @@
     <div class="titre-page">
         <h1>Joueurs <span class="compteur">{{ total }}</span></h1>
         {% if not peut_creer %}
-            <span class="actions"><a class="bouton" href="{{ path('app_joueur_effectifs') }}">Effectifs et listings</a></span>
+            <span class="actions"><a class="bouton doublon-barre" href="{{ path('app_joueur_effectifs') }}">Effectifs et listings</a></span>
         {% else %}
-            <span class="actions"><a class="bouton" href="{{ path('app_joueur_effectifs') }}">Effectifs et listings</a><a class="bouton" href="{{ path('app_famille_index', filtres.categorie ? {categorie: filtres.categorie} : {}) }}">Accès familles</a><a class="bouton" href="{{ path('app_joueur_import') }}">Importer (Excel)</a><a class="bouton principal" href="{{ path('app_joueur_nouveau') }}">+ Nouveau joueur</a></span>
+            <span class="actions"><a class="bouton doublon-barre" href="{{ path('app_joueur_effectifs') }}">Effectifs et listings</a><a class="bouton doublon-barre" href="{{ path('app_famille_index', filtres.categorie ? {categorie: filtres.categorie} : {}) }}">Accès familles</a><a class="bouton" href="{{ path('app_joueur_import') }}">Importer (Excel)</a><a class="bouton principal" href="{{ path('app_joueur_nouveau') }}">+ Nouveau joueur</a></span>
         {% endif %}
     </div>
 
@@ -104,3 +104,5 @@
 
     {{ m.pagination('app_joueur_index', filtres, page, pages) }}
 {% endblock %}
+
+{% block barre_bas %}{{ include('joueur/_barre_bas.html.twig') }}{% endblock %}

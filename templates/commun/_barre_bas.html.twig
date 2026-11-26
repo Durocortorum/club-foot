@@ -1,0 +1,9 @@
+{#
+    Onglets d'une rubrique, affichés seulement sur téléphone en barre fixée en bas de l'écran (comme le Match Live).
+    Variables : onglets (liste de {url, icone, libelle, actif}).
+#}
+<nav class="barre-bas" aria-label="Onglets de la rubrique">
+    {% for o in onglets %}
+        <a href="{{ o.url }}" class="{{ o.actif ? 'actif' }}" {{ o.actif ? 'aria-current="page"' }}><span class="ico" aria-hidden="true">{{ o.icone }}</span>{{ o.libelle }}</a>
+    {% endfor %}
+</nav>

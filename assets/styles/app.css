@@ -84,8 +84,25 @@ h2.titre-leger { font-weight: 400; }
     }
     .menu a, .compte a { padding: .6rem .8rem; border-radius: 6px; }
 }
-/* Menus courts (famille, médical) : icônes seulement sur téléphone ; libellé court ou long selon la place. */
+/* Menus courts (famille, médical) : icônes seulement sur téléphone ; libellé court ou long selon la place.
+   Onglets d'une rubrique (.barre-bas, ex. Joueurs / Effectifs / Familles) : seulement sur téléphone, même barre. */
 .menu-court .ico { display: none; }
+.barre-bas { display: none; }
+@media (max-width: 900px) {
+    .barre-bas {
+        position: fixed; z-index: 30; left: 50%; bottom: max(.6rem, env(safe-area-inset-bottom)); transform: translateX(-50%);
+        width: min(480px, calc(100vw - 1.2rem)); display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: .2rem; padding: .3rem;
+        background: #0f1626; border-radius: 18px; box-shadow: 0 8px 24px rgb(0 0 0 / .25);
+    }
+    .barre-bas a { display: flex; flex-direction: column; align-items: center; gap: .05rem; padding: .45rem .2rem; border-radius: 14px;
+        color: #c9cdd6; font-size: .78rem; font-weight: 600; text-align: center; white-space: nowrap; text-decoration: none; }
+    .barre-bas a.actif { background: var(--rouge); color: var(--sur-rouge); }
+    .barre-bas .ico { font-size: 1.15rem; line-height: 1.1; }
+    body:has(.barre-bas) { padding-bottom: 5.5rem; }
+    body:has(.barre-bas) .aide { bottom: 5.6rem; }
+    /* Les boutons qui font doublon avec la barre sont cachés sur téléphone. */
+    body:has(.barre-bas) .doublon-barre { display: none; }
+}
 @media (max-width: 900px) {
     /* Sur téléphone : barre d'onglets fixée en bas (comme le Match Live), toujours visible, menu ouvert ou non. */
     .entete .menu.menu-court, .entete.ouvert .menu.menu-court {
