@@ -118,6 +118,32 @@
 
     {# ———————— Effectif : joueurs à surveiller, buteurs contre nous, notre composition au dernier match ———————— #}
     <div id="onglet-effectif" data-onglet="effectif" data-onglets-target="panneau" role="tabpanel" hidden>
+        {# Effectif de l'adversaire : par ligne, numéro de maillot (et nom s'il est connu), étoile pour les joueurs dangereux. #}
+        <section class="carte bloc">
+            <h2>👕 Effectif de {{ adversaire }}</h2>
+            {% set lignes = fiche ? fiche.effectifParLigne : [] %}
+            {% if lignes|length %}
+                <div class="adv-effectif">
+                    {% for ligne, joueurs in lignes %}
+                        <div>
+                            <h3 class="adv-effectif-ligne">{{ ligne }} <span class="discret">({{ joueurs|length }})</span></h3>
+                            <ul class="adv-maillots">
+                                {% for j in joueurs %}
+                                    {% set danger = j.numero is defined and j.numero in numeros_dangereux %}
+                                    <li class="{{ danger ? 'danger' }}" title="{{ danger ? 'Joueur dangereux' }}">
+                                        <span class="adv-maillot">{{ j.numero ?? '–' }}</span>
+                                        <span>{{ j.nom ?? ('N°' ~ (j.numero ?? '?')) }}{% if danger %} <span aria-label="joueur dangereux">⭐</span>{% endif %}</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endfor %}
+                </div>
+                <p class="discret petit">{{ fiche.effectif|length }} joueur{{ fiche.effectif|length > 1 ? 's' }} · ⭐ : joueur dangereux.</p>
+            {% else %}
+                <p class="discret">Pas encore d'effectif{{ modifiable ? ' : notez ses joueurs dans « Modifier / compléter », avec leur nom si vous le connaissez, sinon leur numéro de maillot.' : '.' }}</p>
+            {% endif %}
+        </section>
         <div class="adv-grille-bas">
             <section class="carte">
                 <h2>⭐ Joueurs dangereux</h2>
@@ -296,6 +322,22 @@
                                 </select></label></div>
                     {% endfor %}
                 </div>
+
+                <h3>Effectif de l'adversaire <small class="discret">(onglet Effectif : le nom si vous le connaissez, sinon le numéro de maillot)</small></h3>
+                {% set eff = fiche ? fiche.effectif : [] %}
+                <div class="adv-form-effectif">
+                    <span class="discret petit">N°</span><span class="discret petit">Nom (si connu)</span><span class="discret petit">Poste</span>
+                    {% for i in 0..(min(max_effectif, eff|length + 5) - 1) %}
+                        {% set j = eff[i] ?? {} %}
+                        <input type="number" name="effectif[{{ i }}][numero]" min="1" max="99" inputmode="numeric" value="{{ j.numero ?? '' }}" aria-label="Numéro de maillot">
+                        <input type="text" name="effectif[{{ i }}][nom]" maxlength="60" value="{{ j.nom ?? '' }}" aria-label="Nom">
+                        <select name="effectif[{{ i }}][poste]" aria-label="Poste">
+                            <option value="">—</option>
+                            {% for code, libelle in lignes_effectif %}<option value="{{ code }}" {{ (j.poste ?? '') == code ? 'selected' }}>{{ libelle|slice(0, -1) }}</option>{% endfor %}
+                        </select>
+                    {% endfor %}
+                </div>
+                <p class="discret petit">5 lignes vides de plus à chaque enregistrement (jusqu'à {{ max_effectif }} joueurs).</p>
 
                 <h3>Joueurs dangereux</h3>
                 {% set liste = fiche ? fiche.joueursDangereux : [] %}

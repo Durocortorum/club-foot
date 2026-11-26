@@ -82,6 +82,16 @@ class FicheAdversaire implements AppartientAuClub
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $videos = null;
 
+    /**
+     * Effectif de l'adversaire : numéro de maillot, nom s'il est connu, ligne (G, DEF, MIL, AT).
+     *
+     * @var list<array{numero?: int, nom?: string, poste?: string}>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $effectif = null;
+
+    public const LIGNES_EFFECTIF = ['G' => 'Gardiens', 'DEF' => 'Défenseurs', 'MIL' => 'Milieux', 'AT' => 'Attaquants'];
+    public const MAX_EFFECTIF = 30;
     public const MAX_JOUEURS = 6;
     public const MAX_VIDEOS = 4;
 
@@ -249,6 +259,50 @@ class FicheAdversaire implements AppartientAuClub
             }
         }
         $this->joueursDangereux = $liste ?: null;
+
+        return $this;
+    }
+
+    /** @return list<array{numero?: int, nom?: string, poste?: string}> dans l'ordre noté */
+    public function getEffectif(): array
+    {
+        return $this->effectif ?? [];
+    }
+
+    /**
+     * Effectif rangé par ligne (gardiens, défenseurs, milieux, attaquants, puis sans poste), par numéro dans chaque ligne.
+     *
+     * @return array<string, list<array{numero?: int, nom?: string, poste?: string}>> libellé de la ligne => joueurs
+     */
+    public function getEffectifParLigne(): array
+    {
+        $lignes = [];
+        foreach (self::LIGNES_EFFECTIF + ['' => 'Sans poste'] as $code => $libelle) {
+            $joueurs = array_values(array_filter($this->getEffectif(), fn (array $j) => ($j['poste'] ?? '') === $code));
+            usort($joueurs, fn ($a, $b) => [$a['numero'] ?? 100, $a['nom'] ?? ''] <=> [$b['numero'] ?? 100, $b['nom'] ?? '']);
+            if ($joueurs) {
+                $lignes[$libelle] = $joueurs;
+            }
+        }
+
+        return $lignes;
+    }
+
+    /** Lignes sans numéro ni nom écartées, au plus MAX_EFFECTIF. */
+    public function setEffectif(array $joueurs): static
+    {
+        $liste = [];
+        foreach ($joueurs as $j) {
+            $ligne = array_filter([
+                'numero' => is_numeric($j['numero'] ?? null) ? max(1, min(99, (int) $j['numero'])) : null,
+                'nom' => mb_substr(trim((string) ($j['nom'] ?? '')), 0, 60) ?: null,
+            ], fn ($v) => null !== $v);
+            if ($ligne && \count($liste) < self::MAX_EFFECTIF) {
+                $poste = (string) ($j['poste'] ?? '');
+                $liste[] = $ligne + (isset(self::LIGNES_EFFECTIF[$poste]) ? ['poste' => $poste] : []);
+            }
+        }
+        $this->effectif = $liste ?: null;
 
         return $this;
     }

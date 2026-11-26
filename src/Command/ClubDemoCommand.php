@@ -530,6 +530,13 @@ class ClubDemoCommand extends Command
                     ['numero' => 10, 'poste' => 'Meneur de jeu', 'note' => 'Créatif, bon tireur, passe décisive.'],
                     ['numero' => 7, 'poste' => 'Ailier droit', 'note' => 'Très rapide, provoque beaucoup.'],
                     ['numero' => 9, 'poste' => 'Attaquant', 'note' => 'Bon jeu de tête, puissant.'],
+                ])
+                // Effectif : quelques noms connus, sinon les numéros de maillot.
+                ->setEffectif([
+                    ['numero' => 1, 'nom' => 'Garnier', 'poste' => 'G'], ['numero' => 16, 'poste' => 'G'],
+                    ['numero' => 2, 'poste' => 'DEF'], ['numero' => 4, 'nom' => 'Perrin', 'poste' => 'DEF'], ['numero' => 5, 'poste' => 'DEF'], ['numero' => 3, 'poste' => 'DEF'],
+                    ['numero' => 6, 'poste' => 'MIL'], ['numero' => 8, 'poste' => 'MIL'], ['numero' => 10, 'nom' => 'Lambert', 'poste' => 'MIL'], ['numero' => 14, 'poste' => 'MIL'],
+                    ['numero' => 7, 'nom' => 'Marchand', 'poste' => 'AT'], ['numero' => 9, 'poste' => 'AT'], ['numero' => 11, 'poste' => 'AT'],
                 ]));
         }
     }

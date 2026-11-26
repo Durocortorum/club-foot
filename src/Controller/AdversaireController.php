@@ -63,6 +63,7 @@ class AdversaireController extends AbstractController
                     ->setPreparation($donnees->getString('preparation'))
                     ->setSystemeHabituel($donnees->getString('systeme_habituel'))
                     ->setJoueursDangereux($donnees->all('joueurs'))
+                    ->setEffectif($donnees->all('effectif'))
                     ->setVideos($donnees->all('videos'));
                 foreach (array_keys(FicheAdversaire::JEU) as $theme) {
                     $fiche->setTheme($theme, $donnees->getString('jeu_' . $theme), $donnees->getInt('niveau_' . $theme));
@@ -141,6 +142,10 @@ class AdversaireController extends AbstractController
             'places' => FicheAdversaire::positionsSysteme($systemeHabituel),
             'jeu' => FicheAdversaire::JEU,
             'max_joueurs' => FicheAdversaire::MAX_JOUEURS,
+            'max_effectif' => FicheAdversaire::MAX_EFFECTIF,
+            'lignes_effectif' => FicheAdversaire::LIGNES_EFFECTIF,
+            // Numéros des joueurs dangereux : une étoile dans l'effectif.
+            'numeros_dangereux' => array_values(array_filter(array_map(fn (array $j) => $j['numero'] ?? null, $fiche?->getJoueursDangereux() ?? []))),
             'max_videos' => FicheAdversaire::MAX_VIDEOS,
             'videos_matchs' => array_values(array_filter(array_reverse($joues), fn (Rencontre $r) => $r->getLienVideo())),
             'rencontre' => $rencontre,

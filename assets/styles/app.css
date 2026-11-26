@@ -2291,6 +2291,15 @@ input[type=file]:hover::file-selector-button { border-color: color-mix(in srgb, 
 .adv-form-themes textarea { width: 100%; }
 .adv-form-themes select { margin-left: .4rem; }
 .adv-form-joueurs { display: grid; grid-template-columns: 4rem minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); gap: .35rem .5rem; align-items: center; margin-bottom: .4rem; }
+.adv-effectif { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); gap: .8rem 1.2rem; }
+.adv-effectif-ligne { margin: 0 0 .4rem; font-size: .9rem; text-transform: uppercase; letter-spacing: .03em; color: var(--gris); }
+.adv-maillots { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.adv-maillots li { display: flex; align-items: center; gap: .5rem; }
+.adv-maillots li.danger { font-weight: 700; }
+.adv-maillot { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 6px 6px 9px 9px; background: var(--encre); color: #fff; font-weight: 800; font-size: .85rem; }
+.adv-maillots li.danger .adv-maillot { background: var(--rouge); }
+.adv-form-effectif { display: grid; grid-template-columns: 4rem minmax(0, 2fr) minmax(0, 1fr); gap: .35rem .5rem; align-items: center; margin-bottom: .3rem; max-width: 40rem; }
+.adv-form-effectif input, .adv-form-effectif select { width: 100%; min-width: 0; }
 .adv-form-videos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: .35rem .5rem; margin-bottom: .8rem; }
 .adv-form-joueurs input, .adv-form-videos input { width: 100%; min-width: 0; }
 @media (max-width: 600px) { .adv-form-joueurs { grid-template-columns: 3.5rem minmax(0, 1fr); } .adv-form-joueurs > span:nth-child(n+3) { display: none; } }

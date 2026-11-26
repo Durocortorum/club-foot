@@ -94,6 +94,12 @@ class AdversaireTest extends WebTestCase
             'joueurs[0][poste]' => 'Meneur de jeu',
             'joueurs[0][note]' => 'Créatif, bon tireur',
             'joueurs[1][numero]' => '',
+            'effectif[0][numero]' => '10',
+            'effectif[0][poste]' => 'MIL',
+            'effectif[1][numero]' => '1',
+            'effectif[1][nom]' => 'Garnier',
+            'effectif[1][poste]' => 'G',
+            'effectif[2][nom]' => 'Inconnu',
             'videos[0][titre]' => 'Leurs corners',
             'videos[0][url]' => 'youtube.com/watch?v=test',
         ]);
@@ -108,6 +114,10 @@ class AdversaireTest extends WebTestCase
         self::assertCount(11, $crawler->filter('.adv-mini-terrain .adv-pion'), 'gardien et 10 joueurs de champ');
         self::assertCount(4, $crawler->filter('.adv-theme')->first()->filter('.adv-niveau i.plein'), 'pressing : danger 4/5');
         self::assertSelectorTextContains('#onglet-effectif', 'N°10 – Meneur de jeu');
+        // Effectif par ligne : gardiens d'abord, nom connu ou numéro, étoile pour le joueur dangereux, sans poste à la fin.
+        self::assertSame(['Gardiens (1)', 'Milieux (1)', 'Sans poste (1)'], $crawler->filter('.adv-effectif-ligne')->each(fn ($h) => $h->text()));
+        self::assertSelectorTextContains('.adv-maillots', 'Garnier');
+        self::assertCount(1, $crawler->filter('.adv-maillots li.danger'), 'le N°10 est aussi un joueur dangereux');
         self::assertSelectorTextContains('#onglet-video', 'Leurs corners');
         self::assertSelectorTextContains('#onglet-video', 'Dernier match');
 
