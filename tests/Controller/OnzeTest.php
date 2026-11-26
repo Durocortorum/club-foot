@@ -146,7 +146,10 @@ class OnzeTest extends WebTestCase
         $crawler = $this->client->request('GET', '/presences/' . $semaine->getId());
         $form = $crawler->selectButton('Enregistrer les présences')->form();
         $form['note[' . $joueurs['Gaby']->getId() . ']'] = '7,5';
-        $form['forme[' . $joueurs['Gaby']->getId() . ']'] = 'top';
+        // Forme laissée vide : celle de la note (7,5 → « En grande forme »).
+        $form['forme[' . $joueurs['Gaby']->getId() . ']'] = '';
+        // Sans planning ni séance notée : toutes les demi-journées sont proposées.
+        self::assertCount(0, $crawler->filter('.grille-presence th.creneau-cache'));
         $this->client->submit($form);
         self::assertResponseRedirects();
         $crawler = $this->client->request('GET', '/matchs/' . $match->getId() . '/onze');

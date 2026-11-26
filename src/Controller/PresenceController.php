@@ -8,6 +8,8 @@ use App\Entity\Rencontre;
 use App\Entity\SemainePresence;
 use App\Form\SemainePresenceType;
 use App\Repository\CategorieRepository;
+use App\Repository\CreneauEntrainementRepository;
+use App\Repository\EntrainementRepository;
 use App\Repository\JoueurRepository;
 use App\Repository\SemainePresenceRepository;
 use App\Security\ActiviteVoter;
@@ -91,7 +93,8 @@ class PresenceController extends AbstractController
 
     #[Route('/{id}', name: 'app_presence_voir', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     #[IsGranted(ActiviteVoter::GERER, 'semaine')]
-    public function voir(Request $request, SemainePresence $semaine, EntityManagerInterface $em, JoueurRepository $joueurs, CategorieRepository $categories): Response
+    public function voir(Request $request, SemainePresence $semaine, EntityManagerInterface $em, JoueurRepository $joueurs, CategorieRepository $categories,
+        CreneauEntrainementRepository $creneauxEquipe, EntrainementRepository $entrainements): Response
     {
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('presences' . $semaine->getId(), $request->getPayload()->getString('_token'))) {
@@ -106,6 +109,10 @@ class PresenceController extends AbstractController
                 $presence->setCreneaux(array_map('strval', (array) ($saisie[$id] ?? [])));
                 if (\array_key_exists($id, $notes) || \array_key_exists($id, $formes)) {
                     $presence->setNoteSemaine($notes[$id] ?? null)->setForme(\is_string($formes[$id] ?? null) ? $formes[$id] : null);
+                    // Forme laissée vide : celle qui va avec la note.
+                    if (null === $presence->getForme()) {
+                        $presence->setForme(Presence::formeDeNote($presence->getNoteSemaine()));
+                    }
                 }
             }
             if ($ajout = $request->getPayload()->getInt('ajouter')) {
@@ -127,6 +134,8 @@ class PresenceController extends AbstractController
             'semaine' => $semaine,
             'presences' => $presences,
             'creneaux' => SemainePresence::CRENEAUX,
+            'creneaux_entrainement' => $this->creneauxEntrainement($semaine, $presences, $creneauxEquipe, $entrainements),
+            'seuils_forme' => ['top' => 7.5, 'bien' => 6, 'moyen' => 5],
             'formes' => Presence::FORMES,
             'motifs' => SemainePresence::MOTIFS,
             // Anciens codes (VA, AT) : affichés seulement là où ils sont déjà saisis.
@@ -137,6 +146,37 @@ class PresenceController extends AbstractController
                 fn (Joueur $j) => !$this->estInscrit($semaine, $j)
             ),
         ]);
+    }
+
+    /**
+     * Demi-journées où l'équipe s'entraîne cette semaine-là : ses créneaux habituels (planning), les séances prévues
+     * cette semaine et les cases déjà remplies. Aucune connue : toutes (l'éducateur choisit).
+     *
+     * @param list<Presence> $presences
+     *
+     * @return list<string> clés de SemainePresence::CRENEAUX
+     */
+    private function creneauxEntrainement(SemainePresence $semaine, array $presences, CreneauEntrainementRepository $creneaux, EntrainementRepository $entrainements): array
+    {
+        $jours = [1 => 'lun', 2 => 'mar', 3 => 'mer', 4 => 'jeu', 5 => 'ven', 6 => 'sam'];
+        $cle = fn (int $jour, string $heure) => isset($jours[$jour]) ? $jours[$jour] . ('sam' === $jours[$jour] || $heure < '12:00' ? '_m' : '_a') : null;
+        $actifs = [];
+        foreach ($creneaux->findBy(['categorie' => $semaine->getCategorie()]) as $c) {
+            $actifs[] = $cle($c->getJour(), $c->getHeureDebut());
+        }
+        $lundi = $semaine->getLundi();
+        $seances = $entrainements->createQueryBuilder('e')->andWhere('e.categorie = :c')->setParameter('c', $semaine->getCategorie())
+            ->andWhere('e.date BETWEEN :l AND :d')->setParameter('l', $lundi)->setParameter('d', $lundi->modify('+6 days'))
+            ->andWhere('e.annule = false AND e.supprime = false')->getQuery()->getResult();
+        foreach ($seances as $e) {
+            $actifs[] = $cle((int) $e->getDate()->format('N'), $e->getHeureDebut());
+        }
+        foreach ($presences as $p) {
+            array_push($actifs, ...array_keys($p->getCreneaux()));
+        }
+        $actifs = array_values(array_intersect(array_keys(SemainePresence::CRENEAUX), array_filter($actifs)));
+
+        return $actifs ?: array_keys(SemainePresence::CRENEAUX);
     }
 
     #[Route('/{id}/retirer/{presence}', name: 'app_presence_retirer', requirements: ['id' => '\d+', 'presence' => '\d+'], methods: ['POST'])]

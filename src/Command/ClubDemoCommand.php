@@ -632,6 +632,7 @@ class ClubDemoCommand extends Command
     {
         foreach (['U9' => [[3, '14h00', '15h15']], 'U11' => [[3, '15h30', '17h00']], 'U13' => [[2, '18h00', '19h30'], [4, '18h00', '19h30']],
             'U15' => [[1, '18h30', '20h00'], [3, '18h30', '20h00']], 'U17' => [[2, '19h00', '20h30'], [4, '19h00', '20h30']],
+            'U19' => [[2, '19h00', '20h30'], [3, '19h00', '20h30'], [5, '19h00', '20h30']],
             'SENIORS' => [[3, '20h00', '21h30'], [5, '20h00', '21h30']]] as $cat => $creneaux) {
             foreach ($creneaux as [$jour, $debut, $fin]) {
                 $this->em->persist((new CreneauEntrainement())->setCategorie($this->categories[$cat])->setJour($jour)->setHeureDebut($debut)->setHeureFin($fin)
@@ -924,7 +925,7 @@ class ClubDemoCommand extends Command
         $finSemaines = new \DateTimeImmutable('monday this week');
         $regularites = [.95, .88, .8, .92, .7, .85, .62, .9, .78, .97, .68, .84, .9, .75, .86, .93];
         $motifs = ['Excusé', 'Blessé', 'Malade', 'Absent', 'Excusé'];
-        foreach (['U15' => ['mar_a', 'jeu_a'], 'U19' => ['mar_a', 'mer_a', 'ven_a']] as $cat => $creneaux) {
+        foreach (['U15' => ['lun_a', 'mer_a'], 'U19' => ['mar_a', 'mer_a', 'ven_a']] as $cat => $creneaux) {
             $joueurs = $this->joueurs[$cat];
             // Note de chaque joueur à chaque match de la saison, par date.
             $notes = [];
@@ -961,7 +962,7 @@ class ClubDemoCommand extends Command
     {
         $lundi = new \DateTimeImmutable('monday this week');
         $formes = ['top', 'bien', 'bien', 'moyen', 'bien', 'top', 'faible', 'bien', 'moyen', 'bien', 'top', 'bien', 'moyen', 'bien', 'bien', 'faible'];
-        foreach (['U15' => ['mar_a', 'jeu_a'], 'U19' => ['mar_a', 'mer_a', 'ven_a']] as $cat => $creneaux) {
+        foreach (['U15' => ['lun_a', 'mer_a'], 'U19' => ['mar_a', 'mer_a', 'ven_a']] as $cat => $creneaux) {
             $semaine = (new SemainePresence())->setLundi($lundi)->setCategorie($this->categories[$cat]);
             foreach ($this->joueurs[$cat] as $i => $j) {
                 // Un joueur sur sept absent une séance (blessé ou malade) ; les autres présents à toutes.

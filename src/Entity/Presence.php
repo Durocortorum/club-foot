@@ -97,6 +97,18 @@ class Presence implements AppartientAuClub
     #[ORM\Column(length: 10, nullable: true)]
     private ?string $forme = null;
 
+    /** Forme d'après la note de la semaine : 7,5 et plus « En grande forme », 6 « Bien », 5 « Moyen », moins « En difficulté ». */
+    public static function formeDeNote(?float $note): ?string
+    {
+        return match (true) {
+            null === $note => null,
+            $note >= 7.5 => 'top',
+            $note >= 6 => 'bien',
+            $note >= 5 => 'moyen',
+            default => 'faible',
+        };
+    }
+
     public function getNoteSemaine(): ?float
     {
         return $this->noteSemaine;

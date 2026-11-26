@@ -2703,3 +2703,5 @@ form:has(select[name$="[competition]"] option[value^="Coupe" i]:checked) .coupe-
 .ass-jour.absent { background: var(--danger); color: #fff; font-weight: 800; }
 .ass-mois-taux { margin: .4rem 0 0; font-size: .85rem; color: var(--gris); }
 .ass-avertissement { padding: .7rem 1rem; border-radius: var(--rayon); background: #e8f4fd; border: 1px solid #b6dcf5; color: #134e6f; }
+/* Grille des présences : demi-journées sans entraînement de l'équipe cachées (affichables à la demande). */
+.grille-presence:not(.tout-voir) .creneau-cache { display: none; }
