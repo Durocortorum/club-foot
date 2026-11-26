@@ -149,19 +149,6 @@
                 {% endif %}
             </section>
         </div>
-        {% if derniere and compo.titulaires %}
-            <section class="carte bloc adv-compo">
-                <h2>Notre composition au dernier match{% if derniere.systeme and not derniere.placementEducateur %} <span class="pastille">{{ derniere.systeme }}</span>{% endif %}</h2>
-                {% include 'rencontre/_terrain_compo.html.twig' with {rencontre: derniere, compo: compo, modifiable: false} %}
-                {% if derniere.remplacements|length %}
-                    <p class="petit"><strong>Changements :</strong>
-                        {% for r in derniere.remplacements %}
-                            {{ r.minute is not null ? r.minute ~ '\' ' }}<span class="entre">▲</span> {{ r.entrant ? r.entrant.prenom ~ ' ' ~ r.entrant.nom : '?' }} <span class="sort">▼</span> {{ r.sortant ? r.sortant.prenom ~ ' ' ~ r.sortant.nom : '?' }}{{ not loop.last ? ' · ' }}
-                        {% endfor %}
-                    </p>
-                {% endif %}
-            </section>
-        {% endif %}
     </div>
 
     {# ———————— Historique : bilan des confrontations, dernière confrontation ———————— #}
@@ -232,6 +219,19 @@
                     <p class="petit">⚽ {{ marques|map(b => (b.buteur ? b.buteur.prenom ~ ' ' ~ b.buteur.nom : 'but') ~ (b.temps ? ' (' ~ b.temps ~ '\')' : ''))|join(', ') }}</p>
                 {% endif %}
                 <p><a href="{{ path('app_match_direct_bilan', {id: derniere.id}) }}">Statistiques du direct</a> (passes, duels, frappes, carte du terrain, d'où viennent les buts)</p>
+            </section>
+        {% endif %}
+        {% if derniere and compo.titulaires %}
+            <section class="carte bloc adv-compo">
+                <h2>Notre composition ce jour-là{% if derniere.systeme and not derniere.placementEducateur %} <span class="pastille">{{ derniere.systeme }}</span>{% endif %}</h2>
+                {% include 'rencontre/_terrain_compo.html.twig' with {rencontre: derniere, compo: compo, modifiable: false} %}
+                {% if derniere.remplacements|length %}
+                    <p class="petit"><strong>Changements :</strong>
+                        {% for r in derniere.remplacements %}
+                            {{ r.minute is not null ? r.minute ~ '\' ' }}<span class="entre">▲</span> {{ r.entrant ? r.entrant.prenom ~ ' ' ~ r.entrant.nom : '?' }} <span class="sort">▼</span> {{ r.sortant ? r.sortant.prenom ~ ' ' ~ r.sortant.nom : '?' }}{{ not loop.last ? ' · ' }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
             </section>
         {% endif %}
     </div>
