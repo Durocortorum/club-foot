@@ -44,6 +44,9 @@
 
     {% include 'rencontre/_bilan.html.twig' %}
 
+    {# Une équipe de championnat choisie : le classement de sa poule pour la saison. #}
+    {% if classement %}{{ include('rencontre/_classement.html.twig', {c: classement, categorie: classement_equipe, saison: filtres.saison}) }}{% endif %}
+
     {# Équipe choisie : qui peut modifier ses rapports de match (l'administrateur ou l'éducateur responsable le change). #}
     {% if equipe and responsables_equipe %}
         <p class="discret petit">

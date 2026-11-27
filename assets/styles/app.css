@@ -2770,3 +2770,12 @@ form:has(select[name$="[competition]"] option[value^="Coupe" i]:checked) .coupe-
 .forme-auto.bien { background: #e6f4ea; color: var(--succes); }
 .forme-auto.moyen { background: #f3f4f6; color: var(--encre); }
 .forme-auto.faible { background: var(--danger-clair); color: var(--danger-fonce); }
+/* Classement de la poule sur la fiche d'un match de championnat : notre équipe et l'adversaire surlignés. */
+.classement-rang { margin-left: .4rem; padding: .05rem .5rem; border-radius: 99px; background: var(--rouge); color: var(--sur-rouge); font-size: .9rem; }
+.classement-evolution { margin-left: .4rem; font-size: .8rem; font-weight: 600; color: var(--gris); }
+.classement-evolution.monte { color: var(--succes); }
+.classement-evolution.descend { color: var(--danger); }
+.classement-compact tr.nous td { background: color-mix(in srgb, var(--rouge) 12%, white); font-weight: 700; }
+.classement-compact tr.adversaire td { background: #fff7e6; }
+.classement-compact th:nth-child(2), .classement-compact td.principal { text-align: left; }
+.classement-compact td:first-child { font-weight: 700; color: var(--gris); }

@@ -55,7 +55,7 @@ class RencontreController extends AbstractController
     }
 
     #[Route('/matchs', name: 'app_rencontre_index', methods: ['GET'])]
-    public function index(Request $request, RencontreRepository $rencontres, CategorieRepository $categories): Response
+    public function index(Request $request, RencontreRepository $rencontres, CategorieRepository $categories, \App\Service\ClassementEquipe $classementEquipe): Response
     {
         $secteurs = $this->voter->secteursMatchs();
         $filtres = $this->filtres($request, $rencontres, $categories);
@@ -78,6 +78,9 @@ class RencontreController extends AbstractController
             'peut_creer_plateau' => [] !== array_filter($tenables, fn (Categorie $c) => $c->isPlateaux()),
             'responsables_equipe' => ($equipe = $filtres['categorie'] ? $categories->find($filtres['categorie']) : null) ? $this->responsables->de($equipe) : null,
             'peut_designer_equipe' => $equipe && $this->peutDesigner($equipe),
+            // Une équipe et une saison choisies : classement de sa poule (s'il y en a un).
+            'classement' => $equipe && $filtres['saison'] ? $classementEquipe->pourEquipe($equipe, $filtres['saison']) : null,
+            'classement_equipe' => $equipe,
             'dernier_import' => ($i =$request->getSession()->get(self::DERNIER_IMPORT)) && $i['ids'] && time() - $i['le'] < self::DUREE_ANNULATION ? $i : null,
         ]);
     }
@@ -380,7 +383,7 @@ class RencontreController extends AbstractController
 
     #[Route('/matchs/{id}', name: 'app_rencontre_voir', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted(ActiviteVoter::GERER, 'rencontre')]
-    public function voir(Rencontre $rencontre, ConvocationRepository $convocations, CompositionTerrain $terrain, MessageRepository $messages): Response
+    public function voir(Rencontre $rencontre, ConvocationRepository $convocations, CompositionTerrain $terrain, MessageRepository $messages, \App\Service\ClassementEquipe $classementEquipe): Response
     {
         if ($rencontre->isPlateau()) {
             return $this->render('rencontre/plateau.html.twig', [
@@ -394,6 +397,8 @@ class RencontreController extends AbstractController
 
         return $this->render('rencontre/voir.html.twig', [
             'rencontre' => $rencontre,
+            // Championnat : classement de la poule (recalculé avec ce match), notre place avant et après.
+            'classement' => $classementEquipe->pourLeMatch($rencontre),
             'convocation' => $convocations->pour($rencontre),
             'compo' => $terrain->placer($rencontre),
             'comptes_rendus' => $messages->comptesRendus($rencontre),

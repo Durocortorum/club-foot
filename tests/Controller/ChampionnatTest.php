@@ -95,5 +95,22 @@ class ChampionnatTest extends WebTestCase
         $em->getConnection()->executeStatement('UPDATE classement SET mis_ajour_le = ? WHERE club_id = ?', [$debutSaison->format('Y-m-d 12:00:00'), $this->clubId]);
         $this->client->request('GET', '/championnat?categorie=' . $equipe->getId() . '&saison=' . $saison);
         self::assertSelectorTextContains('.rappel-classement', 'Classement à mettre à jour : 2 matchs de championnat ont été joués depuis la mise à jour du ' . $debutSaison->format('d/m'));
+
+        // Fiche du match perdu à Troyes : classement recalculé avec ce match (Troyes 27, nous 23), nous 2e comme avant,
+        // notre ligne et celle de l'adversaire repérées. Pas de classement sur la fiche de l'amical.
+        $troyes = $em->getRepository(Rencontre::class)->findOneBy(['categorie' => $equipe->getId(), 'domicile' => 'ESTAC TROYES']);
+        $crawler = $this->client->request('GET', '/matchs/' . $troyes->getId());
+        self::assertSelectorTextContains('.classement-match .classement-rang', '2e');
+        self::assertSelectorTextContains('.classement-match .classement-evolution', 'même place');
+        self::assertStringContainsString($nous, $crawler->filter('.classement-compact tr.nous')->text());
+        self::assertStringContainsString('ESTAC TROYES', $crawler->filter('.classement-compact tr.adversaire')->text());
+        self::assertStringContainsString('27', $crawler->filter('.classement-compact tbody tr')->first()->text());
+        // Liste des matchs filtrée sur l'équipe : le classement de sa poule aussi.
+        $crawler = $this->client->request('GET', '/matchs?categorie=' . $equipe->getId() . '&saison=' . $saison);
+        self::assertSelectorTextContains('.classement-match .classement-rang', '2e');
+        self::assertCount(0, $crawler->filter('.classement-compact tr.adversaire'), 'pas d\'adversaire sans match');
+        $amical = $em->getRepository(Rencontre::class)->findOneBy(['categorie' => $equipe->getId(), 'competition' => 'Amical']);
+        $this->client->request('GET', '/matchs/' . $amical->getId());
+        self::assertSelectorNotExists('.classement-match');
     }
 }

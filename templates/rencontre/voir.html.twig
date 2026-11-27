@@ -59,6 +59,9 @@
         {% if peut_designer %}<a href="{{ path('app_rencontre_responsables', {id: equipe.id, retour: path('app_rencontre_voir', {id: rencontre.id})}) }}">Choisir qui modifie les matchs</a>{% endif %}
     </p>
 
+    {# Match de championnat : classement de la poule, recalculé avec ce match ; notre équipe et l'adversaire en couleur. #}
+    {% if classement %}{{ include('rencontre/_classement.html.twig', {c: classement, categorie: rencontre.categorie, saison: rencontre.saison}) }}{% endif %}
+
     <div class="grille-fiches">
         {% if convocation %}
             {% set presents = convocation.parReponse('present')|length %}
