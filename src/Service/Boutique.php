@@ -224,7 +224,7 @@ class Boutique
         $url = $this->urls->generate('app_espace_boutique', ['_fragment' => 'commandes'], UrlGeneratorInterface::ABSOLUTE_URL);
         $texte = \sprintf('Commande n° %s (%d article%s) : à retirer au club.', $commande->getNumero(), $commande->getNombreArticles(), $commande->getNombreArticles() > 1 ? 's' : '');
         $this->notifications->envoyer([$compte], 'Votre commande est prête', $texte, $url);
-        if ($this->acces->emailActif() && $compte->getEmail()) {
+        if ($this->acces->emailActif() && $compte->getEmail() && $compte->recoitEmail('boutique')) {
             try {
                 $this->mailer->send($this->courriel->message($club, (string) $compte->getEmail(), \sprintf('%s : votre commande est prête', $club->getNom()), [
                     'titre' => 'Votre commande est prête',

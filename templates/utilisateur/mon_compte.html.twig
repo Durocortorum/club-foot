@@ -52,6 +52,22 @@
             </section>
         {% endif %}
 
+        {# Choix des e-mails reçus : la notification et l'espace restent ; mot de passe, invitation, code médical partent toujours. #}
+        {% set choix = moi.famille ? constant('App\\Entity\\Utilisateur::EMAILS_AU_CHOIX') : constant('App\\Entity\\Utilisateur::EMAILS_AU_CHOIX')|filter((v, k) => k == 'messages') %}
+        <section class="carte" id="mes-emails">
+            <h2>Mes e-mails</h2>
+            <p class="discret petit">Cochez les e-mails que vous voulez recevoir à {{ moi.email }}. Décochés : l'information reste visible dans l'application{{ moi.famille ? ' (votre espace)' }} et la notification sur le téléphone part quand même.</p>
+            <form method="post" class="formulaire">
+                <input type="hidden" name="_token" value="{{ csrf_token('mes-emails') }}">
+                <input type="hidden" name="emails_choix" value="1">
+                {% for cle, libelle in choix %}
+                    <label class="case-joueur"><input type="checkbox" name="emails[]" value="{{ cle }}" {{ moi.recoitEmail(cle) ? 'checked' }}> {{ libelle }}</label>
+                {% endfor %}
+                <p class="discret petit">Les e-mails de votre compte (mot de passe oublié, lien d'activation{{ moi.famille ? '' : ', code d\'accès médical' }}) partent toujours.</p>
+                <button type="submit" class="bouton principal">Enregistrer mes choix</button>
+            </form>
+        </section>
+
         <section class="carte">
             <h2>Changer mon mot de passe</h2>
             {{ form_start(form, {attr: {novalidate: 'novalidate', class: 'formulaire'}}) }}

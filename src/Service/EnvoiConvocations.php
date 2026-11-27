@@ -67,6 +67,9 @@ class EnvoiConvocations
                 continue;
             }
             foreach ($comptes as $compte) {
+                if (!$compte->recoitEmail('convocations')) {
+                    continue; // e-mails coupés dans « Mon compte » : la convocation reste dans l'espace (et la notification part)
+                }
                 $message = $this->courriel->habiller((new TemplatedEmail())
                     ->to($compte->getEmail())
                     ->subject(\sprintf('%s%s : %s convoqué(e) le %s', $definitive ? 'Convocation définitive – ' : ($relance ? 'Rappel – ' : ''), $club->getNom(), $c->getJoueur()->getPrenom(), $convocation->getRencontre()->getDate()->format('d/m')))
@@ -133,6 +136,9 @@ class EnvoiConvocations
             return 0;
         }
         foreach ($deja as $compte) {
+            if (!$compte->recoitEmail('entrainements')) {
+                continue;
+            }
             try {
                 // Première ligne du message (« ENTRAÎNEMENT ANNULÉ – U13 ») : titre ; la suite : le détail.
                 $this->mailer->send($this->courriel->message($club, (string) $compte->getEmail(),

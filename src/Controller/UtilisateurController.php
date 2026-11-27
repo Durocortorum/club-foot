@@ -301,6 +301,18 @@ class UtilisateurController extends AbstractController
     {
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
+        // « Mes e-mails » : cases cochées = e-mails reçus ; les autres sont coupés.
+        if ($request->isMethod('POST') && $request->request->has('emails_choix')) {
+            if (!$this->isCsrfTokenValid('mes-emails', $request->getPayload()->getString('_token'))) {
+                throw $this->createAccessDeniedException();
+            }
+            $recus = $request->getPayload()->all('emails');
+            $moi->setEmailsCoupes(array_values(array_diff(array_keys(Utilisateur::EMAILS_AU_CHOIX), $recus)));
+            $this->em->flush();
+            $this->addFlash('succes', 'Vos choix d\'e-mails sont enregistrés.');
+
+            return $this->redirect($this->generateUrl('app_mon_compte') . '#mes-emails');
+        }
         $form = $this->createForm(ChangementMotDePasseType::class);
         $form->handleRequest($request);
 

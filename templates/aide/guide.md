@@ -9,7 +9,7 @@ Ce guide décrit l'application de gestion de club de football, page par page. Il
 - **Famille** : un joueur ou ses parents. Ils ont un « espace famille » simple : Mon espace, Calendrier, Boutique (si ouverte), Messages.
 - **Médical seul** (médecin, kiné) : seulement l'Infirmerie, les dossiers médicaux et les messages.
 - **Donner des droits** à un éducateur ou un dirigeant : menu **Utilisateurs** (administrateur) → son compte → chaque compte reçoit des secteurs (École de foot, Préformation, Formation, Élite, Pro) et des droits par section (Infirmerie, Visite médicale, Scolarité, Discipline, Tests physiques, Finances), en « voir » ou « modifier ». Le **tableau des droits** (Utilisateurs → Droits) montre qui a accès à quoi.
-- **Mon compte** (son nom, en haut à droite) : changer son mot de passe. Mot de passe oublié : lien sur la page de connexion, un e-mail est envoyé.
+- **Mon compte** (son nom, en haut à droite) : changer son mot de passe ; **Mes e-mails** : cocher les e-mails reçus (familles : convocations, messages, entraînements annulés, boutique ; encadrement : messages). Décoché : l'information reste dans l'application et la notification part quand même ; les messages « Important » et les e-mails du compte (mot de passe, activation) partent toujours. Raccourci « Mes e-mails » sur l'accueil de l'espace famille. Mot de passe oublié : lien sur la page de connexion, un e-mail est envoyé.
 
 ## Premiers pas d'un nouveau club
 

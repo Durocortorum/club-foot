@@ -1785,7 +1785,9 @@ table.droits thead th.droits-nom { z-index: 3; }
 .pastille-rpe { display: inline-block; min-width: 1.9rem; padding: .15rem .45rem; border-radius: 999px; background: var(--rpe, #8e8e93); color: #fff; font-weight: 700; text-align: center; font-size: .85rem; margin: 0 .15rem .15rem 0; }
 .ressenti-saisie { padding: .7rem 0; border-bottom: 1px solid var(--bordure); }
 .ressenti-saisie p { margin: 0 0 .4rem; }
-.echelle-rpe { display: grid; grid-template-columns: repeat(10, minmax(2rem, 1fr)); gap: .3rem; max-width: 34rem; }
+.echelle-rpe { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: .3rem; max-width: 34rem; }
+/* Petit téléphone : deux lignes de cinq, des boutons assez grands pour le doigt, rien ne dépasse. */
+@media (max-width: 420px) { .echelle-rpe { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 .echelle-rpe label { cursor: pointer; }
 .echelle-rpe input { position: absolute; opacity: 0; pointer-events: none; }
 .echelle-rpe span { display: flex; align-items: center; justify-content: center; height: 2.4rem; border-radius: 8px; border: 2px solid var(--rpe); color: var(--rpe); font-weight: 800; background: #fff; }

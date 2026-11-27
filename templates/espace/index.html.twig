@@ -19,6 +19,16 @@
 
     {# Accueil « Mon espace » : carte de chaque joueur et ses rubriques en grandes cartes (le détail suit plus bas). #}
     {% for e in enfants %}{{ include('espace/_accueil_joueur.html.twig', {e: e, premier_enfant: loop.first}) }}{% endfor %}
+    {# Réglage du compte : e-mails reçus (Mon compte → Mes e-mails). #}
+    {% import 'commun/_icones.html.twig' as ic %}
+    {% set coupes = app.user.emailsCoupes|length %}
+    <nav class="espace-menu" aria-label="Mon compte">
+        <a href="{{ path('app_mon_compte') }}#mes-emails" class="espace-carte">
+            <span class="espace-carte-icone bleu">{{ ic.icone('messages') }}</span>
+            <span class="espace-carte-texte"><strong>Mes e-mails</strong><span>{{ coupes ? coupes ~ ' ' ~ accord(coupes, 'type') ~ ' d\'e-mail ' ~ accord(coupes, 'coupé') : 'Tous les e-mails du club sont reçus' }} · choisir</span></span>
+            <span class="espace-carte-fleche" aria-hidden="true">›</span>
+        </a>
+    </nav>
 
     {% include 'commun/_notifications.html.twig' %}
 
@@ -170,7 +180,7 @@
             {% set ef = e.etat_forme %}
             <h3 id="etat-forme-{{ j.id }}">État de forme du jour{% if ef %} <span class="etat-forme {{ ef.etat }}">{{ ef.etatLibelle }}</span>{% endif %}</h3>
             <details class="etat-forme-bloc" {{ ef ? '' : 'open' }}>
-                <summary class="petit">{{ ef ? 'Renseigné à ' ~ ef.saisiLe|date('H:i', 'Europe/Paris') ~ ' — modifier' : 'Comment va ' ~ j.prenom ~ ' aujourd\'hui ? (quelques secondes)' }}</summary>
+                <summary class="petit">{{ ef ? 'Renseigné à ' ~ ef.saisiLe|date('H:i', 'Europe/Paris') ~ ' — modifier' : (j.mineur ? 'Comment va ' ~ j.prenom ~ ' aujourd\'hui ?' : 'Comment allez-vous aujourd\'hui ?') ~ ' (quelques secondes)' }}</summary>
                 <form method="post" action="{{ path('app_espace_etat_forme', {joueur: j.id}) }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('etat-forme' ~ j.id) }}">
                     <div class="etat-forme-saisie">
@@ -186,7 +196,7 @@
                         {% endfor %}
                         <input type="text" name="commentaire" maxlength="200" value="{{ ef ? ef.commentaire }}" placeholder="Un mot pour l'éducateur (facultatif) : ex. douleur au genou droit" aria-label="Commentaire">
                     </div>
-                    <button class="bouton principal">✓ Valider {{ j.prenom }}</button>
+                    <button class="bouton principal">✓ Valider{{ j.mineur ? ' ' ~ j.prenom }}</button>
                 </form>
             </details>
 
@@ -199,7 +209,7 @@
                     <form method="post" action="{{ path('app_espace_ressenti', {joueur: j.id}) }}" class="ressenti-saisie">
                         <input type="hidden" name="_token" value="{{ csrf_token('ressenti' ~ j.id) }}">
                         <input type="hidden" name="seance" value="{{ cle }}">
-                        <p><strong>{{ est_match ? (s.plateau ? s.adversaire : 'Match contre ' ~ s.adversaire) : 'Entraînement' }}</strong> <span class="discret">du {{ ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][s.date|date('w')] }} {{ s.date|date('d/m') }}</span> : comment {{ j.prenom }} a-t-il (elle) ressenti l'effort ?</p>
+                        <p><strong>{{ est_match ? (s.plateau ? s.adversaire : 'Match contre ' ~ s.adversaire) : 'Entraînement' }}</strong> <span class="discret">du {{ ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][s.date|date('w')] }} {{ s.date|date('d/m') }}</span> : {{ j.mineur ? 'comment ' ~ j.prenom ~ ' a-t-il (elle) ressenti l\'effort ?' : 'comment avez-vous ressenti l\'effort ?' }}</p>
                         <div class="echelle-rpe" role="radiogroup" aria-label="Effort ressenti, de 1 (très facile) à 10 (maximum)">
                             {% for n, libelle in echelle_rpe %}
                                 <label class="rpe-{{ n }}" title="{{ libelle }}"><input type="radio" name="rpe" value="{{ n }}" required><span>{{ n }}</span></label>
@@ -261,7 +271,7 @@
 
             {% if e.entrainements %}
                 <h3 id="entrainements-{{ j.id }}">Prochains entraînements</h3>
-                <p class="discret petit">{{ j.prenom }} est attendu(e) à chaque entraînement : signalez seulement une absence.</p>
+                <p class="discret petit">{{ j.mineur ? j.prenom ~ ' est attendu(e)' : 'Vous êtes attendu(e)' }} à chaque entraînement : signalez seulement une absence.</p>
                 <ul class="liste-simple">
                     {% for en in e.entrainements %}
                         {% set absence = en.absenceDe(j) %}

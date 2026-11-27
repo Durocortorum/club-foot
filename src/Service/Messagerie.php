@@ -217,6 +217,10 @@ class Messagerie
      */
     private function envoyerEmail(Message $message, Utilisateur $a, string $sujet, array $contenu, array &$resultat): void
     {
+        // E-mails des messages coupés dans « Mon compte » : le message reste dans l'application ; un message « Important » part quand même.
+        if (!$a->recoitEmail('messages') && !$message->isImportant()) {
+            return;
+        }
         try {
             $this->mailer->send($this->courriel->message($message->getClub(), (string) $a->getEmail(), $sujet, $contenu));
             ++$resultat['emails'];

@@ -109,6 +109,18 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
     #[ORM\Column(type: Types::JSON)]
     private array $roles = [];
 
+    /** E-mails que la personne a choisi de ne plus recevoir (clés de EMAILS_AU_CHOIX) ; le reste part normalement. */
+    public const EMAILS_AU_CHOIX = [
+        'convocations' => 'Convocations aux matchs',
+        'messages' => 'Messages du club et réponses (les messages « Important » partent toujours)',
+        'entrainements' => 'Entraînements annulés ou maintenus',
+        'boutique' => 'Boutique : commande prête',
+    ];
+
+    /** @var list<string>|null null : tout est reçu */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $emailsCoupes = null;
+
     /** Mot de passe chiffré ; null tant qu'il n'a pas été défini. */
     #[ORM\Column(nullable: true)]
     private ?string $password = null;
@@ -490,6 +502,26 @@ class Utilisateur implements AppartientAuClub, UserInterface, PasswordAuthentica
     public function isFamille(): bool
     {
         return $this->famille;
+    }
+
+    /** Reçoit-il les e-mails de ce type (clé de EMAILS_AU_CHOIX) ? Oui, sauf s'il les a coupés dans « Mon compte ». */
+    public function recoitEmail(string $type): bool
+    {
+        return !\in_array($type, $this->emailsCoupes ?? [], true);
+    }
+
+    /** @return list<string> */
+    public function getEmailsCoupes(): array
+    {
+        return $this->emailsCoupes ?? [];
+    }
+
+    /** @param list<string> $types */
+    public function setEmailsCoupes(array $types): static
+    {
+        $this->emailsCoupes = array_values(array_intersect(array_keys(self::EMAILS_AU_CHOIX), $types));
+
+        return $this;
     }
 
     public function setFamille(bool $famille): static
