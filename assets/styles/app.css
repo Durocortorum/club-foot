@@ -2841,3 +2841,7 @@ form:has(select[name$="[competition]"] option[value^="Coupe" i]:checked) .coupe-
 
 /* Séance automatique : cases des thèmes sur deux ou trois colonnes. */
 .themes-seance { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: .4rem 1rem; margin: .4rem 0 .8rem; }
+/* Séance : adapter au nombre de joueurs présents. */
+.adapter-seance { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .8rem; margin-bottom: 1rem; }
+.adapter-seance input[type="number"] { width: 6rem; }
+.adapter-seance .discret { flex-basis: 100%; }

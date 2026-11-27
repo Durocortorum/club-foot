@@ -27,6 +27,11 @@
                     {% if erreurs.date is defined %}<p class="erreur-champ">{{ erreurs.date }}</p>{% endif %}
                 </div>
                 <div class="champ">
+                    <label for="joueurs">Joueurs présents <span class="discret">(gardiens compris)</span></label>
+                    <input type="number" id="joueurs" name="joueurs" min="2" max="40" value="{{ saisie.joueurs }}" placeholder="ex. 14">
+                    <p class="discret petit">Prérempli avec l'effectif moins les absences signalées. Les exercices sont choisis et répartis en ateliers pour ce nombre.</p>
+                </div>
+                <div class="champ">
                     <label for="duree">Durée totale</label>
                     <select id="duree" name="duree">
                         {% for d in durees %}<option value="{{ d }}" {{ d == saisie.duree ? 'selected' }}>{{ d // 60 }} h{{ d % 60 ? ' ' ~ '%02d'|format(d % 60) }}</option>{% endfor %}

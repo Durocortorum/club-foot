@@ -20,16 +20,32 @@ class BibliothequeExercices
         'seniors' => ['libelle' => 'Seniors (Élite et Pro)', 'secteurs' => [Categorie::SECTEUR_ELITE, Categorie::SECTEUR_PRO]],
     ];
 
+    /** @var array<string, array<string, mixed>>|null */
+    private ?array $tous = null;
+
     public function __construct(
         #[Autowire('%kernel.project_dir%/config/exercices-types.json')]
         private readonly string $fichier,
     ) {
     }
 
-    /** @return array<string, array{secteur: string, titre: string, duree: int, consignes: string, schema: array<string, mixed>}> */
+    /**
+     * Les 40 exercices d'origine, puis les compléments (même dossier, exercices-complements.json : rôle et thèmes
+     * pour la séance automatique).
+     *
+     * @return array<string, array{secteur: string, titre: string, duree: int, consignes: string, schema: array<string, mixed>, role?: string, themes?: list<string>}>
+     */
     public function tous(): array
     {
-        return json_decode((string) file_get_contents($this->fichier), true, flags: \JSON_THROW_ON_ERROR);
+        if (null === $this->tous) {
+            $this->tous = json_decode((string) file_get_contents($this->fichier), true, flags: \JSON_THROW_ON_ERROR);
+            $complements = \dirname($this->fichier) . '/exercices-complements.json';
+            if (is_file($complements)) {
+                $this->tous += json_decode((string) file_get_contents($complements), true, flags: \JSON_THROW_ON_ERROR);
+            }
+        }
+
+        return $this->tous;
     }
 
     /**

@@ -25,6 +25,17 @@
         </div>
     </div>
 
+    {# Absents de dernière minute ou renforts : même thème, exercices trop gros remplacés, répartition en ateliers réécrite. #}
+    <form method="post" action="{{ path('app_seance_adapter', {id: seance.id}) }}" class="carte adapter-seance sans-impression">
+        <input type="hidden" name="_token" value="{{ csrf_token('adapter-seance' ~ seance.id) }}">
+        <label for="joueurs-presents"><strong>👥 Joueurs présents</strong> <span class="discret petit">(gardiens compris)</span></label>
+        <input type="number" id="joueurs-presents" name="joueurs" min="2" max="40" value="{{ joueurs_prevus ?? joueurs_attendus }}" placeholder="ex. 12" required>
+        <button class="bouton principal">Adapter au nombre de joueurs</button>
+        {% if joueurs_prevus %}<span class="pastille">séance prévue pour {{ joueurs_prevus }} joueurs</span>{% endif %}
+        {% if joueurs_attendus and joueurs_attendus != joueurs_prevus %}<span class="discret petit">{{ joueurs_attendus }} attendus d'après l'effectif et les absences signalées</span>{% endif %}
+        <span class="discret petit">Même thème ; les exercices trop gros sont remplacés et chaque exercice indique les ateliers à faire, pour que personne n'attende.</span>
+    </form>
+
     {% if seance.objectifs %}
         <div class="carte objectifs"><strong>Objectifs</strong><p class="memo">{{ seance.objectifs }}</p></div>
     {% endif %}

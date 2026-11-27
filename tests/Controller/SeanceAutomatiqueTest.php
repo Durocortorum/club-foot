@@ -86,7 +86,39 @@ class SeanceAutomatiqueTest extends WebTestCase
         $seance = $em->getRepository(Seance::class)->findOneBy(['categorie' => $seniors->getId()]);
         $titres = array_map(fn ($e) => $e->getTitre(), $seance->getExercices()->toArray());
         self::assertSame(60, array_sum(array_map(fn ($e) => $e->getDuree(), $seance->getExercices()->toArray())));
-        self::assertContains('Corner offensif : appels et blocs', $titres);
+        self::assertMatchesRegularExpression('/corner|coup franc|touche/i', implode(' | ', $titres), 'un exercice de coups de pied arrêtés');
         self::assertStringStartsWith('Jeu final – ', end($titres));
+
+        // Avec l'effectif : 18 seniors, puis 5 absents de dernière minute et encore d'autres (6 présents).
+        $crawler = $client->request('GET', '/entrainements/automatique');
+        $form = $crawler->selectButton('Préparer la séance')->form();
+        $form['themes'][5]->tick(); // pressing
+        $client->submit($form, ['categorie' => $seniors->getId(), 'date' => '2026-12-05', 'duree' => '90', 'joueurs' => '18']);
+        $em->clear();
+        $seance = $em->getRepository(Seance::class)->findOneBy(['categorie' => $seniors->getId(), 'date' => new \DateTimeImmutable('2026-12-05')]);
+        foreach ($seance->getExercices() as $e) {
+            self::assertStringContainsString('Effectif du jour : 18 joueurs', $e->getConsignes());
+        }
+        $generateur = static::getContainer()->get(\App\Service\GenerateurSeance::class);
+        $crawler = $client->request('GET', '/entrainements/' . $seance->getId());
+        self::assertSelectorExists('form[action$="/adapter"] input[name="joueurs"]');
+        $client->submit($crawler->selectButton('Adapter au nombre de joueurs')->form(), ['joueurs' => '6']);
+        $client->followRedirect();
+        self::assertSelectorTextContains('.flash-succes', 'Séance adaptée à 6 joueurs');
+        $em->clear();
+        $seance = $em->find(Seance::class, $seance->getId());
+        self::assertSame(90, array_sum(array_map(fn ($e) => $e->getDuree(), $seance->getExercices()->toArray())), 'mêmes durées');
+        self::assertSame('Pressing et récupération', $seance->getTheme(), 'même thème');
+        $bibliotheque = static::getContainer()->get(\App\Service\BibliothequeExercices::class);
+        foreach ($seance->getExercices() as $e) {
+            $consignes = $e->getConsignes();
+            self::assertSame(1, substr_count($consignes, 'Effectif du jour'), 'ligne remplacée, pas ajoutée');
+            self::assertStringContainsString('Effectif du jour : 6 joueurs', $consignes);
+            if (!str_starts_with($e->getTitre(), 'Jeu final')) {
+                $cle = array_search(preg_replace('/^Échauffement – /u', '', $e->getTitre()), array_column($bibliotheque->tous(), 'titre', null), true);
+                $cle = array_keys($bibliotheque->tous())[$cle];
+                self::assertLessThanOrEqual(6, $generateur->taille($cle), $e->getTitre() . ' tient à 6');
+            }
+        }
     }
 }

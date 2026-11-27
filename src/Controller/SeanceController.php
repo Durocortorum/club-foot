@@ -7,6 +7,8 @@ use App\Entity\Seance;
 use App\Form\ExerciceType;
 use App\Form\SeanceType;
 use App\Repository\CategorieRepository;
+use App\Repository\EntrainementRepository;
+use App\Repository\JoueurRepository;
 use App\Repository\SeanceRepository;
 use App\Security\ActiviteVoter;
 use App\Security\JoueurVoter;
@@ -91,7 +93,7 @@ class SeanceController extends AbstractController
 
     /** Séance automatique : on choisit l'équipe, la date, la durée et ce qu'on veut travailler ; la séance est composée et enregistrée. */
     #[Route('/automatique', name: 'app_seance_automatique', methods: ['GET', 'POST'])]
-    public function automatique(Request $request, EntityManagerInterface $em, CategorieRepository $categories, GenerateurSeance $generateur): Response
+    public function automatique(Request $request, EntityManagerInterface $em, CategorieRepository $categories, GenerateurSeance $generateur, JoueurRepository $joueurs, EntrainementRepository $entrainements): Response
     {
         $secteurs = $this->voter->secteursModifiables();
         if (!$secteurs) {
@@ -104,7 +106,11 @@ class SeanceController extends AbstractController
             'duree' => 75,
             'themes' => [],
             'objectif' => '',
+            'joueurs' => null,
         ];
+        // Joueurs attendus (effectif moins les absences signalées) quand l'équipe est déjà connue.
+        $connue = current(array_filter($equipes, fn ($c) => $c->getId() === (int) $saisie['categorie'])) ?: null;
+        $saisie['joueurs'] = $this->joueursAttendus($connue, \DateTimeImmutable::createFromFormat('!Y-m-d', $saisie['date']) ?: null, $joueurs, $entrainements);
         $erreurs = [];
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('seance-automatique', $request->getPayload()->getString('_token'))) {
@@ -117,6 +123,7 @@ class SeanceController extends AbstractController
                 'duree' => \in_array($p->getInt('duree'), GenerateurSeance::DUREES, true) ? $p->getInt('duree') : 75,
                 'themes' => array_values(array_intersect(array_keys(GenerateurSeance::THEMES), $p->all('themes'))),
                 'objectif' => mb_substr(trim($p->getString('objectif')), 0, 500),
+                'joueurs' => $p->getInt('joueurs') >= 2 ? min(40, $p->getInt('joueurs')) : null,
             ];
             $categorie = current(array_filter($equipes, fn ($c) => $c->getId() === $saisie['categorie'])) ?: null;
             $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $saisie['date']) ?: null;
@@ -130,7 +137,14 @@ class SeanceController extends AbstractController
                 $erreurs['themes'] = 'Cochez au moins une chose à travailler.';
             }
             if (!$erreurs) {
-                $seance = $generateur->composer($categorie, $date, $saisie['duree'], $saisie['themes'], $saisie['objectif'] ?: null);
+                // Exercices des 4 dernières séances de l'équipe : évités pour varier.
+                $recents = [];
+                foreach ($em->getRepository(Seance::class)->findBy(['categorie' => $categorie], ['date' => 'DESC', 'id' => 'DESC'], 4) as $s) {
+                    foreach ($s->getExercices() as $e) {
+                        $recents[] = preg_replace('/^(Échauffement|Jeu final) – /u', '', (string) $e->getTitre());
+                    }
+                }
+                $seance = $generateur->composer($categorie, $date, $saisie['duree'], $saisie['themes'], $saisie['objectif'] ?: null, $recents, $saisie['joueurs']);
                 $em->persist($seance);
                 $em->flush();
                 $this->addFlash('succes', \sprintf('Séance de %d minutes préparée : %d exercices. Modifiez ce que vous voulez, puis « Télécharger en PDF » pour l\'emporter au terrain.', $saisie['duree'], $seance->getExercices()->count()));
@@ -188,12 +202,52 @@ class SeanceController extends AbstractController
 
     #[Route('/{id}', name: 'app_seance_voir', requirements: ['id' => '\d+'], methods: ['GET'])]
     #[IsGranted(ActiviteVoter::GERER, 'seance')]
-    public function voir(Seance $seance, SeanceRepository $seances): Response
+    public function voir(Seance $seance, SeanceRepository $seances, JoueurRepository $joueurs, EntrainementRepository $entrainements): Response
     {
         return $this->render('seance/voir.html.twig', [
             'seance' => $seance,
             'destinations' => $seances->destinations($this->voter->secteursModifiables()),
+            'joueurs_attendus' => $this->joueursAttendus($seance->getCategorie(), $seance->getDate(), $joueurs, $entrainements),
+            // Nombre pour lequel la séance a été préparée ou adaptée (ligne « Effectif du jour » des consignes).
+            'joueurs_prevus' => array_reduce($seance->getExercices()->toArray(), fn (?int $n, $e) => $n ?? (preg_match('/' . preg_quote(GenerateurSeance::LIGNE_EFFECTIF, '/') . '(\d+)/u', (string) $e->getConsignes(), $m) ? (int) $m[1] : null), null),
         ]);
+    }
+
+    /** Absents de dernière minute (ou renforts) : la séance garde son thème, les exercices trop gros sont remplacés. */
+    #[Route('/{id}/adapter', name: 'app_seance_adapter', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted(ActiviteVoter::GERER, 'seance')]
+    public function adapter(Request $request, Seance $seance, GenerateurSeance $generateur, EntityManagerInterface $em): Response
+    {
+        if (!$this->isCsrfTokenValid('adapter-seance' . $seance->getId(), $request->getPayload()->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        $nombre = $request->getPayload()->getInt('joueurs');
+        if ($nombre < 2 || $nombre > 40) {
+            $this->addFlash('erreur', 'Indiquez le nombre de joueurs présents (entre 2 et 40).');
+
+            return $this->redirectToRoute('app_seance_voir', ['id' => $seance->getId()]);
+        }
+        $remplaces = $generateur->adapter($seance, $nombre);
+        $em->flush();
+        $this->addFlash('succes', \sprintf('Séance adaptée à %d joueurs : répartition indiquée dans chaque exercice (« Effectif du jour »)%s',
+            $nombre, $remplaces ? ' ; ' . implode(' ; ', array_map(fn ($r) => '« ' . $r['avant'] . ' » remplacé par « ' . $r['apres'] . ' »', $remplaces)) . '.' : '.'));
+
+        return $this->redirectToRoute('app_seance_voir', ['id' => $seance->getId()]);
+    }
+
+    /** Joueurs attendus à l'entraînement de ce jour : effectif de l'équipe moins les absences signalées. */
+    private function joueursAttendus(?\App\Entity\Categorie $categorie, ?\DateTimeImmutable $date, JoueurRepository $joueurs, EntrainementRepository $entrainements): ?int
+    {
+        if (!$categorie || !$date) {
+            return null;
+        }
+        $effectif = $joueurs->count(['categorie' => $categorie, 'ancien' => false]);
+        $absents = 0;
+        foreach ($entrainements->entre([$categorie], $date, $date) as $e) {
+            $absents = max($absents, \count($e->getAbsences()));
+        }
+
+        return $effectif ? max(0, $effectif - $absents) : null;
     }
 
     #[Route('/{id}/modifier', name: 'app_seance_modifier', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
