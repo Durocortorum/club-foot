@@ -114,6 +114,10 @@ h2.titre-leger { font-weight: 400; }
     body:has(.barre-app) .aide { bottom: calc(5rem + env(safe-area-inset-bottom)); }
     /* Les boutons qui font doublon avec la barre de rubrique sont cachés. */
     body:has(.barre-bas) .doublon-barre { display: none; }
+    body:has(.barre-app) .doublon-barre-app { display: none; }
+    /* Réponses de convocation attendues : pastille orange bien visible sur le bouton Convocations. */
+    .barre-app .pastille.attente { background: #f0a500; color: #fff; animation: attente-pulse 1.6s ease-in-out 3; }
+    @keyframes attente-pulse { 50% { transform: scale(1.25); } }
     /* Rubrique de plus de quatre onglets : la barre défile au doigt, « Plus » reste visible au bout. */
     .barre-app.defile { display: flex; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
     .barre-app.defile::-webkit-scrollbar { display: none; }

@@ -140,8 +140,10 @@ class AccesFamilleTest extends WebTestCase
         self::assertCount(2, $crawler->filter('.espace-joueur'));
         $premier = $crawler->filter('.espace-menu')->first();
         self::assertCount(1, $premier->filter('.espace-carte:contains("Convocations")'));
-        self::assertCount(0, $premier->filter('.espace-carte:contains("Statistiques"), .espace-carte:contains("Calendrier")'), 'pas de doublon avec la barre du bas');
-        self::assertCount(1, $crawler->filter('.espace-menu')->eq(1)->filter('.espace-carte:contains("Statistiques")'), 'carte Statistiques pour le deuxième enfant');
+        self::assertCount(1, $premier->filter('.espace-carte.doublon-barre-app:contains("Convocations")'), 'cachée sur téléphone : Convocations est dans la barre du bas');
+        self::assertCount(0, $premier->filter('.espace-carte:contains("Calendrier")'), 'pas de doublon avec la barre du bas');
+        self::assertCount(1, $crawler->filter('.espace-menu')->eq(1)->filter('.espace-carte:contains("Statistiques")'), 'carte Statistiques pour chaque enfant');
+        self::assertSelectorTextContains('.barre-app', 'Convoc.');
         // Pages « Classement » et « Mon équipe » de ses enfants seulement.
         $this->client->request('GET', '/espace/equipe/' . $lea->getId());
         self::assertResponseIsSuccessful();

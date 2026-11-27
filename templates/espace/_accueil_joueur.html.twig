@@ -33,7 +33,8 @@
 
 {% set prochaine = e.convocations|first %}
 <nav class="espace-menu" aria-label="Rubriques de {{ j.prenom }}">
-    <a href="#convocations-{{ j.id }}" class="espace-carte">
+    {# Sur téléphone, les convocations sont dans la barre du bas (pastille des réponses attendues) : carte cachée. #}
+    <a href="#convocations-{{ j.id }}" class="espace-carte doublon-barre-app">
         <span class="espace-carte-icone vert">{{ i.icone('planning') }}</span>
         <span class="espace-carte-texte"><strong>Convocations</strong>
             <span>{% if prochaine %}{% set r = prochaine.convocation.rencontre %}Prochain match : {{ ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'][r.date|date('w')] }} {{ r.date|date('d/m') }}{% else %}Aucune convocation pour l'instant{% endif %}</span></span>
@@ -41,9 +42,8 @@
         {% elseif prochaine %}<span class="espace-statut attente" title="Réponse attendue">!</span>{% endif %}
         <span class="espace-carte-fleche" aria-hidden="true">›</span>
     </a>
-    {# Statistiques et calendrier sont dans la barre du bas ; la carte Statistiques reste pour les enfants suivants
-       (le bouton Stats de la barre mène à celles du premier). #}
-    {% if e.stats and not premier_enfant %}
+    {# Le calendrier est dans la barre du bas ; les statistiques, ici pour chaque joueur. #}
+    {% if e.stats %}
         <a href="#statistiques-{{ j.id }}" class="espace-carte">
             <span class="espace-carte-icone bleu">{{ i.icone('stats') }}</span>
             <span class="espace-carte-texte"><strong>{{ not j.mineur ? 'Mes statistiques' : 'Statistiques' }}</strong><span>Buts, passes, temps de jeu…</span></span>
