@@ -109,6 +109,15 @@ class ChampionnatTest extends WebTestCase
         $crawler = $this->client->request('GET', '/matchs?categorie=' . $equipe->getId() . '&saison=' . $saison);
         self::assertSelectorTextContains('.classement-match .classement-rang', '2e');
         self::assertCount(0, $crawler->filter('.classement-compact tr.adversaire'), 'pas d\'adversaire sans match');
+        // Équipe gardée d'une page à l'autre : les pages ouvertes sans équipe reprennent celle choisie, jusqu'à « Toutes ».
+        foreach (['/statistiques', '/presences', '/entrainements', '/joueurs', '/matchs'] as $page) {
+            $this->client->request('GET', $page);
+            self::assertSelectorTextContains('h1 .equipe-titre', $equipe->getNom(), "$page reprend l'équipe choisie");
+        }
+        $this->client->request('GET', '/matchs?categorie=');
+        self::assertSelectorNotExists('h1 .equipe-titre');
+        $this->client->request('GET', '/statistiques');
+        self::assertSelectorNotExists('h1 .equipe-titre', '« Toutes les catégories » efface le choix');
         $amical = $em->getRepository(Rencontre::class)->findOneBy(['categorie' => $equipe->getId(), 'competition' => 'Amical']);
         $this->client->request('GET', '/matchs/' . $amical->getId());
         self::assertSelectorNotExists('.classement-match');
