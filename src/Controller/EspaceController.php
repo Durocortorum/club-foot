@@ -4,6 +4,9 @@ namespace App\Controller;
 
 use App\Entity\AbsenceEntrainement;
 use App\Entity\Convoque;
+use App\Entity\Message;
+use App\Service\Messagerie;
+use App\Service\ResponsablesMatchs;
 use App\Entity\Entrainement;
 use App\Entity\Joueur;
 use App\Entity\Rencontre;
@@ -411,7 +414,8 @@ class EspaceController extends AbstractController
 
     /** Réponse de la famille à une convocation, jusqu'au jour du match. */
     #[Route('/espace/convocation/{id}', name: 'app_espace_reponse', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function repondre(Request $request, Convoque $convoque, EntityManagerInterface $em, AccesFamille $acces): Response
+    public function repondre(Request $request, Convoque $convoque, EntityManagerInterface $em, AccesFamille $acces,
+        Messagerie $messagerie, ResponsablesMatchs $responsables, UtilisateurRepository $utilisateurs): Response
     {
         /** @var Utilisateur $moi */
         $moi = $this->getUser();
@@ -430,11 +434,47 @@ class EspaceController extends AbstractController
         }
         // Qui a répondu, lisible par l'éducateur : le joueur lui-même (son propre compte) ou un parent.
         $qui = $acces->estLeJoueur($moi, $convoque->getJoueur()) ? 'Joueur' : 'Parent';
+        $avant = [$convoque->getReponse(), $convoque->getMotif()];
         $convoque->repondre($reponse, $request->getPayload()->getString('motif'), trim($qui . ' : ' . $moi->getPrenom() . ' ' . $moi->getNom()));
         $em->flush();
+        // L'éducateur de l'équipe est prévenu par un message (messagerie, notification, e-mail), sauf si rien n'a changé.
+        if ($avant !== [$convoque->getReponse(), $convoque->getMotif()]) {
+            $this->prevenirEducateurs($convoque, $moi, $messagerie, $responsables, $utilisateurs);
+        }
         $this->addFlash('succes', \sprintf('Merci, réponse enregistrée : %s %s.', $convoque->getJoueur()->getPrenom(), Convoque::PRESENT === $reponse ? 'sera présent(e)' : 'sera absent(e)'));
 
         return $this->redirectToRoute('app_espace');
+    }
+
+    /**
+     * Réponse à une convocation : message de la famille aux comptes des éducateurs de l'équipe (fiche Encadrement
+     * de la catégorie, ou éducateur du joueur, reliée au compte par l'adresse e-mail). L'éducateur peut y répondre.
+     */
+    private function prevenirEducateurs(Convoque $convoque, Utilisateur $moi, Messagerie $messagerie, ResponsablesMatchs $responsables, UtilisateurRepository $utilisateurs): void
+    {
+        $joueur = $convoque->getJoueur();
+        $fiches = $joueur->getCategorie() ? $responsables->educateursDe($joueur->getCategorie()) : [];
+        if ($joueur->getEducateur()) {
+            $fiches[] = $joueur->getEducateur();
+        }
+        $emails = array_values(array_unique(array_filter(array_map(fn ($e) => $e->getEmail() ? mb_strtolower($e->getEmail()) : null, $fiches))));
+        $comptes = $emails ? array_filter($utilisateurs->findBy(['email' => $emails, 'famille' => false]), fn (Utilisateur $u) => null !== $u->getPassword() && !$u->isSuspendu()) : [];
+        if (!$comptes) {
+            return;
+        }
+        $r = $convoque->getConvocation()->getRencontre();
+        $quand = \sprintf('%s %s%s', ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][(int) $r->getDate()->format('w')], $r->getDate()->format('d/m'), $r->getHeure() ? ' à ' . $r->getHeure() : '');
+        $present = Convoque::PRESENT === $convoque->getReponse();
+        $corps = \sprintf("%s sera %s au match %s (%s).", $joueur->getPrenom() . ' ' . $joueur->getNom(), $present ? 'PRÉSENT(E)' : 'ABSENT(E)', $r->getIntitule(), $quand);
+        if (!$present && $convoque->getMotif()) {
+            $corps .= "\n\nMotif : " . $convoque->getMotif();
+        }
+        $corps .= "\n\nRéponse donnée depuis l'espace famille par " . $messagerie->nomFamille($moi) . '.';
+        $message = (new Message())->setAuteur($moi)->setAuteurNom($messagerie->nomFamille($moi))
+            ->setSujet(mb_substr(\sprintf('Convocation : %s %s (%s)', $joueur->getPrenom(), $present ? 'présent(e)' : 'absent(e)', $r->getDate()->format('d/m')), 0, 120))
+            ->setCorps($corps)->setCible('encadrement')
+            ->setCibleLibelle(implode(', ', array_map(fn (Utilisateur $u) => (string) $u, $comptes)));
+        $messagerie->envoyer($message, [], true, array_values($comptes));
     }
 
     #[Route('/activation/{jeton}', name: 'app_activation', requirements: ['jeton' => '[0-9a-f]{48}'], methods: ['GET', 'POST'])]

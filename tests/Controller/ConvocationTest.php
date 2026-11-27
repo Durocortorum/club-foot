@@ -240,6 +240,8 @@ class ConvocationTest extends WebTestCase
         $parent = (new Utilisateur())->setClub($club)->setFamille(true)->setEmail("parent-$id@exemple.test")->setNom('Martin')->setPrenom('Famille')->addJoueur($lea);
         $parent->setPassword(static::getContainer()->get(UserPasswordHasherInterface::class)->hashPassword($parent, 'secret-famille'));
         $em->persist($parent);
+        // Fiche Encadrement de l'équipe reliée au compte de l'éducateur (même adresse) : il est prévenu des réponses.
+        $em->persist((new \App\Entity\Educateur())->setClub($club)->setNom('Test')->setPrenom('Coach')->setEmail("admin-$id@exemple.test")->addEquipe($categorie));
         $em->flush();
         $match = '/matchs/' . $rencontre->getId();
 
@@ -314,6 +316,13 @@ class ConvocationTest extends WebTestCase
         self::assertSame([Convoque::ABSENT, 'Malade', 'Parent : Famille MARTIN'], [$reponseLea->getReponse(), $reponseLea->getMotif(), $reponseLea->getReponduPar()]);
         $this->client->submit($crawler->selectButton('Présent')->form());
         self::assertSame(Convoque::PRESENT, $this->convoque($rencontre, 'Léa')->getReponse());
+        // L'éducateur de l'équipe reçoit un message à chaque réponse (absente avec le motif, puis présente).
+        $this->em()->clear();
+        $avis = $this->em()->getRepository(\App\Entity\Message::class)->findBy(['auteur' => $parent->getId()], ['id' => 'ASC']);
+        self::assertSame(['Convocation : Léa absent(e) (' . $rencontre->getDate()->format('d/m') . ')', 'Convocation : Léa présent(e) (' . $rencontre->getDate()->format('d/m') . ')'],
+            array_map(fn ($m) => $m->getSujet(), $avis));
+        self::assertStringContainsString('Motif : Malade', $avis[0]->getCorps());
+        self::assertTrue($avis[0]->estDestinataire($this->em()->getRepository(Utilisateur::class)->findOneBy(['email' => "admin-$id@exemple.test"])));
 
         // Elle ne peut ni répondre pour Tom, ni ouvrir la page de l'éducateur.
         $tomConvoque = $this->convoque($rencontre, 'Tom');
