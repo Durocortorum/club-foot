@@ -197,9 +197,10 @@ class ClubDemoCommand extends Command
         $io->success('Club de démonstration « ' . self::NOM . ' » créé.');
         $io->table(['Rôle', 'Identifiant', 'Mot de passe'], [
             ['Président (administrateur)', 'president@' . self::DOMAINE, $motDePasse],
-            ['Éducateur U15 (préformation)', 'educateur@' . self::DOMAINE, $motDePasse],
-            ['Parent (2 enfants : U15 et U11)', 'parent@' . self::DOMAINE, $motDePasse],
-            ['Joueur senior (majeur)', 'joueur@' . self::DOMAINE, $motDePasse],
+            ['Éducateur U13 et U15 (préformation)', 'educateur@' . self::DOMAINE, $motDePasse],
+            ['Éducateur seniors', 'educateur.seniors@' . self::DOMAINE, $motDePasse],
+            ['Parent (2 enfants : U15 et U13, éducateur Karim)', 'parent@' . self::DOMAINE, $motDePasse],
+            ['Joueur senior (majeur, éducateur Patrick)', 'joueur@' . self::DOMAINE, $motDePasse],
         ]);
         $io->note('Données inventées. Les adresses @' . self::DOMAINE . ' ne reçoivent jamais d\'e-mail.');
 
@@ -257,9 +258,11 @@ class ClubDemoCommand extends Command
                 ->setDateDiplome(new \DateTimeImmutable('2019-06-15'))->setPermis('B')->setTelPortable1('06 20 30 ' . (40 + \count($educateurs)) . ' 50')
                 ->setEmail(\sprintf('%s.%s@%s', $this->ascii($prenom), $this->ascii($nom), self::DOMAINE));
             $e->addEquipe($this->categories[$cat]);
-            // Karim a un compte de démo : même adresse sur sa fiche et pour se connecter.
+            // Karim (préformation) et Patrick (seniors) ont un compte de démo : même adresse sur leur fiche et pour se connecter.
             if ('U15' === $cat) {
-                $e->setEmail('educateur@' . self::DOMAINE);
+                $e->setEmail('educateur@' . self::DOMAINE)->addEquipe($this->categories['U13']);
+            } elseif ('SENIORS' === $cat) {
+                $e->setEmail('educateur.seniors@' . self::DOMAINE);
             }
             $this->em->persist($e);
             $educateurs[$cat] = $e;
@@ -302,14 +305,20 @@ class ClubDemoCommand extends Command
             $this->em->persist((new ContactUtile())->setRubrique($rubrique)->setLibelle($libelle)->setNom($nom)->setTelephone($tel)->setNote($note));
         }
 
-        // Comptes : éducateur U15, et un parent de deux enfants (U15 et U11).
+        // Comptes : Karim, éducateur de la préformation (U13, U15), et un parent de deux enfants qu'il encadre (U15 et U13),
+        // pour essayer la messagerie entre eux.
         $educ = (new Utilisateur())->setEmail('educateur@' . self::DOMAINE)->setPrenom('Karim')->setNom('Benali')
             ->setRolesAttribues(['ROLE_PREFORMATION', 'ROLE_DISCIPLINE', 'ROLE_TESTS_PHYSIQUES', 'ROLE_SCOLAIRE_LECTURE', 'ROLE_FINANCES_LECTURE']);
         $educ->setPassword($this->hasher->hashPassword($educ, $motDePasse));
         $this->em->persist($educ);
+        // Patrick, éducateur des seniors : il encadre l'équipe du compte joueur.
+        $educSeniors = (new Utilisateur())->setEmail('educateur.seniors@' . self::DOMAINE)->setPrenom('Patrick')->setNom('Lambert')
+            ->setRolesAttribues(['ROLE_ELITE', 'ROLE_DISCIPLINE', 'ROLE_TESTS_PHYSIQUES', 'ROLE_FINANCES_LECTURE']);
+        $educSeniors->setPassword($this->hasher->hashPassword($educSeniors, $motDePasse));
+        $this->em->persist($educSeniors);
         $enfant1 = $this->joueurs['U15'][2];
-        $enfant2 = $this->joueurs['U11'][3];
-        $enfant2->setNom($enfant1->getNom())->setNomParent1('Sophie ' . $enfant1->getNom());
+        $enfant2 = $this->joueurs['U13'][3];
+        $enfant2->setNom($enfant1->getNom())->setNomParent1('Sophie ' . $enfant1->getNom())->setEducateur($educateurs['U15']);
         foreach ([$enfant1, $enfant2] as $j) {
             $j->setEmailParent1('parent@' . self::DOMAINE);
         }
@@ -326,7 +335,7 @@ class ClubDemoCommand extends Command
         $this->em->persist($joueur);
         $this->em->flush();
 
-        return [$educateurs, ['educateur' => $educ, 'parent' => $parent, 'joueur' => $joueur, 'president' => $this->em->getRepository(Utilisateur::class)->findOneBy(['email' => 'president@' . self::DOMAINE])]];
+        return [$educateurs, ['educateur' => $educ, 'educateur_seniors' => $educSeniors, 'parent' => $parent, 'joueur' => $joueur, 'president' => $this->em->getRepository(Utilisateur::class)->findOneBy(['email' => 'president@' . self::DOMAINE])]];
     }
 
     // ———————————————————————— Matchs ————————————————————————
@@ -1075,6 +1084,14 @@ class ClubDemoCommand extends Command
             ->setCible('categorie')->setCibleLibelle('Catégorie U15')->setCategorie($this->categories['U15']);
         foreach ($this->joueurs['U15'] as $j) {
             $message->ajouterDestinataire($j, $comptes['parent']->getJoueurs()->contains($j) ? $comptes['parent'] : null);
+        }
+        $this->em->persist($message);
+        // Message de Patrick aux seniors : le compte joueur le reçoit et peut y répondre.
+        $message = (new Message())->setAuteur($comptes['educateur_seniors'])->setAuteurNom('Patrick Lambert')->setSujet('Match de dimanche')
+            ->setCorps("Bonjour à tous,\n\nRendez-vous dimanche à 13 h 30 au stade, tenue du club.\nPrévenez-moi en cas d'absence.\n\nPatrick")
+            ->setCible('categorie')->setCibleLibelle('Catégorie SENIORS')->setCategorie($this->categories['SENIORS']);
+        foreach ($this->joueurs['SENIORS'] as $j) {
+            $message->ajouterDestinataire($j, $comptes['joueur']->getJoueurs()->contains($j) ? $comptes['joueur'] : null);
         }
         $this->em->persist($message);
     }

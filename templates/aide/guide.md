@@ -180,7 +180,7 @@ Déplacements (car, minibus du club, voitures personnelles, train), créés auss
 
 ## Club de démonstration
 
-« FC Démo des Coteaux » : données inventées pour présenter l'application, remises à zéro chaque nuit (et par le bouton « Remettre la démo à zéro »). Comptes : president@demo.org, educateur@demo.org, parent@demo.org, joueur@demo.org, mot de passe demo2026. Aucun e-mail n'est envoyé vers ces adresses.
+« FC Démo des Coteaux » : données inventées pour présenter l'application, remises à zéro chaque nuit (et par le bouton « Remettre la démo à zéro »). Comptes : president@demo.org, educateur@demo.org (Karim, éducateur U13 et U15, celui des deux enfants du parent), educateur.seniors@demo.org (Patrick, éducateur des seniors, celui du joueur), parent@demo.org, joueur@demo.org, mot de passe demo2026. Aucun e-mail n'est envoyé vers ces adresses.
 
 ## Formules et pages légales
 
