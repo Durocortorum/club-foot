@@ -166,11 +166,18 @@ class GenerateurSeance
         $remplaces = [];
         foreach ($seance->getExercices() as $e) {
             $cle = $this->cleDe($e);
-            if (!$cle || 'j' === $this->role($cle) || $this->taille($cle) <= $joueurs) {
+            if (!$cle || $this->taille($cle) <= $joueurs) {
                 continue;
             }
             $themesExercice = array_values(array_intersect($this->themesDe($cle), $themes)) ?: $this->themesDe($cle);
             $nouvelle = $this->choisir($seance->getCategorie(), $this->role($cle), $themesExercice ?: $themes, null, $dansLaSeance, [], $joueurs);
+            if (!$nouvelle && 'j' === $this->role($cle)) {
+                // Aucun jeu de la bibliothèque à ce nombre : match à thème, sans nombre imposé.
+                $match = $this->matchATheme(array_map(fn ($t) => self::THEMES[$t], $themes ?: ['passes']), (int) $e->getDuree());
+                $remplaces[] = ['avant' => (string) $e->getTitre(), 'apres' => (string) $match->getTitre()];
+                $e->setTitre($match->getTitre())->setConsignes($match->getConsignes())->setSchema($match->getSchema());
+                continue;
+            }
             if (!$nouvelle) {
                 continue;
             }
@@ -253,7 +260,7 @@ class GenerateurSeance
         $score = fn (string $cle) => \count(array_intersect($this->themesDe($cle), $themes));
         $candidats = array_values(array_filter(array_keys($tous), fn ($cle) => !\in_array($cle, $exclus, true) && $rang($cle) <= 1
             && $role === $this->role($cle) && (null === $theme || \in_array($theme, $this->themesDe($cle), true))));
-        if ($joueurs && 'j' !== $role) {
+        if ($joueurs) {
             $candidats = array_values(array_filter($candidats, fn ($cle) => $this->taille($cle) <= $joueurs));
         }
         // Pas un exercice des dernières séances de l'équipe, s'il y a d'autres choix.
@@ -287,17 +294,20 @@ class GenerateurSeance
     }
 
     /**
-     * Joueurs nécessaires pour un atelier (hors gardiens et éducateur) : lu dans le titre (« 5 contre 2 »,
-     * « 6 contre 6 + 3 », « 4+4 contre 2 »), sinon compté sur le schéma.
+     * Joueurs nécessaires pour un atelier ou un jeu (hors gardiens et éducateur) : lu dans le titre (« 5 contre 2 »,
+     * « 6 contre 6 + 3 », « 4+4 contre 2 »), puis dans l'organisation (« 6 contre 6 »), sinon compté sur le schéma.
      */
     public function taille(string $cle): int
     {
         $e = $this->bibliotheque->tous()[$cle];
-        if (preg_match('/(\d+)\s*\+\s*(\d+) contre (\d+)/u', $e['titre'], $m)) {
-            return (int) $m[1] + (int) $m[2] + (int) $m[3];
-        }
-        if (preg_match('/(\d+) contre (\d+)(?: \+ (\d+))?/u', $e['titre'], $m)) {
-            return (int) $m[1] + (int) $m[2] + (int) ($m[3] ?? 0);
+        $organisation = strtok((string) $e['consignes'], "\n");
+        foreach ([$e['titre'], $organisation] as $texte) {
+            if (preg_match('/(\d+)\s*\+\s*(\d+) contre (\d+)/u', $texte, $m)) {
+                return (int) $m[1] + (int) $m[2] + (int) $m[3];
+            }
+            if (preg_match('/(\d+) contre (\d+)(?: \+ (\d+))?/u', $texte, $m)) {
+                return (int) $m[1] + (int) $m[2] + (int) ($m[3] ?? 0);
+            }
         }
 
         return max(2, \count(array_filter($e['schema']['objets'] ?? [], fn ($o) => 'joueur' === $o['t'] && !\in_array($o['n'] ?? '', ['G', 'E'], true))));
