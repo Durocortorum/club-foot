@@ -64,4 +64,12 @@
             <span class="espace-carte-fleche" aria-hidden="true">›</span>
         </a>
     {% endif %}
+    {# Joueur majeur : ses proches (personnes à contacter) et leur accès à l'espace, rubrique en bas de page. #}
+    {% if e.proches is not null %}
+        <a href="#proches-titre-{{ j.id }}" class="espace-carte">
+            <span class="espace-carte-icone vert">{{ i.icone('familles') }}</span>
+            <span class="espace-carte-texte"><strong>Mes proches</strong><span>{% if e.proches %}{{ e.proches|length }} {{ accord(e.proches|length, 'personne') }} · donner l'accès à l'espace{% else %}Ajouter un proche, lui donner l'accès{% endif %}</span></span>
+            <span class="espace-carte-fleche" aria-hidden="true">›</span>
+        </a>
+    {% endif %}
 </nav>
