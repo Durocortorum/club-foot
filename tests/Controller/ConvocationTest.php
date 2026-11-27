@@ -314,6 +314,16 @@ class ConvocationTest extends WebTestCase
         self::assertSelectorTextContains('.flash-succes', 'Léa sera absent(e)');
         $reponseLea = $this->convoque($rencontre, 'Léa');
         self::assertSame([Convoque::ABSENT, 'Malade', 'Parent : Famille MARTIN'], [$reponseLea->getReponse(), $reponseLea->getMotif(), $reponseLea->getReponduPar()]);
+        // Côté éducateur : Léa (absente) est signalée, sa case est bloquée ; enregistrer la garde convoquée avec sa réponse.
+        $this->client->loginUser($admin);
+        $crawler = $this->client->request('GET', "$match/convocation");
+        $caseLea = $crawler->filter('#joueurs-convoques input[value="' . $lea->getId() . '"]');
+        self::assertSame('disabled', $caseLea->attr('disabled'));
+        self::assertStringContainsString('absent · Malade', $caseLea->closest('label')->text());
+        $this->client->submit($crawler->selectButton('Enregistrer sans envoyer')->form());
+        self::assertSame([Convoque::ABSENT, 'Malade'], [$this->convoque($rencontre, 'Léa')->getReponse(), $this->convoque($rencontre, 'Léa')->getMotif()]);
+        $this->client->loginUser($parent);
+        $crawler = $this->client->request('GET', '/espace');
         $this->client->submit($crawler->selectButton('Présent')->form());
         self::assertSame(Convoque::PRESENT, $this->convoque($rencontre, 'Léa')->getReponse());
         // L'éducateur de l'équipe reçoit un message à chaque réponse (absente avec le motif, puis présente).

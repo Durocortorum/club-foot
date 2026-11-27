@@ -54,6 +54,7 @@ class ConvocationController extends AbstractController
         // Joueurs déjà convoqués ailleurs le même jour (ou le même week-end) : grisés, sauf s'ils sont déjà dans celle-ci.
         $occupes = $convoques->dejaConvoques($rencontre);
         $dejaIci = array_map(fn (Joueur $j) => $j->getId(), $convocation->getJoueurs());
+        $absents = array_map(fn (Convoque $c) => $c->getJoueur()->getId(), $convocation->parReponse(Convoque::ABSENT));
         $ailleurs = fn (Joueur $j) => isset($occupes[$j->getId()])
             ? \sprintf('%s %s', $occupes[$j->getId()]->getEquipeAffichee(), $occupes[$j->getId()]->getDate()->format('d/m'))
             : null;
@@ -67,9 +68,12 @@ class ConvocationController extends AbstractController
                 'class' => Joueur::class,
                 'choices' => $proposes = $this->joueursProposes($rencontre, $convocation, $joueurs),
                 'choice_label' => fn (Joueur $j) => $j->getNom() . ' ' . $j->getPrenom(),
-                'choice_attr' => fn (Joueur $j) => $ailleurs($j)
-                    ? ['data-ailleurs' => $ailleurs($j)] + (\in_array($j->getId(), $dejaIci, true) ? [] : ['disabled' => 'disabled'])
-                    : [],
+                // A répondu « absent » : case bloquée (il ne peut pas jouer) ; il reste dans la convocation avec sa réponse,
+                // que l'éducateur peut changer dans « Réponses » (la case redevient libre).
+                'choice_attr' => fn (Joueur $j) => (\in_array($j->getId(), $absents, true) ? ['disabled' => 'disabled', 'data-absent' => '1'] : [])
+                    + ($ailleurs($j)
+                        ? ['data-ailleurs' => $ailleurs($j)] + (\in_array($j->getId(), $dejaIci, true) ? [] : ['disabled' => 'disabled'])
+                        : []),
                 'group_by' => fn (Joueur $j) => $this->groupeJoueur($j, $rencontre),
                 'multiple' => true,
                 'expanded' => true,
@@ -92,7 +96,14 @@ class ConvocationController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $d = $form->getData();
-            $gardes = array_map(fn (Joueur $j) => $j->getId(), [...$d['joueurs']]);
+            // Les absents (case bloquée, donc non envoyée) restent convoqués avec leur réponse.
+            $d['joueurs'] = [...$d['joueurs']];
+            foreach ($convocation->parReponse(Convoque::ABSENT) as $c) {
+                if (!\in_array($c->getJoueur(), $d['joueurs'], true)) {
+                    $d['joueurs'][] = $c->getJoueur();
+                }
+            }
+            $gardes = array_map(fn (Joueur $j) => $j->getId(), $d['joueurs']);
             $retires = array_values(array_filter($convocation->getJoueurs(), fn (Joueur $j) => !\in_array($j->getId(), $gardes, true)));
             $convocation->setJoueurs($d['joueurs'])->setRdvHeure($d['rdvHeure'])->setRdvLieu($d['rdvLieu'])->setMessage($d['message']);
             $this->em->persist($convocation);

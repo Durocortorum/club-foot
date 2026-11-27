@@ -1619,6 +1619,9 @@ table.droits thead th.droits-nom { z-index: 3; }
 /* A répondu « absent » à la convocation : nom barré, fond rouge pâle, motif en pastille. */
 .case-joueur.absent-convoc { background: #fdecee; border-radius: 6px; padding: .15rem .35rem; flex-wrap: wrap; }
 .case-joueur.absent-convoc .case-joueur-nom { text-decoration: line-through; color: var(--gris); }
+/* Sa case est bloquée (il ne peut pas jouer) : on la cache, l'étiquette « ✗ absent » suffit. */
+.case-joueur.absent-convoc { cursor: not-allowed; }
+.case-joueur.absent-convoc input[type="checkbox"] { visibility: hidden; }
 .niveaux-dessous { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin: 0 0 .8rem; }
 #joueurs-convoques { scroll-margin-top: 1rem; }
 .lien-discret { margin-left: .5rem; padding: 0; border: 0; background: none; font: inherit; color: var(--gris); text-decoration: underline; cursor: pointer; }
