@@ -185,7 +185,7 @@ class ClubDemoCommand extends Command
         if (!empty($anciensMotsDePasse)) {
             // Un compte ajouté depuis (ex. joueur@) prend le mot de passe des autres comptes de démonstration.
             $commun = $anciensMotsDePasse['president@' . self::DOMAINE] ?? reset($anciensMotsDePasse);
-            foreach (['president', 'educateur', 'parent', 'joueur'] as $qui) {
+            foreach (['president', 'educateur', 'educateur.seniors', 'parent', 'joueur'] as $qui) {
                 $email = $qui . '@' . self::DOMAINE;
                 $this->em->getConnection()->executeStatement('UPDATE utilisateur SET password = ? WHERE email = ?', [$anciensMotsDePasse[$email] ?? $commun, $email]);
             }
