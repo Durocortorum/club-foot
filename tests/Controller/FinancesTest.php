@@ -76,8 +76,8 @@ class FinancesTest extends WebTestCase
         self::assertStringContainsString('Payé', $crawler->filter("#joueur-{$lea->getId()}")->text());
 
         // Entrées d'un match : 85 entrées à 3 € ; achat de matériel : 120 €.
-        $crawler = $client->request('GET', '/finances/operations/nouvelle?sens=recette&modele=entrees');
-        $client->submit($crawler->selectButton('Enregistrer')->form(['operation[libelle]' => 'Match U19 contre Troyes', 'operation[nbEntrees]' => '85', 'operation[prixPlace]' => '3']));
+        $crawler = $client->request('GET', '/finances/operations/nouvelle?sens=recette');
+        $client->submit($crawler->selectButton('Enregistrer')->form(['operation[rubrique]' => 'Entrées des matchs', 'operation[libelle]' => 'Match U19 contre Troyes', 'operation[nbEntrees]' => '85', 'operation[prixPlace]' => '3']));
         $crawler = $client->followRedirect();
         self::assertStringContainsString('255,00', $crawler->filter('.flash-succes')->text());
         $crawler = $client->request('GET', '/finances/operations/nouvelle?sens=depense');

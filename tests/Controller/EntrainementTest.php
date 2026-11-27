@@ -77,7 +77,7 @@ class EntrainementTest extends WebTestCase
         self::assertSelectorTextContains('.flash-succes', 'Mercredi 18:00-19:30');
         self::assertGreaterThanOrEqual(3, $crawler->filter('article.entrainement')->count());
         // Période plus longue : jusqu'au 30 juin, un mercredi par semaine.
-        $datesEducateur = $crawler->filter('article.entrainement > .avec-actions > div > strong')->each(fn ($n) => $n->text());
+        $datesEducateur = $crawler->filter('article.entrainement .entrainement-date')->each(fn ($n) => $n->attr('aria-label'));
         $troisSemaines = \count($datesEducateur);
         $crawler = $this->client->request('GET', '/planning?categorie=' . $categorie->getId() . '&periode=saison');
         $finSaison = new \DateTimeImmutable(((int) date('Y') + ((int) date('n') >= 7 ? 1 : 0)) . '-06-30');

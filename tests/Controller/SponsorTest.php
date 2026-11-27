@@ -81,7 +81,7 @@ class SponsorTest extends WebTestCase
         $this->client->request('GET', '/sponsors');
         self::assertSelectorTextContains('.vide', 'Aucun sponsor');
         $crawler = $this->client->request('GET', '/archives');
-        $crawler = $this->client->click($crawler->filter('a.tuile:contains("Sponsors")')->link());
+        $crawler = $this->client->click($crawler->filter('a.carte-lien:contains("Sponsors")')->link());
         self::assertSelectorTextContains('table', 'BOULANGERIE MARTIN');
 
         // Un éducateur n'y a pas accès (montants et contrats).
@@ -89,6 +89,6 @@ class SponsorTest extends WebTestCase
         $this->client->request('GET', '/sponsors');
         self::assertResponseStatusCodeSame(403);
         $crawler = $this->client->request('GET', '/archives');
-        self::assertCount(0, $crawler->filter('a.tuile:contains("Sponsors")'));
+        self::assertCount(0, $crawler->filter('a.carte-lien:contains("Sponsors")'));
     }
 }

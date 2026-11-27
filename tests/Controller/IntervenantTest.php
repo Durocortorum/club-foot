@@ -61,7 +61,7 @@ class IntervenantTest extends WebTestCase
             'intervenant[nom]' => 'Durand', 'intervenant[prenom]' => 'Paul', 'intervenant[fonction]' => 'Secrétariat', 'intervenant[ancien]' => true,
         ]));
         $crawler = $this->client->request('GET', '/archives');
-        $crawler = $this->client->click($crawler->filter('a.tuile:contains("Administratifs")')->link());
+        $crawler = $this->client->click($crawler->filter('a.carte-lien:contains("Administratifs")')->link());
         self::assertSelectorTextContains('.grille-personnes', 'Paul DURAND');
 
         // Arbitre : niveau et équipement en plus de la fiche commune.
