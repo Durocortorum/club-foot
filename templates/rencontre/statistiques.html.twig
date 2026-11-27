@@ -5,7 +5,7 @@
 {% block body %}
     {% set lien = {saison: filtres.saison ?? '', categorie: filtres.categorie} %}
     <div class="titre-page">
-        <h1>Statistiques</h1>
+        <h1>Statistiques{% set nom_equipe = filtres.categorie ? (categories|filter(c => c.id == filtres.categorie)|first).nom ?? null : null %}{% if nom_equipe %} <span class="equipe-titre">{{ nom_equipe }}</span>{% endif %}</h1>
     </div>
 
     <form class="filtres" method="get">

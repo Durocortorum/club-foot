@@ -8,7 +8,7 @@
     {% set equipe = filtres.categorie ? (categories|filter(c => c.id == filtres.categorie)|first) : null %}
     {% set en_plateaux = equipe and equipe.plateaux %}
     <div class="titre-page">
-        <h1>{{ en_plateaux ? 'Plateaux' : 'Matchs' }} <span class="compteur">{{ total }}</span></h1>
+        <h1>{{ en_plateaux ? 'Plateaux' : 'Matchs' }}{% if equipe %} <span class="equipe-titre">{{ equipe.nom }}</span>{% endif %} <span class="compteur">{{ total }}</span></h1>
         {% if peut_creer %}
             <span class="actions">
                 {% if not en_plateaux %}

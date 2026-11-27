@@ -5,7 +5,7 @@
 
 {% block body %}
     <div class="titre-page">
-        <h1>Entraînements <span class="compteur">{{ total }} séance{{ total > 1 ? 's' }}</span></h1>
+        <h1>Entraînements{% set nom_equipe = filtres.categorie ? (categories|filter(c => c.id == filtres.categorie)|first).nom ?? null : null %}{% if nom_equipe %} <span class="equipe-titre">{{ nom_equipe }}</span>{% endif %} <span class="compteur">{{ total }} séance{{ total > 1 ? 's' }}</span></h1>
         <span class="actions">
             <a class="bouton doublon-barre" href="{{ path('app_cpa') }}" title="Bibliothèque de combinaisons de corners, coups francs et touches">🚩 Coups de pied arrêtés</a>
             <a class="bouton doublon-barre" href="{{ path('app_etat_forme') }}" title="État de forme du jour renseigné par les joueurs : fatigue, sommeil, douleurs, motivation">💚 État de forme</a>

@@ -2779,3 +2779,5 @@ form:has(select[name$="[competition]"] option[value^="Coupe" i]:checked) .coupe-
 .classement-compact tr.adversaire td { background: #fff7e6; }
 .classement-compact th:nth-child(2), .classement-compact td.principal { text-align: left; }
 .classement-compact td:first-child { font-weight: 700; color: var(--gris); }
+/* Équipe choisie dans le filtre, rappelée dans le titre de la page (Matchs · U19). */
+.equipe-titre { display: inline-block; vertical-align: middle; margin-left: .2rem; padding: .1rem .6rem; border-radius: 8px; background: var(--rouge); color: var(--sur-rouge); font-size: .7em; font-weight: 700; }

@@ -5,7 +5,7 @@
 
 {% block body %}
     <div class="titre-page">
-        <h1>Joueurs <span class="compteur">{{ total }}</span></h1>
+        <h1>Joueurs{% set nom_equipe = filtres.categorie ? (categories|filter(c => c.id == filtres.categorie)|first).nom ?? null : null %}{% if nom_equipe %} <span class="equipe-titre">{{ nom_equipe }}</span>{% endif %} <span class="compteur">{{ total }}</span></h1>
         {% if not peut_creer %}
             <span class="actions"><a class="bouton doublon-barre" href="{{ path('app_joueur_effectifs') }}">Effectifs et listings</a></span>
         {% else %}
