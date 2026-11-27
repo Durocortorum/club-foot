@@ -74,6 +74,9 @@
                 {% endif %}
                 {{ form_errors(form.joueurs) }}
                 {% if formes %}<p class="discret petit">Sous chaque nom : 🔥 🙂 😐 😟 et note sur 10 de la dernière semaine d'entraînement (notées dans les présences).</p>{% endif %}
+                {# Joueurs qui ont répondu « absent » : signalés dans la liste (ils ne peuvent pas jouer ; à remplacer). #}
+                {% set absents_ici = {} %}
+                {% for a in absents ?? [] %}{% set absents_ici = absents_ici|merge({('j' ~ a.joueur.id): a.motif ?: 'sans motif'}) %}{% endfor %}
                 {% for groupe, choix in form.joueurs.vars.choices %}
                     {# Groupe ouvert : celui du match, ou un groupe où des joueurs sont déjà convoqués. #}
                     {% set coches = choix.choices|filter(c => form.joueurs[c.value].vars.checked)|length %}
@@ -82,12 +85,14 @@
                         <div class="cases-joueurs">
                             {% for c in choix.choices %}
                                 {% set ailleurs = c.attr['data-ailleurs'] ?? null %}
-                                <label class="case-joueur {{ ailleurs and c.attr.disabled is defined ? 'indisponible' }}" {% if ailleurs %}title="Déjà convoqué(e) avec {{ ailleurs }}"{% endif %}>
+                                {% set absent = absents_ici['j' ~ c.value] ?? null %}
+                                <label class="case-joueur {{ (ailleurs and c.attr.disabled is defined) ? 'indisponible' }} {{ absent ? 'absent-convoc' }}" {% if ailleurs %}title="Déjà convoqué(e) avec {{ ailleurs }}"{% elseif absent %}title="A répondu absent : {{ absent }}. Il ne peut pas jouer ce match : décochez-le ou cochez un remplaçant."{% endif %}>
                                     {{ form_widget(form.joueurs[c.value]) }}
                                     {% set f = formes[c.value] ?? null %}
                                     <span class="case-joueur-nom">{{ c.label }}<small class="poste-joueur">{% if c.data.poste is defined and c.data.poste %}<span title="Poste habituel">{{ c.data.poste }}</span>{% endif %}
                                         {%- if f %} <span class="forme-sem" title="Semaine d'entraînement du {{ f.lundi }} : {{ f.libelle ?? 'forme non notée' }}{{ f.note is not null ? ', ' ~ f.note|number_format(1, ',') ~ ' / 10' }}">{{ f.icone }}{{ f.note is not null ? ' ' ~ f.note|number_format(1, ',')|replace({',0': ''}) }}</span>{% endif %}</small></span>
                                     {% if ailleurs %}<span class="pastille alerte petit">avec {{ ailleurs }}</span>{% endif %}
+                                    {% if absent %}<span class="pastille alerte petit">✗ absent · {{ absent }}</span>{% endif %}
                                 </label>
                             {% endfor %}
                         </div>

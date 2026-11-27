@@ -1616,6 +1616,9 @@ table.droits thead th.droits-nom { z-index: 3; }
     background: var(--rouge); color: var(--sur-rouge); font: inherit; font-weight: 600; cursor: pointer; text-align: left;
 }
 .case-joueur.indisponible { color: var(--gris); }
+/* A répondu « absent » à la convocation : nom barré, fond rouge pâle, motif en pastille. */
+.case-joueur.absent-convoc { background: #fdecee; border-radius: 6px; padding: .15rem .35rem; flex-wrap: wrap; }
+.case-joueur.absent-convoc .case-joueur-nom { text-decoration: line-through; color: var(--gris); }
 .niveaux-dessous { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin: 0 0 .8rem; }
 #joueurs-convoques { scroll-margin-top: 1rem; }
 .lien-discret { margin-left: .5rem; padding: 0; border: 0; background: none; font: inherit; color: var(--gris); text-decoration: underline; cursor: pointer; }
