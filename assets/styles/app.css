@@ -2838,3 +2838,6 @@ form:has(select[name$="[competition]"] option[value^="Coupe" i]:checked) .coupe-
 .espace-equipe-liste li { display: flex; align-items: center; gap: .6rem; }
 .espace-equipe-liste li > span:not(.pastille) { display: flex; flex-direction: column; }
 .espace-equipe-liste li.moi strong { color: var(--rouge-fonce); }
+
+/* Séance automatique : cases des thèmes sur deux ou trois colonnes. */
+.themes-seance { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: .4rem 1rem; margin: .4rem 0 .8rem; }

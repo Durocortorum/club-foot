@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Séance automatique{% endblock %}
+
+{% block body %}
+    <p class="lien-retour"><a href="{{ path('app_seance_index') }}">← Entraînements</a></p>
+    <h1>Préparer une séance automatique</h1>
+    <p class="discret">Dites ce que vous voulez travailler : la séance est composée avec les exercices de la bibliothèque, au niveau de l'équipe
+        (échauffement, exercices sur vos thèmes, jeu final). Vous pourrez tout modifier, puis la télécharger en PDF.</p>
+
+    <form method="post" class="formulaire" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token('seance-automatique') }}">
+        <section class="carte etape">
+            <h2>La séance</h2>
+            <div class="champs">
+                <div class="champ">
+                    <label for="categorie">Équipe</label>
+                    <select id="categorie" name="categorie">
+                        <option value="">Choisir…</option>
+                        {% for c in equipes %}<option value="{{ c.id }}" {{ c.id == saisie.categorie ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
+                    </select>
+                    {% if erreurs.categorie is defined %}<p class="erreur-champ">{{ erreurs.categorie }}</p>{% endif %}
+                </div>
+                <div class="champ">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" name="date" value="{{ saisie.date }}">
+                    {% if erreurs.date is defined %}<p class="erreur-champ">{{ erreurs.date }}</p>{% endif %}
+                </div>
+                <div class="champ">
+                    <label for="duree">Durée totale</label>
+                    <select id="duree" name="duree">
+                        {% for d in durees %}<option value="{{ d }}" {{ d == saisie.duree ? 'selected' }}>{{ d // 60 }} h{{ d % 60 ? ' ' ~ '%02d'|format(d % 60) }}</option>{% endfor %}
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section class="carte etape">
+            <h2>Ce que vous voulez travailler</h2>
+            {% if erreurs.themes is defined %}<p class="erreur-champ">{{ erreurs.themes }}</p>{% endif %}
+            <div class="themes-seance">
+                {% for cle, libelle in themes %}
+                    <label class="case-joueur"><input type="checkbox" name="themes[]" value="{{ cle }}" {{ cle in saisie.themes ? 'checked' }}> {{ libelle }}</label>
+                {% endfor %}
+            </div>
+            <p class="discret petit">Un ou deux thèmes donnent une séance plus cohérente ; avec plus, un exercice par thème.</p>
+            <div class="champ">
+                <label for="objectif">Objectif en quelques mots <span class="discret">(facultatif)</span></label>
+                <input type="text" id="objectif" name="objectif" maxlength="500" value="{{ saisie.objectif }}" placeholder="ex. Mieux ressortir le ballon de derrière avant le match de dimanche">
+            </div>
+        </section>
+
+        <div class="barre-actions">
+            <button type="submit" class="bouton principal">⚡ Préparer la séance</button>
+        </div>
+    </form>
+{% endblock %}

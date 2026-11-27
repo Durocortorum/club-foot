@@ -11,6 +11,7 @@ use App\Repository\SeanceRepository;
 use App\Security\ActiviteVoter;
 use App\Security\JoueurVoter;
 use App\Service\BibliothequeExercices;
+use App\Service\GenerateurSeance;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -86,6 +87,65 @@ class SeanceController extends AbstractController
             'titre' => 'Nouvelle séance',
             'retour' => $this->generateUrl('app_seance_index'),
         ]);
+    }
+
+    /** Séance automatique : on choisit l'équipe, la date, la durée et ce qu'on veut travailler ; la séance est composée et enregistrée. */
+    #[Route('/automatique', name: 'app_seance_automatique', methods: ['GET', 'POST'])]
+    public function automatique(Request $request, EntityManagerInterface $em, CategorieRepository $categories, GenerateurSeance $generateur): Response
+    {
+        $secteurs = $this->voter->secteursModifiables();
+        if (!$secteurs) {
+            throw $this->createAccessDeniedException();
+        }
+        $equipes = $categories->findBy(['secteur' => $secteurs], ['ordre' => 'ASC']);
+        $saisie = [
+            'categorie' => $request->query->getInt('categorie') ?: $request->getSession()->get('equipe_choisie'),
+            'date' => $request->query->getString('date') ?: (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'duree' => 75,
+            'themes' => [],
+            'objectif' => '',
+        ];
+        $erreurs = [];
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('seance-automatique', $request->getPayload()->getString('_token'))) {
+                throw $this->createAccessDeniedException();
+            }
+            $p = $request->getPayload();
+            $saisie = [
+                'categorie' => $p->getInt('categorie'),
+                'date' => $p->getString('date'),
+                'duree' => \in_array($p->getInt('duree'), GenerateurSeance::DUREES, true) ? $p->getInt('duree') : 75,
+                'themes' => array_values(array_intersect(array_keys(GenerateurSeance::THEMES), $p->all('themes'))),
+                'objectif' => mb_substr(trim($p->getString('objectif')), 0, 500),
+            ];
+            $categorie = current(array_filter($equipes, fn ($c) => $c->getId() === $saisie['categorie'])) ?: null;
+            $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $saisie['date']) ?: null;
+            if (!$categorie) {
+                $erreurs['categorie'] = 'Choisissez l\'équipe.';
+            }
+            if (!$date) {
+                $erreurs['date'] = 'Indiquez la date de la séance.';
+            }
+            if (!$saisie['themes']) {
+                $erreurs['themes'] = 'Cochez au moins une chose à travailler.';
+            }
+            if (!$erreurs) {
+                $seance = $generateur->composer($categorie, $date, $saisie['duree'], $saisie['themes'], $saisie['objectif'] ?: null);
+                $em->persist($seance);
+                $em->flush();
+                $this->addFlash('succes', \sprintf('Séance de %d minutes préparée : %d exercices. Modifiez ce que vous voulez, puis « Télécharger en PDF » pour l\'emporter au terrain.', $saisie['duree'], $seance->getExercices()->count()));
+
+                return $this->redirectToRoute('app_seance_voir', ['id' => $seance->getId()]);
+            }
+        }
+
+        return $this->render('seance/automatique.html.twig', [
+            'equipes' => $equipes,
+            'saisie' => $saisie,
+            'erreurs' => $erreurs,
+            'themes' => GenerateurSeance::THEMES,
+            'durees' => GenerateurSeance::DUREES,
+        ], new Response(null, $erreurs ? 422 : 200));
     }
 
     #[Route('/bibliotheque', name: 'app_bibliotheque', methods: ['GET'])]

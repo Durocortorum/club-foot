@@ -14,6 +14,7 @@
         {% if peut_creer %}
                 <a class="bouton doublon-barre" href="{{ path('app_planning') }}">Planning et absences</a>
                 <a class="bouton doublon-barre" href="{{ path('app_bibliotheque') }}">Bibliothèque d'exercices</a>
+                <a class="bouton principal" href="{{ path('app_seance_automatique', filtres.categorie ? {categorie: filtres.categorie} : {}) }}" title="Choisissez ce que vous voulez travailler : la séance est composée toute seule">⚡ Séance automatique</a>
                 <a class="bouton principal" href="{{ path('app_seance_nouvelle') }}">+ Nouvelle séance</a>
         {% endif %}
         </span>

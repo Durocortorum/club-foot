@@ -16,7 +16,7 @@
             </p>
         </div>
         <div class="actions sans-impression">
-            <button type="button" class="bouton" onclick="window.print()">Imprimer</button>
+            <button type="button" class="bouton principal" onclick="window.print()" title="Imprimer, ou choisir « Enregistrer au format PDF » comme imprimante pour télécharger la séance">⬇ Télécharger en PDF / Imprimer</button>
             <form method="post" action="{{ path('app_seance_dupliquer', {id: seance.id}) }}" class="en-ligne">
                 <input type="hidden" name="_token" value="{{ csrf_token('dupliquer-seance' ~ seance.id) }}">
                 <button class="bouton" title="Créer une nouvelle séance avec les mêmes exercices">Dupliquer</button>
