@@ -1539,6 +1539,11 @@ table.droits thead th.droits-nom { z-index: 3; }
 /* Statistiques de l'espace famille : choix de la période à droite du titre. */
 .statistiques-famille .titre-page { margin-bottom: .6rem; }
 .statistiques-famille .titre-page h3 { margin: 0; }
+/* Espace famille : une carte par rubrique (état de forme, effort ressenti, convocations…), titre souligné. */
+.espace-rubrique { margin-top: .9rem; scroll-margin-top: 1rem; }
+.espace-rubrique > h3:first-child, .espace-rubrique > .statistiques-famille > .titre-page:first-child { margin: 0 0 .9rem; padding-bottom: .6rem; border-bottom: 2px solid var(--bordure); }
+.espace-rubrique > h3:first-child { font-size: 1.08rem; }
+.espace-rubrique > .ressenti-saisie:last-of-type, .espace-rubrique > .convocation-famille:last-child { border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
 .statistiques-famille select { width: auto; }
 
 /* Lignes masquées par le choix de la période (les fiches sur téléphone sont en display: flex). */

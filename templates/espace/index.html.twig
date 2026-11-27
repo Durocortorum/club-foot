@@ -67,6 +67,8 @@
             {# Cotisation de la saison : payable en ligne (HelloAsso) quand le club a l'option. #}
             {% set co = e.cotisation %}
             {% if co and co.du > 0 %}
+                </section>
+                <section class="carte espace-rubrique">
                 <h3 id="cotisation-{{ j.id }}">Cotisation {{ co.saison }}</h3>
                 <div class="cotisation-famille">
                     <span class="montants">
@@ -97,6 +99,8 @@
 
             {% if e.stages %}
                 {% import 'stage/_resume.html.twig' as resume_stage %}
+                </section>
+                <section class="carte espace-rubrique">
                 <h3 id="stages-{{ j.id }}">Stages</h3>
                 {% for s in e.stages %}
                     {% set inscrit = s.inscription(j) %}
@@ -139,6 +143,8 @@
             {% endif %}
 
             {% if e.taches %}
+                </section>
+                <section class="carte espace-rubrique">
                 <h3 id="taches">Tâches confiées à {{ j.prenom }}</h3>
                 <ul class="liste-taches">
                     {% for t in e.taches %}
@@ -163,6 +169,8 @@
             {# Amendes de discipline : celles à payer, et celles payées depuis le début de la saison. #}
             {% if e.amendes %}
                 {% set a_payer = e.amendes|filter(s => s.amendeAPayer) %}
+                </section>
+                <section class="carte espace-rubrique">
                 <h3 id="amendes-{{ j.id }}">Amendes{% if a_payer %} <span class="pastille alerte">{{ a_payer|reduce((t, s) => t + s.amende, 0)|number_format(2, ',', ' ') }} € à payer</span>{% endif %}</h3>
                 <ul class="liste-simple">
                     {% for s in e.amendes %}
@@ -178,6 +186,8 @@
 
             {# État de forme du jour : fatigue, sommeil, douleurs, motivation (0 à 10), corrigeable le jour même. #}
             {% set ef = e.etat_forme %}
+            </section>
+            <section class="carte espace-rubrique">
             <h3 id="etat-forme-{{ j.id }}">État de forme du jour{% if ef %} <span class="etat-forme {{ ef.etat }}">{{ ef.etatLibelle }}</span>{% endif %}</h3>
             <details class="etat-forme-bloc" {{ ef ? '' : 'open' }}>
                 <summary class="petit">{{ ef ? 'Renseigné à ' ~ ef.saisiLe|date('H:i', 'Europe/Paris') ~ ' — modifier' : (j.mineur ? 'Comment va ' ~ j.prenom ~ ' aujourd\'hui ?' : 'Comment allez-vous aujourd\'hui ?') ~ ' (quelques secondes)' }}</summary>
@@ -202,6 +212,8 @@
 
             {# Autoévaluation : effort ressenti après les séances des derniers jours (RPE de 1 à 10). #}
             {% if e.a_noter or e.ressentis %}
+                </section>
+                <section class="carte espace-rubrique">
                 <h3 id="ressenti-{{ j.id }}">Effort ressenti</h3>
                 {% for s in e.a_noter %}
                     {% set est_match = s.adversaire is defined %}
@@ -231,6 +243,8 @@
             {% endif %}
 
             {% if e.convocations %}
+                </section>
+                <section class="carte espace-rubrique">
                 <h3 id="convocations-{{ j.id }}">Convocations</h3>
                 {% for c in e.convocations %}
                     {% set cv = c.convocation %}
@@ -270,6 +284,8 @@
             {% endif %}
 
             {% if e.entrainements %}
+                </section>
+                <section class="carte espace-rubrique">
                 <h3 id="entrainements-{{ j.id }}">Prochains entraînements</h3>
                 <p class="discret petit">{{ j.mineur ? j.prenom ~ ' est attendu(e)' : 'Vous êtes attendu(e)' }} à chaque entraînement : signalez seulement une absence.</p>
                 <ul class="liste-simple">
@@ -307,6 +323,8 @@
                 </ul>
             {% endif %}
 
+            </section>
+            <section class="carte espace-rubrique">
             <h3>Prochains matchs</h3>
             {% if e.matchs %}
                 <ul class="liste-simple">
@@ -323,6 +341,8 @@
             {% endif %}
 
             {% if e.objectifs %}
+                </section>
+                <section class="carte espace-rubrique">
                 <h3>🎯 Objectifs de la saison</h3>
                 {% for o in e.objectifs %}
                     <div class="objectif {{ o.atteint ? 'atteint' }}">
@@ -339,6 +359,8 @@
 
             {% if e.stats %}
                 {# Statistiques : on choisit la période, toute la carrière ou une saison (periode_controller.js). #}
+                </section>
+                <section class="carte espace-rubrique">
                 <div class="statistiques-famille" data-controller="periode">
                     <div class="titre-page">
                         <h3 id="statistiques-{{ j.id }}">Statistiques</h3>
@@ -390,6 +412,8 @@
             {% endif %}
 
             {% if e.proches is not null %}
+                </section>
+                <section class="carte espace-rubrique">
                 <h3 id="proches-titre-{{ j.id }}">Personnes à contacter</h3>
                 <p class="discret petit">
                     Vous êtes majeur(e) : vous indiquez ici qui le club peut contacter (parent, conjoint(e), proche…),
