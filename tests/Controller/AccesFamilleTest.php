@@ -135,6 +135,23 @@ class AccesFamilleTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Tom');
         self::assertSelectorTextContains('main', 'ADVERSAIRE FC');
         self::assertSelectorNotExists('a[href="/joueurs"]');
+        // Accueil « Mon espace » : une carte par enfant et ses rubriques (convocations, classement, calendrier, équipe).
+        $crawler = $this->client->getCrawler();
+        self::assertCount(2, $crawler->filter('.espace-joueur'));
+        $premier = $crawler->filter('.espace-menu')->first();
+        self::assertCount(1, $premier->filter('.espace-carte:contains("Convocations")'));
+        self::assertCount(0, $premier->filter('.espace-carte:contains("Statistiques"), .espace-carte:contains("Calendrier")'), 'pas de doublon avec la barre du bas');
+        self::assertCount(1, $crawler->filter('.espace-menu')->eq(1)->filter('.espace-carte:contains("Statistiques")'), 'carte Statistiques pour le deuxième enfant');
+        // Pages « Classement » et « Mon équipe » de ses enfants seulement.
+        $this->client->request('GET', '/espace/equipe/' . $lea->getId());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', 'Léa');
+        $this->client->request('GET', '/espace/classement/' . $lea->getId());
+        self::assertResponseIsSuccessful();
+        $autre = $this->joueur($this->em()->find(Club::class, $club->getId()), $this->em()->find(Categorie::class, $categorie->getId()), 'Autre', null, null);
+        $this->em()->flush();
+        $this->client->request('GET', '/espace/equipe/' . $autre->getId());
+        self::assertResponseStatusCodeSame(404, 'pas l\'équipe d\'un joueur qui n\'est pas le sien');
 
         // --- Cloisonnement : aucune page de l'encadrement.
         foreach (['/joueurs', '/joueurs/' . $lea->getId(), '/matchs', '/statistiques', '/presences', '/utilisateurs', '/familles'] as $page) {

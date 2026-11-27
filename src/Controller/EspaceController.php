@@ -75,6 +75,7 @@ class EspaceController extends AbstractController
         TableauTactiqueRepository $tactiques,
         ObjectifJoueurRepository $objectifs,
         EtatFormeRepository $etatsForme,
+        \App\Service\ClassementEquipe $classementEquipe,
     ): Response
     {
         /** @var Utilisateur $moi */
@@ -117,10 +118,27 @@ class EspaceController extends AbstractController
         [$debutSaison] = Rencontre::bornesSaison(Rencontre::saisonDe(new \DateTimeImmutable('today')));
         $paiementEnLigne = $paiementsEnLigne->connexion($moi->getClub());
         $enfants = [];
+        $saisonEnCours = Rencontre::saisonDe(new \DateTimeImmutable('today'));
         foreach ($moi->getJoueurs() as $j) {
             $mesConvocations = $convocations[$j->getId()] ?? [];
             $convoquesA = array_map(fn (Convoque $c) => $c->getConvocation()->getRencontre(), $mesConvocations);
+            $stats = $proches->voitStatistiques($moi, $j) ? self::statistiques($j, $bilan, $participations, $presences) : null;
+            // Accueil « Mon espace » : numéro de maillot du dernier match, chiffres de la saison, place au classement.
+            $numero = null;
+            foreach ($stats['matchs'] ?? [] as $p) {
+                if ($p->getNumero()) {
+                    $numero = $p->getNumero();
+                    break;
+                }
+            }
+            $classement = $j->getCategorie() ? $classementEquipe->pourEquipe($j->getCategorie(), $saisonEnCours) : null;
             $enfants[] = [
+                'accueil' => [
+                    'numero' => $numero,
+                    'saison' => $stats['periodes'][$saisonEnCours] ?? null,
+                    'rang' => $classement['rang'] ?? null,
+                    'equipes_classees' => $classement ? \count($classement['lignes']) : 0,
+                ],
                 'joueur' => $j,
                 'convocations' => $mesConvocations,
                 'taches' => $tachesParJoueur[$j->getId()] ?? [],
@@ -134,7 +152,7 @@ class EspaceController extends AbstractController
                 // Joueur majeur connecté avec son propre compte : ses personnes à contacter, et l'accès qu'il leur donne.
                 'proches' => $acces->decideAccesParents($moi, $j) ? $proches->avecAcces($j) : null,
                 // Statistiques : joueur mineur et ses parents ; joueur majeur et les contacts qu'il autorise.
-                'stats' => $proches->voitStatistiques($moi, $j) ? self::statistiques($j, $bilan, $participations, $presences) : null,
+                'stats' => $stats,
                 // État de forme du jour (fatigue, sommeil, douleurs, motivation), déjà renseigné ou à renseigner.
                 'etat_forme' => $etatsForme->duJour($j, new \DateTimeImmutable('today')),
                 // Objectifs de progression de la saison (mêmes personnes que les statistiques).
@@ -167,6 +185,47 @@ class EspaceController extends AbstractController
             'echelle_rpe' => Ressenti::ECHELLE,
             'echeances_max' => $paiementEnLigne?->getEcheancesMax() ?? 1,
             'paiement_en_ligne' => null !== $paiementEnLigne,
+        ]);
+    }
+
+    /** Joueur du compte connecté (son enfant, ou lui-même), sinon page introuvable. */
+    private function monJoueur(int $id): \App\Entity\Joueur
+    {
+        /** @var Utilisateur $moi */
+        $moi = $this->getUser();
+        foreach ($moi->getJoueurs() as $j) {
+            if ($j->getId() === $id) {
+                return $j;
+            }
+        }
+        throw $this->createNotFoundException();
+    }
+
+    /** Classement de la poule de l'équipe du joueur, saison en cours (comme sur la fiche d'un match). */
+    #[Route('/espace/classement/{joueur}', name: 'app_espace_classement', requirements: ['joueur' => '\d+'], methods: ['GET'])]
+    public function classement(int $joueur, \App\Service\ClassementEquipe $classementEquipe): Response
+    {
+        $j = $this->monJoueur($joueur);
+        $saison = Rencontre::saisonDe(new \DateTimeImmutable('today'));
+
+        return $this->render('espace/classement.html.twig', [
+            'joueur' => $j,
+            'saison' => $saison,
+            'classement' => $j->getCategorie() ? $classementEquipe->pourEquipe($j->getCategorie(), $saison) : null,
+        ]);
+    }
+
+    /** Mon équipe : coéquipiers (numéro du dernier match, poste) et éducateurs de l'équipe. */
+    #[Route('/espace/equipe/{joueur}', name: 'app_espace_equipe', requirements: ['joueur' => '\d+'], methods: ['GET'])]
+    public function equipe(int $joueur, \App\Repository\JoueurRepository $joueurs, \App\Service\ResponsablesMatchs $responsables): Response
+    {
+        $j = $this->monJoueur($joueur);
+        $categorie = $j->getCategorie();
+
+        return $this->render('espace/equipe.html.twig', [
+            'joueur' => $j,
+            'effectif' => $categorie ? $joueurs->findBy(['categorie' => $categorie, 'ancien' => false], ['nom' => 'ASC', 'prenom' => 'ASC']) : [],
+            'educateurs' => $categorie ? $responsables->educateursDe($categorie) : [],
         ]);
     }
 

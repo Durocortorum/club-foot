@@ -1,7 +1,7 @@
 {#
     Barre principale sur téléphone (fixée en bas, même dessin pour tous) : quatre raccourcis selon le compte, puis
     « Plus » qui ouvre le reste du menu et le compte au-dessus de la barre (à la place du bouton « Menu »).
-    Encadrement : Accueil, Stats, Calendrier, Messagerie ; famille et joueur : Accueil, Calendrier, Boutique, Messages ;
+    Encadrement : Accueil, Stats, Calendrier, Messagerie ; famille et joueur : Accueil, Stats, Calendrier, Messages ;
     compte médical seul : Infirmerie, Dossiers, Messages.
 #}
 {% import 'commun/_icones.html.twig' as i %}
@@ -14,10 +14,12 @@
         {url: path('app_message_index'), icone: 'messages', libelle: 'Messages', actif: route starts with 'app_message', messages: true},
     ] %}
 {% elseif not is_granted('ROLE_ENCADREMENT') %}
+    {# Stats : statistiques du (premier) joueur du compte, sur l'accueil ; la boutique est dans « Plus ». #}
+    {% set premier = app.user.joueurs|first %}
     {% set raccourcis = [
         {url: path('app_espace'), icone: 'accueil', libelle: 'Accueil', actif: route == 'app_espace'},
+        premier ? {url: path('app_espace') ~ '#statistiques-' ~ premier.id, icone: 'stats', libelle: 'Stats', actif: false} : null,
         {url: path('app_espace_calendrier'), icone: 'calendrier', libelle: 'Calendrier', actif: route == 'app_espace_calendrier'},
-        boutique_ouverte() ? {url: path('app_espace_boutique'), icone: 'boutique', libelle: 'Boutique', actif: route starts with 'app_espace_boutique'} : null,
         {url: path('app_espace_messages'), icone: 'messages', libelle: 'Messages', actif: route starts with 'app_espace_message', messages: true},
     ] %}
 {% else %}

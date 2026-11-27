@@ -2781,3 +2781,43 @@ form:has(select[name$="[competition]"] option[value^="Coupe" i]:checked) .coupe-
 .classement-compact td:first-child { font-weight: 700; color: var(--gris); }
 /* Équipe choisie dans le filtre, rappelée dans le titre de la page (Matchs · U19). */
 .equipe-titre { display: inline-block; vertical-align: middle; margin-left: .2rem; padding: .1rem .6rem; border-radius: 8px; background: var(--rouge); color: var(--sur-rouge); font-size: .7em; font-weight: 700; }
+
+/* Espace famille et joueur : accueil « Mon espace » (carte du joueur, chiffres de la saison, rubriques en cartes). */
+.espace-joueur { margin: 0 0 1rem; padding: 1.1rem; border-radius: 18px; color: #fff;
+    background: radial-gradient(circle at 85% 0%, color-mix(in srgb, var(--rouge) 45%, #0f1626) 0%, #0f1626 65%); box-shadow: 0 10px 28px rgb(15 22 38 / .25); }
+.espace-joueur-tete { display: flex; align-items: center; gap: .8rem; }
+.espace-joueur-tete .avatar { width: 3.6rem; height: 3.6rem; font-size: 1.2rem; border: 2px solid rgb(255 255 255 / .6); }
+.espace-joueur-titre { margin: 0; font-weight: 800; font-size: 1.05rem; }
+.espace-joueur-equipe { margin: 0; color: #c9cdd6; font-size: .9rem; }
+.espace-joueur-identite { display: flex; align-items: center; gap: .8rem; margin: 1rem 0 .9rem; }
+.espace-joueur-identite h2 { margin: 0; color: #fff; font-size: 1.3rem; }
+.espace-joueur-identite p { margin: .1rem 0 0; color: #c9cdd6; font-size: .9rem; }
+.espace-numero { padding: .35rem .6rem; border-radius: 8px; background: var(--rouge); color: var(--sur-rouge); font-weight: 800; }
+.espace-chiffres { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: 14px; background: rgb(255 255 255 / .07); }
+.espace-chiffres > div { display: flex; flex-direction: column; align-items: center; gap: .15rem; padding: .7rem .3rem; text-align: center; }
+.espace-chiffres > div + div { border-left: 1px solid rgb(255 255 255 / .1); }
+.espace-chiffres .icone-barre { width: 1.5rem; height: 1.5rem; color: #6aa8ff; }
+.espace-chiffres strong { font-size: 1.4rem; line-height: 1.1; }
+.espace-chiffres span { color: #c9cdd6; font-size: .8rem; }
+.espace-menu { display: grid; gap: .6rem; margin: 0 0 1.4rem; }
+.espace-carte { display: flex; align-items: center; gap: .8rem; padding: .8rem .9rem; border-radius: 14px; background: #fff; border: 1px solid var(--bordure);
+    box-shadow: var(--ombre); color: var(--encre); text-decoration: none; }
+.espace-carte:hover { text-decoration: none; border-color: var(--rouge); }
+.espace-carte-icone { flex: none; display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 10px; }
+.espace-carte-icone .icone-barre { width: 1.5rem; height: 1.5rem; }
+.espace-carte-icone.bleu { background: #e8f0fe; color: #1f5fd1; }
+.espace-carte-icone.vert { background: #e6f4ea; color: var(--succes); }
+.espace-carte-icone.or { background: #fff4d6; color: #c98a00; }
+.espace-carte-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.espace-carte-texte span { color: var(--gris); font-size: .85rem; }
+.espace-carte-fleche { color: var(--gris); font-size: 1.6rem; line-height: 1; }
+.espace-statut { flex: none; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; color: #fff; font-weight: 800; font-size: .85rem; }
+.espace-statut.present { background: var(--succes); }
+.espace-statut.absent { background: var(--danger); }
+.espace-statut.attente { background: #f0a500; }
+@media (min-width: 760px) { .espace-menu { grid-template-columns: 1fr 1fr; } }
+.espace-equipe-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.espace-equipe-liste.deux-colonnes { grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); }
+.espace-equipe-liste li { display: flex; align-items: center; gap: .6rem; }
+.espace-equipe-liste li > span:not(.pastille) { display: flex; flex-direction: column; }
+.espace-equipe-liste li.moi strong { color: var(--rouge-fonce); }

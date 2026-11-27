@@ -1,0 +1,67 @@
+{#
+    Accueil « Mon espace » d'un joueur (maquette « Mon Espace Joueur ») : carte du joueur (photo, nom, numéro, poste,
+    équipe, chiffres de la saison), puis les rubriques en grandes cartes : convocations, statistiques, classement,
+    calendrier, mon équipe. Variables : e (enfant de EspaceController::index), premier_enfant (le premier du compte).
+#}
+{% import 'commun/_macros.html.twig' as m %}
+{% import 'commun/_icones.html.twig' as i %}
+{% set j = e.joueur %}
+{% set a = e.accueil %}
+<section class="espace-joueur">
+    <div class="espace-joueur-tete">
+        {{ m.avatar(j, 'grand') }}
+        <div>
+            <p class="espace-joueur-titre">{{ not j.mineur ? 'Mon espace joueur' : 'Espace de ' ~ j.prenom }}</p>
+            <p class="espace-joueur-equipe">{{ j.categorie ?? 'Sans équipe' }}</p>
+        </div>
+    </div>
+    <div class="espace-joueur-identite">
+        {% if a.numero %}<span class="espace-numero">N°{{ a.numero }}</span>{% endif %}
+        <div>
+            <h2>{{ j.prenom }} {{ j.nom|capitalize }}</h2>
+            {% if j.poste %}<p>{{ j.poste }}</p>{% endif %}
+        </div>
+    </div>
+    {% if a.saison %}
+        <div class="espace-chiffres">
+            <div>{{ i.icone('synthese') }}<strong>{{ a.saison.matchs }}</strong><span>{{ accord(a.saison.matchs, 'match', 'matchs') }}</span></div>
+            <div>{{ i.icone('ballon') }}<strong>{{ a.saison.buts }}</strong><span>{{ accord(a.saison.buts, 'but') }}</span></div>
+            <div>{{ i.icone('operations') }}<strong>{{ a.saison.passes }}</strong><span>{{ a.saison.passes > 1 ? 'Passes déc.' : 'Passe déc.' }}</span></div>
+        </div>
+    {% endif %}
+</section>
+
+{% set prochaine = e.convocations|first %}
+<nav class="espace-menu" aria-label="Rubriques de {{ j.prenom }}">
+    <a href="#convocations-{{ j.id }}" class="espace-carte">
+        <span class="espace-carte-icone vert">{{ i.icone('planning') }}</span>
+        <span class="espace-carte-texte"><strong>Convocations</strong>
+            <span>{% if prochaine %}{% set r = prochaine.convocation.rencontre %}Prochain match : {{ ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'][r.date|date('w')] }} {{ r.date|date('d/m') }}{% else %}Aucune convocation pour l'instant{% endif %}</span></span>
+        {% if prochaine and prochaine.reponse %}<span class="espace-statut {{ prochaine.reponse }}" title="Réponse donnée : {{ prochaine.reponse == 'present' ? 'présent' : 'absent' }}">{{ prochaine.reponse == 'present' ? '✓' : '✗' }}</span>
+        {% elseif prochaine %}<span class="espace-statut attente" title="Réponse attendue">!</span>{% endif %}
+        <span class="espace-carte-fleche" aria-hidden="true">›</span>
+    </a>
+    {# Statistiques et calendrier sont dans la barre du bas ; la carte Statistiques reste pour les enfants suivants
+       (le bouton Stats de la barre mène à celles du premier). #}
+    {% if e.stats and not premier_enfant %}
+        <a href="#statistiques-{{ j.id }}" class="espace-carte">
+            <span class="espace-carte-icone bleu">{{ i.icone('stats') }}</span>
+            <span class="espace-carte-texte"><strong>{{ not j.mineur ? 'Mes statistiques' : 'Statistiques' }}</strong><span>Buts, passes, temps de jeu…</span></span>
+            <span class="espace-carte-fleche" aria-hidden="true">›</span>
+        </a>
+    {% endif %}
+    {% if j.categorie and not j.categorie.plateaux %}
+        <a href="{{ path('app_espace_classement', {joueur: j.id}) }}" class="espace-carte">
+            <span class="espace-carte-icone or">{{ i.icone('trophee') }}</span>
+            <span class="espace-carte-texte"><strong>Classement</strong><span>{% if a.rang %}{{ a.rang }}<sup>{{ a.rang == 1 ? 'er' : 'e' }}</sup> sur {{ a.equipes_classees }} · points, résultats{% else %}Position de l'équipe, points…{% endif %}</span></span>
+            <span class="espace-carte-fleche" aria-hidden="true">›</span>
+        </a>
+    {% endif %}
+    {% if j.categorie %}
+        <a href="{{ path('app_espace_equipe', {joueur: j.id}) }}" class="espace-carte">
+            <span class="espace-carte-icone bleu">{{ i.icone('joueurs') }}</span>
+            <span class="espace-carte-texte"><strong>Mon équipe</strong><span>Effectif, éducateurs…</span></span>
+            <span class="espace-carte-fleche" aria-hidden="true">›</span>
+        </a>
+    {% endif %}
+</nav>

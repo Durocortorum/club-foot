@@ -10,7 +10,7 @@
                 <span class="classement-evolution {{ c.rang < c.rang_avant ? 'monte' : 'descend' }}">{{ c.rang < c.rang_avant ? '▲' : '▼' }} {{ (c.rang - c.rang_avant)|abs }} place{{ (c.rang - c.rang_avant)|abs > 1 ? 's' }} avec ce match</span>
             {% elseif c.rang and c.rang_avant %}<span class="classement-evolution">= même place après ce match</span>{% endif %}
         </h2>
-        <a class="petit" href="{{ path('app_championnat', {categorie: categorie.id, saison: saison}) }}">Tout le championnat →</a>
+        {% if lien_championnat ?? true %}<a class="petit" href="{{ path('app_championnat', {categorie: categorie.id, saison: saison}) }}">Tout le championnat →</a>{% endif %}
     </div>
     <div class="table-defile">
         <table class="liste chiffres classement-compact">

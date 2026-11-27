@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Mon équipe · {{ joueur.categorie }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_espace'), 'Mon espace') }}
+    <div class="titre-page">
+        <h1>Mon équipe <span class="equipe-titre">{{ joueur.categorie }}</span></h1>
+        <a class="bouton" href="{{ path('app_espace_messages') }}">✉️ Écrire à l'éducateur</a>
+    </div>
+
+    <section class="carte bloc">
+        <h2>Éducateurs</h2>
+        {% if educateurs %}
+            <ul class="espace-equipe-liste">
+                {% for ed in educateurs %}
+                    <li>{{ m.avatar(ed, 'mini') }} <span><strong>{{ ed.prenom }} {{ ed.nom }}</strong>{% if ed.fonction %}<span class="discret petit">{{ ed.fonction }}</span>{% endif %}</span></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="discret">Pas encore d'éducateur renseigné pour cette équipe.</p>
+        {% endif %}
+    </section>
+
+    <section class="carte bloc">
+        <h2>Effectif <span class="compteur">{{ effectif|length }}</span></h2>
+        <ul class="espace-equipe-liste deux-colonnes">
+            {% for co in effectif %}
+                <li class="{{ co == joueur ? 'moi' }}">{{ m.avatar(co, 'mini') }} <span><strong>{{ co.prenom }} {{ co.nom }}</strong>{% if co.poste %}<span class="discret petit">{{ co.poste }}</span>{% endif %}</span>{% if co == joueur %} <span class="pastille">{{ joueur.mineur ? joueur.prenom : 'moi' }}</span>{% endif %}</li>
+            {% endfor %}
+        </ul>
+    </section>
+{% endblock %}

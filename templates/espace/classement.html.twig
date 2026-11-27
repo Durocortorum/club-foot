@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+{% import 'commun/_macros.html.twig' as m %}
+
+{% block title %}Classement · {{ joueur.categorie }}{% endblock %}
+
+{% block body %}
+    {{ m.retour(path('app_espace'), 'Mon espace') }}
+    <div class="titre-page">
+        <h1>Classement <span class="equipe-titre">{{ joueur.categorie }}</span></h1>
+        <span class="pastille">Saison {{ saison }}</span>
+    </div>
+    {% if classement %}
+        {{ include('rencontre/_classement.html.twig', {c: classement, categorie: joueur.categorie, saison: saison, lien_championnat: false}) }}
+    {% else %}
+        <p class="carte vide">Pas encore de classement pour l'équipe {{ joueur.categorie }} cette saison : l'éducateur le met à jour depuis la FFF.</p>
+    {% endif %}
+{% endblock %}

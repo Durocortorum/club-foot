@@ -83,7 +83,7 @@ class PhaseUnFamillesTest extends WebTestCase
         $client->loginUser($parent);
         $crawler = $client->request('GET', '/espace');
         self::assertStringContainsString('🚌 Car de société · départ 12h30, parking du stade', $crawler->filter('.convocation-famille')->text());
-        $crawler = $client->click($crawler->selectLink('📅 Calendrier du mois')->link());
+        $crawler = $client->click($crawler->selectLink('Calendrier')->link());
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('nav a[href="/espace/calendrier"].actif');
         $cal = $crawler->filter('.cal-match.convoque');

@@ -15,10 +15,10 @@
         </a>
     {% endfor %}
     {% set non_lus = messages_non_lus() %}
-    <p class="actions">
-        <a class="bouton" href="{{ path('app_espace_calendrier') }}">📅 Calendrier du mois</a>
-        {% if non_lus %}<a class="bouton" href="{{ path('app_espace_messages') }}">{{ non_lus }} {{ accord(non_lus, 'message') }} non {{ accord(non_lus, 'lu') }}</a>{% endif %}
-    </p>
+    {% if non_lus %}<p class="actions">{% if non_lus %}<a class="bouton" href="{{ path('app_espace_messages') }}">{{ non_lus }} {{ accord(non_lus, 'message') }} non {{ accord(non_lus, 'lu') }}</a>{% endif %}</p>{% endif %}
+
+    {# Accueil « Mon espace » : carte de chaque joueur et ses rubriques en grandes cartes (le détail suit plus bas). #}
+    {% for e in enfants %}{{ include('espace/_accueil_joueur.html.twig', {e: e, premier_enfant: loop.first}) }}{% endfor %}
 
     {% include 'commun/_notifications.html.twig' %}
 
@@ -221,7 +221,7 @@
             {% endif %}
 
             {% if e.convocations %}
-                <h3>Convocations</h3>
+                <h3 id="convocations-{{ j.id }}">Convocations</h3>
                 {% for c in e.convocations %}
                     {% set cv = c.convocation %}
                     {% set r = cv.rencontre %}
